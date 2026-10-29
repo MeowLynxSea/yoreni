@@ -223,7 +223,9 @@
     "selected": "선택한 파일: {{path}}",
     "hint": "파일 참조를 선택하여 콜백을 실행해 보세요."
   },
-  "media": { "study": "색상 연습 {{count}}" },
+  "media": {
+    "study": "색상 연습 {{count}}"
+  },
   "imageGallery": {
     "title": "이미지 썸네일",
     "description": "여러 이미지 레이아웃, 썸네일 선택, 추가 이미지 표시입니다.",

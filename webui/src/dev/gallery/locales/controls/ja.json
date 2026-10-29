@@ -223,7 +223,9 @@
     "selected": "選択したファイル：{{path}}",
     "hint": "ファイル参照を選択してコールバックを試してください。"
   },
-  "media": { "study": "色彩練習 {{count}}" },
+  "media": {
+    "study": "色彩練習 {{count}}"
+  },
   "imageGallery": {
     "title": "画像サムネイル",
     "description": "複数画像の配置、サムネイルの選択、追加画像の表示。",

@@ -223,7 +223,9 @@
     "selected": "Archivo seleccionado: {{path}}",
     "hint": "Selecciona una referencia de archivo para probar su función de retorno."
   },
-  "media": { "study": "Estudio de color {{count}}" },
+  "media": {
+    "study": "Estudio de color {{count}}"
+  },
   "imageGallery": {
     "title": "Miniaturas de imágenes",
     "description": "Diseño de varias imágenes, selección de miniaturas e imágenes adicionales.",

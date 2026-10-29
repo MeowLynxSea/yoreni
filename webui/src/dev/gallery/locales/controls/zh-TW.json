@@ -223,7 +223,9 @@
     "selected": "已選檔案：{{path}}",
     "hint": "選取檔案參照以體驗其回呼。"
   },
-  "media": { "study": "色彩練習 {{count}}" },
+  "media": {
+    "study": "色彩練習 {{count}}"
+  },
   "imageGallery": {
     "title": "圖片縮圖",
     "description": "多圖配置、縮圖選取與更多圖片。",

@@ -223,7 +223,9 @@
     "selected": "Fichier sélectionné : {{path}}",
     "hint": "Sélectionnez une référence de fichier pour essayer son rappel."
   },
-  "media": { "study": "Étude de couleur {{count}}" },
+  "media": {
+    "study": "Étude de couleur {{count}}"
+  },
   "imageGallery": {
     "title": "Miniatures d’images",
     "description": "Disposition multi-image, sélection des miniatures et images supplémentaires.",

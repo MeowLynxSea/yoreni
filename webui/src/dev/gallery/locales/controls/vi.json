@@ -223,7 +223,9 @@
     "selected": "Tệp đã chọn: {{path}}",
     "hint": "Chọn một tham chiếu tệp để thử hàm gọi lại."
   },
-  "media": { "study": "Bài tập màu sắc {{count}}" },
+  "media": {
+    "study": "Bài tập màu sắc {{count}}"
+  },
   "imageGallery": {
     "title": "Ảnh thu nhỏ",
     "description": "Bố cục nhiều ảnh, chọn ảnh thu nhỏ và hiển thị ảnh bổ sung.",

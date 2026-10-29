@@ -223,7 +223,9 @@
     "selected": "Berkas dipilih: {{path}}",
     "hint": "Pilih referensi berkas untuk mencoba callback-nya."
   },
-  "media": { "study": "Studi warna {{count}}" },
+  "media": {
+    "study": "Studi warna {{count}}"
+  },
   "imageGallery": {
     "title": "Gambar mini",
     "description": "Tata letak banyak gambar, pemilihan gambar mini, dan gambar tambahan.",

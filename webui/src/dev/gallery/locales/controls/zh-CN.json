@@ -223,7 +223,9 @@
     "selected": "已选文件：{{path}}",
     "hint": "选择文件引用以体验其回调。"
   },
-  "media": { "study": "色彩练习 {{count}}" },
+  "media": {
+    "study": "色彩练习 {{count}}"
+  },
   "imageGallery": {
     "title": "图片缩略图",
     "description": "多图布局、缩略图选择与更多图片。",

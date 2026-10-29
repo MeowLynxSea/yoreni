@@ -223,7 +223,9 @@
     "selected": "Arquivo selecionado: {{path}}",
     "hint": "Selecione uma referência de arquivo para testar seu callback."
   },
-  "media": { "study": "Estudo de cor {{count}}" },
+  "media": {
+    "study": "Estudo de cor {{count}}"
+  },
   "imageGallery": {
     "title": "Miniaturas de imagens",
     "description": "Layout de várias imagens, seleção de miniaturas e imagens adicionais.",

@@ -223,7 +223,9 @@
     "selected": "Selected file: {{path}}",
     "hint": "Select a file reference to exercise its callback."
   },
-  "media": { "study": "Color study {{count}}" },
+  "media": {
+    "study": "Color study {{count}}"
+  },
   "imageGallery": {
     "title": "Image thumbnails",
     "description": "Multi-image layout, thumbnail selection and overflow.",

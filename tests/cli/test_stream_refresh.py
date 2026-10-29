@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from nanobot.cli import stream
+from yoreni.cli import stream
 
 
 @pytest.fixture(autouse=True)

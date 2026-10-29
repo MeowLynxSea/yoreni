@@ -12,9 +12,10 @@ from sigstore.models import Bundle, TrustedRoot
 from sigstore.verify import Verifier
 from sigstore.verify.policy import Identity
 
-from nanobot import release_feed, release_trust
-from nanobot.release_feed import CATALOGUE_URL, PYPI_URL, ReleaseFeed, ReleaseFeedError
-from nanobot.releases import (
+from scripts.verify_release_approval import verify_manifest
+from yoreni import release_feed, release_trust
+from yoreni.release_feed import CATALOGUE_URL, PYPI_URL, ReleaseFeed, ReleaseFeedError
+from yoreni.releases import (
     RELEASE_DOWNLOAD,
     ReleaseArtifact,
     ReleaseCatalogue,
@@ -22,7 +23,6 @@ from nanobot.releases import (
     ReleasePointer,
     release_filenames,
 )
-from scripts.verify_release_approval import verify_manifest
 
 
 @pytest.fixture
@@ -79,7 +79,7 @@ def test_policy_is_fixed_to_manual_official_main_workflow(monkeypatch):
     expected = (release_trust.RELEASE_IDENTITY, release_trust.RELEASE_ISSUER, "workflow_dispatch")
     seen[0].verify(certificate(*expected))
     for changed in (
-        (expected[0].replace("HKUDS", "attacker"), expected[1], expected[2]),
+        (expected[0].replace("MeowLynxSea", "attacker"), expected[1], expected[2]),
         (expected[0].replace("refs/heads/main", "refs/pull/1/merge"), expected[1], expected[2]),
         (expected[0], "https://example.com", expected[2]),
         (expected[0], expected[1], "pull_request_target"),
@@ -133,7 +133,7 @@ async def test_download_and_handoff_require_approval_before_any_staging(tmp_path
             return httpx.Response(200, content=catalogue.model_dump_json())
         if url.startswith(PYPI_URL):
             return httpx.Response(200, json={
-                "info": {"name": "nanobot-ai", "version": version, "requires_python": ">=3.11"},
+                "info": {"name": "yoreni", "version": version, "requires_python": ">=3.11"},
                 "urls": [{"filename": item.filename, "size": item.size, "yanked": False,
                           "url": f"https://files.pythonhosted.org/packages/{item.filename}",
                           "digests": {"sha256": item.sha256}} for item in manifest.artifacts

@@ -2,8 +2,8 @@
 
 import pytest
 
-from nanobot.session.manager import Session, SessionManager
-from nanobot.session.sqlite_store import SessionConflictError
+from yoreni.session.manager import Session, SessionManager
+from yoreni.session.sqlite_store import SessionConflictError
 
 
 async def test_committed_view_cache_is_bounded(tmp_path):

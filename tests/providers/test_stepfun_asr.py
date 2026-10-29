@@ -12,12 +12,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from nanobot.audio.transcription_registry import (
+from yoreni.audio.transcription_registry import (
     get_transcription_provider,
     transcription_provider_names,
 )
-from nanobot.config.schema import Config
-from nanobot.providers.transcription import StepFunTranscriptionProvider
+from yoreni.config.schema import Config
+from yoreni.providers.transcription import StepFunTranscriptionProvider
 
 
 @pytest.fixture
@@ -237,8 +237,8 @@ async def test_sse_closes_each_attempt_before_backoff(monkeypatch, audio_file, s
         waits.append(delay)
         audio_file.write_bytes(b"changed-after-request")
 
-    monkeypatch.setattr("nanobot.providers.transcription.httpx.AsyncClient", lambda: client)
-    monkeypatch.setattr("nanobot.providers.transcription.asyncio.sleep", sleep)
+    monkeypatch.setattr("yoreni.providers.transcription.httpx.AsyncClient", lambda: client)
+    monkeypatch.setattr("yoreni.providers.transcription.asyncio.sleep", sleep)
     result = await StepFunTranscriptionProvider(api_key="sk-test", language="zh").transcribe(audio_file)
     assert result == expected
     assert len(bodies) == len(scenario)
@@ -365,8 +365,8 @@ async def test_unread_503_socket_closes_before_backoff(monkeypatch, audio_file, 
     server = await asyncio.start_server(handle, "127.0.0.1", 0)
     port = server.sockets[0].getsockname()[1]
     client = httpx.AsyncClient(trust_env=False, event_hooks={"response": [response_received]})
-    monkeypatch.setattr("nanobot.providers.transcription.httpx.AsyncClient", lambda: client)
-    monkeypatch.setattr("nanobot.providers.transcription.asyncio.sleep", sleep)
+    monkeypatch.setattr("yoreni.providers.transcription.httpx.AsyncClient", lambda: client)
+    monkeypatch.setattr("yoreni.providers.transcription.asyncio.sleep", sleep)
     task = asyncio.create_task(StepFunTranscriptionProvider(
         api_key="local", api_base=f"http://127.0.0.1:{port}",
     ).transcribe(audio_file))
@@ -405,7 +405,7 @@ def test_stepfun_in_registry() -> None:
     spec = get_transcription_provider("stepfun")
     assert spec is not None
     assert spec.default_model == "stepaudio-2.5-asr"
-    assert spec.adapter == "nanobot.providers.transcription:StepFunTranscriptionProvider"
+    assert spec.adapter == "yoreni.providers.transcription:StepFunTranscriptionProvider"
 
 
 def test_config_resolves_stepfun() -> None:
@@ -416,7 +416,7 @@ def test_config_resolves_stepfun() -> None:
     config.providers.stepfun.api_key = "step-test"
     config.providers.stepfun.api_base = "https://api.stepfun.com/step_plan/v1/audio/asr/sse"
 
-    from nanobot.audio.transcription import resolve_transcription_config
+    from yoreni.audio.transcription import resolve_transcription_config
 
     resolved = resolve_transcription_config(config)
 

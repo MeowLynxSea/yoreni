@@ -2,14 +2,14 @@ from unittest.mock import patch
 
 import pytest
 
-from nanobot.providers.anthropic_provider import AnthropicProvider
-from nanobot.providers.azure_openai_provider import AzureOpenAIProvider
-from nanobot.providers.bedrock_provider import BedrockProvider
-from nanobot.providers.openai_compat_provider import OpenAICompatProvider
+from yoreni.providers.anthropic_provider import AnthropicProvider
+from yoreni.providers.azure_openai_provider import AzureOpenAIProvider
+from yoreni.providers.bedrock_provider import BedrockProvider
+from yoreni.providers.openai_compat_provider import OpenAICompatProvider
 
 
 async def test_openai_compat_disables_sdk_retries_by_default() -> None:
-    with patch("nanobot.providers.openai_compat_provider.AsyncOpenAI") as mock_client:
+    with patch("yoreni.providers.openai_compat_provider.AsyncOpenAI") as mock_client:
         provider = OpenAICompatProvider(api_key="sk-test", default_model="gpt-4o")
         await provider._ensure_client()
 
@@ -38,7 +38,7 @@ def test_anthropic_normalizes_versioned_base_url() -> None:
 
 
 def test_azure_openai_disables_sdk_retries_by_default() -> None:
-    with patch("nanobot.providers.azure_openai_provider.AsyncOpenAI") as mock_client:
+    with patch("yoreni.providers.azure_openai_provider.AsyncOpenAI") as mock_client:
         AzureOpenAIProvider(
             api_key="sk-test",
             api_base="https://example.openai.azure.com",

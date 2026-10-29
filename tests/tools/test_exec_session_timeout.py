@@ -4,9 +4,9 @@ import asyncio
 import re
 import sys
 
-from nanobot.agent.tools.exec_session import ExecSessionManager, ExecSessionTool
-from nanobot.agent.tools.registry import is_tool_error_result
-from nanobot.agent.tools.shell import ExecTool
+from yoreni.agent.tools.exec_session import ExecSessionManager, ExecSessionTool
+from yoreni.agent.tools.registry import is_tool_error_result
+from yoreni.agent.tools.shell import ExecTool
 
 
 def _session_id(result: str) -> str:
@@ -40,7 +40,7 @@ async def test_exec_session_hard_timeout_kills_process_tree_without_polling(tmp_
         sid = _session_id(initial)
         session = manager._sessions[sid]
 
-        # Waiting on the OS process must not need another nanobot tool call to enforce
+        # Waiting on the OS process must not need another yoreni tool call to enforce
         # the deadline. The child inherits the pipes, so an orphan would also delay EOF.
         await asyncio.wait_for(session.process.wait(), timeout=6)
         await asyncio.wait_for(

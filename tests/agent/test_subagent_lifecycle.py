@@ -7,18 +7,18 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nanobot.agent import SubagentManager
-from nanobot.agent.hook import AgentHookContext
-from nanobot.agent.memory import Consolidator
-from nanobot.agent.runner import AgentRunResult
-from nanobot.agent.subagent import (
+from yoreni.agent import SubagentManager
+from yoreni.agent.hook import AgentHookContext
+from yoreni.agent.memory import Consolidator
+from yoreni.agent.runner import AgentRunResult
+from yoreni.agent.subagent import (
     SubagentStatus,
     _SubagentHook,
 )
-from nanobot.agent.tools.context import current_request_context
-from nanobot.bus.queue import MessageBus
-from nanobot.providers.base import GenerationSettings, LLMProvider, LLMUsage
-from nanobot.utils.llm_runtime import LLMRuntime
+from yoreni.agent.tools.context import current_request_context
+from yoreni.bus.queue import MessageBus
+from yoreni.providers.base import GenerationSettings, LLMProvider, LLMUsage
+from yoreni.utils.llm_runtime import LLMRuntime
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -1,4 +1,4 @@
-import type { CanonicalRunSnapshot } from "./nanobot-client";
+import type { CanonicalRunSnapshot } from "./yoreni-client";
 import { projectThreadEvents } from "./thread-event-projection";
 import type { UIMessage, WebuiThreadPersistedPayload } from "./types";
 

@@ -4,10 +4,10 @@ import asyncio
 import faulthandler
 import time
 
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.subagent_status import SubagentStatus
-from nanobot.bus.events import InboundMessage
-from nanobot.runtime_context import (
+from yoreni.agent.loop import AgentLoop
+from yoreni.agent.subagent_status import SubagentStatus
+from yoreni.bus.events import InboundMessage
+from yoreni.runtime_context import (
     RUNTIME_CONTEXT_HISTORY_META,
     RUNTIME_CONTEXT_MESSAGE_META,
     public_history_message,
@@ -56,8 +56,8 @@ def mock_session_manager(*_args, **_kwargs):
     """Model the asynchronous state boundary in scheduler-only unit tests."""
     from unittest.mock import AsyncMock, MagicMock
 
-    from nanobot.session.manager import Session, SessionManager
-    from nanobot.session.state import SessionState
+    from yoreni.session.manager import Session, SessionManager
+    from yoreni.session.state import SessionState
 
     manager = MagicMock(spec=SessionManager)
     manager.get_or_create.side_effect = lambda key: Session(key=key)

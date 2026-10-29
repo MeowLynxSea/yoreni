@@ -10,10 +10,10 @@ WebUI behavior:
   development; webui contributors use `cd webui && bun run dev` (Vite HMR) and
   do not need a packaged `dist/`.
 - No-op when `webui/package.json` is absent (e.g. installing from an sdist that
-  already contains a prebuilt `nanobot/web/dist/`).
-- Skips when `NANOBOT_SKIP_WEBUI_BUILD=1` is set.
-- Reuses `nanobot/web/dist/` only when it is already fresh, unless
-  `NANOBOT_FORCE_WEBUI_BUILD=1` is set.
+  already contains a prebuilt `yoreni/web/dist/`).
+- Skips when `YORENI_SKIP_WEBUI_BUILD=1` is set.
+- Reuses `yoreni/web/dist/` only when it is already fresh, unless
+  `YORENI_FORCE_WEBUI_BUILD=1` is set.
 - Uses `bun` when available, otherwise falls back to `npm`, or provisions Bun
   when neither is available. Bun builds use `--bun` so Node is not required.
 """
@@ -33,7 +33,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 
 def _load_webui_build_module() -> ModuleType:
-    from nanobot.webui import build as webui_build
+    from yoreni.webui import build as webui_build
 
     return webui_build
 
@@ -45,7 +45,7 @@ class WebUIBuildHook(BuildHookInterface):
         root = Path(self.root)
         webui_dir = root / "webui"
         package_json = webui_dir / "package.json"
-        dist_dir = root / "nanobot" / "web" / "dist"
+        dist_dir = root / "yoreni" / "web" / "dist"
         index_html = dist_dir / "index.html"
 
         # `pip install -e .` builds an editable wheel; skip the (slow) webui
@@ -58,31 +58,31 @@ class WebUIBuildHook(BuildHookInterface):
             )
             return
 
-        from nanobot.build_info import read_commit
+        from yoreni.build_info import read_commit
 
         commit = read_commit(root)
         if commit:
-            commit_file = root / "nanobot" / "_build_commit.txt"
+            commit_file = root / "yoreni" / "_build_commit.txt"
             commit_file.write_text(commit + "\n", encoding="utf-8")
-            build_data.setdefault("force_include", {})[str(commit_file)] = "nanobot/_build_commit.txt"
+            build_data.setdefault("force_include", {})[str(commit_file)] = "yoreni/_build_commit.txt"
 
-        if os.environ.get("NANOBOT_SKIP_WEBUI_BUILD") == "1":
-            self.app.display_info("[webui-build] skipped via NANOBOT_SKIP_WEBUI_BUILD=1")
+        if os.environ.get("YORENI_SKIP_WEBUI_BUILD") == "1":
+            self.app.display_info("[webui-build] skipped via YORENI_SKIP_WEBUI_BUILD=1")
             return
 
         if not package_json.is_file():
             self.app.display_info(
-                "[webui-build] no webui/ source tree, assuming prebuilt nanobot/web/dist/"
+                "[webui-build] no webui/ source tree, assuming prebuilt yoreni/web/dist/"
             )
             return
 
         webui_build = _load_webui_build_module()
         status = webui_build.inspect_webui_bundle(source_dir=webui_dir, dist_dir=dist_dir)
-        force = os.environ.get("NANOBOT_FORCE_WEBUI_BUILD") == "1"
+        force = os.environ.get("YORENI_FORCE_WEBUI_BUILD") == "1"
         if not status.needs_build and not force:
             self.app.display_info(
                 f"[webui-build] reusing existing build at {dist_dir} "
-                "(already fresh; set NANOBOT_FORCE_WEBUI_BUILD=1 to rebuild)"
+                "(already fresh; set YORENI_FORCE_WEBUI_BUILD=1 to rebuild)"
             )
             return
 
@@ -100,7 +100,7 @@ class WebUIBuildHook(BuildHookInterface):
         except webui_build.WebUIBuildError as exc:
             raise RuntimeError(
                 "[webui-build] "
-                f"{exc}. Install `bun` or `npm`, or set NANOBOT_SKIP_WEBUI_BUILD=1 to bypass."
+                f"{exc}. Install `bun` or `npm`, or set YORENI_SKIP_WEBUI_BUILD=1 to bypass."
             ) from exc
 
         if not index_html.is_file():

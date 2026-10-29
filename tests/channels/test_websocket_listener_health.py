@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from nanobot.channels.websocket.runtime import WebSocketChannel
+from yoreni.channels.websocket.runtime import WebSocketChannel
 
 
 class _StubSocket:

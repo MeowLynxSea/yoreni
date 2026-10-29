@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from nanobot.webui import remote_mux, remote_ssh
-from nanobot.webui.remote_mux import SSHMaster
-from nanobot.webui.remote_ssh import PairedSSHProfile, RemoteError
+from yoreni.webui import remote_mux, remote_ssh
+from yoreni.webui.remote_mux import SSHMaster
+from yoreni.webui.remote_ssh import PairedSSHProfile, RemoteError
 
 
 @pytest.fixture

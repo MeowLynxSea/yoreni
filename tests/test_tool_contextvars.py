@@ -6,15 +6,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from nanobot.agent.tools.context import RequestContext, request_context
-from nanobot.agent.tools.cron import CronTool
-from nanobot.agent.tools.message import MessageTool
-from nanobot.agent.tools.subagent import SubagentTool
-from nanobot.cron.service import CronService
-from nanobot.providers.base import GenerationSettings, LLMProvider
-from nanobot.runtime_context import RUNTIME_CONTEXT_INPUT_META, RuntimeContextBlock
-from nanobot.session.keys import UNIFIED_SESSION_KEY
-from nanobot.utils.llm_runtime import LLMRuntime
+from yoreni.agent.tools.context import RequestContext, request_context
+from yoreni.agent.tools.cron import CronTool
+from yoreni.agent.tools.message import MessageTool
+from yoreni.agent.tools.subagent import SubagentTool
+from yoreni.cron.service import CronService
+from yoreni.providers.base import GenerationSettings, LLMProvider
+from yoreni.runtime_context import RUNTIME_CONTEXT_INPUT_META, RuntimeContextBlock
+from yoreni.session.keys import UNIFIED_SESSION_KEY
+from yoreni.utils.llm_runtime import LLMRuntime
 
 
 def _runtime(model: str = "test-model") -> LLMRuntime:

@@ -18,46 +18,46 @@ from packaging.tags import Tag
 from websockets.datastructures import Headers
 from websockets.http11 import Request
 
-import nanobot
-from nanobot import update_plan, update_service
-from nanobot.bus.queue import MessageBus
-from nanobot.channels.websocket.runtime import WebSocketConfig
-from nanobot.config.home import get_selected_home_path, set_home_path
-from nanobot.installation_lock import (
+import yoreni
+from yoreni import update_plan, update_service
+from yoreni.bus.queue import MessageBus
+from yoreni.channels.websocket.runtime import WebSocketConfig
+from yoreni.config.home import get_selected_home_path, set_home_path
+from yoreni.installation_lock import (
     InstallationBusyError,
     file_access,
     installation_access,
     installation_state_dir,
     pending_update_path,
 )
-from nanobot.release_feed import ReleaseFeed
-from nanobot.releases import release_filenames
-from nanobot.runtime_admission import RuntimeBusyError
-from nanobot.update_manager import ManagerPolicy
-from nanobot.update_plan import InstallationSnapshot, UpdatePlans
-from nanobot.update_process import PreparationProcess
-from nanobot.update_profiles import ObservedProfile, ProfileLaunch, ProfileReceipt
-from nanobot.update_worker import ExecutionConfirmation, JobStatus, Phase
-from nanobot.webui.client_contract import webui_contract
-from nanobot.webui.gateway_services import build_gateway_services
+from yoreni.release_feed import ReleaseFeed
+from yoreni.releases import release_filenames
+from yoreni.runtime_admission import RuntimeBusyError
+from yoreni.update_manager import ManagerPolicy
+from yoreni.update_plan import InstallationSnapshot, UpdatePlans
+from yoreni.update_process import PreparationProcess
+from yoreni.update_profiles import ObservedProfile, ProfileLaunch, ProfileReceipt
+from yoreni.update_worker import ExecutionConfirmation, JobStatus, Phase
+from yoreni.webui.client_contract import webui_contract
+from yoreni.webui.gateway_services import build_gateway_services
 
-CREATE = "/api/settings/nanobot-update/plan/create"
-READ = "/api/settings/nanobot-update/plan"
-JOB = "/api/settings/nanobot-update/job"
-PREPARE = "settings.nanobot.update.prepare"
-SETTLE = "settings.nanobot.update.settle"
-EXECUTE = "settings.nanobot.update.execute"
-RETRY = "settings.nanobot.update.retry"
-CHANNEL = "settings.nanobot.update.channel"
+CREATE = "/api/settings/yoreni-update/plan/create"
+READ = "/api/settings/yoreni-update/plan"
+JOB = "/api/settings/yoreni-update/job"
+PREPARE = "settings.yoreni.update.prepare"
+SETTLE = "settings.yoreni.update.settle"
+EXECUTE = "settings.yoreni.update.execute"
+RETRY = "settings.yoreni.update.retry"
+CHANNEL = "settings.yoreni.update.channel"
 
 
 async def test_channel_mutation_preserves_authority_and_invalidates_old_reviews(preparation_gateway):
-    from nanobot.update_channel import read_update_channel
+    from yoreni.update_channel import read_update_channel
 
     fixture = preparation_gateway
     gateway, plan = await preparation_plan(fixture)
     # Plain HTTP cannot mutate; remote callers do not acquire install authority.
-    response = await fetch(gateway, "/api/settings/nanobot-update/channel")
+    response = await fetch(gateway, "/api/settings/yoreni-update/channel")
     assert response.status_code == 405
     response = await gateway.http.dispatch_webui_mutation(connection(), CHANNEL, {"channel": "preview", "revision": 0})
     assert response.status_code == 403
@@ -88,7 +88,7 @@ async def test_channel_mutation_validates_untrusted_requests(preparation_gateway
 
 
 async def test_review_uses_saved_channel_and_rejects_a_change_during_discovery(preparation_gateway, monkeypatch):
-    from nanobot.update_channel import UpdateChannelRequest
+    from yoreni.update_channel import UpdateChannelRequest
 
     fixture = preparation_gateway
     gateway, stable = await preparation_plan(fixture)
@@ -112,12 +112,12 @@ async def test_review_uses_saved_channel_and_rejects_a_change_during_discovery(p
             return stable.target
 
     monkeypatch.setattr(update_plan, "ReleaseFeed", lambda _: Feed())
-    response = await gateway.http.dispatch_webui_mutation(connection(local=True), "settings.nanobot.update.plan", {"extras": []})
+    response = await gateway.http.dispatch_webui_mutation(connection(local=True), "settings.yoreni.update.plan", {"extras": []})
     assert response.status_code == 200
     saved = UpdatePlans(fixture.directory / "plans").load(json.loads(response.body)["plan"]["id"])
     assert (saved.channel, saved.channel_revision) == ("preview", 1)
     race = True
-    response = await gateway.http.dispatch_webui_mutation(connection(local=True), "settings.nanobot.update.plan", {"extras": []})
+    response = await gateway.http.dispatch_webui_mutation(connection(local=True), "settings.yoreni.update.plan", {"extras": []})
     assert response.status_code == 409
     assert observed == ["preview", "preview"]
     assert not (fixture.directory / "jobs").exists()
@@ -130,7 +130,7 @@ def review_gateway(tmp_path, monkeypatch):
     previous_home = get_selected_home_path()
     set_home_path(tmp_path / "profile")
     environment = tmp_path / "tool environment"
-    package = str(environment / "lib/nanobot/__init__.py")
+    package = str(environment / "lib/yoreni/__init__.py")
     snapshot = InstallationSnapshot(
         environment=str(environment), python=str(environment / "bin/python"),
         package_path=package, running_package=package, installed_version="0.3.4",
@@ -157,9 +157,9 @@ def review_gateway(tmp_path, monkeypatch):
 
     def release(request):
         requests.append(str(request.url))
-        assert request.url.path == "/pypi/nanobot-ai/json"
+        assert request.url.path == "/pypi/yoreni/json"
         return httpx.Response(200, json={
-            "info": {"name": "nanobot-ai", "version": "0.3.5", "requires_python": ">=3.11"},
+            "info": {"name": "yoreni", "version": "0.3.5", "requires_python": ">=3.11"},
             "urls": [{"filename": name, "size": 123, "digests": {"sha256": "b" * 64},
                       "url": f"https://files.pythonhosted.org/packages/{name}", "yanked": False}
                      for name in release_filenames("0.3.5") if name.endswith((".whl", ".tar.gz"))],
@@ -209,7 +209,7 @@ def preparation_gateway(review_gateway, monkeypatch):
 async def preparation_plan(fixture):
     gateway = fixture.gateway()
     response = await gateway.http.dispatch_webui_mutation(
-        connection(local=True), "settings.nanobot.update.plan", {"extras": []},
+        connection(local=True), "settings.yoreni.update.plan", {"extras": []},
     )
     assert response.status_code == 200, response.body
     return gateway, UpdatePlans(fixture.directory / "plans").load(json.loads(response.body)["plan"]["id"])
@@ -359,7 +359,7 @@ async def test_busy_retry_does_not_look_like_an_accepted_new_confirmation(prepar
 
 
 async def test_handoff_settlement_route_preserves_permission_and_reads_cancelled_job(preparation_gateway, monkeypatch):
-    from nanobot import update_stop
+    from yoreni import update_stop
 
     gateway, plan, directory = await execution_plan(preparation_gateway)
     previous = ExecutionConfirmation(uuid4().hex, plan.id, "a" * 64, plan.created_at, plan.expires_at)
@@ -585,7 +585,7 @@ async def test_exact_review_survives_router_recreation_without_reselection_or_in
     denied = await fetch(gateway, CREATE)
     assert denied.status_code == 405
     response = await gateway.http.dispatch_webui_mutation(
-        connection(), "settings.nanobot.update.plan", {"channel": "stable", "restart_running": True},
+        connection(), "settings.yoreni.update.plan", {"channel": "stable", "restart_running": True},
     )
     assert response.status_code == 200, response.body
     assert response.headers["Cache-Control"] == "no-store"
@@ -606,7 +606,7 @@ async def test_exact_review_survives_router_recreation_without_reselection_or_in
     assert saved.stop_profiles == saved.restart_profiles == [fixture.observed[0].receipt.id]
     assert not (fixture.directory / "jobs").exists()
     assert not (fixture.directory / "stop.json").exists()
-    assert fixture.requests == ["https://pypi.org/pypi/nanobot-ai/json"]
+    assert fixture.requests == ["https://pypi.org/pypi/yoreni/json"]
 
     fresh_gateway = fixture.gateway()
     restored = await fetch(fresh_gateway, READ + "?id=" + review["id"])
@@ -622,7 +622,7 @@ async def test_live_update_review_requires_this_gateway_and_preserves_owner_poli
     fixture.observed[0] = running.model_copy(update={"receipt": running.receipt.model_copy(update={"pid": os.getpid()})})
     gateway = fixture.gateway()
     response = await gateway.http.dispatch_webui_mutation(
-        connection(local=True), "settings.nanobot.update.plan", {"restart_running": True},
+        connection(local=True), "settings.yoreni.update.plan", {"restart_running": True},
     )
     payload = json.loads(response.body)
     assert payload["installation_allowed"] is True
@@ -644,7 +644,7 @@ async def test_review_routes_unverified_uv_versions_to_the_installation_owner(re
     running = fixture.observed[0]
     fixture.observed[0] = running.model_copy(update={"receipt": running.receipt.model_copy(update={"pid": os.getpid()})})
     response = await fixture.gateway().http.dispatch_webui_mutation(
-        connection(local=True), "settings.nanobot.update.plan", {"restart_running": True},
+        connection(local=True), "settings.yoreni.update.plan", {"restart_running": True},
     )
     assert response.status_code == 200
     payload = json.loads(response.body)
@@ -657,7 +657,7 @@ async def test_review_routes_unverified_uv_versions_to_the_installation_owner(re
 async def test_review_reports_profile_and_installation_changes_without_replacing_plan(review_gateway, monkeypatch):
     fixture = review_gateway
     gateway = fixture.gateway()
-    created = await gateway.http.dispatch_webui_mutation(connection(local=True), "settings.nanobot.update.plan", {})
+    created = await gateway.http.dispatch_webui_mutation(connection(local=True), "settings.yoreni.update.plan", {})
     assert created.status_code == 200
     payload = json.loads(created.body)
     assert payload["installation_allowed"] is True
@@ -686,7 +686,7 @@ async def test_review_reports_profile_and_installation_changes_without_replacing
 async def test_invalid_client_request_cannot_select_code_or_environment(review_gateway, payload):
     fixture = review_gateway
     response = await fixture.gateway().http.dispatch_webui_mutation(
-        connection(), "settings.nanobot.update.plan", payload,
+        connection(), "settings.yoreni.update.plan", payload,
     )
     assert response.status_code == 400
     assert fixture.requests == []
@@ -696,7 +696,7 @@ async def test_invalid_client_request_cannot_select_code_or_environment(review_g
 async def test_expired_unknown_and_foreign_plans_have_explicit_results(review_gateway, monkeypatch):
     fixture = review_gateway
     gateway = fixture.gateway()
-    response = await gateway.http.dispatch_webui_mutation(connection(), "settings.nanobot.update.plan", {})
+    response = await gateway.http.dispatch_webui_mutation(connection(), "settings.yoreni.update.plan", {})
     review = json.loads(response.body)["plan"]
     now = time.time()
     monkeypatch.setattr(update_plan.time, "time", lambda: now + 901)
@@ -715,7 +715,7 @@ async def test_expired_unknown_and_foreign_plans_have_explicit_results(review_ga
 async def test_desktop_and_failed_discovery_do_not_claim_executable_or_current(review_gateway, monkeypatch):
     fixture = review_gateway
     desktop = await fixture.gateway("native").http.dispatch_webui_mutation(
-        connection(), "settings.nanobot.update.plan", {},
+        connection(), "settings.yoreni.update.plan", {},
     )
     assert desktop.status_code == 409 and fixture.requests == []
 
@@ -723,7 +723,7 @@ async def test_desktop_and_failed_discovery_do_not_claim_executable_or_current(r
         raise ValueError("https://user:secret@index.example/private")
 
     monkeypatch.setattr(update_plan, "inspect_installation", failed_probe)
-    failed = await fixture.gateway().http.dispatch_webui_mutation(connection(), "settings.nanobot.update.plan", {})
+    failed = await fixture.gateway().http.dispatch_webui_mutation(connection(), "settings.yoreni.update.plan", {})
     assert failed.status_code == 409
     assert b"secret" not in failed.body
     assert not (fixture.directory / "plans").exists()
@@ -742,7 +742,7 @@ async def test_environment_replaced_during_discovery_does_not_return_a_valid_rev
 
     monkeypatch.setattr(update_plan, "inspect_installation", changed_probe)
     response = await fixture.gateway().http.dispatch_webui_mutation(
-        connection(), "settings.nanobot.update.plan", {},
+        connection(), "settings.yoreni.update.plan", {},
     )
     assert response.status_code == 409
     assert response.body == b"Could not verify an update plan for this installation. No update was started."
@@ -753,7 +753,7 @@ async def test_environment_replaced_during_discovery_does_not_return_a_valid_rev
 async def test_missing_interpreter_is_not_misreported_as_a_missing_plan(review_gateway, monkeypatch):
     fixture = review_gateway
     gateway = fixture.gateway()
-    response = await gateway.http.dispatch_webui_mutation(connection(), "settings.nanobot.update.plan", {})
+    response = await gateway.http.dispatch_webui_mutation(connection(), "settings.yoreni.update.plan", {})
     plan_id = json.loads(response.body)["plan"]["id"]
 
     def removed_python():
@@ -769,7 +769,7 @@ async def test_missing_interpreter_is_not_misreported_as_a_missing_plan(review_g
 async def test_job_reads_survive_refresh_expiry_and_unavailable_installation(review_gateway, monkeypatch):
     fixture = review_gateway
     gateway = fixture.gateway()
-    response = await gateway.http.dispatch_webui_mutation(connection(), "settings.nanobot.update.plan", {})
+    response = await gateway.http.dispatch_webui_mutation(connection(), "settings.yoreni.update.plan", {})
     plan_id = json.loads(response.body)["plan"]["id"]
     plan = UpdatePlans(fixture.directory / "plans").load(plan_id)
     directory = fixture.directory / "jobs" / plan_id
@@ -796,7 +796,7 @@ async def test_job_reads_survive_refresh_expiry_and_unavailable_installation(rev
         "target_version": "0.3.5", "channel": "stable", "recorded_phase": "preparing",
         "attempt": 0, "mutation_started": False, "updated_at": plan.created_at,
         "execution_confirmation_id": None,
-        "running_version": nanobot.__version__,
+        "running_version": yoreni.__version__,
         "recovery_active": False,
         "service_restored": False,
         "automatic_recovery": False,
@@ -839,7 +839,7 @@ async def test_job_reads_survive_refresh_expiry_and_unavailable_installation(rev
 async def test_job_reads_reject_missing_foreign_and_corrupt_records(review_gateway, monkeypatch):
     fixture = review_gateway
     gateway = fixture.gateway()
-    response = await gateway.http.dispatch_webui_mutation(connection(), "settings.nanobot.update.plan", {})
+    response = await gateway.http.dispatch_webui_mutation(connection(), "settings.yoreni.update.plan", {})
     plan_id = json.loads(response.body)["plan"]["id"]
     plan = UpdatePlans(fixture.directory / "plans").load(plan_id)
     monkeypatch.setattr(sys, "prefix", fixture.snapshot.environment)
@@ -911,7 +911,7 @@ async def test_plan_cannot_invent_restart_ownership_or_replace_manager_extras(re
         })
     else:
         payload["extras"] = []
-    response = await fixture.gateway().http.dispatch_webui_mutation(connection(), "settings.nanobot.update.plan", payload)
+    response = await fixture.gateway().http.dispatch_webui_mutation(connection(), "settings.yoreni.update.plan", payload)
     if problem == "extras":
         assert response.status_code == 409
         assert not (fixture.directory / "plans").exists()

@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from nanobot.utils.gitstore import GitStore
+from yoreni.utils.gitstore import GitStore
 
 
 @pytest.fixture

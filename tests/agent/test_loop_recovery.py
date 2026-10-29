@@ -8,22 +8,22 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from agent.session_helpers import save_completed_subagent
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.turn_delivery import TurnDeliveryFactory
-from nanobot.bus.events import InboundMessage, OutboundMessage
-from nanobot.bus.queue import MessageBus
-from nanobot.providers.base import GenerationSettings, LLMProvider, LLMResponse, ToolCallRequest
-from nanobot.session.manager import SessionManager
-from nanobot.session.recovery import (
+from yoreni.agent.loop import AgentLoop
+from yoreni.agent.turn_delivery import TurnDeliveryFactory
+from yoreni.bus.events import InboundMessage, OutboundMessage
+from yoreni.bus.queue import MessageBus
+from yoreni.providers.base import GenerationSettings, LLMProvider, LLMResponse, ToolCallRequest
+from yoreni.session.manager import SessionManager
+from yoreni.session.recovery import (
     PENDING_USER_TURN_KEY,
     RECOVERY_METADATA_KEY,
     REQUEST_ORIGIN_METADATA_KEY,
     RUNTIME_CHECKPOINT_KEY,
 )
-from nanobot.session.turn_continuation import INTERNAL_CONTINUATION_META
-from nanobot.session.webui_turns import WebuiTurnCoordinator, WebuiTurnRoutePolicy
-from nanobot.webui.recovery import RecoveryCoordinator
-from nanobot.webui.transcript import WebUITranscriptRecorder
+from yoreni.session.turn_continuation import INTERNAL_CONTINUATION_META
+from yoreni.session.webui_turns import WebuiTurnCoordinator, WebuiTurnRoutePolicy
+from yoreni.webui.recovery import RecoveryCoordinator
+from yoreni.webui.transcript import WebUITranscriptRecorder
 
 
 @pytest.mark.asyncio
@@ -146,7 +146,7 @@ async def test_recovery_continuation_runs_without_a_sustained_goal(
 async def test_recovery_preserves_turn_origin_until_the_next_user_turn(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, late_result: bool,
 ) -> None:
-    monkeypatch.setattr("nanobot.webui.history.get_webui_dir", lambda: tmp_path / "webui")
+    monkeypatch.setattr("yoreni.webui.history.get_webui_dir", lambda: tmp_path / "webui")
     bus = MessageBus()
     provider = MagicMock(aclose=AsyncMock())
     provider.get_default_model.return_value = "test-model"

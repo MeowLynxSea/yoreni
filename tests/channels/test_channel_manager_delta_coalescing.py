@@ -7,19 +7,19 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from nanobot.bus.events import OutboundMessage
-from nanobot.bus.outbound_events import (
+from yoreni.bus.events import OutboundMessage
+from yoreni.bus.outbound_events import (
     ProgressEvent,
     RetryWaitEvent,
     StreamDeltaEvent,
     StreamEndEvent,
     outbound_message_for_event,
 )
-from nanobot.bus.queue import MessageBus
-from nanobot.channels.base import BaseChannel
-from nanobot.channels.manager import ChannelManager
-from nanobot.channels.mattermost.runtime import MattermostChannel
-from nanobot.config.schema import Config
+from yoreni.bus.queue import MessageBus
+from yoreni.channels.base import BaseChannel
+from yoreni.channels.manager import ChannelManager
+from yoreni.channels.mattermost.runtime import MattermostChannel
+from yoreni.config.schema import Config
 
 
 class MockChannel(BaseChannel):

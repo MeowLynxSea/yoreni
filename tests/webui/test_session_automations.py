@@ -5,10 +5,10 @@ from typing import Any
 
 import pytest
 
-from nanobot.cron.types import CronJob, CronPayload
-from nanobot.session.manager import SessionManager
-from nanobot.triggers.local_types import LocalTrigger
-from nanobot.webui.session_automations import serialize_automation_jobs
+from yoreni.cron.types import CronJob, CronPayload
+from yoreni.session.manager import SessionManager
+from yoreni.triggers.local_types import LocalTrigger
+from yoreni.webui.session_automations import serialize_automation_jobs
 
 
 @pytest.mark.parametrize(

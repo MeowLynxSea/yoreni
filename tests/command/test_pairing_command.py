@@ -2,12 +2,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from nanobot.bus.events import InboundMessage
-from nanobot.bus.queue import MessageBus
-from nanobot.command.builtin import cmd_pairing
-from nanobot.command.router import CommandContext
-from nanobot.pairing import store
-from nanobot.pairing.events import PairingChanged
+from yoreni.bus.events import InboundMessage
+from yoreni.bus.queue import MessageBus
+from yoreni.command.builtin import cmd_pairing
+from yoreni.command.router import CommandContext
+from yoreni.pairing import store
+from yoreni.pairing.events import PairingChanged
 
 
 @pytest.mark.asyncio

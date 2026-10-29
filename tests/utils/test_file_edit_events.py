@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from nanobot.agent.tools.apply_patch import ApplyPatchTool
-from nanobot.agent.tools.filesystem import EditFileTool, WriteFileTool
-from nanobot.utils.file_edit_events import (
+from yoreni.agent.tools.apply_patch import ApplyPatchTool
+from yoreni.agent.tools.filesystem import EditFileTool, WriteFileTool
+from yoreni.utils.file_edit_events import (
     FileDiff,
     FileEditResult,
     build_file_edit_end_event,

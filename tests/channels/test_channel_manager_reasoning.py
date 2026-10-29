@@ -21,15 +21,15 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from nanobot.bus.events import OutboundMessage
-from nanobot.bus.outbound_events import (
+from yoreni.bus.events import OutboundMessage
+from yoreni.bus.outbound_events import (
     ProgressEvent,
     outbound_message_for_event,
 )
-from nanobot.bus.queue import MessageBus
-from nanobot.channels.base import BaseChannel
-from nanobot.channels.manager import ChannelManager
-from nanobot.config.schema import Config
+from yoreni.bus.queue import MessageBus
+from yoreni.channels.base import BaseChannel
+from yoreni.channels.manager import ChannelManager
+from yoreni.config.schema import Config
 
 
 class _MockChannel(BaseChannel):
@@ -75,9 +75,9 @@ def manager(tmp_path) -> ChannelManager:
 
 
 def test_websocket_gateway_uses_configured_workspace_restriction(tmp_path, monkeypatch):
-    monkeypatch.setattr("nanobot.config.paths.get_data_dir", lambda: tmp_path)
+    monkeypatch.setattr("yoreni.config.paths.get_data_dir", lambda: tmp_path)
     monkeypatch.setattr(
-        "nanobot.webui.workspaces.read_webui_default_access_mode",
+        "yoreni.webui.workspaces.read_webui_default_access_mode",
         lambda: "default",
     )
     config = Config.model_validate(

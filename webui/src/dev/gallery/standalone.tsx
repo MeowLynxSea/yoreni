@@ -9,10 +9,10 @@ import { HostSwitcherView } from "@/components/remote/HostSwitcherView";
 import type { HostPicker } from "@/components/remote/host-navigation";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LinearAvatar } from "../../../../nanobot/channels/linear/webui/LinearAvatar";
-import { LinearHelpContent } from "../../../../nanobot/channels/linear/webui/LinearHelpContent";
-import { LinearSecretField } from "../../../../nanobot/channels/linear/webui/LinearSecretField";
-import { WebSocketIcon } from "../../../../nanobot/channels/websocket/webui/WebSocketIcon";
+import { LinearAvatar } from "../../../../yoreni/channels/linear/webui/LinearAvatar";
+import { LinearHelpContent } from "../../../../yoreni/channels/linear/webui/LinearHelpContent";
+import { LinearSecretField } from "../../../../yoreni/channels/linear/webui/LinearSecretField";
+import { WebSocketIcon } from "../../../../yoreni/channels/websocket/webui/WebSocketIcon";
 import type { ChatSummary, ConnectionStatus } from "@/lib/types";
 import { Sample, StatePicker, type ComponentExample } from "./example";
 import { useGalleryTranslation } from "./i18n";
@@ -102,8 +102,8 @@ function SidebarResizePreview() {
 
 function ChannelMarksPreview() {
   const { t } = useGalleryTranslation();
-  const [name, setName] = useState<"Nanobot" | "研发">("Nanobot");
-  return <><StatePicker label={t("previews.channelMarks.name")} value={name} options={["Nanobot", "研发"]} onChange={setName} />
+  const [name, setName] = useState<"Yoreni" | "研发">("Yoreni");
+  return <><StatePicker label={t("previews.channelMarks.name")} value={name} options={["Yoreni", "研发"]} onChange={setName} />
     <div className="flex items-start gap-8"><Sample label={t("previews.channelMarks.member")}><LinearAvatar name={name} /></Sample>
       <Sample label={t("previews.channelMarks.workspace")}><LinearAvatar name={name} workspace /></Sample><Sample label="WebSocket"><WebSocketIcon /></Sample></div></>;
 }
@@ -144,13 +144,13 @@ export const standaloneExamples: ComponentExample[] = [
   { title: "previews.language.title", files: [`${components}LanguageSwitcher.tsx`], Preview: LanguageSwitcher,
     description: "previews.language.description", options: "previews.language.options",
     code: '<LanguageSwitcher />' },
-  { title: "previews.channelMarks.title", files: ["nanobot/channels/linear/webui/LinearAvatar.tsx", "nanobot/channels/websocket/webui/WebSocketIcon.tsx"], Preview: ChannelMarksPreview,
+  { title: "previews.channelMarks.title", files: ["yoreni/channels/linear/webui/LinearAvatar.tsx", "yoreni/channels/websocket/webui/WebSocketIcon.tsx"], Preview: ChannelMarksPreview,
     description: "previews.channelMarks.description", options: "previews.channelMarks.options",
-    code: '<LinearAvatar name="Nanobot" />\n<LinearAvatar name="Nanobot" workspace />\n<WebSocketIcon />' },
-  { title: "previews.secret.title", files: ["nanobot/channels/linear/webui/LinearSecretField.tsx"], Preview: SecretPreview,
+    code: '<LinearAvatar name="Yoreni" />\n<LinearAvatar name="Yoreni" workspace />\n<WebSocketIcon />' },
+  { title: "previews.secret.title", files: ["yoreni/channels/linear/webui/LinearSecretField.tsx"], Preview: SecretPreview,
     description: "previews.secret.description", options: "previews.secret.options",
     code: '<LinearSecretField field={field} configured={configured} disabled={false} onSave={save} />' },
-  { title: "previews.channelHelp.title", files: ["nanobot/channels/linear/webui/LinearHelpContent.tsx"], Preview: ChannelHelpPreview,
+  { title: "previews.channelHelp.title", files: ["yoreni/channels/linear/webui/LinearHelpContent.tsx"], Preview: ChannelHelpPreview,
     description: "previews.channelHelp.description", options: "previews.channelHelp.options",
     code: '<DropdownMenuContent><LinearHelpContent /></DropdownMenuContent>' },
 ];

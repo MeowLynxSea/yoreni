@@ -6,7 +6,7 @@ yoreni is a Python agent runtime derived from [nanobot](https://github.com/HKUDS
 
 | Path | Purpose |
 | --- | --- |
-| `nanobot/` | Python gateway, agent loop, tools, skills, channels, and WebUI backend |
+| `yoreni/` | Python gateway, agent loop, tools, skills, channels, and WebUI backend |
 | `webui/` | React/TypeScript browser client |
 | `tests/` | Python test suite |
 | `.agent/` | Engineering constraints for contributors and coding agents |

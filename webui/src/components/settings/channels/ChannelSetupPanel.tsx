@@ -46,14 +46,14 @@ import { ChannelInstancesPanel } from "@/components/settings/channels/ChannelIns
 import { Button } from "@/components/ui/button";
 import {
   configureChannel,
-  disableNanobotFeature,
+  disableYoreniFeature,
   validateChannel,
 } from "@/lib/api";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import type {
   ChannelValidationPayload,
-  NanobotFeatureInfo,
-  NanobotFeaturesPayload,
+  YoreniFeatureInfo,
+  YoreniFeaturesPayload,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useClient } from "@/providers/ClientProvider";
@@ -70,11 +70,11 @@ export function ChannelSetupPanel({
   onConfigureMcp,
 }: {
   token: string;
-  feature: NanobotFeatureInfo;
+  feature: YoreniFeatureInfo;
   actionKey: string | null;
   showBrandLogos: boolean;
   onAction: ChannelFeatureAction;
-  onFeaturesUpdate: (payload: NanobotFeaturesPayload) => void;
+  onFeaturesUpdate: (payload: YoreniFeaturesPayload) => void;
   connectRequestId?: number;
   onConfigureMcp?: (name: string) => void;
   onBeforeCloseChange?: (handler: (() => Promise<boolean>) | null) => void;
@@ -172,11 +172,11 @@ function ChannelSetupSurface({
 }: {
   header: ReactNode;
   token: string;
-  feature: NanobotFeatureInfo;
+  feature: YoreniFeatureInfo;
   setup: ChannelSetupPresentation;
   connectRequestId: number;
   ConnectFlow?: ComponentType<ChannelPluginConnectFlowProps>;
-  onFeaturesUpdate: (payload: NanobotFeaturesPayload) => void;
+  onFeaturesUpdate: (payload: YoreniFeaturesPayload) => void;
   onBeforeCloseChange?: (handler: (() => Promise<boolean>) | null) => void;
 }) {
   const { client } = useClient();
@@ -304,7 +304,7 @@ function ChannelSetupSurface({
       setTouchedFields((current) => current === touchedFields ? new Set() : current);
       setClearedSecrets((current) => current === clearedSecrets ? new Set() : current);
       setAutoSaveState("saved");
-      if (payload.nanobot_features) onFeaturesUpdate(payload.nanobot_features);
+      if (payload.yoreni_features) onFeaturesUpdate(payload.yoreni_features);
       return true;
     } catch (err) {
       setNotice((err as Error).message);
@@ -389,8 +389,8 @@ function ChannelSetupSurface({
         values,
         { enable: true },
       );
-      if (payload.nanobot_features) {
-        onFeaturesUpdate(payload.nanobot_features);
+      if (payload.yoreni_features) {
+        onFeaturesUpdate(payload.yoreni_features);
       }
       setNotice(tx("settings.channels.checkedAndEnabled", "Checked and enabled."));
     } catch (err) {
@@ -445,7 +445,7 @@ function ChannelSetupSurface({
     setSaving(true);
     setNotice(null);
     try {
-      onFeaturesUpdate(await disableNanobotFeature(client, feature.name));
+      onFeaturesUpdate(await disableYoreniFeature(client, feature.name));
     } catch (err) {
       setNotice((err as Error).message);
     } finally {

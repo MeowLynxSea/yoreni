@@ -10,14 +10,14 @@ import pytest
 from websockets.datastructures import Headers
 from websockets.http11 import Request
 
-from nanobot.agent.memory import Consolidator
-from nanobot.agent.subagent import SubagentManager
-from nanobot.bus.queue import MessageBus
-from nanobot.channels.websocket.runtime import WebSocketConfig
-from nanobot.providers.base import GenerationSettings, LLMProvider
-from nanobot.session.manager import SessionManager
-from nanobot.utils.llm_runtime import LLMRuntime
-from nanobot.webui.gateway_services import build_gateway_services
+from yoreni.agent.memory import Consolidator
+from yoreni.agent.subagent import SubagentManager
+from yoreni.bus.queue import MessageBus
+from yoreni.channels.websocket.runtime import WebSocketConfig
+from yoreni.providers.base import GenerationSettings, LLMProvider
+from yoreni.session.manager import SessionManager
+from yoreni.utils.llm_runtime import LLMRuntime
+from yoreni.webui.gateway_services import build_gateway_services
 
 
 @pytest.mark.asyncio

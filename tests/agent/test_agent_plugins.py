@@ -6,9 +6,9 @@ from threading import Event, Thread
 
 import pytest
 
-from nanobot.agent import plugins as agent_plugins
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.plugins import (
+from yoreni.agent import plugins as agent_plugins
+from yoreni.agent.loop import AgentLoop
+from yoreni.agent.plugins import (
     AGENT_PLUGIN_MCP_SCHEMA,
     AGENT_PLUGIN_SCHEMA,
     agent_plugin_mcp_servers,
@@ -17,18 +17,18 @@ from nanobot.agent.plugins import (
     enabled_agent_plugin_skills,
     set_agent_plugin_enabled,
 )
-from nanobot.agent.skills import SkillsLoader
-from nanobot.agent.tools.context import ToolContext
-from nanobot.agent.tools.filesystem import ReadFileTool, WriteFileTool
-from nanobot.bus.queue import MessageBus
-from nanobot.config.schema import ToolsConfig
-from nanobot.providers.base import GenerationSettings, LLMProvider, LLMResponse
-from nanobot.security.workspace_access import (
+from yoreni.agent.skills import SkillsLoader
+from yoreni.agent.tools.context import ToolContext
+from yoreni.agent.tools.filesystem import ReadFileTool, WriteFileTool
+from yoreni.bus.queue import MessageBus
+from yoreni.config.schema import ToolsConfig
+from yoreni.providers.base import GenerationSettings, LLMProvider, LLMResponse
+from yoreni.security.workspace_access import (
     bind_workspace_scope,
     reset_workspace_scope,
     validate_workspace_scope_payload,
 )
-from nanobot.session.manager import SessionManager
+from yoreni.session.manager import SessionManager
 
 
 @pytest.fixture(autouse=True)
@@ -114,8 +114,8 @@ def test_plugin_skill_lifecycle_and_precedence(tmp_path: Path) -> None:
 async def test_prompt_snapshot_uses_approved_plugin_bytes_after_replacement(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, boundary: str,
 ) -> None:
-    monkeypatch.setattr("nanobot.config.home._home_path", tmp_path / "instance")
-    monkeypatch.setattr("nanobot.config.loader._current_config_path", tmp_path / "config" / "config.json")
+    monkeypatch.setattr("yoreni.config.home._home_path", tmp_path / "instance")
+    monkeypatch.setattr("yoreni.config.loader._current_config_path", tmp_path / "config" / "config.json")
 
     class CaptureProvider(LLMProvider):
         def __init__(self):
@@ -254,7 +254,7 @@ def test_plugin_manifest_boundary(tmp_path: Path, manifest: object, valid: bool)
 
 
 def test_plugin_logo_is_validated_and_contained(tmp_path: Path) -> None:
-    extension = {"extensions": {"dev.nanobot": {"logo": "./assets/icon.png"}}}
+    extension = {"extensions": {"dev.yoreni": {"logo": "./assets/icon.png"}}}
     plugin = _plugin(tmp_path, "demo", **extension)
     icon = plugin / "assets" / "icon.png"
     icon.parent.mkdir()

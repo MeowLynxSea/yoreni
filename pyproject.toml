@@ -1,13 +1,12 @@
 [project]
-name = "nanobot-ai"
+name = "yoreni"
 version = "0.4.0"
-description = "A lightweight personal AI assistant framework"
+description = "A self-hosted personal AI agent runtime"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
-    {name = "Xubin Ren"},
-    {name = "the nanobot contributors"}
+    {name = "the yoreni contributors"}
 ]
 keywords = ["ai", "agent", "chatbot"]
 classifiers = [
@@ -117,12 +116,12 @@ dev = [
 ]
 
 [project.scripts]
-nanobot = "nanobot.cli.entry:main"
-nanobot-desktop-tui = "nanobot.cli.desktop_tui:main"
+yoreni = "yoreni.cli.entry:main"
+yoreni-desktop-tui = "yoreni.cli.desktop_tui:main"
 
 # Third-party tool plugins register here.  Built-in tools are discovered
 # automatically via pkgutil scanning in ToolLoader.discover().
-# [project.entry-points."nanobot.tools"]
+# [project.entry-points."yoreni.tools"]
 # my_plugin = "my_package.plugins:MyTool"
 
 [build-system]
@@ -137,41 +136,41 @@ allow-direct-references = true
 
 [tool.hatch.build]
 include = [
-    "nanobot/**/*.py",
-    "nanobot/cli/assets/*.png",
-    "nanobot/update_contract.json",
-    "nanobot/webui/mcp_presets.json",
-    "nanobot/templates/**/*.md",
-    "nanobot/skills/**/*.md",
-    "nanobot/skills/**/*.sh",
-    "nanobot/channels/*/webui/**/*",
-    "nanobot/web/dist/**/*",
+    "yoreni/**/*.py",
+    "yoreni/cli/assets/*.png",
+    "yoreni/update_contract.json",
+    "yoreni/webui/mcp_presets.json",
+    "yoreni/templates/**/*.md",
+    "yoreni/skills/**/*.md",
+    "yoreni/skills/**/*.sh",
+    "yoreni/channels/*/webui/**/*",
+    "yoreni/web/dist/**/*",
 ]
-# nanobot/web/dist/ is produced by `cd webui && bun run build` and is
+# yoreni/web/dist/ is produced by `cd webui && bun run build` and is
 # git-ignored. List it as an artifact so hatch ships it in both wheel and
 # sdist even though VCS does not track it.
 artifacts = [
-    "nanobot/web/dist/**/*",
+    "yoreni/web/dist/**/*",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["nanobot"]
-exclude = ["nanobot/channels/*/tests/**"]
+packages = ["yoreni"]
+exclude = ["yoreni/channels/*/tests/**"]
 
 [tool.hatch.build.targets.wheel.sources]
-"nanobot" = "nanobot"
+"yoreni" = "yoreni"
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "nanobot/",
-    "nanobot/web/dist/",
+    "yoreni/",
+    "yoreni/web/dist/",
     "hatch_build.py",
     "README.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
     "pyproject.toml",
 ]
-exclude = ["nanobot/channels/*/tests/**"]
+exclude = ["yoreni/channels/*/tests/**"]
 
 [tool.ruff]
 line-length = 100
@@ -182,17 +181,17 @@ select = ["E", "F", "I", "N", "W"]
 ignore = ["E501"]
 
 [tool.basedpyright]
-include = ["nanobot"]
+include = ["yoreni"]
 exclude = ["**/tests"]
 typeCheckingMode = "strict"
 pythonVersion = "3.11"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests", "nanobot/channels"]
+testpaths = ["tests", "yoreni/channels"]
 
 [tool.coverage.run]
-source = ["nanobot"]
+source = ["yoreni"]
 omit = ["tests/*", "**/tests/*"]
 
 [tool.coverage.report]

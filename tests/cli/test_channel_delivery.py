@@ -4,15 +4,15 @@ from functools import partial
 
 import pytest
 
-from nanobot.agent.tools.context import RequestContext, request_context
-from nanobot.agent.tools.message import MessageTool
-from nanobot.bus.queue import MessageBus
-from nanobot.channels.websocket.runtime import WebSocketChannel, WebSocketConfig
-from nanobot.cli.gateway_runtime import _deliver_to_channel
-from nanobot.session.display_history import HISTORY_GENERATION_METADATA_KEY
-from nanobot.session.keys import UNIFIED_SESSION_KEY
-from nanobot.session.manager import SessionManager
-from nanobot.webui.gateway_services import build_gateway_services
+from yoreni.agent.tools.context import RequestContext, request_context
+from yoreni.agent.tools.message import MessageTool
+from yoreni.bus.queue import MessageBus
+from yoreni.channels.websocket.runtime import WebSocketChannel, WebSocketConfig
+from yoreni.cli.gateway_runtime import _deliver_to_channel
+from yoreni.session.display_history import HISTORY_GENERATION_METADATA_KEY
+from yoreni.session.keys import UNIFIED_SESSION_KEY
+from yoreni.session.manager import SessionManager
+from yoreni.webui.gateway_services import build_gateway_services
 
 
 @pytest.fixture
@@ -113,7 +113,7 @@ async def webui_delivery(delivery, tmp_path, monkeypatch):
     sessions, bus, tool = delivery
     data = tmp_path / "instance"
     data.mkdir()
-    monkeypatch.setattr("nanobot.config.paths.get_data_dir", lambda: data)
+    monkeypatch.setattr("yoreni.config.paths.get_data_dir", lambda: data)
     config = WebSocketConfig.model_validate({
         "enabled": True, "allowFrom": ["*"], "host": "127.0.0.1", "port": 0,
     })

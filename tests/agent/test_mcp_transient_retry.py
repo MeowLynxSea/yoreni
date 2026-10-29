@@ -10,15 +10,15 @@ from mcp import types as mcp_types
 from mcp.shared.exceptions import McpError
 from mcp.types import ErrorData
 
-from nanobot.agent.tools.context import RequestContext, request_context
-from nanobot.agent.tools.mcp import (
+from yoreni.agent.tools.context import RequestContext, request_context
+from yoreni.agent.tools.mcp import (
     MCPPromptWrapper,
     MCPResourceWrapper,
     MCPToolWrapper,
     _is_session_terminated,
     _is_transient,
 )
-from nanobot.agent.tools.registry import is_tool_error_result
+from yoreni.agent.tools.registry import is_tool_error_result
 
 # ---------------------------------------------------------------------------
 # _is_transient helper
@@ -115,7 +115,7 @@ async def test_tool_retries_on_transient_error():
 
     wrapper = MCPToolWrapper(session, "test_server", _make_tool_def(), tool_timeout=5)
 
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
         output = await wrapper.execute(foo="bar")
 
     assert output == "ok"
@@ -132,7 +132,7 @@ async def test_tool_fails_after_retry_exhausted():
 
     wrapper = MCPToolWrapper(session, "test_server", _make_tool_def(), tool_timeout=5)
 
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
         output = await wrapper.execute()
 
     assert "failed after retry" in output
@@ -198,7 +198,7 @@ async def test_tool_does_not_retry_on_cancelled_error():
 
     wrapper = MCPToolWrapper(session, "test_server", _make_tool_def(), tool_timeout=5)
 
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
         output = await wrapper.execute()
 
     assert "cancelled" in output
@@ -217,7 +217,7 @@ async def test_tool_retry_on_connection_reset():
 
     wrapper = MCPToolWrapper(session, "test_server", _make_tool_def(), tool_timeout=5)
 
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
         output = await wrapper.execute()
 
     assert output == "recovered"
@@ -233,7 +233,7 @@ async def test_tool_retry_on_end_of_stream():
 
     wrapper = MCPToolWrapper(session, "test_server", _make_tool_def(), tool_timeout=5)
 
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
         output = await wrapper.execute()
 
     assert output == "back"
@@ -259,7 +259,7 @@ async def test_tool_reconnects_on_transient_failure():
 
     wrapper.set_reconnect_handler(reconnect)
 
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
         output = await wrapper.execute(foo="bar")
 
     assert output == "fresh"
@@ -297,7 +297,7 @@ async def test_resource_retries_on_transient_error():
 
     wrapper = MCPResourceWrapper(session, "test_server", _make_resource_def())
 
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
         output = await wrapper.execute()
 
     assert output == "data"
@@ -313,7 +313,7 @@ async def test_resource_fails_after_retry_exhausted():
 
     wrapper = MCPResourceWrapper(session, "test_server", _make_resource_def())
 
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
         output = await wrapper.execute()
 
     assert "failed after retry" in output
@@ -392,7 +392,7 @@ async def test_prompt_retries_on_transient_error():
 
     wrapper = MCPPromptWrapper(session, "test_server", _make_prompt_def())
 
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
         output = await wrapper.execute()
 
     assert output == "prompt text"
@@ -408,7 +408,7 @@ async def test_prompt_fails_after_retry_exhausted():
 
     wrapper = MCPPromptWrapper(session, "test_server", _make_prompt_def())
 
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock):
         output = await wrapper.execute()
 
     assert "failed after retry" in output
@@ -503,7 +503,7 @@ async def test_tool_refresh_leaves_one_transient_retry_available():
     reconnect = AsyncMock(return_value=MCPToolWrapper(fresh, "srv", _make_tool_def()))
     wrapper.set_reconnect_handler(reconnect)
 
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock) as sleep:
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock) as sleep:
         assert await wrapper.execute(value="unchanged") == "ok"
 
     old.call_tool.assert_awaited_once_with("test_tool", arguments={"value": "unchanged"})
@@ -521,7 +521,7 @@ async def test_tool_later_refresh_does_not_reset_transient_budget():
     reconnect = AsyncMock(side_effect=[None, replacement])
     wrapper.set_reconnect_handler(reconnect)
 
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock) as sleep:
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock) as sleep:
         output = await wrapper.execute()
 
     assert output == "(MCP tool call failed after retry: ConnectionResetError)"
@@ -547,7 +547,7 @@ async def test_tool_real_cancellation_during_recovery_propagates(phase):
     wrapper = MCPToolWrapper(session, "srv", _make_tool_def())
     if phase == "refresh":
         wrapper.set_reconnect_handler(block)
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", side_effect=block):
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", side_effect=block):
         task = asyncio.create_task(wrapper.execute())
         try:
             await asyncio.wait_for(entered.wait(), timeout=2)
@@ -569,7 +569,7 @@ async def test_tool_reconnect_failure_is_not_a_retryable_request_failure():
     failure = ConnectionResetError("refresh")
     reconnect = AsyncMock(side_effect=failure)
     wrapper.set_reconnect_handler(reconnect)
-    with patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock) as sleep:
+    with patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock) as sleep:
         with pytest.raises(ConnectionResetError) as raised:
             await wrapper.execute()
     assert raised.value is failure
@@ -586,7 +586,7 @@ async def test_tool_transient_render_failure_cannot_replay_a_successful_request(
     wrapper.set_reconnect_handler(reconnect)
     with (
         patch.object(wrapper, "_render_call_result", side_effect=ConnectionResetError("Session terminated")),
-        patch("nanobot.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock) as sleep,
+        patch("yoreni.agent.tools.mcp.asyncio.sleep", new_callable=AsyncMock) as sleep,
     ):
         output = await wrapper.execute()
     assert output == "(MCP tool returned malformed content: ConnectionResetError)"

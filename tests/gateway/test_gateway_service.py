@@ -1,8 +1,8 @@
 import os
 import plistlib
 
-from nanobot.gateway import GatewayStartOptions
-from nanobot.gateway.service import GatewayServiceInstaller, GatewayServiceOptions
+from yoreni.gateway import GatewayStartOptions
+from yoreni.gateway.service import GatewayServiceInstaller, GatewayServiceOptions
 
 
 def _expected_launchd_domain() -> str:
@@ -20,8 +20,8 @@ def test_systemd_install_dry_run_renders_user_unit(tmp_path):
             start=GatewayStartOptions(
                 port=18790,
                 verbose=True,
-                workspace="/tmp/nanobot workspace",
-                config_path="/tmp/nanobot/config.json",
+                workspace="/tmp/yoreni workspace",
+                config_path="/tmp/yoreni/config.json",
             ),
             python_executable="/venv/bin/python",
         ),
@@ -30,14 +30,14 @@ def test_systemd_install_dry_run_renders_user_unit(tmp_path):
 
     assert result.ok is True
     assert result.manager == "systemd"
-    assert result.path == tmp_path / ".config/systemd/user/nanobot-gateway.service"
+    assert result.path == tmp_path / ".config/systemd/user/yoreni-gateway.service"
     assert ("systemctl", "--user", "daemon-reload") in result.commands
-    assert ("systemctl", "--user", "enable", "nanobot-gateway.service") in result.commands
-    assert ("systemctl", "--user", "restart", "nanobot-gateway.service") in result.commands
+    assert ("systemctl", "--user", "enable", "yoreni-gateway.service") in result.commands
+    assert ("systemctl", "--user", "restart", "yoreni-gateway.service") in result.commands
     assert result.content is not None
-    assert 'WorkingDirectory="/tmp/nanobot workspace"' in result.content
-    assert 'ExecStart=/venv/bin/python -m nanobot gateway --foreground --port 18790 --verbose' in result.content
-    assert '--workspace "/tmp/nanobot workspace" --config /tmp/nanobot/config.json' in result.content
+    assert 'WorkingDirectory="/tmp/yoreni workspace"' in result.content
+    assert 'ExecStart=/venv/bin/python -m yoreni gateway --foreground --port 18790 --verbose' in result.content
+    assert '--workspace "/tmp/yoreni workspace" --config /tmp/yoreni/config.json' in result.content
 
 
 def test_systemd_install_writes_unit_and_runs_commands(tmp_path):
@@ -64,7 +64,7 @@ def test_systemd_install_writes_unit_and_runs_commands(tmp_path):
     assert workspace.exists()
     assert commands == [
         ["systemctl", "--user", "daemon-reload"],
-        ["systemctl", "--user", "restart", "nanobot-gateway.service"],
+        ["systemctl", "--user", "restart", "yoreni-gateway.service"],
     ]
 
 
@@ -75,8 +75,8 @@ def test_launchd_install_dry_run_renders_plist(tmp_path):
         GatewayServiceOptions(
             start=GatewayStartOptions(
                 port=18791,
-                workspace="/Users/test/.nanobot/workspace",
-                config_path="/Users/test/.nanobot/config.json",
+                workspace="/Users/test/.yoreni/workspace",
+                config_path="/Users/test/.yoreni/config.json",
             ),
             python_executable="/opt/homebrew/bin/python3",
         ),
@@ -85,22 +85,22 @@ def test_launchd_install_dry_run_renders_plist(tmp_path):
 
     assert result.ok is True
     assert result.manager == "launchd"
-    assert result.path == tmp_path / "Library/LaunchAgents/ai.nanobot.gateway.plist"
+    assert result.path == tmp_path / "Library/LaunchAgents/ai.yoreni.gateway.plist"
     assert result.content is not None
     payload = plistlib.loads(result.content.encode("utf-8"))
-    assert payload["Label"] == "ai.nanobot.gateway"
+    assert payload["Label"] == "ai.yoreni.gateway"
     assert payload["ProgramArguments"] == [
         "/opt/homebrew/bin/python3",
         "-m",
-        "nanobot",
+        "yoreni",
         "gateway",
         "--foreground",
         "--port",
         "18791",
         "--workspace",
-        "/Users/test/.nanobot/workspace",
+        "/Users/test/.yoreni/workspace",
         "--config",
-        "/Users/test/.nanobot/config.json",
+        "/Users/test/.yoreni/config.json",
     ]
     assert payload["KeepAlive"] == {"SuccessfulExit": False}
     assert payload["RunAtLoad"] is True
@@ -188,7 +188,7 @@ def test_uninstall_systemd_removes_unit_and_reloads(tmp_path):
         home=tmp_path,
         subprocess_run=lambda command, **_kwargs: commands.append(command),
     )
-    unit = tmp_path / ".config/systemd/user/nanobot-gateway.service"
+    unit = tmp_path / ".config/systemd/user/yoreni-gateway.service"
     unit.parent.mkdir(parents=True)
     unit.write_text("[Unit]\n", encoding="utf-8")
 
@@ -197,7 +197,7 @@ def test_uninstall_systemd_removes_unit_and_reloads(tmp_path):
     assert result.ok is True
     assert not unit.exists()
     assert commands == [
-        ["systemctl", "--user", "disable", "--now", "nanobot-gateway.service"],
+        ["systemctl", "--user", "disable", "--now", "yoreni-gateway.service"],
         ["systemctl", "--user", "daemon-reload"],
     ]
 

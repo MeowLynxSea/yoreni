@@ -8,15 +8,15 @@ from datetime import datetime
 
 import pytest
 
-from nanobot.agent.tools.context import RequestContext, request_context
-from nanobot.agent.tools.loader import ToolLoader
-from nanobot.agent.tools.registry import ToolRegistry
-from nanobot.agent.tools.session_messages import SendSessionMessageTool
-from nanobot.agent.tools.sessions import ReadSessionTool, SearchSessionsTool
-from nanobot.bus.queue import MessageBus
-from nanobot.runtime_context import RuntimeContextBlock, append_runtime_context
-from nanobot.session.manager import SessionManager
-from nanobot.session.session_handles import SessionHandleResolver
+from yoreni.agent.tools.context import RequestContext, request_context
+from yoreni.agent.tools.loader import ToolLoader
+from yoreni.agent.tools.registry import ToolRegistry
+from yoreni.agent.tools.session_messages import SendSessionMessageTool
+from yoreni.agent.tools.sessions import ReadSessionTool, SearchSessionsTool
+from yoreni.bus.queue import MessageBus
+from yoreni.runtime_context import RuntimeContextBlock, append_runtime_context
+from yoreni.session.manager import SessionManager
+from yoreni.session.session_handles import SessionHandleResolver
 
 
 @pytest.fixture

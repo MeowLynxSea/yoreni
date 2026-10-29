@@ -1,13 +1,13 @@
 # WebUI Source
 
-This directory contains the React/TypeScript source for the browser client. Build output is written to `nanobot/web/dist/` and served by the gateway; you do not need Node.js, Bun, or Vite unless you are changing the frontend.
+This directory contains the React/TypeScript source for the browser client. Build output is written to `yoreni/web/dist/` and served by the gateway; you do not need Node.js, Bun, or Vite unless you are changing the frontend.
 
 ## Pick a Path
 
 | Goal | Start with | Opens at |
 |---|---|---|
 | Change WebUI source code | [Develop the WebUI (Vite HMR)](#develop-the-webui-vite-hmr) | `http://127.0.0.1:5173` |
-| Build the production bundle | [Build for packaged runtime](#build-for-packaged-runtime) | `nanobot/web/dist/` |
+| Build the production bundle | [Build for packaged runtime](#build-for-packaged-runtime) | `yoreni/web/dist/` |
 
 The source app is built with Vite + React 18 + TypeScript + Tailwind 3 + shadcn/ui. It talks to the gateway over the WebSocket multiplex protocol and reads session metadata from the embedded REST surface on the same port.
 
@@ -17,17 +17,17 @@ For existing components, ownership boundaries, and interactive examples, see the
 
 ```text
 webui/                 source tree (this directory)
-nanobot/web/dist/      build output served by the gateway
+yoreni/web/dist/      build output served by the gateway
 webui/src/components/settings/   model, capability, and system settings
 webui/src/lib/                   transport, API clients, and shared types
 webui/src/tests/                 frontend test setup and integration tests
-nanobot/channels/*/webui/        channel-owned interface code
-nanobot/channels/*/tests/webui/  channel interface tests
+yoreni/channels/*/webui/        channel-owned interface code
+yoreni/channels/*/tests/webui/  channel interface tests
 ```
 
 ## Develop the WebUI (Vite HMR)
 
-### 1. Install nanobot from source
+### 1. Install yoreni from source
 
 From the repository root:
 
@@ -42,7 +42,7 @@ python -m pip install -e .
 From the repository root:
 
 ```bash
-nanobot webui --dev
+yoreni webui --dev
 ```
 
 The command safely prepares the local WebSocket channel, starts both the gateway and Vite, and opens `http://127.0.0.1:5173`. Vite proxies HTTP requests to the gateway and applies frontend changes with HMR; the application WebSocket connects directly to the gateway. Ctrl+C stops Vite and releases this gateway client. An on-demand gateway stops when its last interactive client exits; a persistent gateway keeps running.
@@ -55,7 +55,7 @@ The two-terminal workflow remains available when you want to manage each process
 
 ### 1. Enable the WebSocket channel
 
-In `~/.nanobot/config.json`, merge:
+In `~/.yoreni/config.json`, merge:
 
 ```json
 { "channels": { "websocket": { "enabled": true } } }
@@ -66,7 +66,7 @@ In `~/.nanobot/config.json`, merge:
 In one terminal:
 
 ```bash
-nanobot gateway
+yoreni gateway
 ```
 
 ### 3. Start the WebUI dev server
@@ -86,7 +86,7 @@ By default Vite proxies the HTTP paths `/api`, `/webui`, and `/auth` to `http://
 If your gateway listens on a non-default port, point the dev server at it:
 
 ```bash
-NANOBOT_API_URL=http://127.0.0.1:9000 bun run dev
+YORENI_API_URL=http://127.0.0.1:9000 bun run dev
 ```
 
 This variable sets the HTTP target. Check the bootstrap response's `ws_url` when HTTP works but chat cannot connect: that address must be reachable by the browser. For a reverse proxy, configure the gateway's `channels.websocket.publicWsUrl` rather than adding a Vite WebSocket proxy. If authentication is enabled, use the launcher's full login link or sign in with the configured bootstrap secret.
@@ -99,7 +99,7 @@ If you want to preview the production bundle locally without rebuilding the whee
 
 ```bash
 cd webui
-bun run build          # writes to ../nanobot/web/dist
+bun run build          # writes to ../yoreni/web/dist
 ```
 
 The gateway picks up the new bundle on the next restart.

@@ -7,13 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from nanobot.agent.memory import Consolidator, MemoryStore
-from nanobot.agent.subagent import SubagentManager
-from nanobot.bus.queue import MessageBus
-from nanobot.providers.base import GenerationSettings, LLMProvider, LLMResponse, ToolCallRequest
-from nanobot.session.manager import SessionManager
-from nanobot.utils.helpers import estimate_prompt_tokens_chain
-from nanobot.utils.llm_runtime import LLMRuntime
+from yoreni.agent.memory import Consolidator, MemoryStore
+from yoreni.agent.subagent import SubagentManager
+from yoreni.bus.queue import MessageBus
+from yoreni.providers.base import GenerationSettings, LLMProvider, LLMResponse, ToolCallRequest
+from yoreni.session.manager import SessionManager
+from yoreni.utils.helpers import estimate_prompt_tokens_chain
+from yoreni.utils.llm_runtime import LLMRuntime
 
 
 def test_subagent_requires_consolidator_at_construction(tmp_path):

@@ -8,16 +8,16 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from agent.runner_helpers import make_run_spec
-from nanobot.agent.progress_hook import AgentProgressHook
-from nanobot.agent.runner import _PERSISTED_MODEL_ERROR_PLACEHOLDER, AgentRunner
-from nanobot.config.schema import ModelPresetConfig
-from nanobot.providers.base import LLMProvider, LLMResponse, ToolCallRequest
-from nanobot.providers.fallback_provider import FallbackProvider
-from nanobot.providers.model_api import ModelAPICapabilities
-from nanobot.providers.openai_compat_provider import OpenAICompatProvider
-from nanobot.providers.openai_responses import parse_response_output
-from nanobot.providers.unconfigured_provider import UnconfiguredProvider
-from nanobot.utils.progress_events import output_events
+from yoreni.agent.progress_hook import AgentProgressHook
+from yoreni.agent.runner import _PERSISTED_MODEL_ERROR_PLACEHOLDER, AgentRunner
+from yoreni.config.schema import ModelPresetConfig
+from yoreni.providers.base import LLMProvider, LLMResponse, ToolCallRequest
+from yoreni.providers.fallback_provider import FallbackProvider
+from yoreni.providers.model_api import ModelAPICapabilities
+from yoreni.providers.openai_compat_provider import OpenAICompatProvider
+from yoreni.providers.openai_responses import parse_response_output
+from yoreni.providers.unconfigured_provider import UnconfiguredProvider
+from yoreni.utils.progress_events import output_events
 
 
 @pytest.mark.asyncio

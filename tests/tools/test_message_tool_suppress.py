@@ -6,13 +6,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from nanobot.agent.context import TranscriptInput
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.tools.message import MessageTool
-from nanobot.bus.events import InboundMessage, OutboundMessage
-from nanobot.bus.queue import MessageBus
-from nanobot.providers.base import LLMResponse, ToolCallRequest
-from nanobot.utils.progress_events import output_events
+from yoreni.agent.context import TranscriptInput
+from yoreni.agent.loop import AgentLoop
+from yoreni.agent.tools.message import MessageTool
+from yoreni.bus.events import InboundMessage, OutboundMessage
+from yoreni.bus.queue import MessageBus
+from yoreni.providers.base import LLMResponse, ToolCallRequest
+from yoreni.utils.progress_events import output_events
 
 
 def _make_loop(tmp_path: Path) -> AgentLoop:

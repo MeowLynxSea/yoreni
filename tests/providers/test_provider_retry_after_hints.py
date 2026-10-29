@@ -1,8 +1,8 @@
 from types import SimpleNamespace
 
-from nanobot.providers.anthropic_provider import AnthropicProvider
-from nanobot.providers.azure_openai_provider import AzureOpenAIProvider
-from nanobot.providers.openai_compat_provider import OpenAICompatProvider
+from yoreni.providers.anthropic_provider import AnthropicProvider
+from yoreni.providers.azure_openai_provider import AzureOpenAIProvider
+from yoreni.providers.openai_compat_provider import OpenAICompatProvider
 
 
 def test_openai_compat_error_captures_retry_after_from_headers() -> None:

@@ -12,30 +12,30 @@ import type {
   CliAppsPayload,
   McpOAuthFlowPayload,
   McpPresetsPayload,
-  NanobotFeatureInfo,
-  NanobotFeaturesPayload,
+  YoreniFeatureInfo,
+  YoreniFeaturesPayload,
   SessionAutomationJob,
 } from "@/lib/types";
 
-export type NanobotFeatureInstallRequest = {
-  feature: NanobotFeatureInfo;
+export type YoreniFeatureInstallRequest = {
+  feature: YoreniFeatureInfo;
   installOnly: boolean;
 };
 
 export function useSystemSettingsState() {
   const [cliApps, setCliApps] = useState<CliAppsPayload | null>(null);
-  const [nanobotFeatures, setNanobotFeatures] = useState<NanobotFeaturesPayload | null>(null);
+  const [yoreniFeatures, setYoreniFeatures] = useState<YoreniFeaturesPayload | null>(null);
   const [mcpPresets, setMcpPresets] = useState<McpPresetsPayload | null>(null);
   const [automations, setAutomations] = useState<AutomationsPayload | null>(null);
   const [cliAppsLoading, setCliAppsLoading] = useState(true);
-  const [nanobotFeaturesLoading, setNanobotFeaturesLoading] = useState(true);
+  const [yoreniFeaturesLoading, setYoreniFeaturesLoading] = useState(true);
   const [mcpPresetsLoading, setMcpPresetsLoading] = useState(true);
   const [automationsLoading, setAutomationsLoading] = useState(true);
   const [cliAppsAction, setCliAppsAction] = useState<string | null>(null);
-  const [nanobotFeatureAction, setNanobotFeatureAction] = useState<string | null>(null);
-  const nanobotFeatureActionRef = useRef<string | null>(null);
-  const [nanobotFeatureConfirm, setNanobotFeatureConfirm] =
-    useState<NanobotFeatureInstallRequest | null>(null);
+  const [yoreniFeatureAction, setYoreniFeatureAction] = useState<string | null>(null);
+  const yoreniFeatureActionRef = useRef<string | null>(null);
+  const [yoreniFeatureConfirm, setYoreniFeatureConfirm] =
+    useState<YoreniFeatureInstallRequest | null>(null);
   const [mcpPresetAction, setMcpPresetAction] = useState<string | null>(null);
   const [mcpOAuthFlow, setMcpOAuthFlow] = useState<McpOAuthFlowPayload | null>(null);
   const mcpOAuthFlowRef = useRef<McpOAuthFlowPayload | null>(null);
@@ -53,7 +53,7 @@ export function useSystemSettingsState() {
   const [automationsFilter, setAutomationsFilter] = useState<AutomationFilter>("all");
   const [cliAppsMessage, setCliAppsMessage] = useState<string | null>(null);
   const [cliAppsError, setCliAppsError] = useState<string | null>(null);
-  const [nanobotFeaturesError, setNanobotFeaturesError] = useState<string | null>(null);
+  const [yoreniFeaturesError, setYoreniFeaturesError] = useState<string | null>(null);
   const [cliAppsFocusName, setCliAppsFocusName] = useState<string | null>(null);
   const [appsKindFilter, setAppsKindFilter] = useState<AppsKindFilter>("cli");
   const [mcpMessage, setMcpMessage] = useState<string | null>(null);
@@ -104,12 +104,12 @@ export function useSystemSettingsState() {
     mcpPresetAction,
     mcpPresets,
     mcpPresetsLoading,
-    nanobotFeatureAction,
-    nanobotFeatureActionRef,
-    nanobotFeatureConfirm,
-    nanobotFeatures,
-    nanobotFeaturesError,
-    nanobotFeaturesLoading,
+    yoreniFeatureAction,
+    yoreniFeatureActionRef,
+    yoreniFeatureConfirm,
+    yoreniFeatures,
+    yoreniFeaturesError,
+    yoreniFeaturesLoading,
     setApiService,
     setApiServiceAction,
     setApiServiceError,
@@ -142,11 +142,11 @@ export function useSystemSettingsState() {
     setMcpPresetAction,
     setMcpPresets,
     setMcpPresetsLoading,
-    setNanobotFeatureAction,
-    setNanobotFeatureConfirm,
-    setNanobotFeatures,
-    setNanobotFeaturesError,
-    setNanobotFeaturesLoading,
+    setYoreniFeatureAction,
+    setYoreniFeatureConfirm,
+    setYoreniFeatures,
+    setYoreniFeaturesError,
+    setYoreniFeaturesLoading,
   };
 }
 

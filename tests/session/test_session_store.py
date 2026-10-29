@@ -2,10 +2,10 @@
 
 from datetime import datetime
 
-from nanobot.providers.base import ProviderConversationState
-from nanobot.session.manager import Session, SessionManager
-from nanobot.session.model_selection import SESSION_MODEL_PRESET_METADATA_KEY
-from nanobot.session.types import PARENT_SESSION_KEY, SESSION_TYPE_KEY
+from yoreni.providers.base import ProviderConversationState
+from yoreni.session.manager import Session, SessionManager
+from yoreni.session.model_selection import SESSION_MODEL_PRESET_METADATA_KEY
+from yoreni.session.types import PARENT_SESSION_KEY, SESSION_TYPE_KEY
 
 
 def test_manager_roundtrips_full_history_and_private_state(tmp_path):

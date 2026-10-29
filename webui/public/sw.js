@@ -1,9 +1,9 @@
-const CACHE_PREFIX = "nanobot-static-";
+const CACHE_PREFIX = "yoreni-static-";
 const CACHE_NAME = `${CACHE_PREFIX}v2`;
-const ICON_CACHE_PREFIX = "nanobot-icons-";
+const ICON_CACHE_PREFIX = "yoreni-icons-";
 const ICON_CACHE_NAME = `${ICON_CACHE_PREFIX}v1`;
 const ICON_CACHE_LIMIT = 128;
-const NOTICE_CACHE = "nanobot-notification-receipts-v1";
+const NOTICE_CACHE = "yoreni-notification-receipts-v1";
 const NOTICE_RECEIPTS = "/__notification_receipts__";
 let noticeQueue = Promise.resolve();
 let noticeReceipts;
@@ -13,12 +13,12 @@ const NETWORK_FIRST_STATIC_PATHS = new Set([
   "/",
   "/manifest.json",
   ASSET_MANIFEST_PATH,
-  "/brand/nanobot_apple_touch.png",
-  "/brand/nanobot_favicon_32.png",
-  "/brand/nanobot_icon_192.png",
-  "/brand/nanobot_icon_512.png",
-  "/brand/nanobot_icon_maskable.png",
-  "/brand/nanobot_mark.svg",
+  "/brand/yoreni_apple_touch.png",
+  "/brand/yoreni_favicon_32.png",
+  "/brand/yoreni_icon_192.png",
+  "/brand/yoreni_icon_512.png",
+  "/brand/yoreni_icon_maskable.png",
+  "/brand/yoreni_mark.svg",
 ]);
 
 function notificationTarget(value) {
@@ -47,8 +47,8 @@ async function notifyClient(source, data) {
   const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   const visible = !data.test && windows.some((client) => client.visibilityState === "visible");
   if (!visible) {
-    await self.registration.showNotification("nanobot", {
-      body: data.body, tag: data.key, icon: "/brand/nanobot_icon_192.png",
+    await self.registration.showNotification("yoreni", {
+      body: data.body, tag: data.key, icon: "/brand/yoreni_icon_192.png",
       data: { url, clientId: source.id },
     });
   }
@@ -61,11 +61,11 @@ async function notifyClient(source, data) {
 
 self.addEventListener("message", (event) => {
   if (!event.source?.url || new URL(event.source.url).origin !== self.location.origin) return;
-  if (event.data?.type === "nanobot:notification-probe") {
+  if (event.data?.type === "yoreni:notification-probe") {
     event.ports[0]?.postMessage(typeof self.registration.showNotification === "function" ? "ready" : "workerUnavailable");
     return;
   }
-  if (event.data?.type !== "nanobot:notify") return;
+  if (event.data?.type !== "yoreni:notify") return;
   const work = noticeQueue.then(() => notifyClient(event.source, event.data));
   noticeQueue = work.then(() => undefined, () => undefined);
   event.waitUntil(work.then(
@@ -83,7 +83,7 @@ self.addEventListener("notificationclick", (event) => {
     const source = windows.find((client) => client.id === event.notification.data.clientId);
     const temporary = new URL(url).hash.startsWith("#/temporary/");
     if (source) {
-      source.postMessage({ type: "nanobot:notification-click", url });
+      source.postMessage({ type: "yoreni:notification-click", url });
       await source.focus();
     } else {
       // Other tabs may run older code without the click receiver. Open the

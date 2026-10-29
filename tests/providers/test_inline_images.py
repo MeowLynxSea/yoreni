@@ -12,14 +12,14 @@ import pytest
 from aiohttp import web
 from PIL import Image
 
-from nanobot.providers.anthropic_provider import AnthropicProvider
-from nanobot.providers.azure_openai_provider import AzureOpenAIProvider
-from nanobot.providers.base import ProviderCallContext
-from nanobot.providers.bedrock_provider import BedrockProvider
-from nanobot.providers.github_copilot_provider import GitHubCopilotProvider
-from nanobot.providers.openai_compat_provider import OpenAICompatProvider
-from nanobot.providers.registry import ModelAPICapabilities, find_by_name
-from nanobot.providers.xai_grok_provider import XAIGrokProvider
+from yoreni.providers.anthropic_provider import AnthropicProvider
+from yoreni.providers.azure_openai_provider import AzureOpenAIProvider
+from yoreni.providers.base import ProviderCallContext
+from yoreni.providers.bedrock_provider import BedrockProvider
+from yoreni.providers.github_copilot_provider import GitHubCopilotProvider
+from yoreni.providers.openai_compat_provider import OpenAICompatProvider
+from yoreni.providers.registry import ModelAPICapabilities, find_by_name
+from yoreni.providers.xai_grok_provider import XAIGrokProvider
 
 
 @pytest.fixture(scope="module")
@@ -126,14 +126,14 @@ def _provider(adapter, url, monkeypatch):
     if adapter == "anthropic":
         return AnthropicProvider(api_key="fixture", api_base=url)
     if adapter == "copilot":
-        monkeypatch.setenv("NANOBOT_COPILOT_BASE_URL", f"{url}/v1")
-        monkeypatch.setenv("NANOBOT_COPILOT_TOKEN_URL", f"{url}/copilot_token")
-        monkeypatch.setattr("nanobot.providers.github_copilot_provider._load_github_token",
+        monkeypatch.setenv("YORENI_COPILOT_BASE_URL", f"{url}/v1")
+        monkeypatch.setenv("YORENI_COPILOT_TOKEN_URL", f"{url}/copilot_token")
+        monkeypatch.setattr("yoreni.providers.github_copilot_provider._load_github_token",
                             lambda: SimpleNamespace(access="github-fixture"))
         return GitHubCopilotProvider(default_model="github-copilot/gpt-5.4-mini")
     if adapter == "xai":
-        monkeypatch.setattr("nanobot.providers.xai_grok_provider.DEFAULT_XAI_GROK_URL", f"{url}/v1/responses")
-        monkeypatch.setattr("nanobot.providers.xai_grok_provider.get_xai_oauth_token",
+        monkeypatch.setattr("yoreni.providers.xai_grok_provider.DEFAULT_XAI_GROK_URL", f"{url}/v1/responses")
+        monkeypatch.setattr("yoreni.providers.xai_grok_provider.get_xai_oauth_token",
                             lambda **_: SimpleNamespace(access="xai-fixture"))
         return XAIGrokProvider(extra_body={"tools": []})
     spec = find_by_name("deepseek" if adapter == "deepseek" else "openai")

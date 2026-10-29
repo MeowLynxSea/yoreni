@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from nanobot.llm_usage import LLMCallRecord, get_llm_usage_store
-from nanobot.pairing import store as pairing_store
-from nanobot.session.manager import SessionManager
-from nanobot.webui import star_prompt
+from yoreni.llm_usage import LLMCallRecord, get_llm_usage_store
+from yoreni.pairing import store as pairing_store
+from yoreni.session.manager import SessionManager
+from yoreni.webui import star_prompt
 
 
 @pytest.mark.parametrize("_iteration", range(2))

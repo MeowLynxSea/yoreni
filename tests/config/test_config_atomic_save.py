@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from nanobot.config.loader import load_config, save_config
-from nanobot.config.schema import Config
+from yoreni.config.loader import load_config, save_config
+from yoreni.config.schema import Config
 
 
 def test_save_config_round_trips(tmp_path: Path) -> None:

@@ -7,13 +7,13 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from agent.session_helpers import run_session, save_completed_subagent
-from nanobot.agent.context import TranscriptInput
-from nanobot.agent.hooks import create_file_edit_activity_hook
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.tools.context import current_request_context
-from nanobot.agent.tools.filesystem import WriteFileTool
-from nanobot.bus.events import InboundMessage
-from nanobot.bus.outbound_events import (
+from yoreni.agent.context import TranscriptInput
+from yoreni.agent.hooks import create_file_edit_activity_hook
+from yoreni.agent.loop import AgentLoop
+from yoreni.agent.tools.context import current_request_context
+from yoreni.agent.tools.filesystem import WriteFileTool
+from yoreni.bus.events import InboundMessage
+from yoreni.bus.outbound_events import (
     GoalStatusEvent,
     ProgressEvent,
     SessionUpdatedEvent,
@@ -22,12 +22,12 @@ from nanobot.bus.outbound_events import (
     StreamEndEvent,
     TurnEndEvent,
 )
-from nanobot.bus.queue import MessageBus
-from nanobot.providers.base import LLMResponse, ToolCallRequest
-from nanobot.providers.factory import ProviderSnapshot
-from nanobot.session.webui_turns import WebuiTurnCoordinator, WebuiTurnRoutePolicy
-from nanobot.utils.progress_events import output_events
-from nanobot.webui.metadata import (
+from yoreni.bus.queue import MessageBus
+from yoreni.providers.base import LLMResponse, ToolCallRequest
+from yoreni.providers.factory import ProviderSnapshot
+from yoreni.session.webui_turns import WebuiTurnCoordinator, WebuiTurnRoutePolicy
+from yoreni.utils.progress_events import output_events
+from yoreni.webui.metadata import (
     WEBSOCKET_TURN_OWNER_METADATA_KEY,
     WEBUI_TURN_METADATA_KEY,
 )
@@ -159,7 +159,7 @@ class TestToolEventProgress:
             pass
 
         monkeypatch.setattr(
-            "nanobot.agent.hooks.file_edit_activity.prepare_file_edit_trackers",
+            "yoreni.agent.hooks.file_edit_activity.prepare_file_edit_trackers",
             prepare_file_edit_trackers,
         )
 
@@ -1120,7 +1120,7 @@ class TestToolEventProgress:
             return False
 
         monkeypatch.setattr(
-            "nanobot.session.webui_turns.maybe_generate_webui_title_after_turn",
+            "yoreni.session.webui_turns.maybe_generate_webui_title_after_turn",
             fake_title_after_turn,
         )
         scheduled_title: list[object] = []
@@ -1164,8 +1164,8 @@ class TestToolEventProgress:
         tmp_path: Path,
         metadata: dict[str, object],
     ) -> None:
-        from nanobot.session.manager import SessionManager
-        from nanobot.session.webui_turns import maybe_generate_webui_title_after_turn
+        from yoreni.session.manager import SessionManager
+        from yoreni.session.webui_turns import maybe_generate_webui_title_after_turn
 
         sessions = SessionManager(tmp_path)
         session = sessions.get_or_create("websocket:chat1")
@@ -1245,7 +1245,7 @@ class TestToolEventProgress:
             raise AssertionError("command-only turns should not generate titles")
 
         monkeypatch.setattr(
-            "nanobot.session.webui_turns.maybe_generate_webui_title_after_turn",
+            "yoreni.session.webui_turns.maybe_generate_webui_title_after_turn",
             fake_title_after_turn,
         )
         scheduled: list[object] = []

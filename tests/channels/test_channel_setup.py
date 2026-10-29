@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
-import nanobot.channels._setup as channel_setup_module
-import nanobot.channels.registry as registry_module
-from nanobot.channels._setup import channel_setup_spec
-from nanobot.channels.plugin import ChannelPlugin, load_channel_package
-from nanobot.channels.registry import channel_default_enabled, discover_plugins
+import yoreni.channels._setup as channel_setup_module
+import yoreni.channels.registry as registry_module
+from yoreni.channels._setup import channel_setup_spec
+from yoreni.channels.plugin import ChannelPlugin, load_channel_package
+from yoreni.channels.registry import channel_default_enabled, discover_plugins
 
 EXPECTED_CHANNELS = {
     "dingtalk",
@@ -40,7 +40,7 @@ INTERNAL_CHANNEL_FIELDS = {
     "signal": {"allowFrom"},
     "weixin": {"token"},
     "whatsapp": {"databasePath", "lidMappings"},
-    # nanobot WebUI owns this transport and intentionally has no channel dialog.
+    # yoreni WebUI owns this transport and intentionally has no channel dialog.
     "websocket": {
         "allowFrom",
         "host",
@@ -103,7 +103,7 @@ def test_matrix_setup_requires_one_complete_login_method() -> None:
     assert matrix is not None
     base = {
         "homeserver": "https://matrix.example",
-        "userId": "@nanobot:matrix.example",
+        "userId": "@yoreni:matrix.example",
     }
     assert matrix.is_configured(base | {"password": "secret"})
     assert matrix.is_configured(base | {"accessToken": "token", "deviceId": "DEVICE"})
@@ -169,7 +169,7 @@ def test_every_channel_is_a_self_contained_package() -> None:
         plugin = load_channel_package(name)
         assert plugin is not None
         assert plugin.name == name
-        assert plugin.runtime.startswith(f"nanobot.channels.{name}.runtime:")
+        assert plugin.runtime.startswith(f"yoreni.channels.{name}.runtime:")
         assert plugin.setup is channel_setup_spec(name)
         if plugin.webui is not None:
             assert (package_dir / plugin.webui).is_file()
@@ -226,9 +226,9 @@ def test_every_runtime_channel_field_has_a_webui_contract() -> None:
 def test_channel_manifests_only_import_contract_modules() -> None:
     channel_dir = Path(channel_setup_module.__file__).parent
     allowed_imports = {
-        "nanobot.channels._manifest",
-        "nanobot.channels.contracts",
-        "nanobot.channels.plugin",
+        "yoreni.channels._manifest",
+        "yoreni.channels.contracts",
+        "yoreni.channels.plugin",
     }
 
     for name in EXPECTED_CHANNELS:
@@ -243,7 +243,7 @@ def test_channel_manifests_only_import_contract_modules() -> None:
         allowed_channel_imports = {
             module
             for module in imports
-            if module.startswith(f"nanobot.channels.{name}.")
+            if module.startswith(f"yoreni.channels.{name}.")
             and not module.endswith(".runtime")
         }
         unexpected = imports - allowed_imports - allowed_channel_imports
@@ -254,9 +254,9 @@ def test_feishu_package_manifest_owns_runtime_and_webui_metadata() -> None:
     plugin = load_channel_package("feishu")
 
     assert plugin is not None
-    assert plugin.runtime == "nanobot.channels.feishu.runtime:FeishuChannel"
+    assert plugin.runtime == "yoreni.channels.feishu.runtime:FeishuChannel"
     assert plugin.dependencies == ("lark-oapi>=1.5.0,<2.0.0",)
-    assert plugin.connector == "nanobot.channels.feishu.connect:FeishuConnectStore"
+    assert plugin.connector == "yoreni.channels.feishu.connect:FeishuConnectStore"
     assert plugin.management.multi_instance is True
     assert plugin.webui == "webui/index.tsx"
 
@@ -265,9 +265,9 @@ def test_weixin_package_manifest_owns_runtime_and_webui_metadata() -> None:
     plugin = load_channel_package("weixin")
 
     assert plugin is not None
-    assert plugin.runtime == "nanobot.channels.weixin.runtime:WeixinChannel"
+    assert plugin.runtime == "yoreni.channels.weixin.runtime:WeixinChannel"
     assert plugin.dependencies == ("qrcode[pil]>=8.0", "pycryptodome>=3.20.0")
-    assert plugin.connector == "nanobot.channels.weixin.connect:WeixinConnectStore"
+    assert plugin.connector == "yoreni.channels.weixin.connect:WeixinConnectStore"
     assert plugin.webui == "webui/index.tsx"
 
 
@@ -275,7 +275,7 @@ def test_whatsapp_package_manifest_owns_browser_connector() -> None:
     plugin = load_channel_package("whatsapp")
 
     assert plugin is not None
-    assert plugin.connector == "nanobot.channels.whatsapp.connect:WhatsAppConnectStore"
+    assert plugin.connector == "yoreni.channels.whatsapp.connect:WhatsAppConnectStore"
     assert plugin.webui == "webui/index.tsx"
 
 
@@ -292,12 +292,12 @@ def test_mochat_package_manifest_exposes_required_setup() -> None:
 def test_package_manifests_do_not_import_runtimes() -> None:
     code = f"""
 import sys
-from nanobot.channels.plugin import load_channel_package
+from yoreni.channels.plugin import load_channel_package
 
 for name in {sorted(EXPECTED_CHANNELS)!r}:
     plugin = load_channel_package(name)
     assert plugin is not None
-    assert f"nanobot.channels.{{name}}.runtime" not in sys.modules
+    assert f"yoreni.channels.{{name}}.runtime" not in sys.modules
 """
     result = subprocess.run(
         [sys.executable, "-c", code],

@@ -4,13 +4,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.tools.context import current_request_context
-from nanobot.agent.tools.shell import ExecTool
-from nanobot.bus.events import INBOUND_META_USER_SHELL, InboundMessage, OutboundMessage
-from nanobot.command.builtin import cmd_user_shell
-from nanobot.command.router import CommandContext
-from nanobot.session.manager import Session, SessionPolicy
+from yoreni.agent.loop import AgentLoop
+from yoreni.agent.tools.context import current_request_context
+from yoreni.agent.tools.shell import ExecTool
+from yoreni.bus.events import INBOUND_META_USER_SHELL, InboundMessage, OutboundMessage
+from yoreni.command.builtin import cmd_user_shell
+from yoreni.command.router import CommandContext
+from yoreni.session.manager import Session, SessionPolicy
 
 
 def _context(loop: MagicMock, *, trusted: bool, command: str = "pwd") -> CommandContext:

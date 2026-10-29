@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fetchLatestWebuiThread } from "@/lib/latest-thread-request";
-import { NanobotClient } from "@/lib/nanobot-client";
+import { YoreniClient } from "@/lib/yoreni-client";
 import { webuiThreadCache } from "@/lib/webui-thread-cache";
 import type { WebuiThreadPersistedPayload } from "@/lib/types";
 
 const KEY = "websocket:shared";
 
-function connectedClient(url: string): NanobotClient {
+function connectedClient(url: string): YoreniClient {
   const socket = { readyState: 1, onopen: null as (() => void) | null, send() {}, close() {} };
-  const client = new NanobotClient({ url, reconnect: false, socketFactory: () => socket as unknown as WebSocket });
+  const client = new YoreniClient({ url, reconnect: false, socketFactory: () => socket as unknown as WebSocket });
   client.connect();
   socket.onopen?.();
   return client;
@@ -77,7 +77,7 @@ describe("shared latest thread requests", () => {
       readyState: 1, onopen: null as (() => void) | null,
       onmessage: null as ((event: MessageEvent) => void) | null, send() {}, close() {},
     };
-    const client = new NanobotClient({ url: "ws://host", reconnect: false, socketFactory: () => socket as unknown as WebSocket });
+    const client = new YoreniClient({ url: "ws://host", reconnect: false, socketFactory: () => socket as unknown as WebSocket });
     client.connect();
     socket.onopen?.();
     const reads = [deferredResponse(), deferredResponse()];

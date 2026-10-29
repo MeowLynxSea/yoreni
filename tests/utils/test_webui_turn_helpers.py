@@ -5,30 +5,30 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from nanobot.agent.tools.context import RequestContext, request_context
-from nanobot.agent.turn_delivery import TurnDeliveryFactory
-from nanobot.bus.events import InboundMessage
-from nanobot.bus.outbound_events import (
+from yoreni.agent.tools.context import RequestContext, request_context
+from yoreni.agent.turn_delivery import TurnDeliveryFactory
+from yoreni.bus.events import InboundMessage
+from yoreni.bus.outbound_events import (
     GoalStatusEvent,
     RetryStatusEvent,
     TurnEndEvent,
     TurnModelUpdatedEvent,
     UserInputEvent,
 )
-from nanobot.bus.queue import MessageBus
-from nanobot.bus.runtime_events import (
+from yoreni.bus.queue import MessageBus
+from yoreni.bus.runtime_events import (
     RuntimeEventContext,
     TurnRuntimeAdmitted,
     UserInputAccepted,
 )
-from nanobot.providers.base import GenerationSettings, LLMUsage
-from nanobot.providers.fallback_provider import FallbackModelSelection
-from nanobot.session import webui_turns as wth
-from nanobot.session.manager import SessionManager
-from nanobot.session.session_handles import session_handle_for_name
-from nanobot.session.session_messages import SESSION_MESSAGE_METADATA_KEY
-from nanobot.utils.llm_runtime import LLMRuntime
-from nanobot.webui.metadata import WEBSOCKET_TURN_OWNER_METADATA_KEY
+from yoreni.providers.base import GenerationSettings, LLMUsage
+from yoreni.providers.fallback_provider import FallbackModelSelection
+from yoreni.session import webui_turns as wth
+from yoreni.session.manager import SessionManager
+from yoreni.session.session_handles import session_handle_for_name
+from yoreni.session.session_messages import SESSION_MESSAGE_METADATA_KEY
+from yoreni.utils.llm_runtime import LLMRuntime
+from yoreni.webui.metadata import WEBSOCKET_TURN_OWNER_METADATA_KEY
 
 
 @pytest.fixture(autouse=True)
@@ -196,7 +196,7 @@ async def test_fallback_model_is_scoped_to_its_websocket_chat() -> None:
 
 @pytest.mark.asyncio
 async def test_coordinator_connections_end_on_scope_exit_and_can_reconnect(tmp_path):
-    from nanobot.bus.runtime_events import RuntimeModelChanged
+    from yoreni.bus.runtime_events import RuntimeModelChanged
 
     bus = MessageBus()
     bus.publish_outbound = AsyncMock()

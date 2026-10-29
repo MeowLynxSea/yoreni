@@ -5,10 +5,10 @@ import { channelSetup } from "@/components/settings/channels/ChannelIdentity";
 import { docsUrlWithBase } from "@/channel-plugins/catalog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import type { NanobotFeatureInfo } from "@/lib/types";
+import type { YoreniFeatureInfo } from "@/lib/types";
 
 export function ChannelHelpMenu({ feature, chatAppsDocsUrl }: {
-  feature: NanobotFeatureInfo;
+  feature: YoreniFeatureInfo;
   chatAppsDocsUrl?: string;
 }) {
   const { t, i18n } = useTranslation();

@@ -10,8 +10,8 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 import httpx
 import pytest
 
-import nanobot.providers.xai_oauth as xai_oauth
-from nanobot.providers.xai_oauth import (
+import yoreni.providers.xai_oauth as xai_oauth
+from yoreni.providers.xai_oauth import (
     XAI_CLIENT_ID,
     XAI_OAUTH_SCOPES,
     XAIOAuthError,
@@ -58,7 +58,7 @@ def test_authorize_url_uses_pkce_and_frozen_xai_scope_contract() -> None:
         "code_challenge_method": ["S256"],
         "state": ["state-value"],
         "nonce": ["nonce-value"],
-        "referrer": ["nanobot"],
+        "referrer": ["yoreni"],
     }
 
 
@@ -275,7 +275,7 @@ def test_missing_credentials_returns_actionable_login_command(
 ) -> None:
     _use_temp_credentials(monkeypatch, tmp_path)
 
-    with pytest.raises(XAIOAuthError, match="nanobot provider login xai-grok"):
+    with pytest.raises(XAIOAuthError, match="yoreni provider login xai-grok"):
         get_xai_oauth_token()
 
 

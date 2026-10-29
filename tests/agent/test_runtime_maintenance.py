@@ -10,17 +10,17 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from nanobot.agent.runner import AgentRunResult
-from nanobot.bus.events import InboundMessage
-from nanobot.bus.runtime_events import RuntimeModelChanged
-from nanobot.cron.service import CronService
-from nanobot.cron.types import CronSchedule
-from nanobot.providers.base import LLMResponse
-from nanobot.runtime_admission import RuntimeBusyError, RuntimeMaintenanceError
-from nanobot.session.sqlite_store import SessionConflictError
-from nanobot.triggers.local_runner import run_local_trigger_queue
-from nanobot.triggers.local_store import LocalTriggerStore
-from nanobot.utils.llm_runtime import LLMRuntime
+from yoreni.agent.runner import AgentRunResult
+from yoreni.bus.events import InboundMessage
+from yoreni.bus.runtime_events import RuntimeModelChanged
+from yoreni.cron.service import CronService
+from yoreni.cron.types import CronSchedule
+from yoreni.providers.base import LLMResponse
+from yoreni.runtime_admission import RuntimeBusyError, RuntimeMaintenanceError
+from yoreni.session.sqlite_store import SessionConflictError
+from yoreni.triggers.local_runner import run_local_trigger_queue
+from yoreni.triggers.local_store import LocalTriggerStore
+from yoreni.utils.llm_runtime import LLMRuntime
 
 
 @pytest.fixture

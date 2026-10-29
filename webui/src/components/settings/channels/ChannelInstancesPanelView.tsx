@@ -25,26 +25,26 @@ import { Button } from "@/components/ui/button";
 import { useLogoFallback } from "@/hooks/useLogoFallback";
 import { logoFallbackUrls } from "@/lib/provider-brand";
 import type {
-  NanobotChannelInstanceInfo,
-  NanobotFeatureInfo,
+  YoreniChannelInstanceInfo,
+  YoreniFeatureInfo,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export type ChannelInstancesPanelCustomization = {
-  toggleAriaLabel?: (instance: NanobotChannelInstanceInfo) => string;
+  toggleAriaLabel?: (instance: YoreniChannelInstanceInfo) => string;
   configuredLabel?: string;
   needsSetupLabel?: string;
-  renderInstanceSummary?: (instance: NanobotChannelInstanceInfo) => ReactNode;
-  renderInstanceAction?: (instance: NanobotChannelInstanceInfo) => ReactNode;
+  renderInstanceSummary?: (instance: YoreniChannelInstanceInfo) => ReactNode;
+  renderInstanceAction?: (instance: YoreniChannelInstanceInfo) => ReactNode;
   footer?: ReactNode;
 };
 
 export type ChannelInstancesPanelViewProps = {
-  feature: NanobotFeatureInfo;
+  feature: YoreniFeatureInfo;
   showBrandLogos: boolean;
-  instances?: NanobotChannelInstanceInfo[];
-  onToggleInstance: (instance: NanobotChannelInstanceInfo, checked: boolean) => void | Promise<void>;
-  onSaveInstance: (instance: NanobotChannelInstanceInfo, values: Record<string, string>) => void | Promise<void>;
+  instances?: YoreniChannelInstanceInfo[];
+  onToggleInstance: (instance: YoreniChannelInstanceInfo, checked: boolean) => void | Promise<void>;
+  onSaveInstance: (instance: YoreniChannelInstanceInfo, values: Record<string, string>) => void | Promise<void>;
   customization?: ChannelInstancesPanelCustomization;
 };
 
@@ -97,7 +97,7 @@ export function ChannelInstancesPanelView({
     setVisibleSecrets({});
   }, [selected?.id, selectedValuesKey]);
 
-  const toggleInstance = async (instance: NanobotChannelInstanceInfo, checked: boolean) => {
+  const toggleInstance = async (instance: YoreniChannelInstanceInfo, checked: boolean) => {
     if (pendingToggle || savingFields) return;
     setPendingToggle({ id: instance.id, checked });
     setNotice(null);
@@ -282,7 +282,7 @@ export function ChannelInstancesPanelView({
   );
 }
 
-function channelInstanceDisplayName(instance: NanobotChannelInstanceInfo): string {
+function channelInstanceDisplayName(instance: YoreniChannelInstanceInfo): string {
   const displayName = instance.display_name?.trim();
   if (displayName) return displayName;
   const localName = instance.name?.trim();
@@ -290,7 +290,7 @@ function channelInstanceDisplayName(instance: NanobotChannelInstanceInfo): strin
   return instance.id;
 }
 
-function instanceToggleChecked(instance: NanobotChannelInstanceInfo): boolean {
+function instanceToggleChecked(instance: YoreniChannelInstanceInfo): boolean {
   return instance.runtime_status === "running" || instance.runtime_status === "starting";
 }
 
@@ -299,7 +299,7 @@ function ChannelInstanceStatusBadge({
   configuredLabel,
   needsSetupLabel,
 }: {
-  instance: NanobotChannelInstanceInfo;
+  instance: YoreniChannelInstanceInfo;
   configuredLabel?: string;
   needsSetupLabel?: string;
 }) {
@@ -338,8 +338,8 @@ function ChannelInstanceAvatar({
   instance,
   showBrandLogos,
 }: {
-  feature: NanobotFeatureInfo;
-  instance: NanobotChannelInstanceInfo;
+  feature: YoreniFeatureInfo;
+  instance: YoreniChannelInstanceInfo;
   showBrandLogos: boolean;
 }) {
   const presentation = channelUiPresentation(feature.name, feature.webui);
@@ -391,7 +391,7 @@ function ChannelInstanceAvatar({
 }
 
 function channelInstanceFields(
-  feature: NanobotFeatureInfo,
+  feature: YoreniFeatureInfo,
   fields: ChannelConfigField[] | undefined,
   manualFields: ChannelConfigField[] | undefined,
 ): ChannelConfigField[] {

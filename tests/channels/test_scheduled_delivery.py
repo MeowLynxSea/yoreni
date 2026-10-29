@@ -10,32 +10,32 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.tools.context import RequestContext, request_context
-from nanobot.agent.tools.cron import CronTool
-from nanobot.agent.tools.message import MessageTool
-from nanobot.bus.delivery import (
+from yoreni.agent.loop import AgentLoop
+from yoreni.agent.tools.context import RequestContext, request_context
+from yoreni.agent.tools.cron import CronTool
+from yoreni.agent.tools.message import MessageTool
+from yoreni.bus.delivery import (
     DELIVERY_RUN_META,
     ChannelNotReadyError,
     DeliveryRejectedError,
     DeliveryRequest,
 )
-from nanobot.bus.events import OutboundMessage
-from nanobot.bus.outbound_events import ProgressEvent
-from nanobot.bus.queue import MessageBus
-from nanobot.channels import outbox as outbox_module
-from nanobot.channels.base import BaseChannel
-from nanobot.channels.manager import ChannelManager
-from nanobot.channels.outbox import DeliveryOutbox
-from nanobot.channels.registry import load_channel_plugin
-from nanobot.channels.whatsapp.runtime import WhatsAppChannel
-from nanobot.config.schema import Config
-from nanobot.cron.bound_runner import run_bound_cron_job
-from nanobot.cron.service import CronService
-from nanobot.cron.types import CronSchedule
-from nanobot.providers.base import GenerationSettings, LLMResponse, ToolCallRequest
-from nanobot.runtime_admission import RuntimeBusyError, RuntimeMaintenanceError
-from nanobot.session.manager import SessionManager
+from yoreni.bus.events import OutboundMessage
+from yoreni.bus.outbound_events import ProgressEvent
+from yoreni.bus.queue import MessageBus
+from yoreni.channels import outbox as outbox_module
+from yoreni.channels.base import BaseChannel
+from yoreni.channels.manager import ChannelManager
+from yoreni.channels.outbox import DeliveryOutbox
+from yoreni.channels.registry import load_channel_plugin
+from yoreni.channels.whatsapp.runtime import WhatsAppChannel
+from yoreni.config.schema import Config
+from yoreni.cron.bound_runner import run_bound_cron_job
+from yoreni.cron.service import CronService
+from yoreni.cron.types import CronSchedule
+from yoreni.providers.base import GenerationSettings, LLMResponse, ToolCallRequest
+from yoreni.runtime_admission import RuntimeBusyError, RuntimeMaintenanceError
+from yoreni.session.manager import SessionManager
 
 
 def rows(outbox):

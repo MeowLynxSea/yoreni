@@ -7,9 +7,9 @@ import sys
 
 import pytest
 
-from nanobot.agent.tools.exec_session import ExecSessionManager, ExecSessionTool
-from nanobot.agent.tools.shell import ExecTool
-from nanobot.agent.tools.shell_output import ShellOutputFilter
+from yoreni.agent.tools.exec_session import ExecSessionManager, ExecSessionTool
+from yoreni.agent.tools.shell import ExecTool
+from yoreni.agent.tools.shell_output import ShellOutputFilter
 
 
 @pytest.mark.parametrize("chunk_size", [1, 4096])

@@ -5,7 +5,7 @@
 ```bash
 pip install -e ".[dev]"
 pytest
-ruff check nanobot/
+ruff check yoreni/
 ```
 
 Strict type checking covers optional providers and channels:

@@ -1,10 +1,10 @@
 import pytest
 from loguru import logger
 
-from nanobot.agent.hook import AgentHook, AgentHookContext, AgentTurnHookContext
-from nanobot.agent.turn_hooks import AgentTurnHookSpec, build_agent_turn_hook
-from nanobot.providers.base import ToolCallRequest
-from nanobot.utils.progress_events import output_events
+from yoreni.agent.hook import AgentHook, AgentHookContext, AgentTurnHookContext
+from yoreni.agent.turn_hooks import AgentTurnHookSpec, build_agent_turn_hook
+from yoreni.providers.base import ToolCallRequest
+from yoreni.utils.progress_events import output_events
 
 
 class RecordingHook(AgentHook):

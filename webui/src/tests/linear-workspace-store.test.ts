@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { NanobotClient } from "@/lib/nanobot-client";
+import { YoreniClient } from "@/lib/yoreni-client";
 
-import { linearWorkspaceStore } from "../../../nanobot/channels/linear/webui/workspace-store";
+import { linearWorkspaceStore } from "../../../yoreni/channels/linear/webui/workspace-store";
 
-const installation = { organization_id: "org-1", organization_name: "nanobot" };
+const installation = { organization_id: "org-1", organization_name: "yoreni" };
 const logo = "https://public.linear.app/org-1/logo";
 function fixture() {
   // Keep the real generic transport type; this client is never connected.
-  const client = new NanobotClient({ url: "ws://preview.invalid", reconnect: false });
+  const client = new YoreniClient({ url: "ws://preview.invalid", reconnect: false });
   const requestMutation = vi.spyOn(client, "requestMutation").mockImplementation(async (_action, params) =>
     params?.operation === "inspect"
       ? { installations: [installation] }

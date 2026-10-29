@@ -14,12 +14,12 @@ import pytest
 
 pytest.importorskip("botpy")
 
-from nanobot.bus.events import OutboundMessage
-from nanobot.bus.outbound_events import ContextCompactionEvent, outbound_message_for_event
-from nanobot.bus.queue import MessageBus
-from nanobot.channels.manager import ChannelManager
-from nanobot.channels.qq.runtime import QQChannel, QQConfig
-from nanobot.config.schema import Config
+from yoreni.bus.events import OutboundMessage
+from yoreni.bus.outbound_events import ContextCompactionEvent, outbound_message_for_event
+from yoreni.bus.queue import MessageBus
+from yoreni.channels.manager import ChannelManager
+from yoreni.channels.qq.runtime import QQChannel, QQConfig
+from yoreni.config.schema import Config
 
 
 def _make_channel(tmp_path, **config_kwargs) -> QQChannel:

@@ -5,9 +5,9 @@ import os
 
 import pytest
 
-from nanobot.agent.tools import file_state
-from nanobot.agent.tools.apply_patch import ApplyPatchTool
-from nanobot.agent.tools.filesystem import EditFileTool, ReadFileTool
+from yoreni.agent.tools import file_state
+from yoreni.agent.tools.apply_patch import ApplyPatchTool
+from yoreni.agent.tools.filesystem import EditFileTool, ReadFileTool
 
 # ---------------------------------------------------------------------------
 # Helpers

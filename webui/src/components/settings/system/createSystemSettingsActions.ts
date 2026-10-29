@@ -13,9 +13,9 @@ import {
   cancelMcpOAuth,
   changeAutomationChat,
   completeMcpOAuth,
-  disableNanobotFeature,
-  enableNanobotFeature,
-  fetchNanobotFeatures,
+  disableYoreniFeature,
+  enableYoreniFeature,
+  fetchYoreniFeatures,
   fetchSettings,
   fetchMcpOAuthStatus,
   fetchMcpPresets,
@@ -32,13 +32,13 @@ import {
 } from "@/lib/api";
 import { notifyCliAppsChanged } from "@/lib/cli-app-events";
 import { notifyMcpPresetsChanged } from "@/lib/mcp-preset-events";
-import type { NanobotClient } from "@/lib/nanobot-client";
+import type { YoreniClient } from "@/lib/yoreni-client";
 import type {
   AutomationUpdatePayload,
   AutomationChatUpdate,
   McpOAuthFlowPayload,
   McpPresetsPayload,
-  NanobotFeatureInfo,
+  YoreniFeatureInfo,
   SessionAutomationJob,
 } from "@/lib/types";
 
@@ -69,8 +69,8 @@ function isExpectedMcpOAuthPendingReloadFailure(
 
 interface SystemSettingsActionsOptions {
   state: SystemSettingsState;
-  featureCatalog: NanobotFeatureInfo[];
-  client: NanobotClient;
+  featureCatalog: YoreniFeatureInfo[];
+  client: YoreniClient;
   token: string;
   getToken: () => string;
   t: TFunction;
@@ -100,8 +100,8 @@ export function createSystemSettingsActions({
     mcpOAuthFlowRef,
     mcpOAuthNavigatedUrlRef,
     mcpOAuthPopupRef,
-    nanobotFeatureActionRef,
-    nanobotFeatures,
+    yoreniFeatureActionRef,
+    yoreniFeatures,
     setApiService,
     setApiServiceAction,
     setApiServiceError,
@@ -127,23 +127,23 @@ export function createSystemSettingsActions({
     setMcpOAuthPopupBlocked,
     setMcpPresetAction,
     setMcpPresets,
-    setNanobotFeatureAction,
-    setNanobotFeatureConfirm,
-    setNanobotFeatures,
-    setNanobotFeaturesError,
+    setYoreniFeatureAction,
+    setYoreniFeatureConfirm,
+    setYoreniFeatures,
+    setYoreniFeaturesError,
   } = state;
 
-  const beginNanobotFeatureAction = (key: string) => {
-    if (nanobotFeatureActionRef.current) return false;
-    nanobotFeatureActionRef.current = key;
-    setNanobotFeatureAction(key);
+  const beginYoreniFeatureAction = (key: string) => {
+    if (yoreniFeatureActionRef.current) return false;
+    yoreniFeatureActionRef.current = key;
+    setYoreniFeatureAction(key);
     return true;
   };
 
-  const endNanobotFeatureAction = (key: string) => {
-    if (nanobotFeatureActionRef.current !== key) return;
-    nanobotFeatureActionRef.current = null;
-    setNanobotFeatureAction(null);
+  const endYoreniFeatureAction = (key: string) => {
+    if (yoreniFeatureActionRef.current !== key) return;
+    yoreniFeatureActionRef.current = null;
+    setYoreniFeatureAction(null);
   };
 
   const installCapabilities = async (names: string[]): Promise<boolean> => {
@@ -152,23 +152,23 @@ export function createSystemSettingsActions({
     );
     if (!missing.length) return true;
     const key = `enable:${names.join("+")}`;
-    if (!beginNanobotFeatureAction(key)) return false;
-    setNanobotFeaturesError(null);
+    if (!beginYoreniFeatureAction(key)) return false;
+    setYoreniFeaturesError(null);
     try {
-      let latest = nanobotFeatures;
+      let latest = yoreniFeatures;
       for (const name of missing) {
-        latest = await enableNanobotFeature(client, name);
+        latest = await enableYoreniFeature(client, name);
         if (latest.requires_restart) {
           setPendingRestartSections((prev) => ({ ...prev, runtime: true }));
         }
       }
-      if (latest) setNanobotFeatures(latest);
+      if (latest) setYoreniFeatures(latest);
       return true;
     } catch (err) {
-      setNanobotFeaturesError((err as Error).message);
+      setYoreniFeaturesError((err as Error).message);
       return false;
     } finally {
-      endNanobotFeatureAction(key);
+      endYoreniFeatureAction(key);
     }
   };
 
@@ -184,8 +184,8 @@ export function createSystemSettingsActions({
         ? await startApiService(client, values!)
         : await stopApiService(client);
       setApiService(payload);
-      const refreshed = await fetchNanobotFeatures(token);
-      setNanobotFeatures(refreshed);
+      const refreshed = await fetchYoreniFeatures(token);
+      setYoreniFeatures(refreshed);
       const nextSettings = await fetchSettings(token);
       applyPayload(nextSettings);
     } catch (err) {
@@ -218,7 +218,7 @@ export function createSystemSettingsActions({
     }
   };
 
-  const handleNanobotFeatureAction = async (
+  const handleYoreniFeatureAction = async (
     action: "enable" | "disable",
     name: string,
     options: { confirmed?: boolean; installOnly?: boolean } = {},
@@ -231,32 +231,32 @@ export function createSystemSettingsActions({
       && !feature.installed
       && feature.install_supported
     ) {
-      setNanobotFeaturesError(null);
-      setNanobotFeatureConfirm({ feature, installOnly: Boolean(options.installOnly) });
+      setYoreniFeaturesError(null);
+      setYoreniFeatureConfirm({ feature, installOnly: Boolean(options.installOnly) });
       return;
     }
     const key = `${action === "enable" && options.installOnly ? "install" : action}:${name}`;
-    if (!beginNanobotFeatureAction(key)) return;
-    setNanobotFeatureConfirm(null);
-    setNanobotFeaturesError(null);
+    if (!beginYoreniFeatureAction(key)) return;
+    setYoreniFeatureConfirm(null);
+    setYoreniFeaturesError(null);
     try {
       const payload = action === "enable"
-        ? await enableNanobotFeature(client, name, { installOnly: options.installOnly })
-        : await disableNanobotFeature(client, name);
-      setNanobotFeatures(payload);
+        ? await enableYoreniFeature(client, name, { installOnly: options.installOnly })
+        : await disableYoreniFeature(client, name);
+      setYoreniFeatures(payload);
       if (payload.requires_restart) {
         setPendingRestartSections((prev) => ({ ...prev, runtime: true }));
       }
     } catch (err) {
-      console.error("nanobot feature action failed", {
+      console.error("yoreni feature action failed", {
         action,
         name,
         installOnly: Boolean(options.installOnly),
         error: err,
       });
-      setNanobotFeaturesError(err instanceof Error ? err.message : String(err));
+      setYoreniFeaturesError(err instanceof Error ? err.message : String(err));
     } finally {
-      endNanobotFeatureAction(key);
+      endYoreniFeatureAction(key);
     }
   };
 
@@ -337,7 +337,7 @@ export function createSystemSettingsActions({
     try {
       popup = window.open(
         authorizationUrl ?? "about:blank",
-        "nanobot-mcp-oauth",
+        "yoreni-mcp-oauth",
         "popup,width=560,height=720,resizable=yes,scrollbars=yes",
       );
       if (popup) {
@@ -421,7 +421,7 @@ export function createSystemSettingsActions({
       setMcpError(
         flow.hot_reload.message
         || t("settings.mcp.reloadFailed", {
-          defaultValue: "Signed in, but nanobot could not connect the tools. Try restarting nanobot.",
+          defaultValue: "Signed in, but yoreni could not connect the tools. Try restarting yoreni.",
         }),
       );
       return;
@@ -719,7 +719,7 @@ export function createSystemSettingsActions({
     handleMcpOAuthOpen,
     handleMcpPresetAction,
     handleMcpToolsChange,
-    handleNanobotFeatureAction,
+    handleYoreniFeatureAction,
     handleSaveCustomMcp,
     installCapabilities,
   };

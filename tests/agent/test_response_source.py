@@ -9,21 +9,21 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from agent.runner_helpers import failed_test_consolidator
-from nanobot.agent.progress_hook import AgentProgressHook
-from nanobot.agent.runner import AgentRunner, AgentRunSpec
-from nanobot.agent.tools.registry import ToolRegistry
-from nanobot.agent.turn_delivery import TurnDeliveryFactory
-from nanobot.bus.events import InboundMessage, OutboundMessage
-from nanobot.bus.outbound_events import StreamDeltaEvent, StreamEndEvent
-from nanobot.bus.queue import MessageBus
-from nanobot.channels.websocket.runtime import WebSocketChannel
-from nanobot.config.schema import Config, ModelPresetConfig
-from nanobot.events import EventSink, ResponseSource, ResponseSourceEvent
-from nanobot.providers.base import LLMProvider, LLMResponse, ProviderCallContext
-from nanobot.providers.factory import make_provider, provider_signature
-from nanobot.providers.fallback_provider import FallbackProvider
-from nanobot.utils.llm_runtime import LLMRuntime
-from nanobot.webui.transcript import WebUITranscriptRecorder
+from yoreni.agent.progress_hook import AgentProgressHook
+from yoreni.agent.runner import AgentRunner, AgentRunSpec
+from yoreni.agent.tools.registry import ToolRegistry
+from yoreni.agent.turn_delivery import TurnDeliveryFactory
+from yoreni.bus.events import InboundMessage, OutboundMessage
+from yoreni.bus.outbound_events import StreamDeltaEvent, StreamEndEvent
+from yoreni.bus.queue import MessageBus
+from yoreni.channels.websocket.runtime import WebSocketChannel
+from yoreni.config.schema import Config, ModelPresetConfig
+from yoreni.events import EventSink, ResponseSource, ResponseSourceEvent
+from yoreni.providers.base import LLMProvider, LLMResponse, ProviderCallContext
+from yoreni.providers.factory import make_provider, provider_signature
+from yoreni.providers.fallback_provider import FallbackProvider
+from yoreni.utils.llm_runtime import LLMRuntime
+from yoreni.webui.transcript import WebUITranscriptRecorder
 
 
 class AnswerProvider(LLMProvider):
@@ -66,7 +66,7 @@ async def test_actual_candidate_is_delivered_and_replayed(history,
     tmp_path,
     monkeypatch,
 ):
-    monkeypatch.setattr("nanobot.config.paths.get_data_dir", lambda: tmp_path)
+    monkeypatch.setattr("yoreni.config.paths.get_data_dir", lambda: tmp_path)
     bus, turn = delivery(streaming=streaming)
     candidates = [AnswerProvider(
         f"provider-{i}", fail=i < failures,
@@ -296,7 +296,7 @@ def test_factory_captures_names_even_when_models_and_settings_are_identical():
 
 
 def test_old_history_and_malformed_identity_are_not_guessed(history, tmp_path, monkeypatch):
-    monkeypatch.setattr("nanobot.config.paths.get_data_dir", lambda: tmp_path)
+    monkeypatch.setattr("yoreni.config.paths.get_data_dir", lambda: tmp_path)
     records = [
         {"event": "message", "text": "legacy"},
         {"event": "message", "text": "invalid", "response_sources": [{"model": "gpt"}]},
@@ -351,7 +351,7 @@ async def test_runner_records_each_provider_when_streaming_times_out_and_recover
 
 @pytest.mark.parametrize("temporary", [False, True])
 async def test_websocket_wire_and_disk_replay_preserve_sources(history, tmp_path, monkeypatch, temporary):
-    monkeypatch.setattr("nanobot.config.paths.get_data_dir", lambda: tmp_path)
+    monkeypatch.setattr("yoreni.config.paths.get_data_dir", lambda: tmp_path)
     gateway = MagicMock()
     gateway.media.rewrite_local_markdown_images.side_effect = lambda text: text
     gateway.transcripts = WebUITranscriptRecorder(history.sessions)

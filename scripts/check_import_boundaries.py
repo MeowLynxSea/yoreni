@@ -34,120 +34,120 @@ class Violation:
 
 
 _ADAPTERS = (
-    "nanobot.api",
-    "nanobot.channels",
-    "nanobot.cli",
-    "nanobot.gateway",
-    "nanobot.webui",
+    "yoreni.api",
+    "yoreni.channels",
+    "yoreni.cli",
+    "yoreni.gateway",
+    "yoreni.webui",
 )
 
 _TOOL_CONFIG_MODULES = (
-    "nanobot.agent.tools.cli_apps_config",
-    "nanobot.agent.tools.filesystem_config",
-    "nanobot.agent.tools.image_generation_config",
-    "nanobot.agent.tools.self_config",
-    "nanobot.agent.tools.shell_config",
-    "nanobot.agent.tools.web_config",
+    "yoreni.agent.tools.cli_apps_config",
+    "yoreni.agent.tools.filesystem_config",
+    "yoreni.agent.tools.image_generation_config",
+    "yoreni.agent.tools.self_config",
+    "yoreni.agent.tools.shell_config",
+    "yoreni.agent.tools.web_config",
 )
 
 IMPORT_RULES = (
     ImportRule(
         "update-policy-direction",
-        ("nanobot.agent", "nanobot.session", "nanobot.runtime_admission",
-         "nanobot.data_access", "nanobot.installation_lock"),
-        ("nanobot.update_service", "nanobot.update_plan", "nanobot.update_jobs",
-         "nanobot.update_worker", "nanobot.update_stop", "nanobot.update_restart"),
+        ("yoreni.agent", "yoreni.session", "yoreni.runtime_admission",
+         "yoreni.data_access", "yoreni.installation_lock"),
+        ("yoreni.update_service", "yoreni.update_plan", "yoreni.update_jobs",
+         "yoreni.update_worker", "yoreni.update_stop", "yoreni.update_restart"),
     ),
     ImportRule(
         "update-domain",
-        ("nanobot.update_service", "nanobot.update_plan", "nanobot.update_jobs",
-         "nanobot.update_worker", "nanobot.update_stop",
-         "nanobot.update_profiles", "nanobot.update_handoff", "nanobot.update_guidance"),
-        ("nanobot.agent", "nanobot.session", "nanobot.api", "nanobot.cli",
-         "nanobot.channels", "nanobot.webui"),
+        ("yoreni.update_service", "yoreni.update_plan", "yoreni.update_jobs",
+         "yoreni.update_worker", "yoreni.update_stop",
+         "yoreni.update_profiles", "yoreni.update_handoff", "yoreni.update_guidance"),
+        ("yoreni.agent", "yoreni.session", "yoreni.api", "yoreni.cli",
+         "yoreni.channels", "yoreni.webui"),
     ),
     ImportRule(
         "update-restart-adapter",
-        ("nanobot.update_restart",),
-        (*_ADAPTERS, "nanobot.agent", "nanobot.session"),
+        ("yoreni.update_restart",),
+        (*_ADAPTERS, "yoreni.agent", "yoreni.session"),
         # This protected-startup entry composes the existing CLI, not a second
         # agent runtime. Keep its frozen worker entry and launch semantics stable.
-        allowed_targets=("nanobot.gateway.runtime", "nanobot.cli.gateway_runtime._run_gateway",
-                         "nanobot.cli.entry.configure_windows_console",
-                         "nanobot.cli.process_identity.set_cli_process_identity",
-                         "nanobot.cli.runtime_config._load_runtime_config"),
+        allowed_targets=("yoreni.gateway.runtime", "yoreni.cli.gateway_runtime._run_gateway",
+                         "yoreni.cli.entry.configure_windows_console",
+                         "yoreni.cli.process_identity.set_cli_process_identity",
+                         "yoreni.cli.runtime_config._load_runtime_config"),
     ),
     ImportRule(
         "core-execution",
-        ("nanobot.agent.loop", "nanobot.agent.runner", "nanobot.agent.turn_delivery"),
+        ("yoreni.agent.loop", "yoreni.agent.runner", "yoreni.agent.turn_delivery"),
         _ADAPTERS,
-        allowed_targets=("nanobot.channels.notification_routes",),
+        allowed_targets=("yoreni.channels.notification_routes",),
     ),
     ImportRule(
         "channel-routing-contracts",
-        ("nanobot.channels.notification_routes",),
-        ("nanobot",),
+        ("yoreni.channels.notification_routes",),
+        ("yoreni",),
     ),
     ImportRule(
         "session-storage",
-        ("nanobot.session.manager", "nanobot.session.history", "nanobot.session.summary",
-         "nanobot.session.recovery"),
-        (*_ADAPTERS, "nanobot.agent"),
+        ("yoreni.session.manager", "yoreni.session.history", "yoreni.session.summary",
+         "yoreni.session.recovery"),
+        (*_ADAPTERS, "yoreni.agent"),
     ),
     ImportRule(
         "security-primitives",
-        ("nanobot.security",),
-        (*_ADAPTERS, "nanobot.agent", "nanobot.session"),
+        ("yoreni.security",),
+        (*_ADAPTERS, "yoreni.agent", "yoreni.session"),
     ),
     ImportRule(
         "websocket-transport",
-        ("nanobot.channels.websocket.runtime",),
+        ("yoreni.channels.websocket.runtime",),
         (
-            "nanobot.bus.outbound_events",
-            "nanobot.command",
-            "nanobot.runtime_context",
-            "nanobot.security.workspace_access",
-            "nanobot.pairing.events",
-            "nanobot.session.goal_state",
-            "nanobot.session.webui_turns",
-            "nanobot.webui.metadata",
-            "nanobot.webui.outbound_wire",
-            "nanobot.webui.transcript",
-            "nanobot.webui.cli_apps_api",
-            "nanobot.webui.forking",
-            "nanobot.webui.mcp_presets_api",
-            "nanobot.webui.sidebar_state",
-            "nanobot.webui.transcription_ws",
+            "yoreni.bus.outbound_events",
+            "yoreni.command",
+            "yoreni.runtime_context",
+            "yoreni.security.workspace_access",
+            "yoreni.pairing.events",
+            "yoreni.session.goal_state",
+            "yoreni.session.webui_turns",
+            "yoreni.webui.metadata",
+            "yoreni.webui.outbound_wire",
+            "yoreni.webui.transcript",
+            "yoreni.webui.cli_apps_api",
+            "yoreni.webui.forking",
+            "yoreni.webui.mcp_presets_api",
+            "yoreni.webui.sidebar_state",
+            "yoreni.webui.transcription_ws",
         ),
     ),
     ImportRule(
         "tool-config-base",
-        ("nanobot.agent.tools", "nanobot.channels"),
-        ("nanobot.config.schema.Base",),
+        ("yoreni.agent.tools", "yoreni.channels"),
+        ("yoreni.config.schema.Base",),
     ),
     ImportRule(
         "configuration-contracts",
-        ("nanobot.config", "nanobot.config_base"),
-        (*_ADAPTERS, "nanobot.agent", "nanobot.apps", "nanobot.session"),
+        ("yoreni.config", "yoreni.config_base"),
+        (*_ADAPTERS, "yoreni.agent", "yoreni.apps", "yoreni.session"),
         allowed_targets=_TOOL_CONFIG_MODULES,
     ),
     ImportRule(
         "tool-configuration-contracts",
         _TOOL_CONFIG_MODULES,
-        (*_ADAPTERS, "nanobot.agent", "nanobot.apps", "nanobot.session", "nanobot.config"),
+        (*_ADAPTERS, "yoreni.agent", "yoreni.apps", "yoreni.session", "yoreni.config"),
         allowed_targets=_TOOL_CONFIG_MODULES,
     ),
     ImportRule(
         "shared-primitives",
-        ("nanobot.utils.file_io", "nanobot.agent.skill_metadata", "nanobot.providers.generation",
-         "nanobot.llm_usage.types", "nanobot.session.automation_spec"),
-        (*_ADAPTERS, "nanobot.agent", "nanobot.apps", "nanobot.session", "nanobot.config"),
+        ("yoreni.utils.file_io", "yoreni.agent.skill_metadata", "yoreni.providers.generation",
+         "yoreni.llm_usage.types", "yoreni.session.automation_spec"),
+        (*_ADAPTERS, "yoreni.agent", "yoreni.apps", "yoreni.session", "yoreni.config"),
     ),
     ImportRule(
         "oauth-catalog-cache",
-        ("nanobot.providers.oauth_catalog_cache",),
-        ("nanobot.providers.oauth_model_catalog", "nanobot.providers.openai_codex_provider",
-         "nanobot.providers.github_copilot_provider", "nanobot.providers.xai_grok_provider"),
+        ("yoreni.providers.oauth_catalog_cache",),
+        ("yoreni.providers.oauth_model_catalog", "yoreni.providers.openai_codex_provider",
+         "yoreni.providers.github_copilot_provider", "yoreni.providers.xai_grok_provider"),
     ),
 )
 
@@ -207,7 +207,7 @@ class ImportCollector(ast.NodeVisitor):
                         self.builtin_import_calls.add(binding)
 
     def _add(self, target: str, line: int) -> None:
-        if _within(target, "nanobot"):
+        if _within(target, "yoreni"):
             self.edges.append(ImportEdge(target, line, self.type_only))
 
     def visit_Import(self, node: ast.Import) -> None:
@@ -275,7 +275,7 @@ def find_violations(
 def check_repository(root: Path) -> tuple[int, list[str]]:
     checked = 0
     violations: list[str] = []
-    for path in sorted((root / "nanobot").rglob("*.py")):
+    for path in sorted((root / "yoreni").rglob("*.py")):
         relative = path.relative_to(root)
         if "tests" in relative.parts:
             continue
@@ -301,11 +301,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--root", type=Path, default=Path(__file__).resolve().parents[1],
-        help="repository root containing nanobot/",
+        help="repository root containing yoreni/",
     )
     args = parser.parse_args()
-    if not (args.root / "nanobot").is_dir():
-        parser.error(f"{args.root} does not contain nanobot/")
+    if not (args.root / "yoreni").is_dir():
+        parser.error(f"{args.root} does not contain yoreni/")
     checked, violations = check_repository(args.root)
     if checked == 0:
         parser.error(f"{args.root} contains no protected Python modules")

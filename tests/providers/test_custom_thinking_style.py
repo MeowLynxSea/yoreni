@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from nanobot.config.schema import Config, ProviderConfig, ProvidersConfig
-from nanobot.providers.factory import provider_signature
-from nanobot.providers.registry import create_dynamic_spec
+from yoreni.config.schema import Config, ProviderConfig, ProvidersConfig
+from yoreni.providers.factory import provider_signature
+from yoreni.providers.registry import create_dynamic_spec
 
 
 class TestCustomProviderThinkingStyle:

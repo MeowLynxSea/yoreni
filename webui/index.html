@@ -9,7 +9,7 @@
     <meta name="color-scheme" content="light dark" />
     <meta
       name="description"
-      content="nanobot web UI — chat with your nanobot workspace."
+      content="yoreni web UI — chat with your yoreni workspace."
       data-i18n-meta="description"
     />
     <meta
@@ -21,10 +21,10 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="nanobot" />
-    <link rel="icon" type="image/svg+xml" href="/brand/nanobot_mark.svg" />
-    <link rel="alternate icon" type="image/png" sizes="32x32" href="/brand/nanobot_favicon_32.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/brand/nanobot_apple_touch.png" />
+    <meta name="apple-mobile-web-app-title" content="yoreni" />
+    <link rel="icon" type="image/svg+xml" href="/brand/yoreni_mark.svg" />
+    <link rel="alternate icon" type="image/png" sizes="32x32" href="/brand/yoreni_favicon_32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/brand/yoreni_apple_touch.png" />
     <link rel="manifest" href="/manifest.json" />
     <style>
       html,
@@ -84,7 +84,7 @@
         try {
           var stored = null;
           try {
-            stored = localStorage.getItem("nanobot-webui.theme");
+            stored = localStorage.getItem("yoreni-webui.theme");
           } catch {}
           var dark =
             stored === "dark" ||
@@ -102,7 +102,7 @@
         } catch {}
       })();
     </script>
-    <title>nanobot</title>
+    <title>yoreni</title>
   </head>
   <body class="bg-background text-foreground antialiased">
     <div class="pwa-status-bar-surface" aria-hidden="true"></div>
@@ -110,47 +110,47 @@
     <!--startup-script-->
     <script>
       (function () {
-        var localeKey = "nanobot.locale";
+        var localeKey = "yoreni.locale";
         var copy = {
           en: {
-            boot: "Loading nanobot…",
-            description: "nanobot web UI — chat with your nanobot workspace."
+            boot: "Loading yoreni…",
+            description: "yoreni web UI — chat with your yoreni workspace."
           },
           "zh-CN": {
-            boot: "正在加载 nanobot…",
-            description: "nanobot Web UI —— 与你的 nanobot 工作区对话。"
+            boot: "正在加载 yoreni…",
+            description: "yoreni Web UI —— 与你的 yoreni 工作区对话。"
           },
           "zh-TW": {
-            boot: "正在載入 nanobot…",
-            description: "nanobot Web UI —— 與你的 nanobot 工作區對話。"
+            boot: "正在載入 yoreni…",
+            description: "yoreni Web UI —— 與你的 yoreni 工作區對話。"
           },
           fr: {
-            boot: "Chargement de nanobot…",
-            description: "Interface web nanobot — discutez avec votre espace de travail nanobot."
+            boot: "Chargement de yoreni…",
+            description: "Interface web yoreni — discutez avec votre espace de travail yoreni."
           },
           ja: {
-            boot: "nanobot を読み込み中…",
-            description: "nanobot Web UI — nanobot ワークスペースと会話します。"
+            boot: "yoreni を読み込み中…",
+            description: "yoreni Web UI — yoreni ワークスペースと会話します。"
           },
           ko: {
-            boot: "nanobot 불러오는 중…",
-            description: "nanobot 웹 UI — nanobot 작업공간과 대화하세요."
+            boot: "yoreni 불러오는 중…",
+            description: "yoreni 웹 UI — yoreni 작업공간과 대화하세요."
           },
           es: {
-            boot: "Cargando nanobot…",
-            description: "Interfaz web de nanobot: conversa con tu espacio de trabajo de nanobot."
+            boot: "Cargando yoreni…",
+            description: "Interfaz web de yoreni: conversa con tu espacio de trabajo de yoreni."
           },
           "pt-BR": {
-            boot: "Carregando nanobot…",
-            description: "Interface web do nanobot — converse com o seu espaço de trabalho do nanobot."
+            boot: "Carregando yoreni…",
+            description: "Interface web do yoreni — converse com o seu espaço de trabalho do yoreni."
           },
           vi: {
-            boot: "Đang tải nanobot…",
-            description: "Giao diện web nanobot — trò chuyện với không gian làm việc nanobot của bạn."
+            boot: "Đang tải yoreni…",
+            description: "Giao diện web yoreni — trò chuyện với không gian làm việc yoreni của bạn."
           },
           id: {
-            boot: "Memuat nanobot…",
-            description: "UI web nanobot — ngobrol dengan ruang kerja nanobot Anda."
+            boot: "Memuat yoreni…",
+            description: "UI web yoreni — ngobrol dengan ruang kerja yoreni Anda."
           }
         };
 

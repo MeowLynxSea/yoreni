@@ -3,21 +3,21 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from nanobot.agent.goal_permission import goal_mutation_allowed
-from nanobot.agent.loop import AgentLoop
-from nanobot.bus.events import InboundMessage, OutboundMessage
-from nanobot.bus.queue import MessageBus
-from nanobot.command.builtin import (
+from yoreni.agent.goal_permission import goal_mutation_allowed
+from yoreni.agent.loop import AgentLoop
+from yoreni.bus.events import InboundMessage, OutboundMessage
+from yoreni.bus.queue import MessageBus
+from yoreni.command.builtin import (
     build_help_text,
     builtin_command_palette,
     cmd_goal,
     cmd_model,
     register_builtin_commands,
 )
-from nanobot.command.router import CommandContext, CommandRouter
-from nanobot.config.schema import ModelPresetConfig
-from nanobot.session.history_visibility import HIDDEN_HISTORY_META
-from nanobot.session.model_selection import (
+from yoreni.command.router import CommandContext, CommandRouter
+from yoreni.config.schema import ModelPresetConfig
+from yoreni.session.history_visibility import HIDDEN_HISTORY_META
+from yoreni.session.model_selection import (
     SESSION_MODEL_PRESET_METADATA_KEY,
     model_preset_from_metadata,
 )

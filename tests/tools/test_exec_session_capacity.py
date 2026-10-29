@@ -9,15 +9,15 @@ from pathlib import Path
 
 import pytest
 
-from nanobot.agent.tools.context import RequestContext, request_context
-from nanobot.agent.tools.exec_session import (
+from yoreni.agent.tools.context import RequestContext, request_context
+from yoreni.agent.tools.exec_session import (
     ExecSessionManager,
     ExecSessionTool,
     ListExecSessionsTool,
 )
-from nanobot.agent.tools.registry import is_tool_error_result
-from nanobot.agent.tools.rg import RgTool
-from nanobot.agent.tools.shell import ExecTool
+from yoreni.agent.tools.registry import is_tool_error_result
+from yoreni.agent.tools.rg import RgTool
+from yoreni.agent.tools.shell import ExecTool
 
 
 async def _start_gated(tool: ExecTool, gate: Path) -> str:

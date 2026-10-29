@@ -32,22 +32,22 @@ def selected(result):
         ("tests/fixtures/sigstore/README.md", set()),
         ("tests/fixtures/sigstore/LICENSE", set()),
         ("webui/package.json", {"webui"}),
-        ("nanobot/channels/discord/webui/index.ts", {"webui"}),
-        ("nanobot/channels/websocket/runtime.py", {"python", "webui", "native"}),
-        ("nanobot/providers/registry.py", {"python"}),
-        ("nanobot/webui/native_file_picker.py", {"python", "webui"}),
-        ("nanobot/webui/client_contract.py", {"python", "webui"}),
-        ("nanobot/webui/forking.py", {"python", "webui"}),
-        ("nanobot/cli/webui.py", {"python", "native"}),
-        ("nanobot/webui/ws_http.py", {"python", "webui"}),
-        ("nanobot/session/session_messages.py", {"python", "webui"}),
+        ("yoreni/channels/discord/webui/index.ts", {"webui"}),
+        ("yoreni/channels/websocket/runtime.py", {"python", "webui", "native"}),
+        ("yoreni/providers/registry.py", {"python"}),
+        ("yoreni/webui/native_file_picker.py", {"python", "webui"}),
+        ("yoreni/webui/client_contract.py", {"python", "webui"}),
+        ("yoreni/webui/forking.py", {"python", "webui"}),
+        ("yoreni/cli/webui.py", {"python", "native"}),
+        ("yoreni/webui/ws_http.py", {"python", "webui"}),
+        ("yoreni/session/session_messages.py", {"python", "webui"}),
         ("packages/client-events/notifications.ts", {"webui"}),
-        ("nanobot/update_recovery.py", {"python", "native"}),
-        ("nanobot/release_trust.py", {"python", "native"}),
-        ("nanobot/gateway/runtime.py", {"python", "native"}),
-        ("nanobot/process_runtime.py", {"python", "native"}),
-        ("nanobot/cli/entry.py", {"python", "native"}),
-        ("nanobot/utils/atomic_file.py", {"python", "native"}),
+        ("yoreni/update_recovery.py", {"python", "native"}),
+        ("yoreni/release_trust.py", {"python", "native"}),
+        ("yoreni/gateway/runtime.py", {"python", "native"}),
+        ("yoreni/process_runtime.py", {"python", "native"}),
+        ("yoreni/cli/entry.py", {"python", "native"}),
+        ("yoreni/utils/atomic_file.py", {"python", "native"}),
         ("tests/test_update_backup.py", {"python", "native"}),
         ("tests/test_install_scripts.py", {"python", "native"}),
         ("tests/providers/test_cached_tokens.py", {"python"}),
@@ -59,8 +59,8 @@ def selected(result):
         ("scripts/install_channel_dependencies.py", {"python", "webui", "native"}),
         (".github/workflows/ci.yml", {"python", "webui", "native"}),
         ("scripts/ci_scope.py", {"python", "webui", "native"}),
-        ("nanobot/webui/build.py", {"python", "webui", "native"}),
-        ("nanobot/webui/local_client_assets.py", {"python", "webui", "native"}),
+        ("yoreni/webui/build.py", {"python", "webui", "native"}),
+        ("yoreni/webui/local_client_assets.py", {"python", "webui", "native"}),
     ],
 )
 def test_existing_path_policy(path, expected):
@@ -81,7 +81,7 @@ def test_new_or_cross_domain_paths_require_every_job(path):
 
 def test_union_preserves_each_reason():
     result = classify_paths(["README.md", "packages/client-events/notifications.ts",
-                             "nanobot/providers/registry.py"])
+                             "yoreni/providers/registry.py"])
     assert selected(result) == {"python", "webui"}
     assert len(result["paths"]) == 3
 
@@ -91,7 +91,7 @@ def test_union_preserves_each_reason():
     [
         (["tests/webui/fixtures/runtime-config-keys.json", "tests/session/fixtures/sqlite_v1.sql"],
          {"python", "webui"}),
-        (["tests/webui/fixtures/runtime-config-keys.json", "nanobot/webui/settings_runtime.py",
+        (["tests/webui/fixtures/runtime-config-keys.json", "yoreni/webui/settings_runtime.py",
           "webui/src/tests/settings-runtime-config.test.tsx"],
          {"python", "webui"}),
         (["tests/webui/fixtures/runtime-config-keys.json", "tests/fixtures/sigstore/bundle_v3.txt"],
@@ -131,7 +131,7 @@ def repo(tmp_path):
 def test_push_includes_all_commits_not_only_last(repo):
     cwd, _, commit = repo
     base = commit(".agent/guide.md", "initial")
-    commit("nanobot/providers/new.py", "production")
+    commit("yoreni/providers/new.py", "production")
     head = commit("webui/src/new.ts", "frontend")
     result = select_scope("push", base, head, cwd=cwd)
     assert selected(result) == {"python", "webui"}
@@ -144,25 +144,25 @@ def test_pr_uses_merge_base_not_base_tip(repo):
     git("checkout", "-b", "feature")
     head = commit("webui/src/new.ts", "frontend")
     git("checkout", "main")
-    base = commit("nanobot/providers/base-only.py", "base branch only")
+    base = commit("yoreni/providers/base-only.py", "base branch only")
     assert selected(select_scope("pull_request", base, head, cwd=cwd)) == {"webui"}
     assert selected(select_scope("push", base, head, cwd=cwd)) == {"python", "webui"}
 
 
 def test_rename_and_delete_keep_old_domain(repo):
     cwd, git, commit = repo
-    commit("nanobot/providers/old.py", "production")
+    commit("yoreni/providers/old.py", "production")
     base = commit("packages/client-events/removed.ts", "client event package")
     target = cwd / ".agent" / "renamed file.md"
     target.parent.mkdir()
-    (cwd / "nanobot/providers/old.py").rename(target)
+    (cwd / "yoreni/providers/old.py").rename(target)
     (cwd / "packages/client-events/removed.ts").unlink()
     git("add", "--all")
     git("commit", "-m", "rename and delete")
     result = select_scope("push", base, git("rev-parse", "HEAD"), cwd=cwd)
     assert selected(result) == {"python", "webui"}
     assert {item["path"] for item in result["paths"]} == {
-        "nanobot/providers/old.py", "packages/client-events/removed.ts", ".agent/renamed file.md",
+        "yoreni/providers/old.py", "packages/client-events/removed.ts", ".agent/renamed file.md",
     }
 
 
@@ -211,14 +211,14 @@ def test_cli_emits_only_fixed_boolean_outputs_and_escaped_summary(repo):
 
 
 def test_every_frozen_worker_source_selects_native_lane(tmp_path):
-    from nanobot.update_jobs import _worker_archive
+    from yoreni.update_jobs import _worker_archive
 
     archive = tmp_path / "worker.pyz"
     _worker_archive(archive)
     with ZipFile(archive) as bundle:
-        sources = ["nanobot/" + name.removeprefix("_nanobot_update/")
+        sources = ["yoreni/" + name.removeprefix("_yoreni_update/")
                    for name in bundle.namelist()
-                   if name.startswith("_nanobot_update/") and not name.endswith("__init__.py")]
+                   if name.startswith("_yoreni_update/") and not name.endswith("__init__.py")]
     assert sources
     for path in sources:
         assert classify_paths([path])["outputs"]["native_required"], path

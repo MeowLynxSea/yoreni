@@ -97,8 +97,8 @@ type ChannelConfigOption = {
   label: string;
 };
 
-const NANOBOT_DOCS_URL = "https://nanobot.wiki/docs/latest";
-const CHAT_APPS_DOCS_URL = `${NANOBOT_DOCS_URL}/getting-started/chat-apps`;
+const YORENI_DOCS_URL = "https://github.com/MeowLynxSea/yoreni";
+const CHAT_APPS_DOCS_URL = YORENI_DOCS_URL;
 
 export function chatAppGuideUrl(sectionId: string): string {
   return `${CHAT_APPS_DOCS_URL}#${sectionId}`;

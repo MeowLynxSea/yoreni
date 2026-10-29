@@ -4,8 +4,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from nanobot.utils import helpers, token_encoding
-from nanobot.utils.helpers import (
+from yoreni.utils import helpers, token_encoding
+from yoreni.utils.helpers import (
     estimate_message_tokens,
     estimate_prompt_tokens,
     estimate_prompt_tokens_chain,

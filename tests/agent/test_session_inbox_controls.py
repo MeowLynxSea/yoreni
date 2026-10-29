@@ -7,26 +7,26 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from agent.session_helpers import run_session, stop_loop
-from nanobot.agent.automation_turns import AutomationTurnError
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.tools.context import current_request_context
-from nanobot.agent.tools.cron import CronTool
-from nanobot.bus.events import InboundMessage, OutboundMessage
-from nanobot.bus.queue import MessageBus
-from nanobot.cron.service import CronService
-from nanobot.cron.session_turns import CRON_DEFER_UNTIL_IDLE_META, CRON_TRIGGER_META
-from nanobot.providers.base import GenerationSettings, LLMResponse, ToolCallRequest
-from nanobot.runtime_context import public_history_messages
-from nanobot.session.automation_turns import AUTOMATION_HISTORY_META
-from nanobot.session.goal_state import GOAL_STATE_KEY
-from nanobot.session.manager import SessionManager
-from nanobot.session.recovery import (
+from yoreni.agent.automation_turns import AutomationTurnError
+from yoreni.agent.loop import AgentLoop
+from yoreni.agent.tools.context import current_request_context
+from yoreni.agent.tools.cron import CronTool
+from yoreni.bus.events import InboundMessage, OutboundMessage
+from yoreni.bus.queue import MessageBus
+from yoreni.cron.service import CronService
+from yoreni.cron.session_turns import CRON_DEFER_UNTIL_IDLE_META, CRON_TRIGGER_META
+from yoreni.providers.base import GenerationSettings, LLMResponse, ToolCallRequest
+from yoreni.runtime_context import public_history_messages
+from yoreni.session.automation_turns import AUTOMATION_HISTORY_META
+from yoreni.session.goal_state import GOAL_STATE_KEY
+from yoreni.session.manager import SessionManager
+from yoreni.session.recovery import (
     PENDING_FOLLOWUPS_KEY,
     REQUEST_ORIGIN_METADATA_KEY,
     pending_followups,
 )
-from nanobot.triggers.local_session_turns import LOCAL_TRIGGER_META
-from nanobot.webui.recovery import RecoveryCoordinator
+from yoreni.triggers.local_session_turns import LOCAL_TRIGGER_META
+from yoreni.webui.recovery import RecoveryCoordinator
 
 
 @pytest.fixture

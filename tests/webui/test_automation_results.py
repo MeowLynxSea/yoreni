@@ -2,14 +2,14 @@ from pathlib import Path
 
 import pytest
 
-from nanobot.agent.tools.registry import ToolRegistry
-from nanobot.bus.events import InboundMessage, OutboundMessage
-from nanobot.cron.bound_runner import run_bound_cron_job
-from nanobot.cron.service import CronService
-from nanobot.cron.types import CronJob, CronPayload, CronRunRecord, CronRunResult, CronSchedule
-from nanobot.triggers.local_types import LocalTrigger, TriggerRunRecord
-from nanobot.utils.run_records import write_run_record
-from nanobot.webui.automation_results import cron_run_response, trigger_run_response
+from yoreni.agent.tools.registry import ToolRegistry
+from yoreni.bus.events import InboundMessage, OutboundMessage
+from yoreni.cron.bound_runner import run_bound_cron_job
+from yoreni.cron.service import CronService
+from yoreni.cron.types import CronJob, CronPayload, CronRunRecord, CronRunResult, CronSchedule
+from yoreni.triggers.local_types import LocalTrigger, TriggerRunRecord
+from yoreni.utils.run_records import write_run_record
+from yoreni.webui.automation_results import cron_run_response, trigger_run_response
 
 
 def job_with_run(run: CronRunRecord) -> CronJob:

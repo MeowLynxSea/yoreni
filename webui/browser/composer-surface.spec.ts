@@ -8,8 +8,8 @@ for (const theme of ["light", "dark"]) {
   test.describe(theme, () => {
     test.beforeEach(async ({ page }) => {
       await page.addInitScript((theme) => {
-        localStorage.setItem("nanobot.locale", "en");
-        localStorage.setItem("nanobot-webui.theme", theme);
+        localStorage.setItem("yoreni.locale", "en");
+        localStorage.setItem("yoreni-webui.theme", theme);
         document.documentElement.classList.toggle("dark", theme === "dark");
       }, theme);
     });

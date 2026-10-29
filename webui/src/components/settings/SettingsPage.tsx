@@ -28,7 +28,7 @@ import { AboutSettings, AppearanceSettings, OverviewSettings } from "@/component
 import { NotificationSettings } from "@/components/settings/notifications/NotificationSettings";
 import { SettingsSidebar, standaloneSectionTitle } from "@/components/settings/SettingsSidebar";
 import {
-  NanobotFeatureInstallDialog,
+  YoreniFeatureInstallDialog,
   SettingsGroup,
   SettingsRow,
   SettingsSectionTitle,
@@ -45,7 +45,7 @@ import { RUNTIME_CONFIG_FIELDS, type RuntimeConfigPage } from "@/components/sett
 import { RuntimeConfigSettings } from "@/components/settings/system/RuntimeConfigSettings";
 import { RuntimeSettings } from "@/components/settings/system/RuntimeSettings";
 import type { SettingsController } from "@/components/settings/useSettingsController";
-import type { SendAttachment, SendOptions } from "@/hooks/useNanobotStream";
+import type { SendAttachment, SendOptions } from "@/hooks/useYoreniStream";
 import type { ThemePreference } from "@/hooks/useTheme";
 import type { ChatSummary, SessionAutomationJob, SkillSummary } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -338,9 +338,9 @@ export function SettingsPage({
                 }
               }}
               settings={settings}
-              nanobotFeatures={systemState.nanobotFeatures}
-              featureAction={systemState.nanobotFeatureAction}
-              capabilityError={systemState.nanobotFeaturesError}
+              yoreniFeatures={systemState.yoreniFeatures}
+              featureAction={systemState.yoreniFeatureAction}
+              capabilityError={systemState.yoreniFeaturesError}
               providerForms={modelState.providerForms}
               visibleProviderKeys={modelState.visibleProviderKeys}
               editingProviderKeys={modelState.editingProviderKeys}
@@ -444,8 +444,8 @@ export function SettingsPage({
               isRestarting={restartInProgress}
               requiresRestartPending={pendingRestartSections.browser}
               olostepFeature={featureCatalog.find((feature) => feature.name === "olostep")}
-              olostepInstalling={systemState.nanobotFeatureAction === "enable:olostep"}
-              capabilityError={systemState.nanobotFeaturesError}
+              olostepInstalling={systemState.yoreniFeatureAction === "enable:olostep"}
+              capabilityError={systemState.yoreniFeaturesError}
             >
               {settings.runtime_config ? runtimeConfiguration("network") : null}
             </WebSettings>
@@ -466,9 +466,9 @@ export function SettingsPage({
               apiServiceAction={systemState.apiServiceAction}
               apiServiceError={systemState.apiServiceError}
               langfuseFeature={featureCatalog.find((feature) => feature.name === "langfuse")}
-              capabilitiesLoading={systemState.nanobotFeaturesLoading}
-              capabilityAction={systemState.nanobotFeatureAction}
-              capabilityError={systemState.nanobotFeaturesError}
+              capabilitiesLoading={systemState.yoreniFeaturesLoading}
+              capabilityAction={systemState.yoreniFeatureAction}
+              capabilityError={systemState.yoreniFeaturesError}
               onApiServiceAction={systemActions.handleApiServiceAction}
               onInstallCapability={(name) => void systemActions.installCapabilities([name])}
             />
@@ -499,17 +499,17 @@ export function SettingsPage({
               selectSection("apps");
             }}
             token={token}
-            nanobotFeatures={systemState.nanobotFeatures}
-            loading={systemState.nanobotFeaturesLoading}
-            actionKey={systemState.nanobotFeatureAction}
+            yoreniFeatures={systemState.yoreniFeatures}
+            loading={systemState.yoreniFeaturesLoading}
+            actionKey={systemState.yoreniFeatureAction}
             chatAppsDocsUrl={settings?.docs?.chat_apps_url}
             showBrandLogos={localPrefs.brandLogos}
-            error={systemState.nanobotFeaturesError}
+            error={systemState.yoreniFeaturesError}
             requiresRestartPending={pendingRestartSections.runtime}
-            onAction={systemActions.handleNanobotFeatureAction}
-            onFeaturesUpdate={systemState.setNanobotFeatures}
+            onAction={systemActions.handleYoreniFeatureAction}
+            onFeaturesUpdate={systemState.setYoreniFeatures}
             onDismissStatus={() => {
-              systemState.setNanobotFeaturesError(null);
+              systemState.setYoreniFeaturesError(null);
             }}
             onRestart={restartViaSettingsSurface}
             isRestarting={restartInProgress}
@@ -697,16 +697,16 @@ export function SettingsPage({
         onClose={closeProviderOAuthFlow}
       />
 
-      <NanobotFeatureInstallDialog
-        feature={systemState.nanobotFeatureConfirm?.feature ?? null}
-        installOnly={systemState.nanobotFeatureConfirm?.installOnly ?? false}
-        installing={systemState.nanobotFeatureAction === `${systemState.nanobotFeatureConfirm?.installOnly ? "install" : "enable"}:${systemState.nanobotFeatureConfirm?.feature.name ?? ""}`}
+      <YoreniFeatureInstallDialog
+        feature={systemState.yoreniFeatureConfirm?.feature ?? null}
+        installOnly={systemState.yoreniFeatureConfirm?.installOnly ?? false}
+        installing={systemState.yoreniFeatureAction === `${systemState.yoreniFeatureConfirm?.installOnly ? "install" : "enable"}:${systemState.yoreniFeatureConfirm?.feature.name ?? ""}`}
         onOpenChange={(open) => {
-          if (!open) systemState.setNanobotFeatureConfirm(null);
+          if (!open) systemState.setYoreniFeatureConfirm(null);
         }}
-        onConfirm={(feature) => systemActions.handleNanobotFeatureAction("enable", feature.name, {
+        onConfirm={(feature) => systemActions.handleYoreniFeatureAction("enable", feature.name, {
           confirmed: true,
-          installOnly: systemState.nanobotFeatureConfirm?.installOnly,
+          installOnly: systemState.yoreniFeatureConfirm?.installOnly,
         })}
       />
 

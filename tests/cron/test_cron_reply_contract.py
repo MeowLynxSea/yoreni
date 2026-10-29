@@ -5,24 +5,24 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.tools.context import RequestContext, current_request_context, request_context
-from nanobot.agent.tools.cron import CronTool
-from nanobot.bus.queue import MessageBus
-from nanobot.config.schema import Config
-from nanobot.cron.binding import CronBinding, binding_revision
-from nanobot.cron.bound_runner import run_bound_cron_job
-from nanobot.cron.service import CronService
-from nanobot.cron.session_turns import CRON_TRIGGER_META
-from nanobot.cron.types import CronSchedule
-from nanobot.providers.base import GenerationSettings, LLMResponse, ToolCallRequest
-from nanobot.session.manager import SessionManager
+from yoreni.agent.loop import AgentLoop
+from yoreni.agent.tools.context import RequestContext, current_request_context, request_context
+from yoreni.agent.tools.cron import CronTool
+from yoreni.bus.queue import MessageBus
+from yoreni.config.schema import Config
+from yoreni.cron.binding import CronBinding, binding_revision
+from yoreni.cron.bound_runner import run_bound_cron_job
+from yoreni.cron.service import CronService
+from yoreni.cron.session_turns import CRON_TRIGGER_META
+from yoreni.cron.types import CronSchedule
+from yoreni.providers.base import GenerationSettings, LLMResponse, ToolCallRequest
+from yoreni.session.manager import SessionManager
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("delivery", ["reply", "legacy_message", "broadcast"])
 async def test_moved_cron_keeps_reply_send_and_prompt_prefix_contract(tmp_path, monkeypatch, delivery):
-    monkeypatch.setattr("nanobot.config.paths.get_data_dir", lambda: tmp_path / "data")
+    monkeypatch.setattr("yoreni.config.paths.get_data_dir", lambda: tmp_path / "data")
     workspace = tmp_path / "workspace"
     sessions = SessionManager(workspace)
     bus = MessageBus()

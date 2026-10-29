@@ -8,8 +8,8 @@ import pytest
 def test_config_base_import_does_not_load_config_schema():
     code = """
 import sys
-from nanobot.config_base import Base
-print("nanobot.config.schema" in sys.modules)
+from yoreni.config_base import Base
+print("yoreni.config.schema" in sys.modules)
 """
     result = subprocess.run(
         [sys.executable, "-c", code],
@@ -29,26 +29,26 @@ import sys
 class RuntimeImportBlocker(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path, target=None):
         config_modules = {
-            'nanobot.agent', 'nanobot.agent.tools',
-            'nanobot.agent.tools.cli_apps_config',
-            'nanobot.agent.tools.filesystem_config',
-            'nanobot.agent.tools.image_generation_config',
-            'nanobot.agent.tools.self_config',
-            'nanobot.agent.tools.shell_config',
-            'nanobot.agent.tools.web_config',
+            'yoreni.agent', 'yoreni.agent.tools',
+            'yoreni.agent.tools.cli_apps_config',
+            'yoreni.agent.tools.filesystem_config',
+            'yoreni.agent.tools.image_generation_config',
+            'yoreni.agent.tools.self_config',
+            'yoreni.agent.tools.shell_config',
+            'yoreni.agent.tools.web_config',
         }
         if fullname in config_modules:
             return None
         forbidden = (
-            'nanobot.agent', 'nanobot.api', 'nanobot.apps', 'nanobot.channels',
-            'nanobot.cli', 'nanobot.session', 'nanobot.webui', 'nanobot.providers.base',
+            'yoreni.agent', 'yoreni.api', 'yoreni.apps', 'yoreni.channels',
+            'yoreni.cli', 'yoreni.session', 'yoreni.webui', 'yoreni.providers.base',
         )
         if any(fullname == name or fullname.startswith(name + '.') for name in forbidden):
             raise AssertionError('configuration imported runtime implementation: ' + fullname)
 
 sys.meta_path.insert(0, RuntimeImportBlocker())
-from nanobot.config import Config
-from nanobot.config.schema import ModelPresetConfig
+from yoreni.config import Config
+from yoreni.config.schema import ModelPresetConfig
 
 config = Config.model_validate({'tools': {
     'exec': {'timeout': 37},
@@ -76,15 +76,15 @@ assert ModelPresetConfig(model='example').to_generation_settings().max_tokens ==
 def test_public_tool_contracts_can_be_imported_without_agent_execution():
     code = """
 import sys
-from nanobot.agent.tools import Tool, ToolResult, tool_parameters
-from nanobot.agent.tools.base import Tool as BaseTool
+from yoreni.agent.tools import Tool, ToolResult, tool_parameters
+from yoreni.agent.tools.base import Tool as BaseTool
 
 assert Tool is BaseTool
 assert callable(tool_parameters)
 assert ToolResult
-assert 'nanobot.agent.loop' not in sys.modules
-assert 'nanobot.agent.runner' not in sys.modules
-assert 'nanobot.agent.tools.shell' not in sys.modules
+assert 'yoreni.agent.loop' not in sys.modules
+assert 'yoreni.agent.runner' not in sys.modules
+assert 'yoreni.agent.tools.shell' not in sys.modules
 """
     result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
@@ -102,9 +102,9 @@ assert 'nanobot.agent.tools.shell' not in sys.modules
     ],
 )
 def test_tool_config_imports_keep_the_same_public_class(module, names):
-    contracts = import_module(f"nanobot.agent.tools.{module}_config")
-    aggregate = import_module("nanobot.config.schema")
-    implementation = import_module(f"nanobot.agent.tools.{module}")
+    contracts = import_module(f"yoreni.agent.tools.{module}_config")
+    aggregate = import_module("yoreni.config.schema")
+    implementation = import_module(f"yoreni.agent.tools.{module}")
     for name in names:
         assert getattr(implementation, name) is getattr(contracts, name)
         assert getattr(aggregate, name) is getattr(contracts, name)

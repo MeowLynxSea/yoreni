@@ -31,7 +31,7 @@ import {
   updateModelConfiguration,
   updateProviderSettings,
 } from "@/lib/api";
-import type { NanobotClient } from "@/lib/nanobot-client";
+import type { YoreniClient } from "@/lib/yoreni-client";
 import type {
   ProviderOAuthAuthorizationRequired,
   ProviderOAuthCompletionResult,
@@ -56,7 +56,7 @@ function isProviderOAuthPending(
 interface ModelSettingsActionsOptions {
   state: ModelSettingsState;
   settings: SettingsPayload | null;
-  client: NanobotClient;
+  client: YoreniClient;
   t: TFunction;
   applyPayload: ApplySettingsPayload;
   maybeRestartHostEngine: MaybeRestartHostEngine;

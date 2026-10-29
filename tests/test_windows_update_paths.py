@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from nanobot.installation_lock import file_access
-from nanobot.update_worker import read_record, write_record
-from nanobot.utils.atomic_file import (
+from yoreni.installation_lock import file_access
+from yoreni.update_worker import read_record, write_record
+from yoreni.utils.atomic_file import (
     _open_snapshot,
     atomic_write_lines,
     atomic_write_text,

@@ -6,15 +6,15 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.tools.image_generation import register_image_generation_tool
-from nanobot.agent.tools.registry import ToolRegistry
-from nanobot.bus.events import InboundMessage
-from nanobot.bus.queue import MessageBus
-from nanobot.config.loader import set_config_path
-from nanobot.config.schema import Config
-from nanobot.providers.base import LLMResponse, ToolCallRequest
-from nanobot.providers.image_generation import GeneratedImageResponse
+from yoreni.agent.loop import AgentLoop
+from yoreni.agent.tools.image_generation import register_image_generation_tool
+from yoreni.agent.tools.registry import ToolRegistry
+from yoreni.bus.events import InboundMessage
+from yoreni.bus.queue import MessageBus
+from yoreni.config.loader import set_config_path
+from yoreni.config.schema import Config
+from yoreni.providers.base import LLMResponse, ToolCallRequest
+from yoreni.providers.image_generation import GeneratedImageResponse
 
 PNG_DATA_URL = (
     "data:image/png;base64,"
@@ -38,7 +38,7 @@ async def test_generate_image_does_not_attach_media_to_final_response(
     """Generating an image does not attach it to the final outbound response."""
     set_config_path(tmp_path / "config.json")
     monkeypatch.setattr(
-        "nanobot.agent.tools.image_generation.get_image_gen_provider",
+        "yoreni.agent.tools.image_generation.get_image_gen_provider",
         lambda name: FakeImageClient if name == "openrouter" else None,
     )
     provider = MagicMock()

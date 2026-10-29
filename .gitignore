@@ -104,5 +104,5 @@ webui/.verify-*
 .playwright-cli/
 
 # Generated source revision for wheels and sdists
-nanobot/_build_commit.txt
+yoreni/_build_commit.txt
 

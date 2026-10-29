@@ -106,8 +106,8 @@ jobs:
       - name: Test default WebSocket transport
         run: >-
           uv run --no-sync python -m pytest -q
-          nanobot/channels/websocket/tests/test_handshake_disconnect.py
-          nanobot/channels/websocket/tests/test_binary_http.py
+          yoreni/channels/websocket/tests/test_handshake_disconnect.py
+          yoreni/channels/websocket/tests/test_binary_http.py
 
       - name: Install channel dependencies
         run: uv run --no-sync python -m scripts.install_channel_dependencies --all-channels
@@ -126,7 +126,7 @@ jobs:
       # later uv run sync pruning the packages installed by the previous step.
       - name: Lint with ruff
         if: matrix.coverage
-        run: uv run --no-sync ruff check nanobot tests conftest.py scripts/check_import_boundaries.py scripts/pytest_timing.py scripts/ci_scope.py scripts/ci_gate.py
+        run: uv run --no-sync ruff check yoreni tests conftest.py scripts/check_import_boundaries.py scripts/pytest_timing.py scripts/ci_scope.py scripts/ci_gate.py
 
       - name: Type check with BasedPyright (strict)
         if: matrix.coverage
@@ -159,7 +159,7 @@ jobs:
         run: >-
           uv run --no-sync python -m pytest
           ${{ matrix.pytest_args }}
-          --cov=nanobot --cov-report=term-missing:skip-covered
+          --cov=yoreni --cov-report=term-missing:skip-covered
           -o faulthandler_timeout=60
           --junitxml=test-results/main.xml --timing-report=test-results/main.json
           --durations=25 --durations-min=1.0
@@ -170,7 +170,7 @@ jobs:
           uv run --no-sync python -m pytest
           tests/cli/test_cli_input.py tests/cli/test_desktop_target.py
           tests/cli/test_desktop_target_entrypoints.py tests/cli/test_commands.py
-          --cov=nanobot --cov-append --cov-report=term-missing:skip-covered
+          --cov=yoreni --cov-append --cov-report=term-missing:skip-covered
           --junitxml=test-results/cli.xml --timing-report=test-results/cli.json
           --durations=25 --durations-min=1.0
 

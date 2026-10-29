@@ -3,19 +3,19 @@ from dataclasses import dataclass
 
 import pytest
 
-from nanobot.agent.turn_delivery import TurnDeliveryFactory, TurnRoute
-from nanobot.bus.events import InboundMessage, OutboundMessage
-from nanobot.bus.notification_delivery import NOTIFICATION_AUDIENCES
-from nanobot.bus.outbound_events import (
+from yoreni.agent.turn_delivery import TurnDeliveryFactory, TurnRoute
+from yoreni.bus.events import InboundMessage, OutboundMessage
+from yoreni.bus.notification_delivery import NOTIFICATION_AUDIENCES
+from yoreni.bus.outbound_events import (
     FileEditEvent,
     ProgressEvent,
     StreamDeltaEvent,
     StreamEndEvent,
 )
-from nanobot.bus.queue import MessageBus
-from nanobot.events import AgentEvent, ContextCompactionEvent, EventSink, RetryWaitEvent
-from nanobot.utils.progress_events import output_events
-from nanobot.webui.outbound_wire import project_notification
+from yoreni.bus.queue import MessageBus
+from yoreni.events import AgentEvent, ContextCompactionEvent, EventSink, RetryWaitEvent
+from yoreni.utils.progress_events import output_events
+from yoreni.webui.outbound_wire import project_notification
 
 
 async def test_sink_isolates_observer_failure_but_propagates_cancellation():

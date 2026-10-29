@@ -11,11 +11,11 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from nanobot.agent.loop import AgentLoop
-from nanobot.agent.tools.context import current_request_context
-from nanobot.api.server import API_CHAT_ID, API_SESSION_KEY, create_app
-from nanobot.bus.queue import MessageBus
-from nanobot.providers.base import LLMProvider, LLMResponse, ToolCallRequest
+from yoreni.agent.loop import AgentLoop
+from yoreni.agent.tools.context import current_request_context
+from yoreni.api.server import API_CHAT_ID, API_SESSION_KEY, create_app
+from yoreni.bus.queue import MessageBus
+from yoreni.providers.base import LLMProvider, LLMResponse, ToolCallRequest
 
 pytestmark = pytest.mark.asyncio
 AUTH = {"Authorization": "Bearer test-api-key"}

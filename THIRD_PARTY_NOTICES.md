@@ -1,13 +1,13 @@
 # Third-Party Notices
 
-The following third-party components are redistributed as part of the packaged nanobot Python distribution (`pip install nanobot-ai`).
+The following third-party components are redistributed as part of the packaged yoreni Python distribution (`pip install yoreni`).
 
 ---
 
 ## Tabler Icons — interface icons (MIT)
 
 - **Source**: https://github.com/tabler/tabler-icons
-- **Bundled**: `nanobot/web/dist/assets/index-*.js` (inline `arrow-fork` SVG)
+- **Bundled**: `yoreni/web/dist/assets/index-*.js` (inline `arrow-fork` SVG)
 
 ```
 MIT License
@@ -38,7 +38,7 @@ SOFTWARE.
 ## KaTeX — math rendering (MIT)
 
 - **Source**: https://github.com/KaTeX/KaTeX
-- **Bundled**: `nanobot/web/dist/assets/index-*.{js,css}`
+- **Bundled**: `yoreni/web/dist/assets/index-*.{js,css}`
 
 ```
 The MIT License (MIT)
@@ -69,7 +69,7 @@ SOFTWARE.
 ## KaTeX Fonts — math typography (SIL OFL 1.1)
 
 - **Source**: https://github.com/KaTeX/KaTeX/tree/main/src/fonts
-- **Bundled**: `nanobot/web/dist/assets/KaTeX_*.{woff2,woff,ttf}`
+- **Bundled**: `yoreni/web/dist/assets/KaTeX_*.{woff2,woff,ttf}`
 
 The fonts are redistributed unmodified.
 
@@ -180,7 +180,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 - **Source**: https://github.com/jakubkrehel/loading/tree/48ff9a1cd5f0446901ff1a8a3d5d5f906d3e36ff
 - **Adapted**: the diagonal Blocks sweep in `webui/src/components/thread/ThreadHistoryStatus.tsx` and `webui/src/globals.css`, and the circular Ring in `webui/src/components/ui/loading-ring.tsx` and `webui/src/globals.css`.
-- **Bundled**: `nanobot/web/dist/assets/index-*.{js,css}`
+- **Bundled**: `yoreni/web/dist/assets/index-*.{js,css}`
 
 ```
 MIT License
@@ -213,7 +213,7 @@ SOFTWARE.
 
 - **Source**: https://github.com/motiondivision/motion
 - **Components**: `motion`, `framer-motion`, and `motion-dom` 14.4.0; `motion-utils` 14.1.1.
-- **Bundled**: `nanobot/web/dist/assets/ThreadShell-*.js`
+- **Bundled**: `yoreni/web/dist/assets/ThreadShell-*.js`
 
 ```
 The MIT License (MIT)

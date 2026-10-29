@@ -1,5 +1,7 @@
-# Dock artwork
+# Brand artwork
 
-`dock-icon.png` is a deterministic composition of the existing MIT-licensed nanobot cat from `webui/public/brand/yoreni_icon_512.png` (SHA-256 `d4cf9edb3c30b9e43d02fcd9974c87a8046afbf1b13903c68100ab510bd2cd41`). The cat is uniformly scaled without redrawing or recoloring. The user-approved design uses a 1024-pixel canvas, an 824-pixel rounded white tile at (100, 100), and a 656-pixel cat at (184, 168). Its optical center is 16 pixels below the tile center; shadows are separate from the original art.
+`dock-icon.png` is the 1024-pixel app icon: a chibi anime character with a teal bob and a coral hairpin on a navy rounded square, with softened edges and a flat, minimal palette.
 
-The packaged helper loads this PNG through AppKit. It needs neither a generated application executable nor an icon compiler at installation or launch. Keep artwork changes independent of the WebUI brand asset and of gateway lifecycle policy.
+The master illustration lives at `webui/brand-source/yoreni_icon.png`. The WebUI exports in `webui/public/brand/` (PWA icons, apple touch icon, favicon, maskable icon, mark and wordmark SVGs) and this dock icon are all derived from it, so regenerate every size from that file rather than editing an individual export.
+
+The packaged helper loads this PNG through AppKit. It needs neither a generated application executable nor an icon compiler at installation or launch. Keep artwork changes independent of gateway lifecycle policy.

@@ -1,15 +1,11 @@
-"""OpenAI-compatible HTTP API server for yoreni sessions.
-
-Provides /v1/chat/completions and /v1/models endpoints.
-Requests without ``session_id`` share one persistent default session; each
-``session_id`` owns an isolated session with its own chat route.
-"""
+"""Authenticated HTTP input and streaming output for the personal agent."""
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
 import hmac
+import ipaddress
 import json as _json
 import time
 import uuid
@@ -19,6 +15,7 @@ from aiohttp import web
 from loguru import logger
 
 from yoreni.agent.hook import AgentHook, AgentRunHookContext
+from yoreni.agent.state import AgentInput, AgentStateConflictError
 from yoreni.config.paths import get_media_dir
 from yoreni.providers.base import LLMUsage
 from yoreni.providers.unconfigured_provider import UnconfiguredProvider
@@ -46,14 +43,12 @@ __all__ = (
 )
 
 
-API_SESSION_KEY = "api:default"
-API_CHAT_ID = "default"
 _AGENT_LOOP_KEY = web.AppKey[Any]("agent_loop")
 _MODEL_NAME_KEY = web.AppKey[str]("model_name")
 _REQUEST_TIMEOUT_KEY = web.AppKey[float]("request_timeout")
-_SESSION_LOCKS_KEY = web.AppKey[dict[str, asyncio.Lock]]("session_locks")
 _PREPARE_AGENT_KEY = web.AppKey[Callable[[], Awaitable[None]] | None]("prepare_agent")
 _REQUEST_ID_KEY = web.RequestKey[str]("request_id")
+_OWNER_ACCESS_KEY = web.RequestKey[bool]("personal_agent_access")
 
 
 class _UsageCaptureHook(AgentHook):
@@ -230,12 +225,11 @@ def _parse_json_content(body: dict[str, Any]) -> tuple[str, list[str]]:
     return text, media_paths
 
 
-async def _parse_multipart(request: web.Request) -> tuple[str, list[str], str | None, str | None]:
-    """Parse multipart/form-data. Returns (text, media_paths, session_id, model)."""
+async def _parse_multipart(request: web.Request) -> tuple[str, list[str], str | None]:
+    """Parse multipart/form-data. Returns (text, media_paths, model)."""
     media_dir = get_media_dir("api")
     reader = await request.multipart()
     text = ""
-    session_id = None
     model = None
     media_paths: list[str] = []
 
@@ -245,8 +239,6 @@ async def _parse_multipart(request: web.Request) -> tuple[str, list[str], str | 
             break
         if part.name == "message":
             text = (await part.read()).decode("utf-8")
-        elif part.name == "session_id":
-            session_id = (await part.read()).decode("utf-8").strip()
         elif part.name == "model":
             model = (await part.read()).decode("utf-8").strip()
         elif part.name == "files":
@@ -264,7 +256,7 @@ async def _parse_multipart(request: web.Request) -> tuple[str, list[str], str | 
     if not text:
         text = "请分析上传的文件"
 
-    return text, media_paths, session_id, model
+    return text, media_paths, model
 
 
 # ---------------------------------------------------------------------------
@@ -275,6 +267,8 @@ async def _parse_multipart(request: web.Request) -> tuple[str, list[str], str | 
 async def handle_chat_completions(request: web.Request) -> web.Response | web.StreamResponse:
     """POST /v1/chat/completions — supports JSON and multipart/form-data."""
     content_type = _as_str(cast(object, request.content_type or ""))
+    if not request.get(_OWNER_ACCESS_KEY, False):
+        return _error_json(403, "Personal agent access requires authentication or a loopback connection")
 
     agent_loop = request.app[_AGENT_LOOP_KEY]
     if isinstance(agent_loop.provider, UnconfiguredProvider):
@@ -289,7 +283,7 @@ async def handle_chat_completions(request: web.Request) -> web.Response | web.St
     stream = False
     try:
         if content_type.startswith("multipart/"):
-            text, media_paths, session_id, requested_model = await _parse_multipart(request)
+            text, media_paths, requested_model = await _parse_multipart(request)
         else:
             try:
                 body = await request.json()
@@ -298,13 +292,14 @@ async def handle_chat_completions(request: web.Request) -> web.Response | web.St
             if not isinstance(body, dict):
                 return _error_json(400, "Invalid JSON body")
             body = cast(dict[str, Any], body)
+            if "session_id" in body:
+                return _error_json(400, "session_id is not part of the Agent API")
             stream_value = body.get("stream", False)
             if stream_value is not None and not isinstance(stream_value, bool):
                 return _error_json(400, "stream must be a boolean")
             stream = stream_value is True
             requested_model = body.get("model")
             text, media_paths = _parse_json_content(body)
-            session_id = body.get("session_id")
     except (TypeError, ValueError) as e:
         return _error_json(400, str(e))
     except _FileSizeExceeded as e:
@@ -316,16 +311,17 @@ async def handle_chat_completions(request: web.Request) -> web.Response | web.St
     if requested_model and requested_model != model_name:
         return _error_json(400, f"Only configured model '{model_name}' is available")
 
-    session_key = f"api:{session_id}" if session_id else API_SESSION_KEY
-    # Keep the existing history identity; derive its route without normalizing the ID.
-    chat_id = session_key.removeprefix("api:")
-    session_locks: dict[str, asyncio.Lock] = request.app[_SESSION_LOCKS_KEY]
-    session_lock = session_locks.setdefault(session_key, asyncio.Lock())
-
-    logger.info(
-        "API request session_key={} media={} text={} stream={}",
-        session_key, len(media_paths), text[:80], stream,
+    event_id = request.headers.get("Idempotency-Key")
+    if event_id is not None and (not event_id.strip() or len(event_id) > 200):
+        return _error_json(400, "Idempotency-Key must contain between 1 and 200 characters")
+    event = AgentInput(
+        source="api", content=text, principal="owner", channel="api", chat_id="direct",
+        media=tuple(media_paths), event_id=event_id or uuid.uuid4().hex,
     )
+
+    async def execute(**callbacks: Any) -> Any:
+        return await agent_loop.process_event(event, **callbacks)
+
     # -- streaming path --
     if stream:
         resp = web.StreamResponse()
@@ -348,31 +344,24 @@ async def handle_chat_completions(request: web.Request) -> web.Response | web.St
         async def _on_stream_end(*_a: Any, **_kw: Any) -> None:
             # Agent stream-end callbacks mark generation segment boundaries.
             # Tool-backed requests may continue after a segment ends, so the
-            # HTTP SSE stream is closed only when process_direct returns.
+            # HTTP SSE stream is closed only when the Run returns.
             return None
 
         async def _run() -> None:
             nonlocal stream_failed
             try:
-                async with session_lock:
-                    async with asyncio.timeout(timeout_s):
-                        await _prepare_agent(request.app)
-                        response = await agent_loop.process_direct(
-                            content=text,
-                            media=media_paths if media_paths else None,
-                            session_key=session_key,
-                            channel="api",
-                            chat_id=chat_id,
-                            on_stream=_on_stream,
-                            on_stream_end=_on_stream_end,
-                        )
-                    if not emitted_content:
-                        response_text = _response_text(response)
-                        if response_text.strip():
-                            await queue.put(response_text)
+                async with asyncio.timeout(timeout_s):
+                    await _prepare_agent(request.app)
+                    response = await execute(
+                        on_stream=_on_stream, on_stream_end=_on_stream_end,
+                    )
+                if not emitted_content:
+                    response_text = _response_text(response)
+                    if response_text.strip():
+                        await queue.put(response_text)
             except Exception:
                 stream_failed = True
-                logger.exception("Streaming error for session {}", session_key)
+                logger.exception("Streaming error for event {}", event.event_id)
             finally:
                 await queue.put(None)
 
@@ -394,33 +383,20 @@ async def handle_chat_completions(request: web.Request) -> web.Response | web.St
             await resp.write(_SSE_DONE)
         return resp
 
-    # -- non-streaming path (original logic) --
     usage_capture = _UsageCaptureHook()
     try:
-        async with session_lock:
-            try:
-                async with asyncio.timeout(timeout_s):
-                    await _prepare_agent(request.app)
-                    response = await agent_loop.process_direct(
-                        content=text,
-                        media=media_paths if media_paths else None,
-                        session_key=session_key,
-                        channel="api",
-                        chat_id=chat_id,
-                        hooks=[usage_capture],
-                    )
-                response_text = _response_text(response)
-                if not response_text or not response_text.strip():
-                    logger.warning("Empty response for session {}, using fallback", session_key)
-                    response_text = EMPTY_FINAL_RESPONSE_MESSAGE
-
-            except asyncio.TimeoutError:
-                return _error_json(504, f"Request timed out after {timeout_s}s")
-            except Exception:
-                logger.exception("Error processing request for session {}", session_key)
-                return _error_json(500, "Internal server error", err_type="server_error")
+        async with asyncio.timeout(timeout_s):
+            await _prepare_agent(request.app)
+            response = await execute(hooks=[usage_capture])
+        response_text = _response_text(response)
+        if not response_text.strip():
+            response_text = EMPTY_FINAL_RESPONSE_MESSAGE
+    except asyncio.TimeoutError:
+        return _error_json(504, f"Request timed out after {timeout_s}s")
+    except AgentStateConflictError as exc:
+        return _error_json(409, str(exc))
     except Exception:
-        logger.exception("Unexpected API lock error for session {}", session_key)
+        logger.exception("Error processing event {}", event.event_id)
         return _error_json(500, "Internal server error", err_type="server_error")
 
     return web.json_response(
@@ -476,7 +452,6 @@ def create_app(
     app[_AGENT_LOOP_KEY] = agent_loop
     app[_MODEL_NAME_KEY] = model_name
     app[_REQUEST_TIMEOUT_KEY] = request_timeout
-    app[_SESSION_LOCKS_KEY] = {}  # per-user locks, keyed by session_key
     app[_PREPARE_AGENT_KEY] = prepare_agent
 
     @web.middleware
@@ -542,12 +517,17 @@ def create_app(
         if request.path == "/health":
             return await handler(request)
         if not api_key:
+            peer = request.transport.get_extra_info("peername") if request.transport else None
+            request[_OWNER_ACCESS_KEY] = bool(
+                peer and ipaddress.ip_address(peer[0]).is_loopback
+            )
             return await handler(request)
         auth = request.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
             return _error_json(401, "Missing Authorization header. Use: Bearer <api_key>")
         if not hmac.compare_digest(auth[len("Bearer "):], api_key):
             return _error_json(401, "Invalid API key")
+        request[_OWNER_ACCESS_KEY] = True
         return await handler(request)
 
     app.middlewares.extend((request_logging_middleware, auth_middleware))

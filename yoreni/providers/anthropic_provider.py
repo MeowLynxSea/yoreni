@@ -72,7 +72,7 @@ def _sanitize_tool_id(tid: str) -> str:
 
     The Anthropic API rejects tool IDs that don't match ``^[a-zA-Z0-9_-]+$``
     with a 400 ("String should match pattern") error. IDs coming from other
-    providers or restored sessions can contain pipes, dots or other invalid
+    providers or restored Run checkpoints can contain pipes, dots or other invalid
     characters, so coerce them to the allowed charset.
     """
     if not tid or _VALID_TOOL_ID.match(tid):

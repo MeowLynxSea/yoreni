@@ -442,7 +442,7 @@ async def test_exec_session_kill_reaps():
         command="sleep 1",
         cwd="/tmp",
         timeout=30,
-        owner_session_key=None,
+        owner_id=None,
     )
     try:
         with patch("yoreni.agent.tools.shell._reap_pid") as reap:
@@ -472,7 +472,7 @@ async def test_exec_session_kill_reaps_if_process_exits_before_kill():
         command="sleep 1",
         cwd="/tmp",
         timeout=30,
-        owner_session_key=None,
+        owner_id=None,
     )
     try:
         with patch("yoreni.agent.tools.shell._reap_pid") as reap:
@@ -497,7 +497,7 @@ async def test_exec_session_kill_waits_for_reader_tasks():
         command="sleep 1",
         cwd="/tmp",
         timeout=30,
-        owner_session_key=None,
+        owner_id=None,
     )
     stopping = asyncio.create_task(session.kill())
     try:
@@ -535,7 +535,7 @@ async def test_exec_session_poll_reaps_after_exit():
         command="echo hi",
         cwd="/tmp",
         timeout=30,
-        owner_session_key=None,
+        owner_id=None,
     )
     try:
         with patch("yoreni.agent.tools.shell._reap_pid") as reap:

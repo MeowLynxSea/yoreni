@@ -6,12 +6,6 @@ from pathlib import Path
 from typing import Any, Mapping, cast
 
 
-def session_extra(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
-    """Return persisted session kwargs for CLI app attachments."""
-    cli_apps = metadata.get("cli_apps") if isinstance(metadata, Mapping) else None
-    return {"cli_apps": cli_apps} if isinstance(cli_apps, list) and cli_apps else {}
-
-
 def runtime_lines_for_request(
     text: str,
     metadata: Mapping[str, Any] | None,

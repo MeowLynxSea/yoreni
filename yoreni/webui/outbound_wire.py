@@ -106,9 +106,6 @@ class ContextCompactionWirePayload(_ChatWirePayload):
     reason: NotRequired[CompactionReason]
 
 
-class SubagentTaskWirePayload(_ChatWirePayload):
-    event: Literal["subagent_task"]
-    task: dict[str, object]
 
 
 class MessageWirePayload(_ChatWirePayload):
@@ -148,9 +145,6 @@ class GoalStatusWirePayload(_ChatWirePayload):
     started_at: NotRequired[float]
 
 
-class SessionUpdatedWirePayload(_ChatWirePayload):
-    event: Literal["session_updated"]
-    scope: NotRequired[str]
 
 
 class UserInputWirePayload(_ChatWirePayload):
@@ -182,8 +176,8 @@ class TurnModelWirePayload(_ChatWirePayload):
 
 WebUIWirePayload: TypeAlias = (
     RetryStatusWirePayload | ContextCompactionWirePayload | RecoveryStateWirePayload | TurnEndWirePayload
-    | SubagentTaskWirePayload | MessageWirePayload | StreamWirePayload | FileEditWirePayload
-    | GoalStateWirePayload | GoalStatusWirePayload | SessionUpdatedWirePayload | UserInputWirePayload
+    | MessageWirePayload | StreamWirePayload | FileEditWirePayload
+    | GoalStateWirePayload | GoalStatusWirePayload | UserInputWirePayload
     | PairingChangedWirePayload | RuntimeModelWirePayload | TurnModelWirePayload
 )
 WebUIWirePersistence: TypeAlias = Literal[

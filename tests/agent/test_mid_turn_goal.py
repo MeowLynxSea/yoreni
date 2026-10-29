@@ -5,15 +5,15 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent.session_helpers import stop_loop
+from agent.run_helpers import stop_loop
 from yoreni.agent.goal_permission import goal_mutation_allowed, goal_mutation_permission
 from yoreni.agent.loop import AgentLoop
 from yoreni.bus.events import InboundMessage
 from yoreni.bus.queue import MessageBus
 from yoreni.providers.base import GenerationSettings, LLMResponse, ToolCallRequest
 from yoreni.runtime_context import public_history_messages
-from yoreni.session.goal_state import GOAL_STATE_KEY
-from yoreni.session.history_visibility import is_hidden_history_message
+from yoreni.agent.goal_state import GOAL_STATE_KEY
+from yoreni.agent.transcript_visibility import is_hidden_history_message
 from yoreni.session.manager import SessionManager
 
 
@@ -112,7 +112,7 @@ async def test_scheduled_goal_command_cannot_generate_internal_input(tmp_path):
 
 @pytest.mark.parametrize("boundary", ["text", "tool", "error", "empty"])
 async def test_goal_at_iteration_limit_stays_queued_for_a_tool_capable_turn(tmp_path, boundary):
-    from agent.session_helpers import run_session
+    from agent.run_helpers import run_event
 
     provider = MagicMock(aclose=AsyncMock())
     provider.get_default_model.return_value = "test-model"
@@ -157,7 +157,7 @@ async def test_goal_at_iteration_limit_stays_queued_for_a_tool_capable_turn(tmp_
 
     provider.chat_stream_with_retry = AsyncMock(side_effect=respond)
     try:
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="cli", sender_id="user", chat_id="test", content="Discuss the migration.",
         ))
         session = (await loop.sessions.state.get("cli:test"))

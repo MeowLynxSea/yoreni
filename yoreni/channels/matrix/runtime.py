@@ -1272,10 +1272,6 @@ class MatrixChannel(BaseChannel):
             meta["thread_reply_to_event_id"] = reply_to
         return meta
 
-    def _thread_session_key(self, room_id: str, event: RoomMessage) -> str | None:
-        if not (root_id := self._event_thread_root_id(event)):
-            return None
-        return f"{self.name}:{room_id}:thread:{root_id}"
 
     @staticmethod
     def _build_thread_relates_to(metadata: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -1509,7 +1505,6 @@ class MatrixChannel(BaseChannel):
             await self._handle_message(
                 sender_id=event.sender, chat_id=room.room_id,
                 content=event.body, metadata=metadata,
-                session_key=self._thread_session_key(room.room_id, event),
                 is_dm=self._is_direct_room(room),
             )
             if listen_mode:
@@ -1568,7 +1563,6 @@ class MatrixChannel(BaseChannel):
                 content=content,
                 media=[attachment["path"]] if attachment else [],
                 metadata=meta,
-                session_key=self._thread_session_key(room.room_id, event),
                 is_dm=self._is_direct_room(room),
             )
             if listen_mode:

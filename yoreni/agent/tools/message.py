@@ -226,9 +226,6 @@ class MessageTool(Tool):
             metadata["message_id"] = message_id
         if media:
             metadata["_record_channel_delivery"] = True
-        if same_target and request_ctx is not None and request_ctx.session_generation is not None:
-            metadata["_session_key"] = request_ctx.session_key
-            metadata["_session_generation"] = request_ctx.session_generation
 
         msg = OutboundMessage(
             channel=channel,
@@ -238,7 +235,7 @@ class MessageTool(Tool):
             buttons=button_rows or [],
             metadata=metadata,
             delivery=(DeliveryRequest.from_context(
-                default_metadata, request_ctx.session_key, request_ctx.session_generation,
+                {**default_metadata, "run_id": request_ctx.turn_id},
             ) if request_ctx is not None else None),
         )
 

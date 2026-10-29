@@ -7,20 +7,13 @@ import { ComposerUsagePopover, type ComposerRoundUsage } from "@/components/thre
 import { ContextCompactionNotice } from "@/components/thread/ContextCompactionNotice";
 import { ModelFallbackNotice } from "@/components/thread/ModelFallbackNotice";
 import { ModelPresetBadge, type ModelPresetOption } from "@/components/thread/ModelPresetBadge";
-import { PromptNavigator } from "@/components/thread/PromptNavigator";
-import { RecoveryNotice } from "@/components/thread/RecoveryNotice";
-import { StreamErrorNotice } from "@/components/thread/StreamErrorNotice";
 import { ThreadComposer } from "@/components/thread/ThreadComposer";
-import { ThreadHeader } from "@/components/thread/ThreadHeader";
-import { ThreadHistoryStatus } from "@/components/thread/ThreadHistoryStatus";
 import { ThreadMessages } from "@/components/thread/ThreadMessages";
-import { ThreadViewport, type ThreadViewportHandle } from "@/components/thread/ThreadViewport";
 import { WorkspaceAccessMenu, WorkspaceProjectPicker } from "@/components/thread/WorkspaceControls";
 import { WebSearchRun } from "@/components/thread/activity/WebSearchRun";
 import { Button } from "@/components/ui/button";
-import type { StreamError } from "@/lib/yoreni-client";
 import { formatToolCallTrace } from "@/lib/tool-traces";
-import type { RecoveryState, SlashCommand, ToolProgressEvent, UIContextCompaction, UIMessage, WorkspaceScopePayload, WorkspacesPayload } from "@/lib/types";
+import type { ToolProgressEvent, UIContextCompaction, UIMessage, WorkspaceScopePayload, WorkspacesPayload } from "@/lib/types";
 import { Sample, StatePicker, type ComponentExample } from "./example";
 import { useGalleryTranslation } from "./i18n";
 
@@ -34,11 +27,7 @@ const rounds: ComposerRoundUsage[] = [
   { id: "gallery-round-2", timestamp: createdAt + 60_000, inputTokens: 12_000, cachedTokens: 8_200, outputTokens: 980, generationMs: 5_400 },
   { id: "gallery-round-3", timestamp: createdAt + 120_000, inputTokens: 18_500, cachedTokens: 12_000, outputTokens: 1_240, generationMs: 7_200 },
 ];
-const commands: SlashCommand[] = [
-  { command: "/status", title: "previews.composer.statusCommand", description: "previews.composer.statusDescription", icon: "activity", lifecycle: "side_channel", acceptsArgs: false },
-  { command: "/compact", title: "previews.composer.compactCommand", description: "previews.composer.compactDescription", icon: "archive", lifecycle: "finalize_active_turn", acceptsArgs: false },
-  { command: "/help", title: "previews.composer.helpCommand", description: "previews.composer.helpDescription", icon: "circle-help", lifecycle: "side_channel", acceptsArgs: false },
-];
+
 const projectScope: WorkspaceScopePayload = { project_path: "D:\\Projects\\yoreni", project_name: "yoreni", access_mode: "restricted" };
 const workspaceCatalog: WorkspacesPayload = {
   schema_version: 1, default_access_mode: "default", default_scope: projectScope,
@@ -56,27 +45,19 @@ const prompts: UIMessage[] = [
   { id: "gallery-prompt-3", role: "user", content: "长会话如何跳转到之前的问题？", createdAt: createdAt + 120_000 },
   { id: "gallery-answer-3", role: "assistant", content: "打开问题导航后，可以搜索问题并跳转。\n\n滚动区域左侧的标记也对应每个问题。鼠标停留时会显示问题和回复摘要。", latencyMs: 2_600, createdAt: createdAt + 121_000 },
 ];
-const longConversation: UIMessage[] = Array.from({ length: 8 }, (_, index) => [
-  { id: `gallery-long-prompt-${index}`, role: "user" as const, content: `问题 ${index + 1}：${["模型配置", "工作目录", "消息排版", "工具活动"][index % 4]}如何展示？`, createdAt: createdAt + index * 60_000 },
-  { id: `gallery-long-answer-${index}`, role: "assistant" as const, content: "组件接收已有状态，并把操作交给调用方。\n\n- 可以查看历史问题\n- 可以复制回复内容\n- 可以在回复后创建会话分支\n\n这段示例内容使预览产生真实滚动距离，便于体验问题标记和返回底部按钮。", latencyMs: 3_200, createdAt: createdAt + index * 60_000 + 1_000 },
-]).flat();
 
 function ComposerPreview() {
   const { t } = useGalleryTranslation();
   const [mode, setMode] = useState<"thread" | "hero" | "streaming" | "disabled">("thread");
   const [preset, setPreset] = useState(presets[0].name);
   const [sent, setSent] = useState<{ kind: "sent"; content: string; attachments: number } | { kind: "stopped" } | null>(null);
-  const [quoted, setQuoted] = useState<string | null>(null);
   const selected = presets.find((option) => option.name === preset) ?? presets[0];
   return <div className="space-y-4">
     <StatePicker label={t("previews.composer.state")} value={mode} options={["thread", "hero", "streaming", "disabled"]} onChange={setMode} />
-    <Button variant="outline" size="sm" onClick={() => setQuoted("组件接收状态，并把操作交给调用方。")}>{t("previews.composer.addQuote")}</Button>
     <ThreadComposer disabled={mode === "disabled"} isStreaming={mode === "streaming"} variant={mode === "hero" ? "hero" : "thread"}
       inputAriaLabel={t("previews.composer.input")} placeholder={t("previews.composer.placeholder")}
       modelLabel={selected.name} modelDetail={selected.model} modelProvider={selected.provider} modelPreset={preset}
-      modelPresets={presets} onModelPresetChange={setPreset} slashCommands={commands.map((command) => ({ ...command, title: t(command.title), description: t(command.description) }))}
-      contextUsage={{ contextTokens: 18_500, contextWindowTokens: 200_000 }} recentRoundUsage={rounds}
-      workspaceScope={projectScope} workspaceControlsHidden quotedContext={quoted} onQuotedContextChange={setQuoted}
+      modelPresets={presets} onModelPresetChange={setPreset}
       onStop={() => { setMode("thread"); setSent({ kind: "stopped" }); }}
       onSend={(content, attachments) => { setSent({ kind: "sent", content, attachments: attachments?.length ?? 0 }); return true; }} />
     <p role="status" className="text-sm text-muted-foreground">{sent?.kind === "stopped" ? t("previews.composer.stopped")
@@ -131,34 +112,6 @@ function WorkspacePreview() {
   </div>;
 }
 
-function NavigatorPreview() {
-  const { t } = useGalleryTranslation();
-  const [selected, setSelected] = useState("");
-  return <div className="space-y-4">
-    <div className="flex items-center gap-3"><PromptNavigator messages={prompts} onJumpToPrompt={setSelected} />
-      <span className="text-sm text-muted-foreground">{t("previews.navigator.hint")}</span></div>
-    <p role="status" className="text-sm text-muted-foreground">{prompts.find((message) => message.id === selected)?.content ?? t("previews.navigator.empty")}</p>
-  </div>;
-}
-
-function HeaderPreview() {
-  const { t } = useTranslation();
-  const { t: g } = useGalleryTranslation();
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [temporary, setTemporary] = useState(false);
-  const [action, setAction] = useState<{ kind: "sidebar" } | { kind: "jump"; id: string } | null>(null);
-  return <div className="space-y-4">
-    <div className="rounded-control border [--thread-header-position:relative]">
-      <ThreadHeader title="组件使用示例" handle={{ id: "handle_11111111111111111111111111111111", name: "gallery" }}
-        theme={theme} onToggleTheme={() => setTheme((value) => value === "light" ? "dark" : "light")}
-        onToggleSidebar={() => setAction({ kind: "sidebar" })} temporaryChatEnabled={temporary} onTemporaryChatEnabledChange={setTemporary}
-        promptNavigatorAction={<PromptNavigator messages={prompts} onJumpToPrompt={(id) => setAction({ kind: "jump", id })} />} />
-    </div>
-    <p role="status" className="text-sm text-muted-foreground">{action?.kind === "jump" ? g("previews.header.jump", { id: action.id })
-      : g(action ? "previews.header.sidebar" : "previews.header.hint")} · {t(`settings.values.${theme}`)} · {g(temporary ? "previews.header.temporary" : "previews.header.regular")}</p>
-  </div>;
-}
-
 function MessagesPreview() {
   const { t } = useGalleryTranslation();
   const [quoted, setQuoted] = useState("");
@@ -168,54 +121,6 @@ function MessagesPreview() {
       <ThreadMessages messages={prompts} onQuoteSelection={setQuoted} onForkFromMessage={setFork} />
     </div>
     <p role="status" className="text-sm text-muted-foreground">{quoted ? t("previews.messages.quoted", { text: quoted }) : fork !== null ? t("previews.messages.forked", { index: fork + 1 }) : t("previews.messages.hint")}</p>
-  </div>;
-}
-
-function ViewportPreview() {
-  const { t } = useGalleryTranslation();
-  const viewport = useRef<ThreadViewportHandle>(null);
-  const [mode, setMode] = useState<"history" | "empty">("history");
-  const [fork, setFork] = useState<number | null>(null);
-  return <div className="space-y-4">
-    <StatePicker label={t("previews.viewport.state")} value={mode} options={["history", "empty"]} onChange={setMode} />
-    <div className="flex h-[28rem] flex-col overflow-hidden rounded-control border">
-      <div className="shrink-0 border-b px-3 py-2"><PromptNavigator messages={mode === "history" ? longConversation : []}
-        onJumpToPrompt={(id) => viewport.current?.jumpToUserPrompt(id)} /></div>
-      <ThreadViewport ref={viewport} messages={mode === "history" ? longConversation : []} isStreaming={false}
-        conversationKey={`gallery-${mode}`} conversationReady onForkFromMessage={setFork}
-        emptyState={<p className="text-sm text-muted-foreground">{t("previews.viewport.empty")}</p>} />
-    </div>
-    <p role="status" className="text-sm text-muted-foreground">{fork !== null ? t("previews.messages.forked", { index: fork + 1 }) : t("previews.viewport.hint")}</p>
-  </div>;
-}
-
-function HistoryPreview() {
-  const { t } = useGalleryTranslation();
-  const [mode, setMode] = useState<"loading" | "error" | "exhausted">("loading");
-  const [retries, setRetries] = useState(0);
-  return <div className="space-y-4">
-    <StatePicker label={t("previews.history.state")} value={mode} options={["loading", "exhausted", "error"]} onChange={setMode} />
-    <div className="relative h-20 rounded-control border">
-      <ThreadHistoryStatus loading={mode === "loading"} error={mode === "error" ? t("previews.history.error") : null}
-        exhausted={mode === "exhausted"} onRetry={() => { setRetries((value) => value + 1); setMode("loading"); }} />
-    </div>
-    <p role="status" className="text-sm text-muted-foreground">{t("previews.history.retries", { amount: retries })}</p>
-  </div>;
-}
-
-function RecoveryPreview() {
-  const { t } = useGalleryTranslation();
-  const [mode, setMode] = useState<"awaiting_user" | "resuming" | "failed" | "unavailable">("awaiting_user");
-  const [action, setAction] = useState("");
-  const [visible, setVisible] = useState(true);
-  const state: RecoveryState = { recovery_id: `gallery-recovery-${mode}`, status: mode === "unavailable" ? "failed" : mode, can_continue: mode !== "unavailable" };
-  return <div className="space-y-4">
-    <StatePicker label={t("previews.recovery.state")} value={mode} options={["awaiting_user", "resuming", "failed", "unavailable"]}
-      onChange={(value) => { setMode(value); setVisible(true); setAction(""); }} />
-    {visible ? <RecoveryNotice state={state} onContinue={() => { setVisible(false); setAction("previews.recovery.continued"); return Promise.resolve(); }}
-      onDismiss={() => { setVisible(false); setAction("previews.recovery.dismissed"); return Promise.resolve(); }} /> : null}
-    <Button variant="outline" size="sm" onClick={() => { setVisible(true); setAction(""); }}>{t("previews.recovery.reset")}</Button>
-    <p role="status" className="text-sm text-muted-foreground">{t(action || "previews.recovery.hint")}</p>
   </div>;
 }
 
@@ -241,24 +146,6 @@ function CompactionPreview() {
     <ContextCompactionNotice compaction={{ id: "gallery-compaction", phase, announce: true }} /></>;
 }
 
-const errors: Record<StreamError["kind"], StreamError> = {
-  message_too_big: { kind: "message_too_big" },
-  workspace_scope_rejected: { kind: "workspace_scope_rejected" },
-  turn_rejected: { kind: "turn_rejected", chatId: "gallery", turnId: "gallery-turn" },
-  model_request_failed: { kind: "model_request_failed", chatId: "gallery", errorKind: "rate_limit", attempts: 3 },
-};
-
-function ErrorPreview() {
-  const { t } = useGalleryTranslation();
-  const [kind, setKind] = useState<StreamError["kind"]>("model_request_failed");
-  const [dismissed, setDismissed] = useState(false);
-  return <div className="space-y-4">
-    <StatePicker label={t("previews.streamError.kind")} value={kind} options={["message_too_big", "workspace_scope_rejected", "turn_rejected", "model_request_failed"]}
-      onChange={(value) => { setKind(value); setDismissed(false); }} />
-    {!dismissed ? <StreamErrorNotice error={errors[kind]} onDismiss={() => setDismissed(true)} /> : null}
-    <Button variant="outline" size="sm" onClick={() => setDismissed(false)}>{t("previews.fallback.showAgain")}</Button>
-  </div>;
-}
 
 function ClusterPreview() {
   const { t } = useGalleryTranslation();
@@ -297,54 +184,15 @@ function ResponseSourcesPreview() {
   </Sample>;
 }
 
-const components = "webui/src/components/";
 export const conversationExamples: ComponentExample[] = [
-  { title: "previews.composer.title", files: ["thread/ThreadComposer"], Preview: ComposerPreview,
-    description: "previews.composer.description", options: "previews.composer.options",
-    code: '<ThreadComposer onSend={send} modelPresets={presets} onModelPresetChange={setPreset} slashCommands={commands} />' },
-  { title: "previews.modelPreset.title", files: ["thread/ModelPresetBadge"], Preview: ModelPresetPreview,
-    description: "previews.modelPreset.description", options: "previews.modelPreset.options",
-    code: '<ModelPresetBadge label={preset} modelPreset={preset} modelPresets={presets} onPresetChange={setPreset} isHero={false} />' },
-  { title: "previews.usage.title", files: ["thread/ComposerUsagePopover"], Preview: UsagePreview,
-    description: "previews.usage.description", options: "previews.usage.options",
-    code: '<ComposerUsagePopover context={{ contextTokens: 18500, contextWindowTokens: 200000 }} rounds={rounds} showLabel />' },
-  { title: "previews.workspace.title", files: ["thread/WorkspaceControls"], Preview: WorkspacePreview,
-    description: "previews.workspace.description", options: "previews.workspace.options",
-    code: '<WorkspaceAccessMenu scope={scope} onChange={setScope} />\n<WorkspaceProjectPicker scope={scope} defaultScope={defaultScope} controls={controls} onLoadProjects={loadProjects} onChange={setScope} />' },
-  { title: "previews.navigator.title", files: ["thread/PromptNavigator"], Preview: NavigatorPreview,
-    description: "previews.navigator.description", options: "previews.navigator.options",
-    code: '<PromptNavigator messages={messages} onJumpToPrompt={jumpToPrompt} />' },
-  { title: "previews.header.title", files: ["thread/ThreadHeader"], Preview: HeaderPreview,
-    description: "previews.header.description", options: "previews.header.options",
-    code: '<ThreadHeader title="Component examples" theme={theme} onToggleTheme={toggleTheme} onToggleSidebar={toggleSidebar} />' },
-  { title: "previews.messages.title", files: ["thread/ThreadMessages", "thread/AssistantSelectionAction"], Preview: MessagesPreview,
-    description: "previews.messages.description", options: "previews.messages.options",
-    code: '<ThreadMessages messages={messages} onForkFromMessage={forkFromMessage} onQuoteSelection={quoteText} />' },
-  { title: "previews.viewport.title", files: ["thread/ThreadViewport", "thread/PromptRail"], Preview: ViewportPreview,
-    description: "previews.viewport.description", options: "previews.viewport.options",
-    code: '<div className="flex h-96 flex-col"><ThreadViewport ref={viewport} messages={messages} isStreaming={false} /></div>' },
-  { title: "previews.history.title", files: ["thread/ThreadHistoryStatus"], Preview: HistoryPreview,
-    description: "previews.history.description", options: "previews.history.options",
-    code: '<ThreadHistoryStatus loading={loading} error={error} onRetry={retry} />' },
-  { title: "previews.recovery.title", files: ["thread/RecoveryNotice"], Preview: RecoveryPreview,
-    description: "previews.recovery.description", options: "previews.recovery.options",
-    code: '<RecoveryNotice state={recoveryState} onContinue={continueTask} onDismiss={dismissRecovery} />' },
-  { title: "previews.fallback.title", files: ["thread/ModelFallbackNotice"], Preview: FallbackPreview,
-    description: "previews.fallback.description", options: "previews.fallback.options",
-    code: '<ModelFallbackNotice model="gpt-4.1" onDismiss={dismiss} onOpenSettings={openModelSettings} />' },
-  { title: "previews.compaction.title", files: ["thread/ContextCompactionNotice"], Preview: CompactionPreview,
-    description: "previews.compaction.description", options: "previews.compaction.options",
-    code: '<ContextCompactionNotice compaction={{ id: "compaction-1", phase: "succeeded", announce: true }} />' },
-  { title: "previews.streamError.title", files: ["thread/StreamErrorNotice"], Preview: ErrorPreview,
-    description: "previews.streamError.description", options: "previews.streamError.options",
-    code: '<StreamErrorNotice error={{ kind: "message_too_big" }} onDismiss={dismiss} />' },
-  { title: "previews.cluster.title", files: ["thread/AgentActivityCluster"], Preview: ClusterPreview,
-    description: "previews.cluster.description", options: "previews.cluster.options",
-    code: '<AgentActivityCluster messages={activityMessages} isTurnStreaming={running} hasBodyBelow={false} expanded={expanded} onExpandedChange={setExpanded} />' },
-  { title: "previews.search.title", files: ["thread/activity/WebSearchRun", "thread/activity/WebActivityRow"], Preview: SearchActivityPreview,
-    description: "previews.search.description", options: "previews.search.options",
-    code: '<WebSearchRun run={searchRun} turnActive={running} />' },
-  { title: "previews.responseSources.title", files: ["ResponseSourceBadge"], Preview: ResponseSourcesPreview,
-    description: "previews.responseSources.description", options: "previews.responseSources.options",
-    code: '<FallbackResponseSources sources={[{ provider: "openai", model: "gpt-4.1", preset: "Daily", fallback: true }]} />' },
-].map((example) => ({ ...example, files: example.files.map((file) => `${components}${file}.tsx`) }));
+{ title: "previews.composer.title", description: "previews.composer.description", options: "previews.composer.options", files: ["webui/src/components/thread/ThreadComposer.tsx"], Preview: ComposerPreview, code: "<ThreadComposer />" },
+{ title: "previews.modelPreset.title", description: "previews.modelPreset.description", options: "previews.modelPreset.options", files: ["webui/src/components/thread/ModelPresetBadge.tsx"], Preview: ModelPresetPreview, code: "<ModelPresetBadge />" },
+{ title: "previews.usage.title", description: "previews.usage.description", options: "previews.usage.options", files: ["webui/src/components/thread/ComposerUsagePopover.tsx"], Preview: UsagePreview, code: "<ComposerUsagePopover />" },
+{ title: "previews.workspace.title", description: "previews.workspace.description", options: "previews.workspace.options", files: ["webui/src/components/thread/WorkspaceControls.tsx"], Preview: WorkspacePreview, code: "<WorkspaceControls />" },
+{ title: "previews.messages.title", description: "previews.messages.description", options: "previews.messages.options", files: ["webui/src/components/thread/ThreadMessages.tsx"], Preview: MessagesPreview, code: "<ThreadMessages />" },
+{ title: "previews.fallback.title", description: "previews.fallback.description", options: "previews.fallback.options", files: ["webui/src/components/thread/ModelFallbackNotice.tsx"], Preview: FallbackPreview, code: "<ModelFallbackNotice />" },
+{ title: "previews.compaction.title", description: "previews.compaction.description", options: "previews.compaction.options", files: ["webui/src/components/thread/ContextCompactionNotice.tsx"], Preview: CompactionPreview, code: "<ContextCompactionNotice />" },
+{ title: "previews.cluster.title", description: "previews.cluster.description", options: "previews.cluster.options", files: ["webui/src/components/thread/AgentActivityCluster.tsx"], Preview: ClusterPreview, code: "<AgentActivityCluster />" },
+{ title: "previews.searchActivity.title", description: "previews.searchActivity.description", options: "previews.searchActivity.options", files: ["webui/src/components/thread/activity.tsx"], Preview: SearchActivityPreview, code: "<activity />" },
+{ title: "previews.responseSources.title", description: "previews.responseSources.description", options: "previews.responseSources.options", files: ["webui/src/components/ResponseSourceBadge.tsx"], Preview: ResponseSourcesPreview, code: "<ResponseSourceBadge />" }
+];

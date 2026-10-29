@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent.session_helpers import run_session, save_completed_subagent
+from agent.run_helpers import run_event, save_completed_subagent
 from yoreni.agent.context import TranscriptInput
 from yoreni.agent.hooks import create_file_edit_activity_hook
 from yoreni.agent.loop import AgentLoop
@@ -235,7 +235,7 @@ class TestToolEventProgress:
             chat_id="chat1",
             content="run ls",
         )
-        await run_session(loop, msg)
+        await run_event(loop, msg)
 
         # Drain all outbound messages and find the one carrying tool events.
         outbound = []
@@ -358,7 +358,7 @@ class TestToolEventProgress:
             ),
         )
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -405,7 +405,7 @@ class TestToolEventProgress:
         loop = AgentLoop(bus=bus, provider=provider, workspace=tmp_path, model="openai-codex/gpt-5.5")
         loop.tools.get_definitions = MagicMock(return_value=[])
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="whatsapp",
             sender_id="u1",
             chat_id="chat1",
@@ -443,7 +443,7 @@ class TestToolEventProgress:
         _attach_webui_runtime_events(loop, bus)
         loop.tools.get_definitions = MagicMock(return_value=[])
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -496,7 +496,7 @@ class TestToolEventProgress:
         _attach_webui_runtime_events(loop, bus)
         loop.tools.get_definitions = MagicMock(return_value=[])
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -548,7 +548,7 @@ class TestToolEventProgress:
 
         loop.provider.chat_stream_with_retry = chat
         try:
-            await run_session(loop, InboundMessage(
+            await run_event(loop, InboundMessage(
                 channel="websocket", sender_id="u", chat_id="test", content="old question",
                 metadata={"_wants_stream": True},
             ))
@@ -605,7 +605,7 @@ class TestToolEventProgress:
         _attach_webui_runtime_events(loop, bus)
         loop.tools.get_definitions = MagicMock(return_value=[])
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -647,7 +647,7 @@ class TestToolEventProgress:
         loop.max_iterations = 1
         loop.tools.get_definitions = MagicMock(return_value=[])
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -692,7 +692,7 @@ class TestToolEventProgress:
         loop._process_message = cancel_after_merge  # type: ignore[method-assign]
 
         with pytest.raises(asyncio.CancelledError):
-            await run_session(loop, InboundMessage(
+            await run_event(loop, InboundMessage(
                 channel="websocket",
                 sender_id="u1",
                 chat_id="chat1",
@@ -734,7 +734,7 @@ class TestToolEventProgress:
         _attach_webui_runtime_events(loop, bus)
         loop.tools.get_definitions = MagicMock(return_value=[])
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -806,7 +806,7 @@ class TestToolEventProgress:
         session.metadata.update({"webui": True, "title": "Existing title"})
         loop.sessions.save(session)
         await save_completed_subagent(loop, "sub-1", session_key)
-        dispatch = asyncio.create_task(run_session(loop, InboundMessage(
+        dispatch = asyncio.create_task(run_event(loop, InboundMessage(
             channel="system",
             sender_id="subagent",
             chat_id=session_key,
@@ -935,7 +935,7 @@ class TestToolEventProgress:
         _attach_webui_runtime_events(loop, bus)
         loop.tools.get_definitions = MagicMock(return_value=[])
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -981,7 +981,7 @@ class TestToolEventProgress:
         _attach_webui_runtime_events(loop, bus)
         loop.tools.get_definitions = MagicMock(return_value=[])
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -1018,7 +1018,7 @@ class TestToolEventProgress:
 
         loop._process_message = raise_from_turn  # type: ignore[method-assign]
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -1065,7 +1065,7 @@ class TestToolEventProgress:
         loop.tools.get_definitions = MagicMock(return_value=[])
 
         # The blocked title call proves ordering; allow Windows CI time for turn I/O.
-        await asyncio.wait_for(run_session(loop, InboundMessage(
+        await asyncio.wait_for(run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -1134,7 +1134,7 @@ class TestToolEventProgress:
 
         loop.schedule_background = schedule_background  # type: ignore[method-assign]
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -1216,7 +1216,7 @@ class TestToolEventProgress:
 
         loop.schedule_background = schedule_background  # type: ignore[method-assign]
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -1251,7 +1251,7 @@ class TestToolEventProgress:
         scheduled: list[object] = []
         loop.schedule_background = scheduled.append  # type: ignore[method-assign]
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="websocket",
             sender_id="u1",
             chat_id="chat1",
@@ -1270,7 +1270,7 @@ class TestToolEventProgress:
         loop = AgentLoop(bus=bus, provider=provider, workspace=tmp_path, model="test-model")
         loop.tools.get_definitions = MagicMock(return_value=[])
 
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="slack",
             sender_id="u1",
             chat_id="chat1",

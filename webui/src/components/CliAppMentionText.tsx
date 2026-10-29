@@ -1,14 +1,10 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import {
-  INLINE_TOKEN_HIGHLIGHT_COLOR,
-  InlineTokenHighlight,
-} from "@/components/InlineTokenHighlight";
+import { InlineTokenHighlight } from "@/components/InlineTokenHighlight";
 import { useLogoFallback } from "@/hooks/useLogoFallback";
 import { logoFallbackUrls } from "@/lib/provider-brand";
-import { sessionHandleColor } from "@/lib/session-handle";
-import type { CliAppInfo, McpPresetInfo, SessionMention } from "@/lib/types";
+import type { CliAppInfo, McpPresetInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   composerMentionLabel,
@@ -45,9 +41,8 @@ export function splitCapabilityMentionSegments(
   value: string,
   cliApps: CliAppInfo[],
   mcpPresets: McpPresetInfo[] = [],
-  sessionMentions: SessionMention[] = [],
 ): CapabilityMentionSegment[] {
-  if (!value || (cliApps.length === 0 && mcpPresets.length === 0 && sessionMentions.length === 0)) {
+  if (!value || (cliApps.length === 0 && mcpPresets.length === 0)) {
     return value ? [{ kind: "text", text: value }] : [];
   }
   const cliAppsByName = new Map(
@@ -60,10 +55,7 @@ export function splitCapabilityMentionSegments(
       .filter((preset) => preset.installed && preset.configured)
       .map((preset) => [preset.name.toLowerCase(), preset]),
   );
-  const sessionsByName = new Map(
-    sessionMentions.map((mention) => [mention.name.toLowerCase(), mention]),
-  );
-  if (cliAppsByName.size === 0 && mcpPresetsByName.size === 0 && sessionsByName.size === 0) {
+  if (cliAppsByName.size === 0 && mcpPresetsByName.size === 0) {
     return [{ kind: "text", text: value }];
   }
 
@@ -75,10 +67,9 @@ export function splitCapabilityMentionSegments(
     if (!isCapabilityMentionStart(value, match.index)) continue;
     const name = match[1] ?? "";
     const key = name.toLowerCase();
-    const session = sessionsByName.get(key);
-    const app = session ? null : cliAppsByName.get(key);
-    const preset = session || app ? null : mcpPresetsByName.get(key);
-    if (!app && !preset && !session) continue;
+    const app = cliAppsByName.get(key);
+    const preset = app ? null : mcpPresetsByName.get(key);
+    if (!app && !preset) continue;
 
     const mentionStart = match.index;
     const mentionEnd = mentionStart + name.length + 1;
@@ -89,12 +80,6 @@ export function splitCapabilityMentionSegments(
       segments.push({ kind: "cli", text: value.slice(mentionStart, mentionEnd), app });
     } else if (preset) {
       segments.push({ kind: "mcp", text: value.slice(mentionStart, mentionEnd), preset });
-    } else if (session) {
-      segments.push({
-        kind: "session",
-        text: value.slice(mentionStart, mentionEnd),
-        mention: session,
-      });
     }
     cursor = mentionEnd;
   }
@@ -133,42 +118,7 @@ export function CapabilityMentionToken({
       />
     );
   }
-  return <SessionMentionToken mention={segment.mention} label={segment.text} variant={variant} />;
-}
-
-function SessionMentionToken({
-  mention,
-  label,
-  variant,
-}: {
-  mention: SessionMention;
-  label: string;
-  variant: "composer" | "message";
-}) {
-  const testIdPrefix = variant === "composer" ? "composer" : "message";
-  const color = mention.id
-    ? sessionHandleColor(mention.id)
-    : INLINE_TOKEN_HIGHLIGHT_COLOR;
-  const token = (
-    <InlineTokenHighlight
-      testId={`${testIdPrefix}-session-mention-${mention.name}`}
-      title={`Session: ${mention.title || mention.name}`}
-      color={color}
-      className={variant === "composer" ? "font-normal" : undefined}
-    >
-      {label}
-    </InlineTokenHighlight>
-  );
-  if (variant === "composer") return token;
-  return (
-    <a
-      href={`#/chat/${encodeURIComponent(mention.session_key)}`}
-      className="rounded-sm underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-      style={{ textDecorationColor: color }}
-    >
-      {token}
-    </a>
-  );
+  return null;
 }
 
 function CliAppMentionToken({

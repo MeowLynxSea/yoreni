@@ -11,16 +11,12 @@ from websockets.http11 import Request as WsRequest
 from websockets.http11 import Response
 
 from yoreni.config.paths import get_media_dir
-from yoreni.security.workspace_access import WorkspaceScope
+from yoreni.webui.markdown_media import rewrite_local_markdown_images
 from yoreni.webui.media_api import (
-    media_attachment_kind,
     serve_signed_media,
-    sign_local_attachment,
-    sign_media_path,
     sign_or_stage_media_path,
     signed_media_attachments,
 )
-from yoreni.webui.transcript import rewrite_local_markdown_images
 
 
 def _default_media_dir(channel: str | None) -> Path:
@@ -49,7 +45,6 @@ class WebUIMediaGateway:
         payload: str,
         *,
         request: WsRequest | None = None,
-        scope_for_session: Callable[[str], WorkspaceScope | None] | None = None,
     ) -> Response:
         return serve_signed_media(
             sig,
@@ -57,7 +52,6 @@ class WebUIMediaGateway:
             secret=self.secret,
             request=request,
             media_dir=self._media_dir,
-            scope_for_session=scope_for_session,
         )
 
     def sign_or_stage_media_path(self, path: Path) -> dict[str, str] | None:
@@ -86,24 +80,4 @@ class WebUIMediaGateway:
             sign_path=self.sign_or_stage_media_path,
         )
 
-    def local_attachment_url(self, path: str, *, session_key: str) -> str:
-        return sign_local_attachment(path, session_key=session_key, secret=self.secret)
 
-    def augment_transcript_user_media(
-        self, paths: list[str], local_paths: list[str], *, session_key: str,
-    ) -> list[dict[str, Any]]:
-        local = set(local_paths)
-        media: list[dict[str, Any]] = []
-        for raw in paths:
-            path = Path(raw)
-            try:
-                if not path.is_file():
-                    url = ""
-                elif raw in local:
-                    url = self.local_attachment_url(raw, session_key=session_key)
-                else:
-                    url = sign_media_path(path, secret=self.secret, media_dir=self._media_dir) or ""
-            except OSError:
-                url = ""
-            media.append({"kind": media_attachment_kind(path.name), "name": path.name, "url": url})
-        return media

@@ -5,22 +5,16 @@ import pytest
 from yoreni.webui.client_contract import assess_webui_contract, compatibility_error, webui_contract
 
 
-def test_initial_host_declaration_is_an_independent_wire_fixture():
-    # Frozen initial host payload; intentionally not built using the current producer.
-    initial_host = {
-        "version": "0.3.5",
-        "min_protocol": 1,
-        "max_protocol": 1,
-        "capabilities": ["webui.core.v1"],
-    }
-    assert assess_webui_contract(initial_host)["status"] == "compatible"
-
-
-def test_current_producer_remains_acceptable_to_initial_client():
-    # Initial client's advertised requirement, independent of today's constants.
+def test_current_host_declares_the_agent_webui_contract():
     contract = webui_contract()
-    assert contract["min_protocol"] <= 1 <= contract["max_protocol"]
-    assert "webui.core.v1" in contract["capabilities"]
+    assert contract["min_protocol"] == 2
+    assert contract["max_protocol"] == 2
+    assert "webui.core.v2" in contract["capabilities"]
+    assert "webui.agent.v1" in contract["capabilities"]
+
+
+def test_current_producer_declares_binary_attachments():
+    contract = webui_contract()
     assert "webui.attachments.binary.v1" in contract["capabilities"]
 
 
@@ -43,8 +37,8 @@ def test_missing_or_malformed_metadata_is_unknown_not_outdated(value):
     assert compatibility_error(report) == "webui_compatibility_unknown"
 
 
-def test_new_host_can_explicitly_retain_old_protocol_support():
-    assert assess_webui_contract({**webui_contract(), "max_protocol": 2})["status"] == "compatible"
+def test_future_optional_protocol_range_can_still_include_current_client():
+    assert assess_webui_contract({**webui_contract(), "max_protocol": 3})["status"] == "compatible"
 
 
 def test_recovery_targets_the_correct_machine():

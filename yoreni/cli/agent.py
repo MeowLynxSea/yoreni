@@ -54,7 +54,6 @@ def _classic_dependency(name: str) -> Any:
 
 def agent(
     message: str | None = typer.Option(None, "--message", "-m", help="Message to send to the agent"),
-    session_id: str | None = typer.Option(None, "--session", "-s", help="Session ID"),
     workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace directory"),
     config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
     markdown: bool = typer.Option(
@@ -70,10 +69,10 @@ def agent(
 ):
     """Chat in the terminal or send one message non-interactively."""
     runtime_config = _load_runtime_config(config, workspace)
-    _run_classic(runtime_config, message=message, session_id=session_id, markdown=markdown, logs=logs)
+    _run_classic(runtime_config, message=message, markdown=markdown, logs=logs)
 
 
-def _run_classic(runtime_config: Config, *, message: str | None, session_id: str | None,
+def _run_classic(runtime_config: Config, *, message: str | None,
                  markdown: bool, logs: bool) -> None:
     """Keep the data lease through writer initialization, execution and cleanup."""
     from yoreni.agent.hooks import create_file_edit_activity_hook
@@ -103,7 +102,6 @@ def _run_classic(runtime_config: Config, *, message: str | None, session_id: str
     is_default_workspace = _classic_dependency("is_default_workspace")
     sync_workspace_templates = _classic_dependency("sync_workspace_templates")
 
-    session_id = session_id or "cli:direct"
 
     try:
         provider = make_provider(runtime_config)
@@ -141,7 +139,7 @@ def _run_classic(runtime_config: Config, *, message: str | None, session_id: str
         _print_agent_start_error(exc)
         raise typer.Exit(1) from exc
     restart_notice = consume_restart_notice_from_env()
-    if restart_notice and should_show_cli_restart_notice(restart_notice, session_id):
+    if restart_notice and should_show_cli_restart_notice(restart_notice, "direct"):
         cli_terminal._print_agent_response(
             format_restart_completed_message(restart_notice.started_at_raw),
             render_markdown=False,
@@ -210,7 +208,6 @@ def _run_classic(runtime_config: Config, *, message: str | None, session_id: str
                 )
                 response = await agent_loop.process_direct(
                     message,
-                    session_id,
                     on_progress=_make_progress(renderer),
                     on_stream=renderer.on_delta,
                     on_stream_end=renderer.on_end,
@@ -242,10 +239,7 @@ def _run_classic(runtime_config: Config, *, message: str | None, session_id: str
             "— type [bold]exit[/bold] or [bold]Ctrl+C[/bold] to quit\n"
         )
 
-        if ":" in session_id:
-            cli_channel, cli_chat_id = session_id.split(":", 1)
-        else:
-            cli_channel, cli_chat_id = "cli", session_id
+        cli_channel, cli_chat_id = "cli", "direct"
 
         def _handle_signal(signum: int, _frame: FrameType | None) -> None:
             sig_name = signal.Signals(signum).name

@@ -175,7 +175,7 @@ function StartTruncatedText({ children, className, ...props }: HTMLAttributes<HT
   </span>;
 }
 
-/** Only loads after the normal hover/focus delay, through the session's guarded preview API. */
+/** Only loads after the normal hover/focus delay, through the gateway's guarded preview API. */
 function FileImageQuickLook({ path }: { path: string }) {
   const { t } = useTranslation();
   const load = useFilePreviewLoader();

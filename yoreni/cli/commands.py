@@ -303,7 +303,7 @@ def trigger(
     workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace directory"),
     config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
 ):
-    """Deliver a local trigger message to its bound chat session."""
+    """Deliver a local trigger message to its bound Agent."""
     from yoreni.triggers.local_store import (
         LocalTriggerStore,
         TriggerDisabledError,
@@ -350,7 +350,6 @@ def serve(
     from yoreni.agent.tools.image_generation import register_image_generation_tool
     from yoreni.api.server import create_app
     from yoreni.bus.queue import MessageBus
-    from yoreni.session.manager import SessionManager
 
     _set_yoreni_logs(verbose)
 
@@ -367,7 +366,6 @@ def serve(
         raise typer.Exit(1)
     sync_workspace_templates(runtime_config.workspace_path)
     bus = MessageBus()
-    session_manager = SessionManager(runtime_config.workspace_path)
     tools = ToolRegistry()
     register_image_generation_tool(runtime_config, tools, workspace=runtime_config.workspace_path)
     mcp_provider = MCPProvider.from_config(runtime_config, tools)
@@ -382,7 +380,6 @@ def serve(
         agent_loop = AgentLoop.from_config(
             runtime_config, bus,
             provider=unconfigured_provider,
-            session_manager=session_manager,
             hook_factories=[create_file_edit_activity_hook],
             tool_registry=tools,
         )
@@ -394,7 +391,6 @@ def serve(
     console.print(f"{__logo__} Starting OpenAI-compatible API server")
     console.print(f"  [cyan]Endpoint[/cyan] : http://{host}:{port}/v1/chat/completions")
     console.print(f"  [cyan]Model[/cyan]    : {model_name}{preset_tag}")
-    console.print("  [cyan]Session[/cyan]  : api:default")
     console.print(f"  [cyan]Timeout[/cyan]  : {timeout}s")
     if not is_loopback_host(host):
         console.print(

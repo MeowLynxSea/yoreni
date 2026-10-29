@@ -46,7 +46,7 @@ class AttachmentStore:
     A whole file's declared size is reserved before awaiting its first chunk,
     so concurrent slow uploads cannot bypass the global disk quota. ``prune``
     should also be called periodically by the owning gateway. Committed files
-    leave this store and are managed by the existing session media lifecycle.
+    leave this store and are managed by the durable Event media lifecycle.
     """
 
     def __init__(
@@ -174,7 +174,7 @@ class AttachmentStore:
         return [str(entry.path) for entry in self.inspect(references, owner=owner)]
 
     def commit(self, references: list[str], *, owner: str) -> list[str]:
-        """Transfer validated files to session ownership after message acceptance.
+        """Transfer validated files to durable Event ownership after message acceptance.
 
         The caller must not await between resolve, synchronous acceptance, and
         commit. A rejected message must leave references staged for retry.
@@ -199,7 +199,7 @@ class AttachmentStore:
                 del self._entries[reference]
 
     def prune(self) -> None:
-        """Remove abandoned uploads; never delete committed session media."""
+        """Remove abandoned uploads; never delete committed Event media."""
         now = time.monotonic()
         # Crash remnants retain a marker; committed historical files never do.
         cutoff = time.time() - self.ttl_seconds - self.upload_timeout

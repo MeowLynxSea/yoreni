@@ -15,6 +15,7 @@ import httpx
 import pytest
 
 from yoreni.agent.skills import SkillsLoader
+from yoreni.agent.state import AgentInput, AgentStore
 from yoreni.bus.events import OutboundMessage
 from yoreni.channels.base import BaseChannel
 from yoreni.channels.websocket.runtime import WebSocketChannel, WebSocketConfig
@@ -3781,6 +3782,34 @@ async def _webui_mutate(
         content=response.body,
         request=request,
     )
+
+
+async def test_personal_agent_read_and_recovery_use_the_authenticated_gateway_boundary(bus, tmp_path):
+    sessions = SessionManager(tmp_path)
+    channel = _ch(bus, session_manager=sessions, workspace_path=tmp_path, port=_free_port())
+    url = f"http://127.0.0.1:{channel.config.port}/api/agent"
+    denied = await _http_get(url)
+    assert denied.status_code == 401
+    token = channel.gateway.tokens.issue_api_token(300)
+    auth = {"Authorization": f"Bearer {token}"}
+    first = await _http_get(url, headers=auth)
+    second = await _http_get(url, headers=auth)
+    assert first.status_code == second.status_code == 200
+    assert first.json()["id"] == second.json()["id"]
+    assert first.json()["transcript_key"] == "websocket:yoreni"
+    store = AgentStore(tmp_path)
+    run_id = store.admit(AgentInput("heartbeat", "unfinished", principal="owner", kind="internal"))
+    pending = await _http_get(url, headers=auth)
+    assert pending.json()["pending_runs"][0]["id"] == run_id
+    raw_resume = await _http_get(f"{url}/resume", headers=auth)
+    assert raw_resume.status_code == 405
+    resumed = await _webui_mutate(channel, "agent.resume", {"run_id": run_id}, headers=auth)
+    assert resumed.status_code == 200
+    accepted = bus.publish_inbound.call_args.args[0]
+    assert accepted.metadata["_agent_resume_run_id"] == run_id
+    assert accepted.input_role == "system"
+    await channel.stop()
+    await sessions.state.aclose()
 
 
 @pytest.mark.asyncio

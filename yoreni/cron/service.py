@@ -5,18 +5,15 @@ import json
 import time
 import uuid
 from contextlib import suppress
-from copy import deepcopy
 from dataclasses import asdict, replace
 from datetime import datetime
 from pathlib import Path
-from types import EllipsisType
 from typing import Any, Callable, Coroutine, Literal
 
 from filelock import FileLock
 from loguru import logger
 
-from yoreni.cron.binding import CronBinding, CronBindingError, binding_revision
-from yoreni.cron.session_turns import is_bound_cron_job
+from yoreni.cron.events import is_bound_cron_job
 from yoreni.cron.types import (
     CronJob,
     CronJobState,
@@ -116,29 +113,10 @@ def _validate_schedule_for_add(schedule: CronSchedule) -> None:
                 raise ValueError(f"unknown timezone '{schedule.tz}'") from None
 
 
-def _has_legacy_delivery_context(payload: CronPayload) -> bool:
-    return bool(payload.deliver or payload.channel or payload.to or payload.channel_meta)
 
 
-def _legacy_session_key(payload: CronPayload) -> str | None:
-    if payload.session_key:
-        return payload.session_key
-    if payload.channel and payload.to:
-        return f"{payload.channel}:{payload.to}"
-    return None
 
 
-def _disable_malformed_legacy_job(job: CronJob) -> None:
-    reason = "legacy cron payload is missing channel/to; recreate it from a chat session"
-    job.payload.deliver = False
-    job.payload.channel = None
-    job.payload.to = None
-    job.payload.channel_meta = {}
-    job.enabled = False
-    job.state.next_run_at_ms = None
-    job.state.last_status = "error"
-    job.state.last_error = reason
-    logger.warning("Cron: disabled malformed legacy job '{}' ({}): {}", job.name, job.id, reason)
 
 
 def _persistable_origin_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
@@ -155,38 +133,11 @@ def _persistable_origin_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
 
 
 def _normalize_agent_turn_job(job: CronJob) -> bool:
-    """Make routing metadata persistable and migrate legacy user cron payloads.
-
-    Pre-bound user cron jobs stored their delivery target in ``channel``/``to``.
-    Normal user-created legacy jobs always have those fields; if they are
-    missing, keep the record for inspection but disable it instead of preserving
-    a runtime legacy execution path.
-    """
-    payload = job.payload
-    origin_metadata = _persistable_origin_metadata(payload.origin_metadata)
-    changed = origin_metadata != payload.origin_metadata
-    payload.origin_metadata = origin_metadata
-
-    if payload.kind != "agent_turn" or not _has_legacy_delivery_context(payload):
-        return changed
-
-    if not payload.channel or not payload.to:
-        _disable_malformed_legacy_job(job)
-        return True
-
-    payload.session_key = _legacy_session_key(payload)
-    payload.origin_channel = payload.origin_channel or payload.channel
-    payload.origin_chat_id = payload.origin_chat_id or payload.to
-    if not payload.origin_metadata:
-        payload.origin_metadata = _persistable_origin_metadata(payload.channel_meta or {})
-
-    payload.deliver = False
-    payload.channel = None
-    payload.to = None
-    payload.channel_meta = {}
-    job.updated_at_ms = max(job.updated_at_ms, _now_ms())
-    logger.info("Cron: migrated legacy job '{}' ({}) to session-bound payload", job.name, job.id)
-    return True
+    """Keep only serializable Event routing metadata."""
+    metadata = _persistable_origin_metadata(job.payload.origin_metadata)
+    changed = metadata != job.payload.origin_metadata
+    job.payload.origin_metadata = metadata
+    return changed
 
 
 class CronService:
@@ -194,8 +145,8 @@ class CronService:
 
     _MAX_RUN_HISTORY = 20
     _UNBOUND_AGENT_JOB_REASON = (
-        "agent cron payload is missing bound session delivery context; "
-        "recreate it from a chat session"
+        "agent cron payload is missing Agent identity or delivery address; "
+        "recreate it for the Agent"
     )
 
     def __init__(
@@ -227,7 +178,7 @@ class CronService:
         return job.payload.kind == "agent_turn" and not is_bound_cron_job(job)
 
     def _enforce_agent_binding(self, job: CronJob) -> bool:
-        """Disable user cron jobs that cannot be routed to a concrete session."""
+        """Disable user cron jobs that cannot be bound to an Agent and output destination."""
         if not self._is_unbound_agent_job(job):
             return False
         if (
@@ -310,10 +261,6 @@ class CronService:
         def _update(params: dict[str, Any]) -> None:
             j = CronJob.from_dict(params)
             _normalize_agent_turn_job(j)
-            current = jobs_map.get(j.id)
-            if current and j.payload.binding_version < current.payload.binding_version:
-                logger.warning("Cron: ignored stale update for moved job {}", j.id)
-                return
             jobs_map[j.id] = j
 
         def _del(params: dict[str, Any]) -> None:
@@ -431,15 +378,10 @@ class CronService:
                     "payload": {
                         "kind": j.payload.kind,
                         "message": j.payload.message,
-                        "deliver": j.payload.deliver,
-                        "channel": j.payload.channel,
-                        "to": j.payload.to,
-                        "channelMeta": j.payload.channel_meta,
-                        "sessionKey": j.payload.session_key,
+                        "agentId": j.payload.agent_id,
                         "originChannel": j.payload.origin_channel,
                         "originChatId": j.payload.origin_chat_id,
                         "originMetadata": j.payload.origin_metadata,
-                        "bindingVersion": j.payload.binding_version,
                     },
                     "state": {
                         "nextRunAtMs": j.state.next_run_at_ms,
@@ -453,7 +395,7 @@ class CronService:
                                 "durationMs": r.duration_ms,
                                 "error": r.error,
                                 "runId": r.run_id,
-                                "sessionKey": r.session_key,
+                                "agentId": r.agent_id,
                             }
                             for r in j.state.run_history
                         ],
@@ -654,7 +596,7 @@ class CronService:
             duration_ms=end_ms - start_ms,
             error=job.state.last_error,
             run_id=result.run_id if isinstance(result, CronRunResult) else None,
-            session_key=job.payload.session_key,
+            agent_id=job.payload.agent_id,
         ))
         job.state.run_history = job.state.run_history[-self._MAX_RUN_HISTORY:]
 
@@ -687,50 +629,6 @@ class CronService:
 
     # ========== Public API ==========
 
-    def change_binding(
-        self, job_id: str, *, revision: str, binding: CronBinding, message: str,
-    ) -> CronJob:
-        """Commit a reviewed move before it becomes visible to the scheduler.
-
-        This is a live-owner operation. Reject while the scheduler owns any
-        execution snapshot, including a turn waiting in a session inbox.
-        No await separates validation, persistence, and publication.
-        """
-        if not self._running or self._active_executions or self._store_dirty:
-            raise CronBindingError("busy", "automation scheduler is busy; try again when tasks finish")
-        with self._lock:
-            store = self._require_store()
-            job = next((j for j in store.jobs if j.id == job_id), None)
-            if job is None or not is_bound_cron_job(job):
-                raise CronBindingError("unavailable", "automation has no movable chat")
-            if binding_revision(job) != revision:
-                raise CronBindingError("conflict", "automation changed; reopen it before changing the chat")
-            if not message.strip():
-                raise CronBindingError("empty", "automation message must not be empty")
-            candidate = deepcopy(store)
-            moved = next(j for j in candidate.jobs if j.id == job_id)
-            for run in moved.state.run_history:
-                if run.session_key is None:
-                    run.session_key = job.payload.session_key
-            moved.payload.session_key = binding.session_key
-            moved.payload.origin_channel = binding.channel
-            moved.payload.origin_chat_id = binding.chat_id
-            moved.payload.origin_metadata = _persistable_origin_metadata(binding.metadata)
-            moved.payload.binding_version += 1
-            moved.payload.message = message
-            moved.updated_at_ms = max(_now_ms(), job.updated_at_ms + 1)
-            try:
-                self._write_store(candidate)
-            except OSError:
-                # Directory fsync can fail after replace. Reconcile that exact
-                # commit instead of claiming that the old binding survived.
-                loaded = self._load_jobs()
-                if loaded is None or loaded[0] != candidate.jobs:
-                    raise
-                logger.warning("Cron: binding saved, but directory sync failed for {}", job_id)
-            self._store = candidate
-            self._arm_timer()
-            return moved
 
     def list_jobs(self, include_disabled: bool = False) -> list[CronJob]:
         """List all jobs."""
@@ -738,31 +636,14 @@ class CronService:
         jobs = store.jobs if include_disabled else [j for j in store.jobs if j.enabled]
         return sorted(jobs, key=lambda j: j.state.next_run_at_ms or float('inf'))
 
-    def list_bound_cron_jobs_for_session(
-        self,
-        session_key: str,
-        *,
-        include_disabled: bool = True,
-    ) -> list[CronJob]:
-        """Return user-created bound cron jobs owned by *session_key*."""
-        return [
-            job
-            for job in self.list_jobs(include_disabled=include_disabled)
-            if is_bound_cron_job(job)
-            and job.payload.session_key == session_key
-        ]
 
     def add_job(
         self,
         name: str,
         schedule: CronSchedule,
         message: str,
-        deliver: bool = False,
-        channel: str | None = None,
-        to: str | None = None,
         delete_after_run: bool = False,
-        channel_meta: dict[str, Any] | None = None,
-        session_key: str | None = None,
+        agent_id: str | None = None,
         origin_channel: str | None = None,
         origin_chat_id: str | None = None,
         origin_metadata: dict[str, Any] | None = None,
@@ -779,11 +660,7 @@ class CronService:
             payload=CronPayload(
                 kind="agent_turn",
                 message=message,
-                deliver=deliver,
-                channel=channel,
-                to=to,
-                channel_meta=channel_meta or {},
-                session_key=session_key,
+                agent_id=agent_id,
                 origin_channel=origin_channel,
                 origin_chat_id=origin_chat_id,
                 origin_metadata=origin_metadata or {},
@@ -890,9 +767,6 @@ class CronService:
         name: str | None = None,
         schedule: CronSchedule | None = None,
         message: str | None = None,
-        deliver: bool | None = None,
-        channel: str | None | EllipsisType = ...,
-        to: str | None | EllipsisType = ...,
         delete_after_run: bool | None = None,
     ) -> CronJob | Literal["not_found", "protected"]:
         """Update mutable fields of an existing job. System jobs cannot be updated.
@@ -917,12 +791,6 @@ class CronService:
             job.name = name
         if message is not None:
             job.payload.message = message
-        if deliver is not None:
-            job.payload.deliver = deliver
-        if channel is not ...:
-            job.payload.channel = channel
-        if to is not ...:
-            job.payload.to = to
         if delete_after_run is not None:
             job.delete_after_run = delete_after_run
         _normalize_agent_turn_job(job)

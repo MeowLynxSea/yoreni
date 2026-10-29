@@ -1,7 +1,7 @@
 export interface RuntimeConfigField {
   group: string;
   path: string;
-  kind: "toggle" | "text" | "nullable" | "number" | "duration" | "boolean" | "select" | "list" | "preset" | "idle-compaction";
+  kind: "toggle" | "text" | "nullable" | "number" | "duration" | "boolean" | "select" | "list" | "preset";
   options?: string[];
   when?: { path: string; value: string | boolean | string[] };
   manual?: boolean;
@@ -16,7 +16,6 @@ export const RUNTIME_CONFIG_GROUPS: { id: string; page: RuntimeConfigPage; enabl
   { id: "memory", page: "memory" },
   { id: "chat", page: "advanced" },
   { id: "execution", page: "advanced" },
-  { id: "sessions", page: "runtime" },
   { id: "tools", page: "runtime" },
   { id: "web", page: "browser" },
   { id: "shell", page: "advanced", enabledBy: "tools.exec.enable" },
@@ -38,9 +37,6 @@ export const RUNTIME_CONFIG_FIELDS: RuntimeConfigField[] = [
   { group: "execution", path: "agents.defaults.max_concurrent_subagents", kind: "number", min: 1 },
   { group: "execution", path: "agents.defaults.max_tool_result_chars", kind: "number", min: 1 },
   { group: "execution", path: "agents.defaults.tool_hint_max_length", kind: "number", min: 20, max: 500 },
-  { group: "execution", path: "tools.max_session_messages_per_minute", kind: "number", min: 1 },
-  { group: "sessions", path: "agents.defaults.unified_session", kind: "boolean" },
-  { group: "sessions", path: "agents.defaults.session_ttl_minutes", kind: "idle-compaction", manual: true },
   { group: "tools", path: "tools.exec.enable", kind: "boolean" },
   { group: "tools", path: "tools.file.enable", kind: "boolean" },
   { group: "web", path: "tools.web.enable", kind: "boolean" },

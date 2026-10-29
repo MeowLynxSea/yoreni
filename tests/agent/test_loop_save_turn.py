@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from loguru import logger
 
-from agent.session_helpers import run_session, save_completed_subagent, visible_message
+from agent.run_helpers import run_event, save_completed_subagent, visible_message
 from yoreni.agent.context import ContextBuilder, TranscriptInput
 from yoreni.agent.loop import AgentLoop
 from yoreni.agent.runner import AgentRunResult
@@ -33,7 +33,7 @@ from yoreni.runtime_context import (
     public_history_message,
 )
 from yoreni.session.automation_turns import AUTOMATION_HISTORY_META
-from yoreni.session.goal_state import GOAL_STATE_KEY
+from yoreni.agent.goal_state import GOAL_STATE_KEY
 from yoreni.session.keys import (
     LAST_CHANNEL_METADATA_KEY,
     UNIFIED_SESSION_KEY,
@@ -47,7 +47,7 @@ from yoreni.session.recovery import (
     RUNTIME_CHECKPOINT_KEY,
     restore_runtime_checkpoint,
 )
-from yoreni.session.summary import (
+from yoreni.agent.summary import (
     SUMMARY_CONTINUATION_TEXT,
     SessionSummaryCheckpoint,
 )
@@ -1482,7 +1482,7 @@ async def test_internal_continuation_preserves_streaming_route_metadata(
 
     loop._run_agent_loop = fake_run_agent_loop  # type: ignore[method-assign]
 
-    await run_session(loop, InboundMessage(
+    await run_event(loop, InboundMessage(
         channel="feishu",
         sender_id="u1",
         chat_id="c-stream",
@@ -1545,7 +1545,7 @@ async def test_websocket_internal_continuation_keeps_single_visible_run(
 
     loop._run_agent_loop = fake_run_agent_loop  # type: ignore[method-assign]
 
-    await run_session(loop, InboundMessage(
+    await run_event(loop, InboundMessage(
         channel="websocket",
         sender_id="u1",
         chat_id="c-auto",

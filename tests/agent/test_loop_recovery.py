@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent.session_helpers import save_completed_subagent
+from agent.run_helpers import save_completed_subagent
 from yoreni.agent.loop import AgentLoop
 from yoreni.agent.turn_delivery import TurnDeliveryFactory
 from yoreni.bus.events import InboundMessage, OutboundMessage

@@ -25,13 +25,13 @@ class AgentProgressHook(AgentHook):
         events: EventSink = NO_EVENTS,
         *,
         streaming: bool = False,
-        session_key: str | None = None,
+        run_id: str | None = None,
         log_content: bool = True,
     ) -> None:
         super().__init__(reraise=True)
         self._publish = events.publish
         self._streaming = streaming
-        self._session_key = session_key
+        self._run_id = run_id
         self._log_content = log_content
         self._stream_buf = ""
         self._think_extractor = IncrementalThinkExtractor()
@@ -73,9 +73,9 @@ class AgentProgressHook(AgentHook):
 
     async def before_iteration(self, context: AgentHookContext) -> None:
         logger.debug(
-            "Starting agent loop iteration {} for session {}",
+            "Starting agent loop iteration {} for run {}",
             context.iteration,
-            self._session_key,
+            self._run_id,
         )
 
     async def on_provider_tool_event(

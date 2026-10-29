@@ -67,6 +67,3 @@ def get_cli_history_path() -> Path:
     return get_home_path() / "history" / "cli_history"
 
 
-def get_legacy_sessions_dir() -> Path:
-    """Return the selected home's legacy session directory for migration fallback."""
-    return get_home_path() / "sessions"

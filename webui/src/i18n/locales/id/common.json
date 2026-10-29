@@ -174,14 +174,6 @@
           "label": "Panjang ringkasan",
           "help": "Batas karakter ringkasan aktivitas alat.\n\nPanjang maksimum petunjuk singkat aktivitas alat."
         },
-        "tools_max_session_messages_per_minute": {
-          "label": "Frekuensi pesan",
-          "help": "Batas pesan alat ke satu sesi per menit.\n\nMembatasi frekuensi alat mengirim pesan ke percakapan."
-        },
-        "agents_defaults_unified_session": {
-          "label": "Sesi bersama",
-          "help": "Bagikan riwayat chat satu pengguna di berbagai platform.\n\nMenggunakan satu percakapan untuk satu pengguna di beberapa platform chat."
-        },
         "tools_exec_enable": {
           "label": "Alat shell",
           "help": "Izinkan agen menjalankan perintah Shell.\n\nMengizinkan agen menjalankan perintah shell."
@@ -324,10 +316,6 @@
           "title": "Batas eksekusi",
           "help": "Atur batas alat dan percobaan ulang permintaan."
         },
-        "sessions": {
-          "title": "Percakapan",
-          "help": "Atur chat bersama di berbagai platform."
-        },
         "tools": {
           "title": "Alat bawaan",
           "help": "Pilih alat yang boleh digunakan agen."
@@ -386,13 +374,6 @@
       "search": "Cari pengaturan lanjutan",
       "noResults": "Tidak ada pengaturan yang cocok.",
       "pending": "Perubahan belum disimpan",
-      "idleCompaction": {
-        "label": "Padatkan sesi tidak aktif secara otomatis",
-        "help": "Padatkan konteks secara otomatis saat batas waktu tidak aktif tercapai untuk mengurangi penggunaan token pada permintaan berikutnya.",
-        "wait": "Batas waktu tidak aktif",
-        "minutes": "menit",
-        "numberError": "Masukkan jumlah menit berupa bilangan bulat nol atau lebih."
-      },
       "numberError": "Masukkan angka yang valid dalam rentang yang diizinkan.",
       "activeModel": "Gunakan model aktif",
       "none": "Tidak ada",
@@ -1494,7 +1475,6 @@
     "fallbackTitle": "Topik {{id}}",
     "forkTitle": "Cabang: {{title}}",
     "loading": "Memuat…",
-    "noSessions": "Belum ada sesi.",
     "showMore": "Tampilkan {{count}} lagi",
     "collapsed": "{{count}} topik diciutkan",
     "showLess": "Tampilkan lebih sedikit",
@@ -1697,34 +1677,7 @@
       "toggleSidebar": "Tampilkan atau sembunyikan sidebar",
       "newChat": "Mulai topik baru",
       "toggleTheme": "Alihkan tema dari header",
-      "settings": "Buka pengaturan",
-      "sessionInfo": "Detail sesi"
-    },
-    "sessionInfo": {
-      "title": "Sesi",
-      "untitled": "Topik tanpa judul",
-      "automations": "Otomasi",
-      "count": "{{count}}",
-      "loading": "Memuat otomasi...",
-      "loadFailed": "Tidak dapat memuat otomasi.",
-      "empty": "Belum ada otomasi dalam sesi ini.",
-      "openCalendar": "Lihat semua di kalender",
-      "disabled": "Mati",
-      "schedule": {
-        "at": "Pada {{time}}",
-        "every": "Setiap {{duration}}",
-        "cron": "Cron {{expr}}",
-        "cronWithTz": "Cron {{expr}} ({{tz}})",
-        "local": "Pemicu lokal",
-        "unknown": "Jadwal khusus"
-      },
-      "next": {
-        "label": "Berikutnya {{time}}",
-        "pending": "Segera berjalan",
-        "disabled": "Dijeda",
-        "local": "Menunggu pemicu",
-        "none": "Tidak ada jadwal berikutnya"
-      }
+      "settings": "Buka pengaturan"
     },
     "composer": {
       "placeholderThread": "Ketik pesan Anda…",
@@ -1912,15 +1865,12 @@
         "label": "Aplikasi",
         "cliGroup": "Aplikasi CLI",
         "mcpGroup": "Layanan MCP",
-        "sessionGroup": "Percakapan Yoreni",
         "cliBadge": "CLI",
         "mcpBadge": "MCP",
         "cliDescription": "Panggil CLI dengan @{{name}}.",
         "mcpDescription": "Panggil MCP dengan @{{name}}.",
         "cliTitle": "Aplikasi CLI: {{name}}",
-        "mcpTitle": "Server MCP: {{name}}",
-        "sessionBadge": "Percakapan Yoreni",
-        "sessionDescription": "Referensikan @{{name}} sebagai chat sebelumnya"
+        "mcpTitle": "Server MCP: {{name}}"
       },
       "workspace": {
         "accessAria": "Mode akses ruang kerja",

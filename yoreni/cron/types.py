@@ -52,35 +52,22 @@ class CronPayload:
     """What to do when the job runs."""
     kind: Literal["system_event", "agent_turn"] = "agent_turn"
     message: str = ""
-    # Legacy delivery fields used by pre-session-bound cron jobs.
-    deliver: bool = False
-    channel: str | None = None  # e.g. "whatsapp"
-    to: str | None = None  # e.g. phone number
-    channel_meta: dict[str, Any] = field(default_factory=dict)
-    session_key: str | None = None  # original session key for correct session recording
+    agent_id: str | None = None
     origin_channel: str | None = None
     origin_chat_id: str | None = None
     origin_metadata: dict[str, Any] = field(default_factory=dict)
-    binding_version: int = 0
 
     @classmethod
     def from_store_dict(cls, data: dict[str, Any]) -> CronPayload:
         return cls(
             kind=data.get("kind", "agent_turn"),
             message=data.get("message", ""),
-            deliver=data.get("deliver", False),
-            channel=data.get("channel"),
-            to=data.get("to"),
-            channel_meta=dict(
-                get_camel_snake(data, "channelMeta", "channel_meta", {}) or {}
-            ),
-            session_key=get_camel_snake(data, "sessionKey", "session_key"),
+            agent_id=get_camel_snake(data, "agentId", "agent_id"),
             origin_channel=get_camel_snake(data, "originChannel", "origin_channel"),
             origin_chat_id=get_camel_snake(data, "originChatId", "origin_chat_id"),
             origin_metadata=dict(
                 get_camel_snake(data, "originMetadata", "origin_metadata", {}) or {}
             ),
-            binding_version=_store_int(get_camel_snake(data, "bindingVersion", "binding_version", 0)),
         )
 
 
@@ -100,7 +87,7 @@ class CronRunRecord:
     duration_ms: int = 0
     error: str | None = None
     run_id: str | None = None
-    session_key: str | None = None
+    agent_id: str | None = None
 
     @classmethod
     def from_store_dict(cls, data: dict[str, Any]) -> CronRunRecord:
@@ -111,7 +98,7 @@ class CronRunRecord:
             duration_ms=_store_int(get_camel_snake(data, "durationMs", "duration_ms", 0)),
             error=data.get("error"),
             run_id=run_id if isinstance(run_id, str) else None,
-            session_key=get_camel_snake(data, "sessionKey", "session_key"),
+            agent_id=get_camel_snake(data, "agentId", "agent_id"),
         )
 
 

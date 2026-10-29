@@ -75,7 +75,7 @@ class DreamConfig(Base):
     model_override: str | None = Field(
         default=None,
         validation_alias=AliasChoices("modelOverride", "model", "model_override"),
-    )  # Model preset name for Dream sessions
+    )  # Model preset name for Dream runs
 
     def build_schedule(self, timezone: str) -> CronSchedule:
         """Build the runtime schedule, preferring the legacy cron override if present."""
@@ -194,18 +194,7 @@ class AgentDefaults(Base):
     timezone_mode: Literal["auto", "manual"] = "auto"
     bot_name: str = "yoreni"  # Display name shown in CLI prompts (e.g. "{name} is thinking...")
     bot_icon: str = "◆"  # Short icon (emoji or text) shown next to the bot name in CLI; "" to omit
-    unified_session: bool = False  # Share one session across all channels (single-user multi-device)
     disabled_skills: list[str] = Field(default_factory=list)  # Skill names to exclude from loading (e.g. ["summarize", "skill-creator"])
-    session_ttl_minutes: int = Field(
-        default=15,
-        ge=0,
-        validation_alias=AliasChoices("idleCompactAfterMinutes", "sessionTtlMinutes"),
-        serialization_alias="idleCompactAfterMinutes",
-    )  # Auto-compact idle threshold in minutes (0 = disabled)
-    idle_compact_check_interval_seconds: int = Field(
-        default=60,
-        ge=0,
-    )  # Minimum interval in seconds between scans for idle sessions
     dream: DreamConfig = Field(default_factory=DreamConfig)
 
     @model_validator(mode="before")
@@ -438,7 +427,6 @@ class ToolsConfig(Base):
     image_generation: ImageGenerationToolConfig = Field(
         default_factory=ImageGenerationToolConfig,
     )
-    max_session_messages_per_minute: int = Field(default=6, ge=1)
     restrict_to_workspace: bool = False  # policy intent: keep tool access inside workspace when possible
     webui_allow_local_service_access: bool = Field(
         default=True,

@@ -19,8 +19,6 @@ from yoreni.webui.settings_contracts import WebUISettingsError
 RUNTIME_CONFIG_PATHS = (
     "agents.defaults.timezone",
     "agents.defaults.timezone_mode",
-    "agents.defaults.unified_session",
-    "agents.defaults.session_ttl_minutes",
     "agents.defaults.max_tool_iterations",
     "agents.defaults.max_concurrent_subagents",
     "agents.defaults.max_tool_result_chars",
@@ -49,7 +47,6 @@ RUNTIME_CONFIG_PATHS = (
     "tools.cli_apps.catalog_ttl_seconds",
     "tools.restrict_to_workspace",
     "tools.ssrf_whitelist",
-    "tools.max_session_messages_per_minute",
     "tools.webui_allow_remote_package_install",
     "tools.web.enable",
     "network.proxy",

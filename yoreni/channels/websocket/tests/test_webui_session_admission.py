@@ -12,6 +12,8 @@ from typing import Any
 import pytest
 
 from yoreni.agent.loop import AgentLoop
+from yoreni.agent.state import PERSONAL_TRANSCRIPT_KEY
+from yoreni.agent.tools.context import current_request_context
 from yoreni.bus.events import InboundMessage
 from yoreni.bus.queue import MessageBus
 from yoreni.channels.manager import ChannelManager
@@ -122,6 +124,27 @@ async def test_webui_admission_executes_with_the_routed_session(runtime: _Runtim
         display = await runtime.sessions.state.read_metadata(f"websocket:{chat_id}")
         assert display is not None and display["metadata"]["webui"] is True
     assert runtime.provider.calls == 2
+
+
+async def test_personal_entry_uses_independent_runs_with_the_existing_delivery(runtime: _Runtime) -> None:
+    requests = []
+    original = runtime.provider.chat
+
+    async def chat(messages, **kwargs):
+        requests.append(current_request_context())
+        return await original(messages, **kwargs)
+
+    runtime.provider.chat = chat
+    await runtime.execute(await runtime.message("yoreni", "hello"))
+    await runtime.execute(await runtime.message("yoreni", "again"))
+    assert len(requests) == 2
+    assert all(request.session_key is None for request in requests)
+    assert requests[0].attributes["agent_id"] == requests[1].attributes["agent_id"]
+    assert requests[0].attributes["run_id"] != requests[1].attributes["run_id"]
+    assert not runtime.loop.agent.store.pending()
+    history = await runtime.sessions.state.read(PERSONAL_TRANSCRIPT_KEY)
+    assert [row["content"] for row in history.messages if row["role"] == "user"] == ["hello", "again"]
+    assert runtime.loop._effective_session_key(await runtime.message("yoreni")) == PERSONAL_TRANSCRIPT_KEY
 
 
 @pytest.mark.parametrize("operation", ["reset", "delete"])

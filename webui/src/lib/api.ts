@@ -1,61 +1,6 @@
-import { isCompactionPhase, isCompactionReason } from "../../../packages/client-events/notifications";
-import type {
-  ApiServicePayload,
-  AutomationChatsPayload,
-  AutomationChatUpdate,
-  AutomationsPayload,
-  AutomaticModelAPIPayload,
-  AutomationUpdatePayload,
-  ChannelConfigurePayload,
-  ChannelConnectPayload,
-  ChannelValidationPayload,
-  ChatSummary,
-  CliAppsPayload,
-  FilePreviewPayload,
-  FileReferenceMetadata,
-  ImageGenerationSettingsUpdate,
-  McpPresetsPayload,
-  McpOAuthFlowPayload,
-  MarketplaceProvider,
-  YoreniFeaturesPayload,
-  ModelConfigurationCreate,
-  ModelConfigurationUpdate,
-  NetworkSafetySettingsUpdate,
-  PairingPayload,
-  PromptIndex,
-  ProviderCreationUpdate,
-  ProviderModelsPayload,
-  ProviderOAuthCompletionResult,
-  ProviderOAuthLoginResult,
-  ProviderSettingsUpdate,
-  RecoveryState,
-  SessionDeleteResult,
-  SessionHandle,
-  SessionAutomationsPayload,
-  SettingsPayload,
-  SidebarStatePayload,
-  SkillDetail,
-  SkillActionPayload,
-  SkillInstallPayload,
-  SkillsPayload,
-  SkillsSearchPayload,
-  SkillsTrendsPayload,
-  SkillsTrendingPayload,
-  SlashCommand,
-  SlashCommandLifecycle,
-  SubagentTaskSnapshot,
-  SubagentTasksPayload,
-  TranscriptionSettingsUpdate,
-  ThreadProjectionEvent,
-  WebSearchSettingsUpdate,
-  WorkspacesPayload,
-  WorkspaceDirectoriesPayload,
-  WebuiThreadPersistedPayload,
-  WebuiThreadTraceDetailPayload,
-  WorkspaceScopePayload,
-} from "./types";
+
+import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, FilePreviewPayload, FileReferenceMetadata, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, SlashCommand, SlashCommandLifecycle, TranscriptionSettingsUpdate, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
-import { isSubagentTask } from "./subagent-tasks";
 
 const API_READ_TIMEOUT_MS = 20_000;
 const API_MUTATION_TIMEOUT_MS = 20_000;
@@ -173,341 +118,15 @@ function compactMcpValues(values: Record<string, unknown>): Record<string, unkno
   return payload;
 }
 
-function splitKey(key: string): { channel: string; chatId: string } {
-  const idx = key.indexOf(":");
-  if (idx === -1) return { channel: "", chatId: key };
-  return { channel: key.slice(0, idx), chatId: key.slice(idx + 1) };
-}
-
-function normalizeSessionHandle(value: unknown): SessionHandle | null {
-  if (!value || typeof value !== "object") return null;
-  const handle = value as Partial<SessionHandle>;
-  const id = typeof handle.id === "string" ? handle.id.trim() : "";
-  const name = typeof handle.name === "string" ? handle.name.trim() : "";
-  if (
-    !/^handle_[a-f0-9]{32}$/i.test(id)
-    || !name
-    || !/^[\p{L}\p{N}_-]+$/u.test(name)
-  ) return null;
-  return { id, name };
-}
-
-export async function listSessions(
-  token: string,
-  base: string = "",
-): Promise<ChatSummary[]> {
-  type Row = {
-    key: string;
-    created_at: string | null;
-    updated_at: string | null;
-    title?: string;
-    preview?: string;
-    model_preset?: string | null;
-    run_started_at?: number | null;
-    recovery_state?: RecoveryState | null;
-    workspace_scope?: WorkspaceScopePayload | null;
-    project_locked?: boolean;
-    handle?: SessionHandle | null;
-  };
-  const body = await request<{ sessions: Row[] }>(
-    `${base}/api/sessions`,
-    token,
-    undefined,
-    API_READ_TIMEOUT_MS,
-  );
-  return body.sessions.map((s) => {
-    const handle = normalizeSessionHandle(s.handle);
-    return {
-      key: s.key,
-      ...splitKey(s.key),
-      createdAt: s.created_at,
-      updatedAt: s.updated_at,
-      title: s.title ?? "",
-      preview: s.preview ?? "",
-      modelPreset: s.model_preset ?? null,
-      runStartedAt: s.run_started_at ?? null,
-      recoveryState: s.recovery_state ?? null,
-      workspaceScope: s.workspace_scope ?? null,
-      projectLocked: s.project_locked ?? true,
-      handle,
-    };
-  });
-}
-
-/** Disk-backed WebUI display thread snapshot (separate from agent session). */
-export interface FetchWebuiThreadOptions {
-  limit?: number;
-  direction?: "latest";
-  before?: string | null;
-  after?: string | null;
-  signal?: AbortSignal;
-  revision?: string;
-  cached?: WebuiThreadPersistedPayload;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isRecordArray(value: unknown): value is Array<Record<string, unknown>> {
-  return Array.isArray(value) && value.every(isRecord);
-}
-
-function isProjectionMedia(value: unknown): boolean {
-  return isRecord(value)
-    && typeof value.url === "string"
-    && (value.name === undefined || typeof value.name === "string")
-    && (value.kind === undefined || ["image", "video", "file"].includes(String(value.kind)));
-}
-
-function hasStringField(value: Record<string, unknown>, field: string): boolean {
-  return typeof value[field] === "string";
-}
-
-function isProjectionFileEdit(value: unknown): boolean {
-  return isRecord(value)
-    && hasStringField(value, "call_id")
-    && hasStringField(value, "tool")
-    && hasStringField(value, "path")
-    && typeof value.added === "number"
-    && typeof value.deleted === "number"
-    && ["editing", "done", "error"].includes(String(value.status));
-}
-
-function hasValidProjectionMetadata(value: Record<string, unknown>): boolean {
-  return (
-    (value.projection_id === undefined || typeof value.projection_id === "string")
-    && (value.created_at_ms === undefined || typeof value.created_at_ms === "number")
-    && (value.turn_id === undefined || typeof value.turn_id === "string")
-    && (value.turn_phase === undefined || [
-      "user", "reasoning", "activity", "answer", "complete",
-    ].includes(String(value.turn_phase)))
-    && (value.turn_seq === undefined || typeof value.turn_seq === "number")
-    && (
-      value.response_sources === undefined
-      || (isRecordArray(value.response_sources) && value.response_sources.every((source) => (
-        typeof source.provider === "string" && source.provider.length > 0
-        && typeof source.model === "string" && source.model.length > 0
-        && typeof source.preset === "string" && source.preset.length > 0
-        && (source.fallback === undefined || typeof source.fallback === "boolean")
-      )))
-    )
-    && (
-      value.source === undefined
-      || (
-        isRecord(value.source)
-        && typeof value.source.kind === "string"
-        && (value.source.label === undefined || typeof value.source.label === "string")
-      )
-    )
-  );
-}
-
-function isProjectionTraceDetail(value: unknown): boolean {
-  return isRecord(value)
-    && typeof value.ref === "string"
-    && /^\d{1,12}\.history-[0-9a-f]{20}$/.test(value.ref)
-    && typeof value.bytes === "number"
-    && Number.isFinite(value.bytes)
-    && value.bytes >= 0
-    && typeof value.traceCount === "number"
-    && Number.isInteger(value.traceCount)
-    && value.traceCount >= 0;
-}
-
-function parseThreadProjectionEvent(value: unknown): ThreadProjectionEvent {
-  if (!isRecord(value) || typeof value.event !== "string" || typeof value.chat_id !== "string") {
-    throw new Error("Invalid WebUI thread event");
-  }
-  if (!hasValidProjectionMetadata(value)
-    || (value.stream_id !== undefined && typeof value.stream_id !== "string")
-    || (value.projection_receipts !== undefined && (
-      !Array.isArray(value.projection_receipts)
-      || !value.projection_receipts.every((receipt: unknown) => isRecord(receipt)
-        && typeof receipt.turn_id === "string" && receipt.turn_id.length > 0
-        && Array.isArray(receipt.ranges)
-        && receipt.ranges.every((range: unknown) => Array.isArray(range)
-          && range.length === 2 && Number.isSafeInteger(range[0]) && range[0] >= 0
-          && Number.isSafeInteger(range[1]) && range[1] >= range[0]))
-    ))) {
-    throw new Error("Invalid WebUI thread event metadata");
-  }
-  switch (value.event) {
-    case "user_message":
-      if (typeof value.text !== "string" || typeof value.starts_turn !== "boolean") break;
-      if (value.media_urls !== undefined && (
-        !Array.isArray(value.media_urls) || !value.media_urls.every(isProjectionMedia)
-      )) break;
-      if (value.cli_apps !== undefined && (
-        !isRecordArray(value.cli_apps) || !value.cli_apps.every((item) => hasStringField(item, "name"))
-      )) break;
-      if (value.mcp_presets !== undefined && (
-        !isRecordArray(value.mcp_presets)
-        || !value.mcp_presets.every((item) => hasStringField(item, "name"))
-      )) break;
-      if (value.session_mentions !== undefined && (
-        !isRecordArray(value.session_mentions)
-        || !value.session_mentions.every((item) => (
-          hasStringField(item, "name")
-          && hasStringField(item, "session_key")
-          && hasStringField(item, "title")
-        ))
-      )) break;
-      if (value.provenance !== undefined && (
-        !isRecord(value.provenance)
-        || !isRecord(value.provenance.session_message)
-        || !hasStringField(value.provenance.session_message, "message_id")
-        || !isRecord(value.provenance.session_message.session)
-      )) break;
-      return value as unknown as ThreadProjectionEvent;
-    case "message":
-      if (typeof value.text !== "string") break;
-      if (value.tool_events !== undefined && !isRecordArray(value.tool_events)) break;
-      if (value.trace_detail !== undefined && (
-        !["tool_hint", "progress"].includes(String(value.kind))
-        || !isProjectionTraceDetail(value.trace_detail)
-      )) break;
-      if (value.media_urls !== undefined && (
-        !Array.isArray(value.media_urls) || !value.media_urls.every(isProjectionMedia)
-      )) break;
-      return value as unknown as ThreadProjectionEvent;
-    case "file_edit":
-      if (!Array.isArray(value.edits) || !value.edits.every(isProjectionFileEdit)) break;
-      return value as unknown as ThreadProjectionEvent;
-    case "delta":
-    case "reasoning_delta":
-      if (typeof value.text !== "string") break;
-      return value as unknown as ThreadProjectionEvent;
-    case "stream_end":
-    case "reasoning_end":
-      if (value.text !== undefined && typeof value.text !== "string") break;
-      return value as unknown as ThreadProjectionEvent;
-    case "context_compaction":
-      if (typeof value.compaction_id !== "string" || !value.compaction_id
-        || !isCompactionPhase(value.phase)
-        || (value.reason !== undefined && !isCompactionReason(value.reason))) break;
-      return value as unknown as ThreadProjectionEvent;
-    case "turn_end":
-      return value as unknown as ThreadProjectionEvent;
-  }
-  throw new Error(`Invalid WebUI thread projection event: ${value.event}`);
-}
-
-export function parseWebuiThreadPayload(value: unknown): WebuiThreadPersistedPayload {
-  if (!isRecord(value) || typeof value.schemaVersion !== "number") {
-    throw new Error("Invalid WebUI thread response");
-  }
-  if (value.projection !== "events" || !Array.isArray(value.events)) {
-    throw new Error("Invalid WebUI thread events");
-  }
-  const events = value.events.map(parseThreadProjectionEvent);
-  return {
-    ...value,
-    projection: "events",
-    events,
-  } as unknown as WebuiThreadPersistedPayload;
-}
-
-function parseWebuiThreadTraceDetailPayload(value: unknown): WebuiThreadTraceDetailPayload {
-  if (
-    !isRecord(value)
-    || typeof value.message_id !== "string"
-    || !/^history-[0-9a-f]{20}$/.test(value.message_id)
-    || !Array.isArray(value.events)
-  ) {
-    throw new Error("Invalid WebUI thread trace detail response");
-  }
-  return {
-    message_id: value.message_id,
-    events: value.events.map(parseThreadProjectionEvent),
-  };
-}
-
-export async function fetchWebuiThread(
-  token: string,
-  key: string,
-  optionsOrBase?: FetchWebuiThreadOptions | string,
-  base: string = "",
-): Promise<WebuiThreadPersistedPayload | null> {
-  const options = typeof optionsOrBase === "string" ? undefined : optionsOrBase;
-  const resolvedBase = typeof optionsOrBase === "string" ? optionsOrBase : base;
-  const params = new URLSearchParams();
-  if (options?.limit !== undefined) params.set("limit", String(options.limit));
-  if (options?.direction) params.set("direction", options.direction);
-  if (options?.before) params.set("before", options.before);
-  if (options?.after) params.set("after", options.after);
-  const query = params.toString();
-  const suffix = query ? `?${query}` : "";
-  const url = `${resolvedBase}/api/sessions/${encodeURIComponent(key)}/webui-thread${suffix}`;
-  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
-  if (options?.revision) headers["If-None-Match"] = `"${options.revision}"`;
-  const res = await fetchWithTimeout(url, {
-    headers,
-    credentials: "same-origin",
-    cache: "no-store",
-    signal: options?.signal,
-  });
-  if (res.status === 304 && options?.cached) return options.cached;
-  if (res.status === 404) return null;
-  if (!res.ok) throw new ApiError(res.status, `HTTP ${res.status}`);
-  return parseWebuiThreadPayload(await res.json());
-}
-
-export async function fetchPromptIndex(token: string, key: string, signal: AbortSignal, cached?: PromptIndex): Promise<PromptIndex> {
-  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
-  const query = cached?.revision ? `?since=${encodeURIComponent(cached.revision)}` : "";
-  if (cached?.revision) headers["If-None-Match"] = `"${cached.revision}"`;
-  const res = await fetchWithTimeout(`/api/sessions/${encodeURIComponent(key)}/webui-thread/prompts${query}`, {
-    headers, credentials: "same-origin", cache: "no-store", signal,
-  });
-  if (res.status === 304 && cached) return cached;
-  if (!res.ok) throw new ApiError(res.status, `HTTP ${res.status}`);
-  const body: unknown = await res.json();
-  if (!isRecord(body) || !Array.isArray(body.prompts)) throw new Error("Invalid prompt index");
-  const replaceFrom = body.replaceFrom ?? 0;
-  if (typeof replaceFrom !== "number" || !Number.isSafeInteger(replaceFrom)
-    || replaceFrom < 0 || replaceFrom > (cached?.prompts.length ?? 0)
-    || (body.revision != null && typeof body.revision !== "string")) throw new Error("Invalid prompt index revision");
-  const prompts = body.prompts.map((item: unknown) => {
-    if (!isRecord(item) || typeof item.id !== "string" || typeof item.preview !== "string"
-      || typeof item.answerPreview !== "string" || typeof item.cursor !== "string" || typeof item.turnId !== "string"
-      || typeof item.createdAt !== "number" || !Number.isFinite(item.createdAt)) {
-      throw new Error("Invalid prompt summary");
-    }
-    return { id: item.id, preview: item.preview, answerPreview: item.answerPreview,
-      cursor: item.cursor, createdAt: item.createdAt, turnId: item.turnId };
-  });
-  return { prompts: [...(cached?.prompts.slice(0, replaceFrom) ?? []), ...prompts],
-    revision: typeof body.revision === "string" ? body.revision : undefined };
-}
-
-export async function fetchWebuiThreadTraceDetail(
-  token: string,
-  key: string,
-  ref: string,
-  base: string = "",
-): Promise<WebuiThreadTraceDetailPayload> {
-  const query = new URLSearchParams({ ref });
-  const url = `${base}/api/sessions/${encodeURIComponent(key)}/webui-thread/trace-detail?${query}`;
-  const res = await fetchWithTimeout(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    credentials: "same-origin",
-    cache: "no-store",
-  });
-  if (!res.ok) throw new ApiError(res.status, `HTTP ${res.status}`);
-  return parseWebuiThreadTraceDetailPayload(await res.json());
-}
-
 export async function fetchFilePreview(
   token: string,
-  key: string,
   path: string,
   base: string = "",
 ): Promise<FilePreviewPayload> {
   const query = new URLSearchParams();
   query.set("path", path);
   return request<FilePreviewPayload>(
-    `${base}/api/sessions/${encodeURIComponent(key)}/file-preview?${query}`,
+    `${base}/api/agent/file-preview?${query}`,
     token,
     { cache: "no-store" },
     API_READ_TIMEOUT_MS,
@@ -516,12 +135,11 @@ export async function fetchFilePreview(
 
 export async function fetchFileReferenceMetadata(
   token: string,
-  key: string,
   path: string,
 ): Promise<FileReferenceMetadata> {
   const query = new URLSearchParams({ path, metadata: "1" });
   return request<FileReferenceMetadata>(
-    `/api/sessions/${encodeURIComponent(key)}/file-preview?${query}`,
+    `/api/agent/file-preview?${query}`,
     token,
     { cache: "no-store" },
     API_READ_TIMEOUT_MS,
@@ -530,7 +148,6 @@ export async function fetchFileReferenceMetadata(
 
 export async function fetchFilePreviewAvailability(
   token: string,
-  key: string,
   path: string,
   base: string = "",
 ): Promise<boolean> {
@@ -538,25 +155,12 @@ export async function fetchFilePreviewAvailability(
   query.set("path", path);
   query.set("probe", "1");
   const payload = await request<{ available?: boolean }>(
-    `${base}/api/sessions/${encodeURIComponent(key)}/file-preview?${query}`,
+    `${base}/api/agent/file-preview?${query}`,
     token,
     { cache: "no-store" },
     API_READ_TIMEOUT_MS,
   );
   return payload.available !== false;
-}
-
-export async function fetchSessionAutomations(
-  token: string,
-  key: string,
-  base: string = "",
-): Promise<SessionAutomationsPayload> {
-  return request<SessionAutomationsPayload>(
-    `${base}/api/sessions/${encodeURIComponent(key)}/automations`,
-    token,
-    undefined,
-    API_READ_TIMEOUT_MS,
-  );
 }
 
 export async function fetchAutomations(
@@ -569,14 +173,6 @@ export async function fetchAutomations(
     undefined,
     API_READ_TIMEOUT_MS,
   );
-}
-
-export async function fetchAutomationChats(token: string, id: string, signal?: AbortSignal): Promise<AutomationChatsPayload> {
-  return request(`/api/webui/automations/chats?id=${encodeURIComponent(id)}`, token, { signal }, API_READ_TIMEOUT_MS);
-}
-
-export async function changeAutomationChat(transport: WebUIMutationTransport, id: string, values: AutomationChatUpdate): Promise<AutomationsPayload> {
-  return mutation(transport, "automation.change_chat", { id, values });
 }
 
 export async function fetchAutomationRunResult(
@@ -606,37 +202,6 @@ export async function updateAutomation(
   values: AutomationUpdatePayload,
 ): Promise<AutomationsPayload> {
   return mutation<AutomationsPayload>(transport, "automation.update", { id, values });
-}
-
-export async function fetchSubagentTasks(token: string, sessionKey: string): Promise<SubagentTasksPayload> {
-  const payload = await request<unknown>(
-    `/api/sessions/${encodeURIComponent(sessionKey)}/subagents`, token, undefined, API_READ_TIMEOUT_MS,
-  );
-  if (!isRecord(payload) || !Array.isArray(payload.tasks) || !payload.tasks.every(isSubagentTask)
-    || new Set(payload.tasks.map((task) => task.task_id)).size !== payload.tasks.length) {
-    throw new Error("Invalid subagent tasks response");
-  }
-  return { tasks: payload.tasks };
-}
-
-export async function fetchSubagentThread(
-  token: string, sessionKey: string, taskId: string, signal?: AbortSignal,
-): Promise<WebuiThreadPersistedPayload> {
-  const payload = await request<unknown>(
-    `/api/sessions/${encodeURIComponent(sessionKey)}/subagents/${encodeURIComponent(taskId)}/webui-thread`,
-    token, { signal, cache: "no-store" }, API_READ_TIMEOUT_MS,
-  );
-  return parseWebuiThreadPayload(payload);
-}
-
-export async function cancelSubagentTask(
-  transport: WebUIMutationTransport, sessionKey: string, taskId: string,
-): Promise<SubagentTaskSnapshot> {
-  const result = await mutation<unknown>(transport, "subagent.cancel", {
-    session_key: sessionKey, task_id: taskId,
-  });
-  if (!isSubagentTask(result) || result.task_id !== taskId) throw new Error("Invalid subagent cancellation response");
-  return result;
 }
 
 export async function fetchSkills(
@@ -735,22 +300,6 @@ export async function installMarketplaceSkill(
     "skill.install",
     { provider, source, skill, ...(version ? { version } : {}) },
     PACKAGE_MUTATION_TIMEOUT_MS,
-  );
-}
-
-export async function deleteSession(
-  transport: WebUIMutationTransport,
-  key: string,
-  optionsOrBase?: { deleteAutomations?: boolean } | string,
-): Promise<SessionDeleteResult> {
-  const options = typeof optionsOrBase === "string" ? undefined : optionsOrBase;
-  return mutation<SessionDeleteResult>(
-    transport,
-    "session.delete",
-    {
-      key,
-      ...(options?.deleteAutomations ? { delete_automations: true } : {}),
-    },
   );
 }
 
@@ -1188,18 +737,6 @@ export async function listSlashCommands(
     });
 }
 
-export async function fetchSidebarState(
-  token: string,
-  base: string = "",
-): Promise<SidebarStatePayload> {
-  return request<SidebarStatePayload>(
-    `${base}/api/webui/sidebar-state`,
-    token,
-    undefined,
-    API_READ_TIMEOUT_MS,
-  );
-}
-
 function modelGenerationSettingsPayload(
   configuration: Pick<
     ModelConfigurationCreate,
@@ -1432,4 +969,27 @@ export function starPromptAction(
   action: "claim" | "dismiss",
 ): Promise<{ show: boolean }> {
   return mutation<{ show: boolean }>(transport, `star_prompt.${action}`);
+}
+
+export interface PersonalAgentInfo {
+  id: string;
+  revision: number;
+  pending_runs: { id: string; status: string; error: string | null }[];
+  history?: AgentHistoryRun[];
+}
+
+export interface AgentHistoryRun {
+  id: string;
+  status: string;
+  error: string | null;
+  event_seq: number;
+  event_id: string;
+  source: string;
+  kind: string;
+  content: string;
+  result: { content: string; stop_reason: string } | null;
+}
+
+export function fetchPersonalAgent(token: string): Promise<PersonalAgentInfo> {
+  return request<PersonalAgentInfo>("/api/agent", token, undefined, API_READ_TIMEOUT_MS);
 }

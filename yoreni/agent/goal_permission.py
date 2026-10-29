@@ -7,8 +7,6 @@ from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar
 
 from yoreni.bus.events import InboundMessage
-from yoreni.session.automation_turns import automation_history_overrides
-from yoreni.session.turn_continuation import internal_continuation_inbound
 
 _GOAL_MUTATION_ALLOWED: ContextVar[bool] = ContextVar(
     "yoreni_goal_mutation_allowed",
@@ -58,10 +56,7 @@ class GoalInputScope(ExitStack):
         if (
             not message.is_user_input
             or message.channel == "system"
-            or message.sender_id == "subagent"
-            or internal_continuation_inbound(message.metadata)
             or message.metadata.get("goal_requested") is not True
         ):
             return False
-        _, automation_metadata = automation_history_overrides(message.metadata)
-        return not automation_metadata
+        return True

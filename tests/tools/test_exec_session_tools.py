@@ -14,7 +14,13 @@ import pytest
 from loguru import logger
 
 from yoreni.agent.loop import AgentLoop
-from yoreni.agent.tools.context import RequestContext, bind_request_context, reset_request_context
+from yoreni.agent.tools.context import (
+    RequestContext,
+    bind_request_context,
+    current_execution_owner,
+    request_context,
+    reset_request_context,
+)
 from yoreni.agent.tools.exec_session import (
     MAX_OUTPUT_CHARS,
     ExecSessionManager,
@@ -63,6 +69,37 @@ def _session_id(output: str) -> str:
     match = re.search(r"session_id:\s*([0-9a-f]+)", output)
     assert match, output
     return match.group(1)
+
+
+async def test_agent_runs_share_process_access_but_cancel_only_their_own_processes(tmp_path):
+    manager = ExecSessionManager()
+    tool = ExecTool(working_dir=str(tmp_path), timeout=20, session_manager=manager)
+    observer = ExecSessionTool(manager=manager)
+    listing = ListExecSessionsTool(manager=manager)
+    try:
+        with request_context(RequestContext(
+            "api", "default", agent_id="a" * 32, turn_id="1" * 32,
+        )):
+            first = _session_id(await tool.execute(_waiting_shell_command("first"), yield_time_ms=10))
+            first_owner = current_execution_owner()
+        with request_context(RequestContext(
+            "websocket", "yoreni", agent_id="a" * 32, turn_id="2" * 32,
+        )):
+            second = _session_id(await tool.execute(_waiting_shell_command("second"), yield_time_ms=10))
+            owned = await listing.execute()
+            assert first in owned and second in owned
+        with request_context(RequestContext("telegram", "group", session_key="telegram:group")):
+            denied = await observer.execute(session_id=first, timeout_ms=1)
+            assert is_tool_error_result(denied)
+        assert first_owner is not None
+        assert await manager.terminate_by_owner(first_owner) == 1
+        with request_context(RequestContext(
+            "websocket", "yoreni", agent_id="a" * 32, turn_id="3" * 32,
+        )):
+            owned = await listing.execute()
+            assert second in owned
+    finally:
+        await manager.close_all()
 
 
 def _session_process(
@@ -374,9 +411,9 @@ def test_exec_session_wait_for_searches_before_response_truncation():
             terminate: bool,
             yield_time_ms: int,
             max_output_chars: int,
-            owner_session_key: str | None,
+            owner_id: str | None,
         ) -> _SessionPoll:
-            del session_id, chars, close_stdin, terminate, yield_time_ms, owner_session_key
+            del session_id, chars, close_stdin, terminate, yield_time_ms, owner_id
             observed_limits.append(max_output_chars)
             visible, truncated = _truncate_output(output, max_output_chars)
             return _SessionPoll(
@@ -1088,7 +1125,7 @@ def test_terminate_by_owner_retains_failed_sessions():
         manager = ExecSessionManager()
         session = SimpleNamespace(
             session_id="failed",
-            owner_session_key="cli:a",
+            owner_id="cli:a",
             kill=AsyncMock(side_effect=OSError("termination failed")),
         )
         manager._sessions[session.session_id] = session

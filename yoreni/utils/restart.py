@@ -80,12 +80,6 @@ def consume_restart_notice_from_env() -> RestartNotice | None:
     )
 
 
-def should_show_cli_restart_notice(notice: RestartNotice, session_id: str) -> bool:
-    """Return True when a restart notice should be shown in this CLI session."""
-    if notice.channel != "cli":
-        return False
-    if ":" in session_id:
-        _, cli_chat_id = session_id.split(":", 1)
-    else:
-        cli_chat_id = session_id
-    return not notice.chat_id or notice.chat_id == cli_chat_id
+def should_show_cli_restart_notice(notice: RestartNotice, chat_id: str) -> bool:
+    """Match a restart destination to this CLI's output address."""
+    return notice.channel == "cli" and (not notice.chat_id or notice.chat_id == chat_id)

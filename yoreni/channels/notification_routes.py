@@ -1,4 +1,4 @@
-"""Channel-owned address metadata retained for later session notifications."""
+"""Channel-owned address metadata retained for later Agent notifications."""
 
 from collections.abc import Mapping
 from copy import deepcopy
@@ -23,12 +23,3 @@ def notification_metadata(channel: str, source: Mapping[str, Any]) -> dict[str, 
     return deepcopy(metadata)
 
 
-def system_reply_metadata(channel: str, session_key: str) -> dict[str, Any]:
-    """Restore the thread address for an independently dispatched system reply."""
-    if (
-        channel == "slack"
-        and session_key.startswith("slack:")
-        and session_key.count(":") >= 2
-    ):
-        return {"slack": {"thread_ts": session_key.split(":", 2)[2]}}
-    return {}

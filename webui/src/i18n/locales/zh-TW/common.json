@@ -174,14 +174,6 @@
           "label": "提示長度",
           "help": "工具執行提示的字元數上限\n\n工具執行時顯示的簡短提示最多包含多少個字元。"
         },
-        "tools_max_session_messages_per_minute": {
-          "label": "訊息頻率",
-          "help": "工具每分鐘向同一會話發訊息的上限"
-        },
-        "agents_defaults_unified_session": {
-          "label": "共享會話",
-          "help": "同一使用者的跨平臺對話共用記錄\n\n讓同一使用者在不同聊天平臺的對話共用會話記錄。"
-        },
         "tools_exec_enable": {
           "label": "Shell 工具",
           "help": "允許智慧體執行 Shell 命令"
@@ -324,10 +316,6 @@
           "title": "執行限制",
           "help": "設定工具上限和請求重試方式"
         },
-        "sessions": {
-          "title": "對話",
-          "help": "設定跨平臺對話共享"
-        },
         "tools": {
           "title": "內建工具",
           "help": "選擇智慧體可以使用的工具"
@@ -386,13 +374,6 @@
       "search": "搜尋進階設定",
       "noResults": "找不到相符設定。",
       "pending": "尚未儲存的變更",
-      "idleCompaction": {
-        "label": "閒置自動壓縮",
-        "help": "閒置逾時後壓縮上下文，減少後續用量。",
-        "wait": "閒置時限",
-        "minutes": "分鐘",
-        "numberError": "請輸入非負整數分鐘數。"
-      },
       "numberError": "請輸入允許範圍內的有效數字。",
       "activeModel": "使用目前模型",
       "none": "無",
@@ -1494,7 +1475,6 @@
     "fallbackTitle": "話題 {{id}}",
     "forkTitle": "分支：{{title}}",
     "loading": "載入中…",
-    "noSessions": "目前還沒有話題。",
     "showMore": "再顯示 {{count}} 個",
     "collapsed": "已隱藏 {{count}} 個話題",
     "showLess": "收起",
@@ -1697,34 +1677,7 @@
       "toggleSidebar": "切換側邊欄",
       "newChat": "開始新話題",
       "toggleTheme": "切換佈景主題",
-      "settings": "開啟設定",
-      "sessionInfo": "對話詳細資料"
-    },
-    "sessionInfo": {
-      "title": "對話",
-      "untitled": "未命名話題",
-      "automations": "自動任務",
-      "count": "{{count}}",
-      "loading": "正在載入自動任務…",
-      "loadFailed": "無法載入自動任務。",
-      "empty": "這個對話目前沒有自動任務。",
-      "openCalendar": "在日曆中查看全部",
-      "disabled": "已關閉",
-      "schedule": {
-        "at": "{{time}}",
-        "every": "每 {{duration}}",
-        "cron": "Cron {{expr}}",
-        "cronWithTz": "Cron {{expr}}（{{tz}}）",
-        "local": "本機觸發器",
-        "unknown": "自訂排程"
-      },
-      "next": {
-        "label": "{{time}}",
-        "pending": "即將執行",
-        "disabled": "已暫停",
-        "local": "等待觸發",
-        "none": "沒有下次執行"
-      }
+      "settings": "開啟設定"
     },
     "composer": {
       "placeholderThread": "輸入訊息…",
@@ -1912,15 +1865,12 @@
         "label": "應用程式",
         "cliGroup": "CLI 應用程式",
         "mcpGroup": "MCP 伺服器",
-        "sessionGroup": "Yoreni 對話",
         "cliBadge": "CLI",
         "mcpBadge": "MCP",
         "cliDescription": "用 @{{name}} 呼叫 CLI",
         "mcpDescription": "用 @{{name}} 呼叫 MCP",
         "cliTitle": "CLI 應用程式：{{name}}",
-        "mcpTitle": "MCP 伺服器：{{name}}",
-        "sessionBadge": "Yoreni 對話",
-        "sessionDescription": "引用先前的對話 @{{name}}"
+        "mcpTitle": "MCP 伺服器：{{name}}"
       },
       "workspace": {
         "accessAria": "工作區存取模式",

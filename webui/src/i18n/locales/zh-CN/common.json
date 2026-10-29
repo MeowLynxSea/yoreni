@@ -174,14 +174,6 @@
           "label": "提示长度",
           "help": "工具执行提示的字符数上限\n\n工具执行时显示的简短提示最多包含多少个字符。"
         },
-        "tools_max_session_messages_per_minute": {
-          "label": "消息频率",
-          "help": "工具每分钟向同一会话发消息的上限"
-        },
-        "agents_defaults_unified_session": {
-          "label": "共享会话",
-          "help": "同一用户的跨平台对话共用记录\n\n让同一用户在不同聊天平台的对话共用会话记录。"
-        },
         "tools_exec_enable": {
           "label": "执行命令",
           "help": "允许智能体执行 Shell 命令"
@@ -324,10 +316,6 @@
           "title": "运行限制",
           "help": "设置工具上限和请求重试方式"
         },
-        "sessions": {
-          "title": "会话",
-          "help": "设置跨平台对话共享"
-        },
         "tools": {
           "title": "内置工具",
           "help": "选择智能体可以使用的工具"
@@ -386,13 +374,6 @@
       "search": "搜索高级设置",
       "noResults": "没有匹配的设置。",
       "pending": "有未保存的修改",
-      "idleCompaction": {
-        "label": "空闲自动压缩",
-        "help": "空闲超时后压缩上下文，减少后续用量。",
-        "wait": "空闲时限",
-        "minutes": "分钟",
-        "numberError": "请输入非负整数分钟数。"
-      },
       "numberError": "请输入允许范围内的有效数字。",
       "activeModel": "使用当前模型",
       "none": "无",
@@ -1494,7 +1475,6 @@
     "fallbackTitle": "话题 {{id}}",
     "forkTitle": "分叉：{{title}}",
     "loading": "加载中…",
-    "noSessions": "还没有话题。",
     "showMore": "再显示 {{count}} 个",
     "collapsed": "已折叠 {{count}} 个话题",
     "showLess": "收起",
@@ -1697,34 +1677,7 @@
       "toggleSidebar": "切换侧边栏",
       "newChat": "从顶部新建话题",
       "toggleTheme": "从顶部切换主题",
-      "settings": "打开设置",
-      "sessionInfo": "会话详情"
-    },
-    "sessionInfo": {
-      "title": "会话",
-      "untitled": "未命名话题",
-      "automations": "自动任务",
-      "count": "{{count}}",
-      "loading": "正在加载自动任务...",
-      "loadFailed": "无法加载自动任务。",
-      "empty": "这个会话暂时没有自动任务。",
-      "openCalendar": "在日历中查看全部",
-      "disabled": "已关闭",
-      "schedule": {
-        "at": "{{time}}",
-        "every": "每 {{duration}}",
-        "cron": "Cron {{expr}}",
-        "cronWithTz": "Cron {{expr}}（{{tz}}）",
-        "local": "本地触发器",
-        "unknown": "自定义计划"
-      },
-      "next": {
-        "label": "下次 {{time}}",
-        "pending": "即将执行",
-        "disabled": "已暂停",
-        "local": "等待触发",
-        "none": "没有下次运行"
-      }
+      "settings": "打开设置"
     },
     "composer": {
       "placeholderThread": "输入消息…",
@@ -1895,15 +1848,12 @@
         "label": "应用",
         "cliGroup": "CLI 应用",
         "mcpGroup": "MCP 服务",
-        "sessionGroup": "Yoreni 对话",
         "cliBadge": "CLI",
         "mcpBadge": "MCP",
         "cliDescription": "用 @{{name}} 调用 CLI",
         "mcpDescription": "用 @{{name}} 调用 MCP",
         "cliTitle": "CLI 应用：{{name}}",
-        "mcpTitle": "MCP 服务：{{name}}",
-        "sessionBadge": "Yoreni 对话",
-        "sessionDescription": "引用历史会话 @{{name}}"
+        "mcpTitle": "MCP 服务：{{name}}"
       },
       "encoding": "处理中…",
       "remove": "移除附件",

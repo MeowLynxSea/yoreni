@@ -438,6 +438,46 @@ describe("App layout", () => {
     expect(requestMutationSpy).not.toHaveBeenCalled();
   });
 
+  it("opens the persistent agent and returns home without creating a topic", async () => {
+    mockSessions = [{
+      key: "websocket:yoreni", channel: "websocket", chatId: "yoreni",
+      createdAt: null, updatedAt: null, title: "Yoreni", preview: "",
+    }];
+    vi.mocked(fetchBootstrap).mockResolvedValue({
+      token: "tok", api_token: "api-tok", ws_path: "/", expires_in: 300,
+      terminal: { webui: { capabilities: ["webui.core.v1", "webui.agent.v1"] } },
+    });
+    mockFetchRoutes({
+      "/api/agent": { id: "agent-id", revision: 0, transcript_key: "websocket:yoreni", pending_runs: [] },
+      "/api/settings": {
+        ...baseSettingsPayload(),
+        model_presets: baseSettingsPayload().model_presets.map((preset) => ({
+          ...preset, resolved_provider: "openai",
+        })),
+        providers: [{ name: "openai", configured: true }],
+      },
+    });
+    render(<App />);
+    await act(async () => { await import("@/components/thread/ThreadShell"); });
+    await screen.findByRole("textbox", { name: "Message input" }, { timeout: 5_000 });
+    const sidebar = screen.getByRole("navigation", { name: "Sidebar navigation" });
+    act(() => {
+      window.history.pushState(null, "", "/#/new");
+      window.dispatchEvent(new Event("hashchange"));
+    });
+    fireEvent.click(within(sidebar).getByRole("button", { name: "Yoreni" }));
+    await waitFor(() => expect(window.location.hash).toContain("websocket%3Ayoreni"));
+    fireEvent.keyDown(window, { key: "o", ctrlKey: true, shiftKey: true });
+    fireEvent.change(screen.getByRole("textbox", { name: "Message input" }), {
+      target: { value: "hello persistent agent" },
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "Send message" }));
+    await waitFor(() => expect(sendMessageSpy).toHaveBeenCalled());
+    expect(sendMessageSpy.mock.calls[0][0]).toBe("yoreni");
+    expect(createChatSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole("textbox")).toBeVisible();
+  });
+
   it("shows the auth form without an invalid-password error on first load", async () => {
     vi.mocked(fetchBootstrap).mockRejectedValueOnce(
       new Error("bootstrap failed: HTTP 401"),

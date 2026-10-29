@@ -10,12 +10,12 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from yoreni.agent.goal_state import GOAL_STATE_KEY
 from yoreni.agent.loop import AgentLoop
 from yoreni.bus.events import InboundMessage
 from yoreni.bus.queue import MessageBus
 from yoreni.providers.base import LLMProvider, LLMResponse, ToolCallRequest
 from yoreni.runtime_context import public_history_messages
-from yoreni.session.goal_state import GOAL_STATE_KEY
 
 _STOP_MARKER = "previous turn stopped at the tool-iteration limit"
 

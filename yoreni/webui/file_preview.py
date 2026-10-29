@@ -54,7 +54,7 @@ def file_preview_payload(
     scope: WorkspaceScope,
     max_bytes: int = MAX_FILE_PREVIEW_BYTES,
 ) -> dict[str, Any]:
-    """Return a bounded source or raster preview within the session workspace scope."""
+    """Return a bounded source or raster preview within the selected workspace scope."""
 
     resolved = resolve_file_path(raw_path, scope=scope)
 

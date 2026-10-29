@@ -30,9 +30,10 @@ def test_unrecognized_result_list_is_not_partially_offloaded(tmp_path, invalid_b
 
 
 async def test_runner_persists_large_tool_results_for_follow_up_calls(tmp_path):
+    from yoreni.session.manager import Session
+
     from yoreni.agent.loop import AgentLoop
     from yoreni.agent.runner import AgentRunner
-    from yoreni.session.manager import Session
 
     provider = MagicMock()
     captured_second_call: list[dict] = []
@@ -236,9 +237,10 @@ async def test_read_file_result_is_not_offloaded(tmp_path):
 
 async def test_processed_tool_result_is_stable_for_persistence_and_replay(tmp_path):
     """The content sent after a tool call must survive the session round trip unchanged."""
+    from yoreni.session.manager import Session
+
     from yoreni.agent.loop import AgentLoop
     from yoreni.agent.runner import AgentRunner
-    from yoreni.session.manager import Session
 
     raw_result = "start-" + ("x" * 20_000) + "-end-marker"
     first_provider = MagicMock()
@@ -350,11 +352,12 @@ async def test_runner_keeps_going_when_tool_result_persistence_fails():
 
 
 async def test_mixed_tool_text_survives_model_save_replay(tmp_path):
+    from yoreni.session.manager import Session
+
     from yoreni.agent.context_governance import ContextGovernanceConfig, ContextGovernor
     from yoreni.agent.loop import AgentLoop
     from yoreni.agent.tools.filesystem import ReadFileTool
     from yoreni.agent.tools.registry import ToolRegistry
-    from yoreni.session.manager import Session
 
     tools = ToolRegistry()
     reader = ReadFileTool(workspace=tmp_path, allowed_dir=tmp_path)

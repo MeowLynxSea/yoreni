@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 
 import { AutomationRunDialogView, type AutomationRunRecord } from "./AutomationRunDialogView";
 import { fetchAutomationRunResult } from "@/lib/api";
-import type { SessionAutomationJob } from "@/lib/types";
+import type { AutomationJob } from "@/lib/types";
 
 export type { AutomationRunRecord } from "./AutomationRunDialogView";
 
 export function AutomationRunDialog({ token = "", job, run, locale, open, onOpenChange, onCloseAutoFocus }: {
   token?: string;
-  job: SessionAutomationJob;
+  job: AutomationJob;
   run: AutomationRunRecord;
   locale: string;
   open: boolean;

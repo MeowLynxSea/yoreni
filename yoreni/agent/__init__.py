@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from yoreni.agent.loop import AgentLoop
     from yoreni.agent.memory import MemoryStore
     from yoreni.agent.skills import SkillsLoader
-    from yoreni.agent.subagent import SubagentManager
 
 
 _EXPORTS = {
@@ -32,7 +31,6 @@ _EXPORTS = {
     "ContextBuilder": "yoreni.agent.context",
     "MemoryStore": "yoreni.agent.memory",
     "SkillsLoader": "yoreni.agent.skills",
-    "SubagentManager": "yoreni.agent.subagent",
 }
 
 
@@ -60,5 +58,4 @@ __all__ = [
     "ContextBuilder",
     "MemoryStore",
     "SkillsLoader",
-    "SubagentManager",
 ]

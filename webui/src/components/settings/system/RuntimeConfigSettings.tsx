@@ -9,7 +9,6 @@ import { SettingsTextEditor } from "@/components/settings/shared/SettingsTextEdi
 import { SharedProxyEditor } from "@/components/settings/shared/SharedProxyEditor";
 import { SettingsHint } from "@/components/settings/shared/SettingsHint";
 import { ShellRuntimeControl } from "@/components/settings/system/ShellRuntimeControl";
-import { IdleCompactionControl } from "@/components/settings/system/IdleCompactionControl";
 import { Input } from "@/components/ui/input";
 import { RUNTIME_CONFIG_FIELDS, RUNTIME_CONFIG_GROUPS, type RuntimeConfigField, type RuntimeConfigPage } from "@/components/settings/system/runtime-config-fields";
 import { updateRuntimeConfigSettings } from "@/lib/api";
@@ -81,13 +80,7 @@ export function useRuntimeConfigSettings(
     const values: Record<string, RuntimeConfigValue> = {};
     for (const field of changed) {
       const raw = editedValue(field);
-      if (field.kind === "idle-compaction") {
-        if (!/^\d+$/.test(String(raw)) || !Number.isSafeInteger(Number(raw))) {
-          reject(field, t("settings.runtimeConfig.idleCompaction.numberError"));
-          return;
-        }
-        values[field.path] = Number(raw);
-      } else if (field.kind === "number" || field.kind === "duration") {
+      if (field.kind === "number" || field.kind === "duration") {
         const maximum = field.kind === "duration" ? settings.advanced.exec_max_runtime_limit : field.max;
         const parsed = Number(raw);
         if (String(raw).trim() === "" || !Number.isFinite(parsed)
@@ -142,11 +135,6 @@ export function useRuntimeConfigSettings(
     applyPayload(payload, { preserveAgentForm: true, preserveCapabilityForms: true });
     setSaved((prev) => ({ ...prev, [field.group]: true }));
   };
-  const commit = (field: RuntimeConfigField, next: Draft) => {
-    if (next === value(field.path) && !dirty(field)) return;
-    change(field, next);
-    void save(field.group, { [field.path]: next });
-  };
   const saveProxy = async (next: string) => {
     setSaving("proxy");
     try {
@@ -158,7 +146,7 @@ export function useRuntimeConfigSettings(
       setSaving(null);
     }
   };
-  return { value, visible, dirty, discard, change, commit, reject, save, saveList, saveProxy, saving, errors, invalidField, saved };
+  return { value, visible, dirty, discard, change, reject, save, saveList, saveProxy, saving, errors, invalidField, saved };
 }
 
 export type RuntimeConfigController = ReturnType<typeof useRuntimeConfigSettings>;
@@ -200,13 +188,7 @@ export function RuntimeConfigSettings({
             <SettingsSectionTitle>{group.id === "proxy"
               ? <SettingsHint description={tr("fields.network_proxy.help")}>{title}</SettingsHint>
               : title}</SettingsSectionTitle>
-            <form noValidate onSubmit={(event) => { event.preventDefault(); void state.save(group.id); }}
-              onBlur={(event) => {
-                if (event.relatedTarget && event.currentTarget.contains(event.relatedTarget)) return;
-                if (fields.some((field) => field.kind === "idle-compaction" && state.dirty(field))) {
-                  void state.save(group.id);
-                }
-              }}>
+            <form noValidate onSubmit={(event) => { event.preventDefault(); void state.save(group.id); }}>
               <fieldset disabled={state.saving === group.id || isRestarting} className="min-w-0">
                 <legend className="sr-only">{title}</legend>
                 <button type="submit" hidden />
@@ -214,14 +196,6 @@ export function RuntimeConfigSettings({
                   {fields.filter(state.visible).map((field) => {
                     const id = `runtime-${field.path}`;
                     const current = state.value(field.path);
-                    if (field.kind === "idle-compaction") return (
-                      <IdleCompactionControl key={field.path} id={id} value={String(current)}
-                        savedMinutes={Number(settings.runtime_config?.[field.path])}
-                        disabled={state.saving === group.id || isRestarting}
-                        errorId={state.invalidField === field.path ? errorId : undefined}
-                        onChange={(next) => state.change(field, next)}
-                        onCommit={(next) => state.commit(field, next)} />
-                    );
                     const key = field.path.replaceAll(".", "_");
                     const text = tr(`fields.${key}.label`);
                     const help = tr(`fields.${key}.help`);

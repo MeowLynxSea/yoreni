@@ -10,16 +10,14 @@ from typing import Any
 from yoreni.agent.hook import AgentHook, SDKCaptureHook
 from yoreni.agent.hooks import create_file_edit_activity_hook
 from yoreni.agent.loop import AgentLoop
+from yoreni.agent.state import AgentInput
 from yoreni.agent.tools.image_generation import register_image_generation_tool
 from yoreni.agent.tools.mcp import MCPProvider
 from yoreni.agent.tools.registry import ToolRegistry
 from yoreni.config.schema import Config
 from yoreni.providers.base import LLMUsage
-from yoreni.sdk.clients import MemoryClient, RuntimeClient, SessionClient
-from yoreni.sdk.runtime import (
-    build_process_direct_kwargs,
-    ensure_single_model_selector,
-)
+from yoreni.sdk.clients import MemoryClient, RuntimeClient
+from yoreni.sdk.runtime import ensure_single_model_selector
 from yoreni.sdk.streaming import RunStream, SDKStreamEmitter, SDKStreamingHook
 from yoreni.sdk.types import (
     STREAM_EVENT_REASONING_COMPLETED,
@@ -34,8 +32,6 @@ from yoreni.sdk.types import (
     STREAM_EVENT_TOOL_STARTED,
     STREAM_EVENT_TYPES,
     RunResult,
-    SessionInfo,
-    SessionSnapshot,
     StreamEvent,
     StreamEventType,
     result_from_response,
@@ -44,11 +40,10 @@ from yoreni.utils.llm_runtime import LLMRuntime
 
 __all__ = [
     "Yoreni",
+    "AgentInput",
     "LLMUsage",
     "RunResult",
     "RunStream",
-    "SessionInfo",
-    "SessionSnapshot",
     "STREAM_EVENT_REASONING_COMPLETED",
     "STREAM_EVENT_REASONING_DELTA",
     "STREAM_EVENT_RUN_COMPLETED",
@@ -85,7 +80,6 @@ class Yoreni:
         self._loop = loop
         self._config = config
         self._mcp_provider = mcp_provider
-        self.sessions = SessionClient(loop)
         self.memory = MemoryClient(loop)
         self.runtime = RuntimeClient(loop)
 
@@ -141,11 +135,23 @@ class Yoreni:
         )
         return cls(loop, config=config, mcp_provider=mcp_provider)
 
+    async def act(
+        self, event: AgentInput, *, resume: bool = False,
+        hooks: list[AgentHook] | None = None,
+    ) -> RunResult:
+        """Run a trusted event with the persistent identity and no chat session."""
+        capture = SDKCaptureHook()
+        if self._mcp_provider is not None:
+            await self._mcp_provider.connect()
+        response = await self._loop.process_event(
+            event, resume=resume, hooks=[capture, *(hooks or [])],
+        )
+        return result_from_response(response, capture)
+
     async def run(
         self,
         message: str,
         *,
-        session_key: str = "sdk:default",
         channel: str = "cli",
         chat_id: str = "direct",
         sender_id: str = "user",
@@ -160,13 +166,11 @@ class Yoreni:
 
         Args:
             message: The user message to process.
-            session_key: Session identifier for conversation isolation.
-                Different keys get independent history.
             channel: Logical channel label for runtime context.
             chat_id: Logical chat identifier for runtime context.
             sender_id: Logical sender identifier for runtime context.
             media: Optional local media paths attached to the message.
-            ephemeral: If true, do not persist the turn or compact session history.
+            ephemeral: If true, do not retain the Run or its transcript.
             attributes: Optional caller-owned request data exposed to context
                 providers and turn-hook factories. Attributes are kept separate
                 from yoreni's trusted internal message metadata.
@@ -181,23 +185,14 @@ class Yoreni:
             model_preset=model_preset,
             config=self._config,
         )
-        kwargs = build_process_direct_kwargs(
-            session_key=session_key,
-            channel=channel,
-            chat_id=chat_id,
-            sender_id=sender_id,
-            media=media,
-            ephemeral=ephemeral,
-            attributes=attributes,
-        )
-        if runtime is not None:
-            kwargs["runtime"] = runtime
         if self._mcp_provider is not None:
             await self._mcp_provider.connect()
-        response = await self._loop.process_direct(
-            message,
-            **kwargs,
-            hooks=per_run_hooks,
+        response = await self._loop.process_event(
+            AgentInput(
+                "sdk", message, principal="owner", channel=channel, chat_id=chat_id,
+                media=tuple(media or ()), ephemeral=ephemeral,
+                metadata={"sender_id": sender_id},
+            ), runtime=runtime, hooks=per_run_hooks, attributes=dict(attributes or {}),
         )
 
         return result_from_response(response, capture)
@@ -206,7 +201,6 @@ class Yoreni:
         self,
         message: str,
         *,
-        session_key: str = "sdk:default",
         channel: str = "cli",
         chat_id: str = "direct",
         sender_id: str = "user",
@@ -237,7 +231,6 @@ class Yoreni:
             if runtime is None:
                 runtime = override_runtime
             metadata: dict[str, Any] = {
-                "session_key": session_key,
                 "channel": channel,
                 "chat_id": chat_id,
                 "sender_id": sender_id,
@@ -260,27 +253,17 @@ class Yoreni:
             await emitter.text_completed(resuming=resuming)
 
         async def _run() -> RunResult:
-            kwargs = build_process_direct_kwargs(
-                session_key=session_key,
-                channel=channel,
-                chat_id=chat_id,
-                sender_id=sender_id,
-                media=media,
-                ephemeral=ephemeral,
-                attributes=attributes,
-                on_stream=_on_stream,
-                on_stream_end=_on_stream_end,
-            )
-            kwargs["on_runtime_admitted"] = _emit_run_started
-            if override_runtime is not None:
-                kwargs["runtime"] = override_runtime
             try:
                 if self._mcp_provider is not None:
                     await self._mcp_provider.connect()
-                response = await self._loop.process_direct(
-                    message,
-                    **kwargs,
-                    hooks=per_run_hooks,
+                response = await self._loop.process_event(
+                    AgentInput(
+                        "sdk", message, principal="owner", channel=channel, chat_id=chat_id,
+                        media=tuple(media or ()), ephemeral=ephemeral,
+                        metadata={"sender_id": sender_id},
+                    ), runtime=override_runtime, hooks=per_run_hooks,
+                    on_stream=_on_stream, on_stream_end=_on_stream_end,
+                    on_runtime_admitted=_emit_run_started, attributes=dict(attributes or {}),
                 )
                 await _emit_run_started()
                 await emitter.text_completed(resuming=False, force=False)
@@ -311,7 +294,6 @@ class Yoreni:
         self,
         message: str,
         *,
-        session_key: str = "sdk:default",
         channel: str = "cli",
         chat_id: str = "direct",
         sender_id: str = "user",
@@ -325,7 +307,6 @@ class Yoreni:
         """Stream events for one agent turn."""
         run = await self.run_streamed(
             message,
-            session_key=session_key,
             channel=channel,
             chat_id=chat_id,
             sender_id=sender_id,

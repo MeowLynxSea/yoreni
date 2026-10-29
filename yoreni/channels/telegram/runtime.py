@@ -481,7 +481,7 @@ class _StreamBuf:
 
 @dataclass
 class _QueuedTelegramUpdate:
-    """Telegram update staged for per-session ordered processing."""
+    """Telegram update staged for ordered chat ingress."""
 
     kind: Literal["command", "message"]
     update: Update
@@ -1748,13 +1748,6 @@ class TelegramChannel(BaseChannel):
             is_dm=True,
         )
 
-    @staticmethod
-    def _derive_topic_session_key(message: Message) -> str | None:
-        """Derive topic-scoped session key for Telegram chats with threads."""
-        message_thread_id = getattr(message, "message_thread_id", None)
-        if message_thread_id is None:
-            return None
-        return f"telegram:{message.chat_id}:topic:{message_thread_id}"
 
     @staticmethod
     def _build_message_metadata(message: Message, user: User) -> dict[str, Any]:
@@ -1925,8 +1918,8 @@ class TelegramChannel(BaseChannel):
 
     @staticmethod
     def _queue_key_for_message(message: Message) -> str:
-        """Return the final yoreni session key used for ordered Telegram ingress."""
-        return TelegramChannel._derive_topic_session_key(message) or f"telegram:{message.chat_id}"
+        """Return the chat and topic address used for ordered Telegram ingress."""
+        return f"{message.chat_id}:{message.message_thread_id or 0}"
 
     @staticmethod
     def _sort_key_for_update(update: Update) -> tuple[int, int]:
@@ -1942,7 +1935,7 @@ class TelegramChannel(BaseChannel):
         kind: Literal["command", "message"],
         update: Update,
     ) -> None:
-        """Stage a Telegram update behind a short per-session reorder window."""
+        """Stage a Telegram update behind a short per-chat reorder window."""
         message = update.message
         if message is None:
             return
@@ -1960,7 +1953,7 @@ class TelegramChannel(BaseChannel):
             )
 
     async def _drain_ordered_updates(self, key: str) -> None:
-        """Drain one Telegram session buffer in stable message order."""
+        """Drain one Telegram ingress buffer in stable message order."""
         try:
             while self._running:
                 await asyncio.sleep(0.2)
@@ -2024,7 +2017,6 @@ class TelegramChannel(BaseChannel):
             chat_id=str(message.chat_id),
             content=content,
             metadata=self._build_message_metadata(message, user),
-            session_key=self._derive_topic_session_key(message),
             is_dm=message.chat.type == "private",
         )
 
@@ -2096,7 +2088,6 @@ class TelegramChannel(BaseChannel):
 
         str_chat_id = str(chat_id)
         metadata = self._build_message_metadata(message, user)
-        session_key = self._derive_topic_session_key(message)
 
         # Telegram media groups: buffer briefly, forward as one aggregated turn.
         if media_group_id := getattr(message, "media_group_id", None):
@@ -2106,7 +2097,6 @@ class TelegramChannel(BaseChannel):
                     "sender_id": sender_id, "chat_id": str_chat_id,
                     "contents": [], "media": [],
                     "metadata": metadata,
-                    "session_key": session_key,
                 }
                 self._start_typing(str_chat_id)
                 await self._add_reaction(str_chat_id, message.message_id, self.config.react_emoji)
@@ -2129,7 +2119,6 @@ class TelegramChannel(BaseChannel):
             content=content,
             media=media_paths,
             metadata=metadata,
-            session_key=session_key,
         )
 
     async def _flush_media_group(self, key: str) -> None:
@@ -2143,7 +2132,6 @@ class TelegramChannel(BaseChannel):
                 sender_id=buf["sender_id"], chat_id=buf["chat_id"],
                 content=content, media=list(dict.fromkeys(buf["media"])),
                 metadata=buf["metadata"],
-                session_key=buf.get("session_key"),
             )
         finally:
             self._media_group_tasks.pop(key, None)

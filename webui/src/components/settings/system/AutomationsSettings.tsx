@@ -17,7 +17,6 @@ import { channelUiOwner, channelUiPresentation } from "@/channel-plugins/registr
 import { AutomationCalendar } from "@/components/settings/system/AutomationCalendar";
 import { SkeletonStatus } from "@/components/settings/shared/SkeletonStatus";
 import { AutomationRunDialog } from "@/components/settings/system/AutomationRunDialog";
-import { AutomationChatBinding, type AutomationChatNames, type ChangeAutomationChat } from "@/components/settings/system/AutomationChatBinding";
 import { AutomationRunAtPicker, parseAutomationRunAt } from "@/components/settings/system/AutomationRunAtPicker";
 import {
   modelPresetOptionsFromSettings,
@@ -41,15 +40,13 @@ import { formControlFocusClassName } from "@/components/ui/form-control";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Textarea } from "@/components/ui/textarea";
-import { displayTitle } from "@/lib/chat-groups";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { fmtDateTime, relativeTime } from "@/lib/format-time";
-import type { SendAttachment, SendOptions } from "@/hooks/useYoreniStream";
+import type { SendAttachment, SendOptions } from "@/lib/agent-input";
 import type {
   AutomationsPayload,
   AutomationUpdatePayload,
-  ChatSummary,
-  SessionAutomationJob,
+  AutomationJob,
   SettingsPayload,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -57,33 +54,27 @@ import { cn } from "@/lib/utils";
 export type AutomationFilter = "all" | "active" | "paused" | "failed" | "system";
 export type AutomationAction = "enable" | "disable" | "delete" | "run";
 
-const EMPTY_TITLE_OVERRIDES: Record<string, string> = {};
-const EMPTY_SESSIONS: ChatSummary[] = [];
 
 export function AutomationsSettings({
   token = "",
   payload, loading, filter, actionKey, error,
-  titleOverrides = EMPTY_TITLE_OVERRIDES,
-  sessions = EMPTY_SESSIONS,
   settingsSnapshot = null,
   onFilterChange, onAction,
   onRequestEdit, onRequestDelete, onStartChat, onManageModels,
   returnToDetailJob = null, onReturnToDetailHandled,
-  onChangeChat,
 }: {
   token?: string;
   payload: AutomationsPayload | null;
   titleOverrides?: Record<string, string>;
-  sessions?: ChatSummary[];
   settingsSnapshot?: SettingsPayload | null;
   loading: boolean;
   filter: AutomationFilter;
   actionKey: string | null;
   error: string | null;
   onFilterChange: (value: AutomationFilter) => void;
-  onAction: (action: AutomationAction, job: SessionAutomationJob) => void | Promise<void>;
-  onRequestEdit: (job: SessionAutomationJob) => void;
-  onRequestDelete: (job: SessionAutomationJob) => void;
+  onAction: (action: AutomationAction, job: AutomationJob) => void | Promise<void>;
+  onRequestEdit: (job: AutomationJob) => void;
+  onRequestDelete: (job: AutomationJob) => void;
   onStartChat?: (
     content: string,
     images?: SendAttachment[],
@@ -91,31 +82,15 @@ export function AutomationsSettings({
     modelPreset?: string | null,
   ) => boolean | void | Promise<boolean | void>;
   onManageModels?: () => void;
-  returnToDetailJob?: SessionAutomationJob | null;
+  returnToDetailJob?: AutomationJob | null;
   onReturnToDetailHandled?: () => void;
-  onChangeChat?: ChangeAutomationChat;
 }) {
   const { t, i18n } = useTranslation();
   const tx = (key: string, fallback: string, values?: Record<string, unknown>) =>
     t(key, { defaultValue: fallback, ...(values ?? {}) });
-  // Join display names by the server-owned handle ID, never by a mutable title.
-  const chatNames: AutomationChatNames = useMemo(() => new Map(sessions.flatMap(session => (
-    session.handle ? [[session.handle.id, {
-      title: displayTitle(session, titleOverrides, t("chat.newChat")),
-      handle: session.handle.name,
-    }] as const] : []
-  ))), [sessions, titleOverrides, t]);
-  const jobs = useMemo(() => (payload?.jobs ?? []).map((job) => {
-    const origin = job.origin;
-    if (origin?.channel !== "websocket") return job;
-    // Resolve UI-only titles from live sidebar state without changing task bindings.
-    const title = displayTitle({
-      key: origin.session_key ?? "", title: origin.title, preview: origin.preview ?? "",
-    }, titleOverrides, t("chat.newChat"));
-    return title === origin.title ? job : { ...job, origin: { ...origin, title } };
-  }), [payload, titleOverrides, t]);
+  const jobs = payload?.jobs ?? [];
   const locale = i18n.resolvedLanguage || i18n.language;
-  const [inspectedJob, setInspectedJob] = useState<SessionAutomationJob | null>(null);
+  const [inspectedJob, setInspectedJob] = useState<AutomationJob | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [localModelPreset, setLocalModelPreset] = useState<string | null>(null);
   const [view, setView] = useState<"tasks" | "calendar">("calendar");
@@ -125,7 +100,7 @@ export function AutomationsSettings({
   });
   const pageTitle = useRef<HTMLHeadingElement | null>(null);
   const selectedTrigger = useRef<HTMLElement | null>(null);
-  const afterDetailClose = useRef<((job: SessionAutomationJob) => void) | null>(null);
+  const afterDetailClose = useRef<((job: AutomationJob) => void) | null>(null);
   const visibleJobs = useMemo(() => jobs.filter((job) => !job.protected), [jobs]);
   const filtered = useMemo(() => visibleJobs.filter((job) => automationMatchesFilter(job, filter)), [filter, visibleJobs]);
   // Keep an inspected task open when an action moves it outside the current filter.
@@ -177,12 +152,12 @@ export function AutomationsSettings({
     onReturnToDetailHandled?.();
   }, [jobs, onReturnToDetailHandled, returnToDetailJob]);
 
-  const inspectJob = (job: SessionAutomationJob, trigger: HTMLElement) => {
+  const inspectJob = (job: AutomationJob, trigger: HTMLElement) => {
     selectedTrigger.current = trigger;
     setInspectedJob(job);
     setDetailOpen(true);
   };
-  const handOff = (callback: (job: SessionAutomationJob) => void) => {
+  const handOff = (callback: (job: AutomationJob) => void) => {
     // Restore the row before opening the next dialog, so it has a mounted
     // element to return focus to when editing or confirmation finishes.
     afterDetailClose.current = callback;
@@ -383,8 +358,6 @@ export function AutomationsSettings({
 
       <AutomationDetailDialog
         token={token}
-        chatNames={chatNames}
-        onChangeChat={onChangeChat}
         job={selectedJob}
         open={detailOpen}
         locale={locale}
@@ -411,9 +384,6 @@ export function AutomationsSettings({
 }
 
 export function AutomationDetailDialog({
-  token = "",
-  chatNames,
-  onChangeChat,
   job,
   open,
   locale,
@@ -426,17 +396,15 @@ export function AutomationDetailDialog({
   onCloseAutoFocus,
 }: {
   token?: string;
-  chatNames?: AutomationChatNames;
-  onChangeChat?: ChangeAutomationChat;
-  job: SessionAutomationJob | null;
+  job: AutomationJob | null;
   open: boolean;
   locale: string;
   actionKey: string | null;
   error: string | null;
   onOpenChange: (open: boolean) => void;
-  onAction: (action: AutomationAction, job: SessionAutomationJob) => void | Promise<void>;
-  onRequestEdit: (job: SessionAutomationJob) => void;
-  onRequestDelete: (job: SessionAutomationJob) => void;
+  onAction: (action: AutomationAction, job: AutomationJob) => void | Promise<void>;
+  onRequestEdit: (job: AutomationJob) => void;
+  onRequestDelete: (job: AutomationJob) => void;
   onCloseAutoFocus?: (event: Event) => void;
 }) {
   const panel = (chatPicker?: ReactNode) => job ? <AutomationDetailPanel
@@ -456,9 +424,7 @@ export function AutomationDetailDialog({
           )}
           onCloseAutoFocus={onCloseAutoFocus}
         >
-          {job.chat_binding_revision && onChangeChat ? (
-            <AutomationChatBinding key={job.id} job={job} token={token} chatNames={chatNames} onSave={onChangeChat}>{panel}</AutomationChatBinding>
-          ) : panel()}
+          {panel()}
         </DialogContent>
       ) : null}
     </Dialog>
@@ -471,19 +437,17 @@ function AutomationDetailPanel({
   chatPicker,
 }: {
   chatPicker?: ReactNode;
-  job: SessionAutomationJob;
+  job: AutomationJob;
   locale: string;
   actionKey: string | null;
   error: string | null;
-  onAction: (action: AutomationAction, job: SessionAutomationJob) => void | Promise<void>;
-  onRequestEdit: (job: SessionAutomationJob) => void;
-  onRequestDelete: (job: SessionAutomationJob) => void;
+  onAction: (action: AutomationAction, job: AutomationJob) => void | Promise<void>;
+  onRequestEdit: (job: AutomationJob) => void;
+  onRequestDelete: (job: AutomationJob) => void;
 }) {
   const { t } = useTranslation();
   const tx = (key: string, fallback: string, values?: Record<string, unknown>) =>
     t(key, { defaultValue: fallback, ...(values ?? {}) });
-  const originHref = job.origin?.channel === "websocket" && job.origin.session_key
-    ? `#/chat/${encodeURIComponent(job.origin.session_key)}` : null;
   const localTrigger = isLocalTriggerAutomation(job);
   const command = automationTriggerCommand(job);
   const message = localTrigger ? command : job.payload.message || "";
@@ -595,7 +559,7 @@ function AutomationDetailPanel({
             <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" disabled={busy} aria-label={tx("settings.automations.moreActions", "More actions")} className="h-11 w-11 text-muted-foreground sm:h-9 sm:w-9"><MoreHorizontal className="h-4 w-4" aria-hidden /></Button></DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start">
               <DropdownMenuItem disabled={busy || !canToggle} onSelect={() => void onAction(job.enabled ? "disable" : "enable", job)}>{job.enabled ? tx("settings.automations.pause", "Disable") : tx("settings.automations.resume", "Enable")}</DropdownMenuItem>
-              {originHref ? <DropdownMenuItem asChild><a href={originHref}>{tx("settings.automations.emptyAction", "Open a chat")}</a></DropdownMenuItem> : null}
+
               <DropdownMenuSeparator />
               <DropdownMenuItem tone="destructive" disabled={busy} onSelect={() => onRequestDelete(job)}>{tx("settings.automations.delete", "Delete")}</DropdownMenuItem>
             </DropdownMenuContent>
@@ -694,11 +658,11 @@ export function AutomationEditDialog({
   onCancel,
   onSave,
 }: {
-  job: SessionAutomationJob | null;
+  job: AutomationJob | null;
   saving: boolean;
   onOpenChange: (open: boolean) => void;
-  onCancel?: (job: SessionAutomationJob) => void;
-  onSave: (job: SessionAutomationJob, values: AutomationUpdatePayload) => void | Promise<void>;
+  onCancel?: (job: AutomationJob) => void;
+  onSave: (job: AutomationJob, values: AutomationUpdatePayload) => void | Promise<void>;
 }) {
   const dialogFocus = useAutomationDialogFocus();
   const { t } = useTranslation();
@@ -913,10 +877,10 @@ export function AutomationDeleteDialog({
   onOpenChange,
   onConfirm,
 }: {
-  job: SessionAutomationJob | null;
+  job: AutomationJob | null;
   deleting: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (job: SessionAutomationJob) => void | Promise<void>;
+  onConfirm: (job: AutomationJob) => void | Promise<void>;
 }) {
   const dialogFocus = useAutomationDialogFocus();
   const { t } = useTranslation();
@@ -959,24 +923,24 @@ export function AutomationDeleteDialog({
   );
 }
 
-function isLocalTriggerAutomation(job: SessionAutomationJob | null): boolean {
+function isLocalTriggerAutomation(job: AutomationJob | null): boolean {
   if (!job) return false;
   return job.kind === "local_trigger"
     || job.payload.kind === "local_trigger"
     || job.schedule.kind === "local";
 }
 
-function automationTriggerCommand(job: SessionAutomationJob): string {
+function automationTriggerCommand(job: AutomationJob): string {
   return job.trigger?.command || job.payload.command || job.payload.message || "";
 }
 
 
-function automationNeedsAttention(job: SessionAutomationJob): boolean {
+function automationNeedsAttention(job: AutomationJob): boolean {
   return job.state.last_status === "error";
 }
 
 function automationStatusKey(
-  job: SessionAutomationJob,
+  job: AutomationJob,
 ): "active" | "running" | "paused" | "failed" | "system" | "completed" | "idle" {
   if (job.state.pending) return "running";
   if (!job.enabled) return "paused";
@@ -989,7 +953,7 @@ function automationStatusKey(
   return "active";
 }
 
-function automationDraftFromJob(job: SessionAutomationJob | null): AutomationEditDraft {
+function automationDraftFromJob(job: AutomationJob | null): AutomationEditDraft {
   const every = automationIntervalDraft(job?.schedule.every_ms ?? 3_600_000);
   const scheduleKind = job?.schedule.kind === "at" || job?.schedule.kind === "cron"
     ? job.schedule.kind
@@ -1024,7 +988,7 @@ function formatLocalDateTimeInput(ms: number): string {
 
 function automationEditDraftError(
   draft: AutomationEditDraft,
-  job: SessionAutomationJob | null,
+  job: AutomationJob | null,
   tx: (key: string, fallback: string, values?: Record<string, unknown>) => string,
 ): string | null {
   if (!draft.name.trim()) return tx("settings.automations.validation.nameRequired", "Enter a task name.");
@@ -1055,7 +1019,7 @@ function automationEditDraftError(
 
 function automationUpdatePayloadFromDraft(
   draft: AutomationEditDraft,
-  job: SessionAutomationJob | null,
+  job: AutomationJob | null,
 ): AutomationUpdatePayload | string {
   const name = draft.name.trim();
   if (isLocalTriggerAutomation(job)) {
@@ -1092,7 +1056,7 @@ function automationSchedulePayloadFromDraft(draft: AutomationEditDraft): Automat
 
 function automationScheduleChanged(
   draft: AutomationEditDraft,
-  job: SessionAutomationJob | null,
+  job: AutomationJob | null,
   schedule: AutomationScheduleUpdate | string = automationSchedulePayloadFromDraft(draft),
 ): boolean {
   if (!job || typeof schedule === "string") return true;
@@ -1104,7 +1068,7 @@ function automationScheduleChanged(
   return draft.atLocal !== formatLocalDateTimeInput(job.schedule.at_ms ?? NaN);
 }
 
-function automationMatchesFilter(job: SessionAutomationJob, filter: AutomationFilter): boolean {
+function automationMatchesFilter(job: AutomationJob, filter: AutomationFilter): boolean {
   const status = automationStatusKey(job);
   if (filter === "active") return status === "active" || status === "running";
   if (filter === "paused") return status === "paused";
@@ -1131,7 +1095,7 @@ function automationChannelLabel(channel: string, t: TFunction): string {
 }
 
 function formatAutomationSchedule(
-  job: SessionAutomationJob,
+  job: AutomationJob,
   locale: string,
   tx: (key: string, fallback: string, values?: Record<string, unknown>) => string,
 ): string {
@@ -1214,7 +1178,7 @@ function cronNumericToken(value: string, max: number): number | null {
 }
 
 function formatAutomationNext(
-  job: SessionAutomationJob,
+  job: AutomationJob,
   tx: (key: string, fallback: string, values?: Record<string, unknown>) => string,
 ): string {
   if (!job.enabled) return tx("settings.automations.next.paused", "Disabled");
@@ -1230,7 +1194,7 @@ function formatAutomationNext(
 }
 
 function formatAutomationNextTitle(
-  job: SessionAutomationJob,
+  job: AutomationJob,
   locale: string,
   tx: (key: string, fallback: string, values?: Record<string, unknown>) => string,
 ): string {

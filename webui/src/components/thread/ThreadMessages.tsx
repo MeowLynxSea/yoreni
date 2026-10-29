@@ -66,7 +66,7 @@ export function assistantForkFlags(units: DisplayUnit[]): boolean[] {
       && unit.message.role === "assistant"
       && unit.message.kind === "compaction"
     ) {
-      // Compaction notices are session lifecycle markers, not assistant answers.
+      // Compaction notices are Run lifecycle markers, not assistant answers.
       // They must neither expose nor displace the answer-level fork action.
       flags[i] = false;
       continue;

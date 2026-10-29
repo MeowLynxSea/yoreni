@@ -4,37 +4,34 @@
 
 from __future__ import annotations
 
+import asyncio
 from copy import deepcopy
+from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from yoreni.agent.goal_permission import (
     goal_mutation_allowed,
     revoke_goal_mutation_permission,
 )
-from yoreni.agent.tools.base import Tool, ToolResult, tool_parameters
-from yoreni.agent.tools.context import RequestContext, ToolContext, current_request_context
-from yoreni.agent.tools.schema import StringSchema, tool_parameters_schema
-from yoreni.bus.queue import MessageBus
-from yoreni.bus.runtime_events import GoalStateChanged, RuntimeEventContext
-from yoreni.runtime_context import RuntimeContextBlock, wrap_runtime_context_lines
-from yoreni.session.goal_state import (
+from yoreni.agent.goal_state import (
     GOAL_STATE_KEY,
     MAX_GOAL_OBJECTIVE_CHARS,
-    discard_legacy_goal_state_key,
     explicit_goal_requested,
     goal_state_raw,
     goal_state_runtime_lines,
     parse_goal_state,
     sustained_goal_active,
 )
-from yoreni.session.turn_continuation import reset_goal_continuation_rounds
+from yoreni.agent.state import AgentStore
+from yoreni.agent.tools.base import Tool, ToolResult, tool_parameters
+from yoreni.agent.tools.context import RequestContext, ToolContext, current_request_context
+from yoreni.agent.tools.schema import StringSchema, tool_parameters_schema
+from yoreni.bus.queue import MessageBus
+from yoreni.bus.runtime_events import GoalStateChanged
+from yoreni.runtime_context import RuntimeContextBlock, wrap_runtime_context_lines
 from yoreni.utils.cancellation import shield_and_drain
 from yoreni.utils.prompt_templates import render_template
-
-if TYPE_CHECKING:
-    from yoreni.session.manager import Session, SessionManager
-
 
 _GOAL_ACTIONS = ("complete", "cancel", "block", "replace")
 _CREATE_UNAVAILABLE_ERROR = (
@@ -47,55 +44,49 @@ _REPLACE_UNAVAILABLE_ERROR = (
 )
 
 
+@dataclass
+class _GoalTarget:
+    metadata: dict[str, Any]
+    revision: int
+
+
 def _iso_now() -> str:
     return datetime.now().isoformat()
 
 
 class _GoalToolsMixin:
-    """Shared routing context and session lookup."""
+    """Persist goals on the Agent with revision-checked writes."""
 
-    def __init__(
-        self,
-        sessions: SessionManager,
-        bus: MessageBus | None = None,
-    ) -> None:
-        self._sessions = sessions
+    def __init__(self, agent_store: AgentStore, bus: MessageBus | None = None) -> None:
         self._bus = bus
+        self._agent_store = agent_store
 
-    async def _session(self) -> Session | None:
-        request_ctx = current_request_context()
-        if request_ctx is None:
-            return None
-        key = request_ctx.session_key
-        if not key:
-            return None
-        return await self._sessions.state.get_header(key)
+    async def _target(self) -> _GoalTarget:
+        identity = await asyncio.to_thread(self._agent_store.identity)
+        return _GoalTarget(identity.state, identity.revision)
 
     def _goal_mutation_allowed(self) -> bool:
         return current_request_context() is not None and goal_mutation_allowed()
 
     async def _save_goal_state(
         self,
-        sess: Session,
+        target: _GoalTarget,
         blob: dict[str, Any],
         *,
-        reset_continuation: bool = False,
         revoke_permission: bool = False,
     ) -> None:
         saved = False
 
         async def save_and_publish() -> None:
             nonlocal saved
-            def change(metadata: dict[str, Any]) -> None:
-                metadata[GOAL_STATE_KEY] = deepcopy(blob)
-                discard_legacy_goal_state_key(metadata)
-                if reset_continuation:
-                    reset_goal_continuation_rounds(metadata)
-            _, sess.metadata = await self._sessions.state.mutate_metadata(
-                sess.key, change, expected_generation=sess.generation,
+            state = {**target.metadata, GOAL_STATE_KEY: deepcopy(blob)}
+            identity = await asyncio.to_thread(
+                self._agent_store.update, target.revision, state,
             )
+            target.metadata = identity.state
+            target.revision = identity.revision
             saved = True
-            await self._publish_goal_state_changed(sess.metadata)
+            await self._publish_goal_state_changed(target.metadata)
 
         try:
             await shield_and_drain(save_and_publish())
@@ -109,20 +100,11 @@ class _GoalToolsMixin:
         rc = current_request_context()
         if bus is None or rc is None:
             return
-        cid = (rc.chat_id or "").strip()
-        if not cid:
-            return
-        await bus.publish(
-            GoalStateChanged(
-                context=RuntimeEventContext(
-                    channel=rc.channel,
-                    chat_id=cid,
-                    session_key=rc.session_key or f"{rc.channel}:{cid}",
-                    metadata=dict(rc.metadata or {}),
-                ),
-                session_metadata=dict(metadata),
-            )
-        )
+        await bus.publish(GoalStateChanged(
+            agent_id=rc.agent_id or self._agent_store.identity().id,
+            run_id=rc.turn_id,
+            state=deepcopy(metadata),
+        ))
 
 
 @tool_parameters(
@@ -134,7 +116,7 @@ class _GoalToolsMixin:
             max_length=MAX_GOAL_OBJECTIVE_CHARS,
         ),
         ui_summary=StringSchema(
-            "One-line display label for session lists and logs; objective defines the goal.",
+            "One-line display label for the goal and logs; objective defines the goal.",
             max_length=120,
             nullable=True,
         ),
@@ -142,28 +124,24 @@ class _GoalToolsMixin:
     )
 )
 class CreateGoalTool(Tool, _GoalToolsMixin):
-    """Create one explicit sustained objective for the current session."""
+    """Create one explicit sustained objective for the Agent."""
 
     def __init__(
         self,
-        sessions: SessionManager,
+        agent_store: AgentStore,
         bus: MessageBus | None = None,
     ) -> None:
-        _GoalToolsMixin.__init__(self, sessions, bus)
+        _GoalToolsMixin.__init__(self, agent_store, bus)
 
     @classmethod
     def create(cls, ctx: ToolContext) -> Tool:
-        sess = ctx.sessions
-        if sess is None:
-            raise RuntimeError("CreateGoalTool requires an initialized session manager")
-        return cls(
-            sessions=sess,
-            bus=ctx.bus,
-        )
+        if ctx.agent_store is None:
+            raise RuntimeError("CreateGoalTool requires an AgentStore")
+        return cls(ctx.agent_store, ctx.bus)
 
     @classmethod
     def enabled(cls, ctx: ToolContext) -> bool:
-        return ctx.sessions is not None
+        return ctx.agent_store is not None
 
     @property
     def name(self) -> str:
@@ -172,7 +150,7 @@ class CreateGoalTool(Tool, _GoalToolsMixin):
     @property
     def description(self) -> str:
         return (
-            "Create one sustained goal for the current session only when Goal Runtime Guidance "
+            "Create one sustained goal for the Agent only when Goal Runtime Guidance "
             "asks you to record it. Do not retry after successful creation."
         )
 
@@ -183,12 +161,8 @@ class CreateGoalTool(Tool, _GoalToolsMixin):
         self,
         request: RequestContext,
     ) -> RuntimeContextBlock | None:
-        if not request.session_key or not request.persist_session:
-            return None
-        payload = await self._sessions.state.read_metadata(request.session_key)
-        if payload is None:
-            return None
-        metadata = payload["metadata"]
+        target = await self._target()
+        metadata = target.metadata
         goal_start_requested = explicit_goal_requested(request.metadata)
         goal_active = sustained_goal_active(metadata)
         if not goal_start_requested and not goal_active:
@@ -210,11 +184,7 @@ class CreateGoalTool(Tool, _GoalToolsMixin):
         ui_summary: str | None = None,
         **kwargs: Any,
     ) -> str:
-        sess = await self._session()
-        if sess is None:
-            return ToolResult.error(
-                "Error: create_goal requires an active chat session (missing routing context)."
-            )
+        sess = await self._target()
         if not self._goal_mutation_allowed():
             return ToolResult.error(_CREATE_UNAVAILABLE_ERROR)
         prior = parse_goal_state(goal_state_raw(sess.metadata))
@@ -238,7 +208,7 @@ class CreateGoalTool(Tool, _GoalToolsMixin):
             "ui_summary": summary,
             "started_at": _iso_now(),
         }
-        await self._save_goal_state(sess, blob, reset_continuation=True)
+        await self._save_goal_state(sess, blob)
         extra = f"\nSummary line: {summary}" if summary else ""
         return (
             "Goal recorded. Keep working toward the objective using ordinary tools. "
@@ -277,24 +247,20 @@ class UpdateGoalTool(Tool, _GoalToolsMixin):
 
     def __init__(
         self,
-        sessions: SessionManager,
+        agent_store: AgentStore,
         bus: MessageBus | None = None,
     ) -> None:
-        _GoalToolsMixin.__init__(self, sessions, bus)
+        _GoalToolsMixin.__init__(self, agent_store, bus)
 
     @classmethod
     def create(cls, ctx: ToolContext) -> Tool:
-        sess = ctx.sessions
-        if sess is None:
-            raise RuntimeError("UpdateGoalTool requires an initialized session manager")
-        return cls(
-            sessions=sess,
-            bus=ctx.bus,
-        )
+        if ctx.agent_store is None:
+            raise RuntimeError("UpdateGoalTool requires an AgentStore")
+        return cls(ctx.agent_store, ctx.bus)
 
     @classmethod
     def enabled(cls, ctx: ToolContext) -> bool:
-        return ctx.sessions is not None
+        return ctx.agent_store is not None
 
     @property
     def name(self) -> str:
@@ -317,9 +283,7 @@ class UpdateGoalTool(Tool, _GoalToolsMixin):
         ui_summary: str | None = None,
         **kwargs: Any,
     ) -> str:
-        sess = await self._session()
-        if sess is None:
-            return ToolResult.error("Error: update_goal requires an active chat session.")
+        sess = await self._target()
         prior = parse_goal_state(goal_state_raw(sess.metadata))
         if not isinstance(prior, dict) or prior.get("status") != "active":
             return "No active goal to update."
@@ -352,7 +316,7 @@ class UpdateGoalTool(Tool, _GoalToolsMixin):
                 "previous_objective": str(prior.get("objective") or ""),
                 "recap": (recap or "").strip(),
             }
-            await self._save_goal_state(sess, blob, reset_continuation=True)
+            await self._save_goal_state(sess, blob)
             extra = f"\nSummary line: {summary}" if summary else ""
             return "Goal replaced. Continue toward the new objective using ordinary tools." + extra
 

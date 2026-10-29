@@ -1,22 +1,20 @@
-"""Tests for the Yoreni programmatic facade."""
+"""SDK configuration and Agent/Event/Run execution contracts."""
 
 from __future__ import annotations
 
 import asyncio
 import json
+from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from yoreni.providers.base import LLMUsage
-from yoreni.runtime_context import (
-    RUNTIME_CONTEXT_HISTORY_META,
-    RuntimeContextBlock,
-    append_runtime_context,
-)
-from yoreni.utils.llm_runtime import runtime_from_provider_snapshot
+from yoreni.agent.hook import AgentHook
+from yoreni.agent.tools.base import Tool
+from yoreni.agent.tools.registry import ToolRegistry
+from yoreni.providers.base import LLMProvider, LLMResponse, LLMUsage, ToolCallRequest
 from yoreni.yoreni import (
     STREAM_EVENT_REASONING_COMPLETED,
     STREAM_EVENT_REASONING_DELTA,
@@ -29,12 +27,9 @@ from yoreni.yoreni import (
     STREAM_EVENT_TOOL_FAILED,
     STREAM_EVENT_TOOL_STARTED,
     STREAM_EVENT_TYPES,
+    AgentInput,
     RunResult,
     RunStream,
-    SessionInfo,
-    SessionSnapshot,
-    StreamEvent,
-    StreamEventType,
     Yoreni,
 )
 
@@ -62,13 +57,6 @@ def _fake_provider(name: str, *, max_tokens: int = 8192) -> MagicMock:
         reasoning_effort=None,
     )
     return provider
-
-
-async def _admit_fake_runtime(bot, session_key, callback, runtime=None) -> None:
-    admitted = runtime or (await bot._loop.runtime_for_session(
-        bot._loop.sessions.get_or_create(session_key)
-    ))
-    await callback(admitted)
 
 
 def test_from_config_missing_file():
@@ -102,7 +90,7 @@ def test_from_config_creates_instance(tmp_path):
     bot = Yoreni.from_config(config_path, workspace=workspace)
     assert bot._loop is not None
     assert bot._loop.workspace == workspace
-    assert bot._loop.sessions.sessions_dir.parent == config_path.parent / "sessions"
+    assert bot._loop.agent.store.identity().id
 
 
 def test_from_config_composes_configured_mcp_outside_agent_loop(tmp_path):
@@ -203,82 +191,6 @@ def test_from_config_default_path():
         mock_load.assert_called_once_with(None)
 
 
-@pytest.mark.asyncio
-async def test_run_returns_result(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    from yoreni.bus.events import OutboundMessage
-
-    mock_response = OutboundMessage(
-        channel="cli", chat_id="direct", content="Hello back!"
-    )
-    bot._loop.process_direct = AsyncMock(return_value=mock_response)
-
-    result = await bot.run("hi")
-
-    assert isinstance(result, RunResult)
-    assert result.content == "Hello back!"
-    bot._loop.process_direct.assert_awaited_once_with(
-        "hi",
-        session_key="sdk:default",
-        hooks=ANY,
-    )
-
-
-@pytest.mark.asyncio
-async def test_run_with_hooks(tmp_path):
-    from yoreni.agent.hook import AgentHook, AgentHookContext, SDKCaptureHook
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    class TestHook(AgentHook):
-        async def before_iteration(self, context: AgentHookContext) -> None:
-            pass
-
-    mock_response = OutboundMessage(
-        channel="cli", chat_id="direct", content="done"
-    )
-    bot._loop.process_direct = AsyncMock(return_value=mock_response)
-
-    result = await bot.run("hi", hooks=[TestHook()])
-
-    assert result.content == "done"
-    assert bot._loop._extra_hooks == []
-    hooks = bot._loop.process_direct.await_args.kwargs["hooks"]
-    assert len(hooks) == 2
-    assert isinstance(hooks[0], SDKCaptureHook)
-    assert isinstance(hooks[1], TestHook)
-
-
-@pytest.mark.asyncio
-async def test_run_hooks_restored_on_error(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    from yoreni.agent.hook import AgentHook
-
-    bot._loop.process_direct = AsyncMock(side_effect=RuntimeError("boom"))
-    original_hooks = bot._loop._extra_hooks
-
-    with pytest.raises(RuntimeError):
-        await bot.run("hi", hooks=[AgentHook()])
-
-    assert bot._loop._extra_hooks is original_hooks
-
-
-@pytest.mark.asyncio
-async def test_run_none_response(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    bot._loop.process_direct = AsyncMock(return_value=None)
-
-    result = await bot.run("hi")
-    assert result.content == ""
-
-
 def test_workspace_override(tmp_path):
     config_path = _write_config(tmp_path)
     custom_ws = tmp_path / "custom_workspace"
@@ -286,245 +198,6 @@ def test_workspace_override(tmp_path):
 
     bot = Yoreni.from_config(config_path, workspace=custom_ws)
     assert bot._loop.workspace == custom_ws
-
-
-@pytest.mark.asyncio
-async def test_run_custom_session_key(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    mock_response = OutboundMessage(
-        channel="cli", chat_id="direct", content="ok"
-    )
-    bot._loop.process_direct = AsyncMock(return_value=mock_response)
-
-    await bot.run("hi", session_key="user-alice")
-    bot._loop.process_direct.assert_awaited_once_with(
-        "hi",
-        session_key="user-alice",
-        hooks=ANY,
-    )
-
-
-@pytest.mark.parametrize("generation_kwargs", [{}, {"session_generation": "generation-1"}])
-def test_request_context_preserves_legacy_positional_arguments(tmp_path, generation_kwargs):
-    from yoreni.agent.tools.context import RequestContext
-
-    context = RequestContext(
-        "cli",
-        "direct",
-        "message-1",
-        "sdk:legacy",
-        "hello",
-        None,
-        {"trusted": True},
-        "alice",
-        "turn-1",
-        tmp_path,
-        {"source": "sdk"},
-        False,
-        **generation_kwargs,
-    )
-
-    assert context.original_user_text == "hello"
-    assert context.runtime is None
-    assert context.session_generation == generation_kwargs.get("session_generation")
-    assert context.metadata == {"trusted": True}
-    assert context.sender_id == "alice"
-    assert context.turn_id == "turn-1"
-    assert context.workspace == tmp_path
-    assert context.attributes == {"source": "sdk"}
-    assert context.log_content is False
-
-
-@pytest.mark.asyncio
-async def test_run_exposes_attributes_to_context_provider_without_persisting_them(tmp_path):
-    from yoreni.agent.loop import AgentLoop
-    from yoreni.agent.tools.context import RequestContext
-    from yoreni.bus.queue import MessageBus
-    from yoreni.providers.base import LLMResponse
-
-    provider = _fake_provider("test-model")
-    provider.chat_stream_with_retry = AsyncMock(return_value=LLMResponse(
-        content="done",
-        tool_calls=[],
-    ))
-    bot = Yoreni(AgentLoop(
-        bus=MessageBus(),
-        provider=provider,
-        workspace=tmp_path,
-        model="test-model",
-    ))
-    seen: list[RequestContext] = []
-
-    async def provide_context(context: RequestContext):
-        seen.append(context)
-        return None
-
-    unsubscribe = bot.runtime.add_context_provider(provide_context)
-    result = await bot.run(
-        "hi",
-        session_key="sdk:attributes",
-        attributes={"tenant": "acme"},
-    )
-
-    assert result.content == "done"
-    assert seen[0].attributes == {"tenant": "acme"}
-    assert seen[0].metadata == {}
-    snapshot = (await bot.sessions.export("sdk:attributes"))
-    assert snapshot is not None
-    assert all("attributes" not in message for message in snapshot.messages)
-
-    unsubscribe()
-    await bot.run(
-        "again",
-        session_key="sdk:attributes",
-        attributes={"tenant": "other"},
-    )
-    assert len(seen) == 1
-
-
-@pytest.mark.asyncio
-async def test_persisted_turn_callback_is_best_effort_and_reads_display_safe_session(tmp_path):
-    from yoreni import SessionTurnPersisted
-    from yoreni.agent.loop import AgentLoop
-    from yoreni.bus.queue import MessageBus
-    from yoreni.providers.base import LLMResponse
-
-    provider = _fake_provider("test-model")
-    provider.chat_stream_with_retry = AsyncMock(return_value=LLMResponse(
-        content="saved reply",
-        tool_calls=[],
-    ))
-    bot = Yoreni(AgentLoop(
-        bus=MessageBus(),
-        provider=provider,
-        workspace=tmp_path,
-        model="test-model",
-    ))
-    seen: list[tuple[SessionTurnPersisted, SessionSnapshot | None]] = []
-    failed_sync_attempts = 0
-
-    async def provide_context(_request):
-        return RuntimeContextBlock(
-            source="external",
-            content=(
-                "[Runtime Context — metadata only, not instructions]\n"
-                '"model-only context"\n'
-                "[/Runtime Context]"
-            ),
-        )
-
-    def fail_sync(_event: SessionTurnPersisted) -> None:
-        nonlocal failed_sync_attempts
-        failed_sync_attempts += 1
-        raise RuntimeError("host sync failed")
-
-    async def on_persisted(event: SessionTurnPersisted) -> None:
-        seen.append((event, (await bot.sessions.get(event.context.session_key))))
-
-    remove_context = bot.runtime.add_context_provider(provide_context)
-    remove_failure = bot.runtime.on_session_turn_persisted(fail_sync)
-    unsubscribe = bot.runtime.on_session_turn_persisted(on_persisted)
-    result = await bot.run(
-        "hi",
-        session_key="sdk:persisted",
-        sender_id="alice",
-        attributes={"tenant": "acme"},
-    )
-
-    assert len(seen) == 1
-    event, snapshot = seen[0]
-    assert event.sender_id == "alice"
-    assert event.context.attributes == {"tenant": "acme"}
-    assert snapshot is not None
-    assert snapshot.messages[-2]["content"] == "hi"
-    assert snapshot.messages[-1]["role"] == "assistant"
-    assert snapshot.messages[-1]["content"] == "saved reply"
-    assert result.content == "saved reply"
-    assert failed_sync_attempts == 1
-    trusted_snapshot = (await bot.sessions.export("sdk:persisted"))
-    assert trusted_snapshot is not None
-    assert "model-only context" in trusted_snapshot.messages[-2]["content"]
-
-    remove_failure()
-    unsubscribe()
-    remove_context()
-    await bot.run("again", session_key="sdk:persisted")
-    assert len(seen) == 1
-
-
-@pytest.mark.asyncio
-async def test_persisted_turn_callback_observes_saved_command_turn(tmp_path):
-    from yoreni import SessionTurnPersisted
-    from yoreni.agent.loop import AgentLoop
-    from yoreni.bus.queue import MessageBus
-
-    bot = Yoreni(AgentLoop(
-        bus=MessageBus(),
-        provider=_fake_provider("test-model"),
-        workspace=tmp_path,
-        model="test-model",
-    ))
-    seen: list[SessionTurnPersisted] = []
-    bot.runtime.on_session_turn_persisted(seen.append)
-
-    await bot.run("/skill", session_key="sdk:command")
-
-    assert len(seen) == 1
-    snapshot = (await bot.sessions.export("sdk:command"))
-    assert snapshot is not None
-    assert [message["role"] for message in snapshot.messages[-2:]] == [
-        "user",
-        "assistant",
-    ]
-
-
-@pytest.mark.asyncio
-async def test_ephemeral_run_does_not_invoke_persisted_turn_callback(tmp_path):
-    from yoreni import SessionTurnPersisted
-    from yoreni.agent.loop import AgentLoop
-    from yoreni.bus.queue import MessageBus
-    from yoreni.providers.base import LLMResponse
-
-    provider = _fake_provider("test-model")
-    provider.chat_stream_with_retry = AsyncMock(return_value=LLMResponse(
-        content="temporary",
-        tool_calls=[],
-    ))
-    bot = Yoreni(AgentLoop(
-        bus=MessageBus(),
-        provider=provider,
-        workspace=tmp_path,
-        model="test-model",
-    ))
-    seen: list[SessionTurnPersisted] = []
-    bot.runtime.on_session_turn_persisted(seen.append)
-
-    await bot.run("hi", session_key="sdk:ephemeral", ephemeral=True)
-
-    assert seen == []
-
-
-def test_import_from_top_level():
-    import yoreni
-
-    assert yoreni.Yoreni is Yoreni
-    assert yoreni.RequestContext.__name__ == "RequestContext"
-    assert yoreni.RuntimeContextBlock.__name__ == "RuntimeContextBlock"
-    assert yoreni.RuntimeContextProvider is not None
-    assert yoreni.SessionTurnPersisted.__name__ == "SessionTurnPersisted"
-    assert yoreni.RunResult is RunResult
-    assert yoreni.RunStream is RunStream
-    assert yoreni.SessionInfo is SessionInfo
-    assert yoreni.SessionSnapshot is SessionSnapshot
-    assert yoreni.StreamEvent is StreamEvent
-    assert yoreni.StreamEventType is StreamEventType
-    assert yoreni.STREAM_EVENT_TEXT_DELTA == STREAM_EVENT_TEXT_DELTA
-    assert yoreni.STREAM_EVENT_RUN_COMPLETED == STREAM_EVENT_RUN_COMPLETED
-    assert yoreni.STREAM_EVENT_TYPES == STREAM_EVENT_TYPES
 
 
 def test_stream_event_constants_are_stable():
@@ -553,854 +226,6 @@ def test_stream_event_constants_are_stable():
         "run.failed",
     )
     assert len(set(STREAM_EVENT_TYPES)) == len(STREAM_EVENT_TYPES)
-
-
-# ---------------------------------------------------------------------------
-# RunResult.tools_used / messages — populated from the agent iterations
-# ---------------------------------------------------------------------------
-
-@pytest.mark.asyncio
-async def test_run_populates_tools_used_across_iterations(tmp_path):
-    """tools_used collects every tool name fired across all iterations, in order."""
-    from yoreni.agent.hook import AgentHookContext
-    from yoreni.bus.events import OutboundMessage
-    from yoreni.providers.base import ToolCallRequest
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    async def fake_process_direct(message, *, session_key, hooks):
-        messages = [{"role": "user", "content": message}]
-        ctx1 = AgentHookContext(iteration=0, messages=messages)
-        ctx1.tool_calls = [
-            ToolCallRequest(id="c1", name="read_file", arguments={}),
-            ToolCallRequest(id="c2", name="grep", arguments={}),
-        ]
-        for h in hooks:
-            await h.after_iteration(ctx1)
-        messages.append({"role": "assistant", "content": "ok"})
-        ctx2 = AgentHookContext(iteration=1, messages=messages)
-        ctx2.tool_calls = [ToolCallRequest(id="c3", name="web_fetch", arguments={})]
-        for h in hooks:
-            await h.after_iteration(ctx2)
-        return OutboundMessage(channel="cli", chat_id="direct", content="final")
-
-    bot._loop.process_direct = fake_process_direct
-    result = await bot.run("do stuff")
-    assert result.content == "final"
-    assert result.tools_used == ["read_file", "grep", "web_fetch"]
-
-
-@pytest.mark.asyncio
-async def test_run_populates_final_messages(tmp_path):
-    """messages reflects the agent's message list at the last iteration."""
-    from yoreni.agent.hook import AgentHookContext
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    async def fake_process_direct(message, *, session_key, hooks):
-        messages = [
-            {"role": "user", "content": message},
-            {"role": "assistant", "content": "hi there"},
-        ]
-        ctx = AgentHookContext(iteration=0, messages=messages)
-        for h in hooks:
-            await h.after_iteration(ctx)
-        return OutboundMessage(channel="cli", chat_id="direct", content="hi there")
-
-    bot._loop.process_direct = fake_process_direct
-    result = await bot.run("hello")
-    assert result.messages == [
-        {"role": "user", "content": "hello"},
-        {"role": "assistant", "content": "hi there"},
-    ]
-
-
-@pytest.mark.asyncio
-async def test_run_no_iterations_leaves_defaults_empty(tmp_path):
-    """If process_direct never triggers after_iteration, tools_used/messages stay []."""
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    bot._loop.process_direct = AsyncMock(
-        return_value=OutboundMessage(channel="cli", chat_id="direct", content="noop"),
-    )
-    result = await bot.run("hi")
-    assert result.tools_used == []
-    assert result.messages == []
-    assert result.usage is None
-    assert result.stop_reason is None
-    assert result.error is None
-
-
-@pytest.mark.asyncio
-async def test_run_populates_observability_fields(tmp_path):
-    from yoreni.agent.hook import AgentRunHookContext
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    async def fake_process_direct(message, *, session_key, hooks):
-        ctx = AgentRunHookContext(
-            messages=[
-                {"role": "user", "content": message},
-                {"role": "assistant", "content": "done"},
-            ],
-            final_content="done",
-            tools_used=["read_file"],
-            usage=LLMUsage.reported(input_tokens=10, output_tokens=2),
-            stop_reason="completed",
-            error=None,
-            tool_events=[{"tool": "read_file", "status": "ok"}],
-        )
-        for h in hooks:
-            await h.after_run(ctx)
-        return OutboundMessage(
-            channel="cli",
-            chat_id="direct",
-            content="done",
-            metadata={"latency_ms": 42},
-        )
-
-    bot._loop.process_direct = fake_process_direct
-    result = await bot.run("work")
-
-    assert result.content == "done"
-    assert result.tools_used == ["read_file"]
-    assert result.usage == LLMUsage.reported(input_tokens=10, output_tokens=2)
-    assert result.stop_reason == "completed"
-    assert result.error is None
-    assert result.metadata == {"latency_ms": 42}
-
-
-@pytest.mark.asyncio
-async def test_run_ephemeral_still_captures_runner_observability(tmp_path):
-    from yoreni.agent.loop import AgentLoop
-    from yoreni.bus.queue import MessageBus
-    from yoreni.providers.base import LLMResponse
-
-    provider = MagicMock()
-    provider.get_default_model.return_value = "test-model"
-    provider.chat_stream_with_retry = AsyncMock(return_value=LLMResponse(
-        content="done",
-        tool_calls=[],
-        usage=LLMUsage.reported(input_tokens=3, output_tokens=0),
-    ))
-    bot = Yoreni(AgentLoop(
-        bus=MessageBus(),
-        provider=provider,
-        workspace=tmp_path,
-        model="test-model",
-    ))
-
-    result = await bot.run("hi", ephemeral=True)
-
-    assert result.content == "done"
-    assert result.usage == LLMUsage.reported(input_tokens=3, output_tokens=0)
-
-
-@pytest.mark.asyncio
-async def test_run_forwards_non_default_runtime_options(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    bot._loop.process_direct = AsyncMock(
-        return_value=OutboundMessage(channel="sdk", chat_id="chat-a", content="ok"),
-    )
-
-    await bot.run(
-        "hi",
-        session_key="sdk:chat-a",
-        channel="sdk",
-        chat_id="chat-a",
-        sender_id="alice",
-        media=["/tmp/image.png"],
-        ephemeral=True,
-    )
-
-    bot._loop.process_direct.assert_awaited_once_with(
-        "hi",
-        session_key="sdk:chat-a",
-        channel="sdk",
-        chat_id="chat-a",
-        sender_id="alice",
-        media=["/tmp/image.png"],
-        ephemeral=True,
-        _run_extra_hooks_for_ephemeral=True,
-        _session_policy=ANY,
-        hooks=ANY,
-    )
-
-
-@pytest.mark.asyncio
-async def test_run_allows_parallel_sessions_without_model_override(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    entered: list[str] = []
-    both_entered = asyncio.Event()
-
-    async def fake_process_direct(message, *, session_key, hooks):
-        entered.append(session_key)
-        if len(entered) == 2:
-            both_entered.set()
-        await asyncio.wait_for(both_entered.wait(), timeout=1)
-        return OutboundMessage(channel="cli", chat_id="direct", content=message)
-
-    bot._loop.process_direct = fake_process_direct
-
-    left, right = await asyncio.gather(
-        bot.run("left", session_key="sdk:left"),
-        bot.run("right", session_key="sdk:right"),
-    )
-
-    assert left.content == "left"
-    assert right.content == "right"
-    assert set(entered) == {"sdk:left", "sdk:right"}
-
-
-@pytest.mark.asyncio
-async def test_run_model_overrides_can_overlap_without_default_mutation(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-    from yoreni.providers.factory import ProviderSnapshot
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    original_runtime = bot._loop.runtime_resolver.runtime
-    active_runs: list[tuple[str, str]] = []
-    first_entered = asyncio.Event()
-    both_entered = asyncio.Event()
-    release_first = asyncio.Event()
-
-    def fake_resolve(*, model, model_preset, config):
-        assert model is not None
-        assert model_preset is None
-        assert config is bot._config
-        return runtime_from_provider_snapshot(ProviderSnapshot(
-            provider=_fake_provider(model, max_tokens=2048),
-            model=model,
-            context_window_tokens=4096,
-            signature=("sdk", model),
-        ))
-
-    bot._loop.runtime_resolver.resolve_override = MagicMock(side_effect=fake_resolve)
-
-    async def fake_process_direct(message, *, session_key, hooks, runtime):
-        active_runs.append((session_key, runtime.model))
-        assert bot._loop.runtime_resolver.runtime is original_runtime
-        if message == "first":
-            first_entered.set()
-        if len(active_runs) == 2:
-            both_entered.set()
-        await asyncio.wait_for(release_first.wait(), timeout=1)
-        return OutboundMessage(channel="cli", chat_id="direct", content=message)
-
-    bot._loop.process_direct = fake_process_direct
-
-    first = asyncio.create_task(bot.run(
-        "first",
-        session_key="sdk:first",
-        model="model:first",
-    ))
-    await asyncio.wait_for(first_entered.wait(), timeout=1)
-
-    second = asyncio.create_task(bot.run(
-        "second",
-        session_key="sdk:second",
-        model="model:second",
-    ))
-    await asyncio.wait_for(both_entered.wait(), timeout=1)
-    assert not first.done()
-    assert not second.done()
-
-    release_first.set()
-    first_result, second_result = await asyncio.gather(first, second)
-
-    assert first_result.content == "first"
-    assert second_result.content == "second"
-    assert set(active_runs) == {
-        ("sdk:first", "model:first"),
-        ("sdk:second", "model:second"),
-    }
-    assert bot._loop.runtime_resolver.runtime is original_runtime
-
-
-@pytest.mark.asyncio
-async def test_run_model_override_is_per_run_without_default_mutation(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-    from yoreni.providers.factory import ProviderSnapshot
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    original_runtime = bot._loop.runtime_resolver.runtime
-    override_provider = _fake_provider("override-provider", max_tokens=2048)
-    override = ProviderSnapshot(
-        provider=override_provider,
-        model="openai/gpt-4.1-mini",
-        context_window_tokens=4096,
-        signature=("sdk", "override"),
-    )
-    override_runtime = runtime_from_provider_snapshot(override)
-    bot._loop.runtime_resolver.resolve_override = MagicMock(
-        return_value=override_runtime
-    )
-
-    async def fake_process_direct(message, *, session_key, hooks, runtime):
-        assert runtime is override_runtime
-        assert runtime.model == "openai/gpt-4.1-mini"
-        assert runtime.context_window_tokens == 4096
-        assert bot._loop.runtime_resolver.runtime is original_runtime
-        return OutboundMessage(channel="cli", chat_id="direct", content="ok")
-
-    bot._loop.process_direct = fake_process_direct
-
-    result = await bot.run("hi", model="openai/gpt-4.1-mini")
-
-    assert result.content == "ok"
-    bot._loop.runtime_resolver.resolve_override.assert_called_once_with(
-        model="openai/gpt-4.1-mini",
-        model_preset=None,
-        config=bot._config,
-    )
-    assert bot._loop.runtime_resolver.runtime is original_runtime
-
-
-@pytest.mark.asyncio
-async def test_run_model_preset_override_is_per_run(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-    from yoreni.providers.factory import ProviderSnapshot
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    original_runtime = bot._loop.runtime_resolver.runtime
-    override_provider = _fake_provider("preset-provider", max_tokens=1024)
-    override = ProviderSnapshot(
-        provider=override_provider,
-        model="openai/gpt-4.1-mini",
-        context_window_tokens=2048,
-        signature=("preset", "fast"),
-        model_preset="fast",
-    )
-    override_runtime = runtime_from_provider_snapshot(override)
-    bot._loop.runtime_resolver.resolve_override = MagicMock(
-        return_value=override_runtime
-    )
-
-    async def fake_process_direct(message, *, session_key, hooks, runtime):
-        assert runtime is override_runtime
-        return OutboundMessage(channel="cli", chat_id="direct", content="ok")
-
-    bot._loop.process_direct = fake_process_direct
-
-    await bot.run("hi", model_preset="fast")
-
-    bot._loop.runtime_resolver.resolve_override.assert_called_once_with(
-        model=None,
-        model_preset="fast",
-        config=bot._config,
-    )
-    assert bot._loop.runtime_resolver.runtime is original_runtime
-    assert bot._loop.model_preset is None
-
-
-@pytest.mark.asyncio
-async def test_run_rejects_multiple_model_selectors(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    with pytest.raises(ValueError, match="mutually exclusive"):
-        await bot.run("hi", model="openai/gpt-4.1", model_preset="fast")
-
-
-@pytest.mark.asyncio
-async def test_run_user_hooks_still_fire_alongside_capture(tmp_path):
-    """Capture hook must not displace user-provided hooks."""
-    from yoreni.agent.hook import AgentHook, AgentHookContext
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    seen_iterations: list[int] = []
-
-    class UserHook(AgentHook):
-        async def after_iteration(self, context: AgentHookContext) -> None:
-            seen_iterations.append(context.iteration)
-
-    async def fake_process_direct(message, *, session_key, hooks):
-        assert len(hooks) == 2, f"expected capture + user hook, got {len(hooks)}"
-        ctx = AgentHookContext(iteration=7, messages=[])
-        for h in hooks:
-            await h.after_iteration(ctx)
-        return OutboundMessage(channel="cli", chat_id="direct", content="ok")
-
-    bot._loop.process_direct = fake_process_direct
-    await bot.run("x", hooks=[UserHook()])
-    assert seen_iterations == [7]
-
-
-@pytest.mark.asyncio
-async def test_concurrent_run_hooks_are_isolated_per_call(tmp_path):
-    from yoreni.agent.hook import AgentHook, AgentHookContext
-    from yoreni.bus.events import OutboundMessage
-    from yoreni.providers.base import ToolCallRequest
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    seen_by_hook: dict[str, list[str]] = {"alpha": [], "beta": []}
-
-    class UserHook(AgentHook):
-        def __init__(self, name: str) -> None:
-            self.name = name
-
-        async def after_iteration(self, context: AgentHookContext) -> None:
-            seen_by_hook[self.name].append(context.messages[0]["content"])
-
-    started = 0
-    both_started = asyncio.Event()
-
-    async def fake_process_direct(message, *, session_key, hooks=None):
-        nonlocal started
-        started += 1
-        if started == 2:
-            both_started.set()
-        await both_started.wait()
-
-        active_hooks = hooks or []
-        messages = [{"role": "user", "content": message}]
-        ctx = AgentHookContext(iteration=0, messages=messages)
-        ctx.tool_calls = [
-            ToolCallRequest(id=f"call-{message}", name=f"tool_{message}", arguments={})
-        ]
-        for h in active_hooks:
-            await h.after_iteration(ctx)
-        return OutboundMessage(channel="cli", chat_id="direct", content=f"done {message}")
-
-    bot._loop.process_direct = fake_process_direct
-
-    alpha, beta = await asyncio.gather(
-        bot.run("alpha", hooks=[UserHook("alpha")]),
-        bot.run("beta", hooks=[UserHook("beta")]),
-    )
-
-    assert alpha.content == "done alpha"
-    assert beta.content == "done beta"
-    assert alpha.tools_used == ["tool_alpha"]
-    assert beta.tools_used == ["tool_beta"]
-    assert seen_by_hook == {"alpha": ["alpha"], "beta": ["beta"]}
-
-
-@pytest.mark.asyncio
-async def test_run_restores_extra_hooks_even_on_populated_iterations(tmp_path):
-    """Previously-installed _extra_hooks must be restored regardless of capture state."""
-    from yoreni.agent.hook import AgentHook, AgentHookContext
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    sentinel_hook = AgentHook()
-    bot._loop._extra_hooks = [sentinel_hook]
-
-    async def fake_process_direct(message, *, session_key, hooks):
-        ctx = AgentHookContext(iteration=0, messages=[])
-        for h in [*bot._loop._extra_hooks, *hooks]:
-            await h.after_iteration(ctx)
-        return OutboundMessage(channel="cli", chat_id="direct", content="done")
-
-    bot._loop.process_direct = fake_process_direct
-    await bot.run("hello")
-    assert bot._loop._extra_hooks == [sentinel_hook]
-
-
-@pytest.mark.asyncio
-async def test_stream_yields_text_events_in_order(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    async def fake_process_direct(
-        message, *, session_key, on_stream, on_stream_end, hooks, on_runtime_admitted,
-        runtime=None
-    ):
-        assert message == "hi"
-        assert session_key == "sdk:default"
-        await _admit_fake_runtime(bot, session_key, on_runtime_admitted, runtime)
-        await on_stream("Hel")
-        await on_stream("lo")
-        await on_stream_end(resuming=False)
-        return OutboundMessage(channel="cli", chat_id="direct", content="Hello")
-
-    bot._loop.process_direct = fake_process_direct
-
-    events = [event async for event in bot.stream("hi")]
-
-    assert all(event.type in STREAM_EVENT_TYPES for event in events)
-    assert [event.type for event in events] == [
-        "run.started",
-        "text.delta",
-        "text.delta",
-        "text.completed",
-        "run.completed",
-    ]
-    assert events[1].delta == "Hel"
-    assert events[2].delta == "lo"
-    assert events[3].content == "Hello"
-    assert events[4].result is not None
-    assert events[4].result.content == "Hello"
-
-
-@pytest.mark.asyncio
-async def test_run_streamed_wait_returns_full_result_without_consuming_events(tmp_path):
-    from yoreni.agent.hook import AgentRunHookContext
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    async def fake_process_direct(
-        message, *, session_key, on_stream, on_stream_end, hooks, on_runtime_admitted,
-        runtime=None
-    ):
-        await _admit_fake_runtime(bot, session_key, on_runtime_admitted, runtime)
-        await on_stream("done")
-        await on_stream_end(resuming=False)
-        ctx = AgentRunHookContext(
-            messages=[
-                {"role": "user", "content": message},
-                {"role": "assistant", "content": "done"},
-            ],
-            final_content="done",
-            tools_used=["read_file"],
-            usage=LLMUsage.reported(input_tokens=9, output_tokens=0),
-            stop_reason="completed",
-        )
-        for hook in hooks:
-            await hook.after_run(ctx)
-        return OutboundMessage(
-            channel="cli",
-            chat_id="direct",
-            content="done",
-            metadata={"latency_ms": 5},
-        )
-
-    bot._loop.process_direct = fake_process_direct
-
-    run = await bot.run_streamed("work")
-    assert isinstance(run, RunStream)
-    result = await run.wait()
-
-    assert result.content == "done"
-    assert result.tools_used == ["read_file"]
-    assert result.usage == LLMUsage.reported(input_tokens=9, output_tokens=0)
-    assert result.stop_reason == "completed"
-    assert result.metadata == {"latency_ms": 5}
-
-
-@pytest.mark.asyncio
-async def test_run_streamed_cancel_releases_full_queue_without_consuming(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    async def fake_process_direct(
-        message, *, session_key, on_stream, on_stream_end, hooks, on_runtime_admitted,
-        runtime=None
-    ):
-        await _admit_fake_runtime(bot, session_key, on_runtime_admitted, runtime)
-        for i in range(400):
-            await on_stream(str(i))
-        await on_stream_end(resuming=False)
-        return OutboundMessage(channel="cli", chat_id="direct", content="done")
-
-    bot._loop.process_direct = fake_process_direct
-
-    run = await bot.run_streamed("many")
-    await asyncio.sleep(0.05)
-    assert not run.done
-
-    await asyncio.wait_for(run.cancel(), timeout=1)
-    assert run.done
-
-
-@pytest.mark.asyncio
-async def test_run_streamed_text_returns_final_content(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    bot._loop.process_direct = AsyncMock(
-        return_value=OutboundMessage(channel="cli", chat_id="direct", content="plain text"),
-    )
-
-    run = await bot.run_streamed("hi")
-
-    assert await run.text() == "plain text"
-
-
-@pytest.mark.asyncio
-async def test_run_streamed_forwards_runtime_options(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    bot._loop.process_direct = AsyncMock(
-        return_value=OutboundMessage(channel="sdk", chat_id="chat-a", content="ok"),
-    )
-
-    run = await bot.run_streamed(
-        "hi",
-        session_key="sdk:chat-a",
-        channel="sdk",
-        chat_id="chat-a",
-        sender_id="alice",
-        media=["/tmp/image.png"],
-        ephemeral=True,
-        attributes={"tenant": "acme"},
-    )
-    await run.wait()
-
-    bot._loop.process_direct.assert_awaited_once()
-    args, kwargs = bot._loop.process_direct.call_args
-    assert args == ("hi",)
-    assert kwargs["session_key"] == "sdk:chat-a"
-    assert kwargs["channel"] == "sdk"
-    assert kwargs["chat_id"] == "chat-a"
-    assert kwargs["sender_id"] == "alice"
-    assert kwargs["media"] == ["/tmp/image.png"]
-    assert kwargs["ephemeral"] is True
-    assert kwargs["attributes"] == {"tenant": "acme"}
-    assert callable(kwargs["on_stream"])
-    assert callable(kwargs["on_stream_end"])
-    assert kwargs["hooks"]
-    assert "runtime" not in kwargs
-    assert callable(kwargs["on_runtime_admitted"])
-
-
-@pytest.mark.asyncio
-async def test_run_streamed_model_override_reports_admitted_runtime(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-    from yoreni.providers.factory import ProviderSnapshot
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    original_runtime = bot._loop.runtime_resolver.runtime
-    override_provider = _fake_provider("stream-provider", max_tokens=2048)
-    override = ProviderSnapshot(
-        provider=override_provider,
-        model="openai/gpt-4.1-mini",
-        context_window_tokens=4096,
-        signature=("sdk", "stream"),
-    )
-    override_runtime = runtime_from_provider_snapshot(override)
-    bot._loop.runtime_resolver.resolve_override = MagicMock(
-        return_value=override_runtime
-    )
-
-    async def fake_process_direct(
-        message,
-        *,
-        session_key,
-        on_stream,
-        on_stream_end,
-        hooks,
-        on_runtime_admitted,
-        runtime,
-    ):
-        assert runtime is override_runtime
-        assert bot._loop.runtime_resolver.runtime is original_runtime
-        await on_runtime_admitted(runtime)
-        await on_stream("ok")
-        await on_stream_end(resuming=False)
-        return OutboundMessage(channel="cli", chat_id="direct", content="ok")
-
-    bot._loop.process_direct = fake_process_direct
-
-    run = await bot.run_streamed("hi", model="openai/gpt-4.1-mini")
-    events = [event async for event in run.stream_events()]
-    result = await run.wait()
-
-    assert result.content == "ok"
-    assert events[0].type == "run.started"
-    assert events[0].metadata["model"] == "openai/gpt-4.1-mini"
-    assert events[0].metadata["model_preset"] is None
-    assert bot._loop.runtime_resolver.runtime is original_runtime
-
-
-@pytest.mark.asyncio
-async def test_stream_rejects_multiple_model_selectors(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    with pytest.raises(ValueError, match="mutually exclusive"):
-        _ = [event async for event in bot.stream(
-            "hi",
-            model="openai/gpt-4.1",
-            model_preset="fast",
-        )]
-
-
-@pytest.mark.asyncio
-async def test_run_streamed_emits_tool_events(tmp_path):
-    from yoreni.agent.hook import AgentHookContext
-    from yoreni.bus.events import OutboundMessage
-    from yoreni.providers.base import ToolCallRequest
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    async def fake_process_direct(
-        message, *, session_key, on_stream, on_stream_end, hooks, on_runtime_admitted,
-        runtime=None
-    ):
-        await _admit_fake_runtime(bot, session_key, on_runtime_admitted, runtime)
-        calls = [
-            ToolCallRequest(id="call_ok", name="read_file", arguments={"path": "README.md"}),
-            ToolCallRequest(id="call_bad", name="exec", arguments={"cmd": "false"}),
-        ]
-        ctx = AgentHookContext(iteration=2, messages=[{"role": "user", "content": message}])
-        ctx.tool_calls = calls
-        for hook in hooks:
-            await hook.before_execute_tools(ctx)
-        ctx.tool_events = [
-            {"name": "read_file", "status": "ok", "detail": "README.md"},
-            {"name": "exec", "status": "error", "detail": "exit 1"},
-        ]
-        for hook in hooks:
-            await hook.after_iteration(ctx)
-        return OutboundMessage(channel="cli", chat_id="direct", content="done")
-
-    bot._loop.process_direct = fake_process_direct
-
-    run = await bot.run_streamed("inspect")
-    events = [event async for event in run.stream_events()]
-    await run.wait()
-
-    assert [event.type for event in events] == [
-        "run.started",
-        "tool.started",
-        "tool.started",
-        "tool.completed",
-        "tool.failed",
-        "run.completed",
-    ]
-    assert events[1].name == "read_file"
-    assert events[1].tool_call_id == "call_ok"
-    assert events[1].arguments == {"path": "README.md"}
-    assert events[3].metadata["status"] == "ok"
-    assert events[4].name == "exec"
-    assert events[4].error == "exit 1"
-
-
-@pytest.mark.asyncio
-async def test_run_streamed_emits_reasoning_events(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    async def fake_process_direct(
-        message, *, session_key, on_stream, on_stream_end, hooks, on_runtime_admitted,
-        runtime=None
-    ):
-        await _admit_fake_runtime(bot, session_key, on_runtime_admitted, runtime)
-        for hook in hooks:
-            await hook.emit_reasoning("thinking")
-            await hook.emit_reasoning_end()
-        return OutboundMessage(channel="cli", chat_id="direct", content="done")
-
-    bot._loop.process_direct = fake_process_direct
-
-    events = [event async for event in bot.stream("think")]
-
-    assert [event.type for event in events] == [
-        "run.started",
-        "reasoning.delta",
-        "reasoning.completed",
-        "run.completed",
-    ]
-    assert events[1].delta == "thinking"
-
-
-@pytest.mark.asyncio
-async def test_stream_generator_break_cancels_underlying_run(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    cancelled = asyncio.Event()
-
-    async def fake_process_direct(
-        message, *, session_key, on_stream, on_stream_end, hooks, on_runtime_admitted,
-        runtime=None
-    ):
-        await _admit_fake_runtime(bot, session_key, on_runtime_admitted, runtime)
-        try:
-            await on_stream("first")
-            await asyncio.sleep(10)
-        finally:
-            cancelled.set()
-        return OutboundMessage(channel="cli", chat_id="direct", content="done")
-
-    bot._loop.process_direct = fake_process_direct
-
-    async for event in bot.stream("stop early"):
-        if event.type == STREAM_EVENT_TEXT_DELTA:
-            break
-
-    await asyncio.wait_for(cancelled.wait(), timeout=1)
-
-
-@pytest.mark.asyncio
-async def test_run_streamed_restores_hooks_and_reports_failure(tmp_path):
-    from yoreni.agent.hook import AgentHook
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    sentinel_hook = AgentHook()
-    bot._loop._extra_hooks = [sentinel_hook]
-
-    async def fake_process_direct(message, **kwargs):
-        raise RuntimeError("boom")
-
-    bot._loop.process_direct = fake_process_direct
-
-    run = await bot.run_streamed("fail")
-    events = [event async for event in run.stream_events()]
-
-    assert [event.type for event in events] == ["run.started", "run.failed"]
-    assert events[1].error == "boom"
-    with pytest.raises(RuntimeError, match="boom"):
-        await run.wait()
-    assert bot._loop._extra_hooks == [sentinel_hook]
-
-
-@pytest.mark.asyncio
-async def test_run_streamed_stream_events_is_single_consumer(tmp_path):
-    from yoreni.bus.events import OutboundMessage
-
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    bot._loop.process_direct = AsyncMock(
-        return_value=OutboundMessage(channel="cli", chat_id="direct", content="done"),
-    )
-
-    run = await bot.run_streamed("hi")
-    events = [event async for event in run.stream_events()]
-    assert [event.type for event in events] == ["run.started", "run.completed"]
-    await run.wait()
-
-    with pytest.raises(RuntimeError, match="only be consumed once"):
-        _ = [event async for event in run.stream_events()]
 
 
 @pytest.mark.asyncio
@@ -1432,317 +257,6 @@ async def test_sdk_capture_prefers_run_level_snapshot():
     assert hook.messages == final_messages
     assert hook.usage == LLMUsage.reported(input_tokens=3, output_tokens=0)
     assert hook.stop_reason == "completed"
-
-
-@pytest.mark.asyncio
-async def test_sessions_ingest_imports_transcript_without_running_model(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    bot._loop.process_direct = AsyncMock()
-
-    snapshot = await bot.sessions.ingest(
-        "sdk:history",
-        [
-            {
-                "role": "user",
-                "content": "I graduated with a Business Administration degree.",
-                "timestamp": "2023/05/30 (Tue) 17:27",
-                "source_session_id": "answer_1",
-            },
-            {
-                "role": "assistant",
-                "content": "Congratulations on your degree.",
-                "timestamp": "2023/05/30 (Tue) 17:27",
-                "source": "original-source",
-            },
-        ],
-        metadata={"title": "LongMemEval case"},
-        source="longmemeval",
-    )
-
-    assert isinstance(snapshot, SessionSnapshot)
-    assert snapshot.key == "sdk:history"
-    assert snapshot.metadata["title"] == "LongMemEval case"
-    assert snapshot.messages[0]["role"] == "user"
-    assert snapshot.messages[0]["timestamp"] == "2023/05/30 (Tue) 17:27"
-    assert snapshot.messages[0]["source_session_id"] == "answer_1"
-    assert snapshot.messages[0]["source"] == "longmemeval"
-    assert snapshot.messages[1]["source"] == "original-source"
-    bot._loop.process_direct.assert_not_called()
-
-    reloaded = (await bot.sessions.get("sdk:history"))
-    assert reloaded is not None
-    assert reloaded.messages == snapshot.messages
-
-    await bot.aclose()
-    async with Yoreni.from_config(config_path, workspace=tmp_path) as restarted:
-        assert await restarted.sessions.export("sdk:history") == snapshot
-
-
-@pytest.mark.asyncio
-async def test_sessions_ingest_detaches_inputs_and_is_immediately_durable(tmp_path):
-    config_path = _write_config(tmp_path)
-    metadata = {"import": {"dataset": "original"}}
-    messages = [{
-        "role": " user ",
-        "content": [{"type": "text", "text": "hello"}],
-        "import_info": {"index": 1},
-    }]
-    async with Yoreni.from_config(config_path, workspace=tmp_path) as bot:
-        snapshot = await bot.sessions.ingest(
-            "sdk:imported", iter(messages), metadata=metadata,
-        )
-        metadata["import"]["dataset"] = "changed"
-        messages[0]["content"][0]["text"] = "changed"
-        messages[0]["import_info"]["index"] = 2
-
-        assert snapshot.metadata == {"import": {"dataset": "original"}}
-        assert snapshot.messages[0]["role"] == "user"
-        assert snapshot.messages[0]["content"] == [{"type": "text", "text": "hello"}]
-        assert snapshot.messages[0]["import_info"] == {"index": 1}
-        assert await bot.sessions.get("sdk:imported") == snapshot
-        async with Yoreni.from_config(config_path, workspace=tmp_path) as reader:
-            assert await reader.sessions.export("sdk:imported") == snapshot
-
-    async with Yoreni.from_config(config_path, workspace=tmp_path) as restarted:
-        assert await restarted.sessions.export("sdk:imported") == snapshot
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("existing", [False, True], ids=["new-session", "existing-session"])
-@pytest.mark.parametrize("invalid_message", [
-    pytest.param({"role": "developer", "content": "invalid role"}, id="role"),
-    pytest.param({"role": "assistant"}, id="content"),
-])
-async def test_sessions_ingest_rejects_batch_without_session_changes(
-    tmp_path, existing, invalid_message,
-):
-    config_path = _write_config(tmp_path)
-    key = "sdk:rejected"
-    async with Yoreni.from_config(config_path, workspace=tmp_path) as bot:
-        if existing:
-            await bot.sessions.ingest(
-                key, [{"role": "user", "content": "original history"}],
-                metadata={"title": "Original", "import": {"dataset": "original"}},
-            )
-        before = await bot.sessions.export(key)
-
-        with pytest.raises(ValueError, match="role|content"):
-            await bot.sessions.ingest(
-                key,
-                iter([{"role": "user", "content": "valid first message"}, invalid_message]),
-                metadata={"title": "Changed", "new_field": "must not leak"},
-            )
-
-        assert await bot.sessions.get(key) == before
-        assert await bot.sessions.export(key) == before
-
-    async with Yoreni.from_config(config_path, workspace=tmp_path) as restarted:
-        assert await restarted.sessions.export(key) == before
-
-
-@pytest.mark.asyncio
-async def test_sessions_ingest_preserves_full_transcript(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    snapshot = await bot.sessions.ingest(
-        "sdk:overflow",
-        [
-            {"role": "user", "content": f"message-{index}"}
-            for index in range(2_001)
-        ],
-    )
-
-    assert len(snapshot.messages) == 2_001
-    assert snapshot.messages[0]["content"] == "message-0"
-    assert snapshot.messages[-1]["content"] == "message-2000"
-    assert bot.memory.read_history(session_key="sdk:overflow") == []
-
-
-@pytest.mark.asyncio
-async def test_sessions_ingest_validates_message_shape(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    with pytest.raises(ValueError, match="role"):
-        await bot.sessions.ingest("sdk:bad", [{"content": "missing role"}])
-
-    with pytest.raises(ValueError, match="unsupported message role"):
-        await bot.sessions.ingest("sdk:bad", [{"role": "developer", "content": "nope"}])
-
-
-@pytest.mark.asyncio
-async def test_session_helpers_get_list_export_clear_delete_flush(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    await bot.sessions.ingest("sdk:first", [{"role": "user", "content": "hello"}])
-
-    listed = (await bot.sessions.list())
-    assert listed
-    assert isinstance(listed[0], SessionInfo)
-    assert {row.key for row in listed} == {"sdk:first"}
-
-    exported = (await bot.sessions.export("sdk:first"))
-    assert exported is not None
-    exported.messages[0]["content"] = "mutated copy"
-    assert (await bot.sessions.get("sdk:first")).messages[0]["content"] == "hello"
-
-    state_before_clear = bot._loop._file_state_store.for_session("sdk:first")
-    cleared = (await bot.sessions.clear("sdk:first"))
-    assert cleared.messages == []
-    state_after_clear = bot._loop._file_state_store.for_session("sdk:first")
-    assert state_after_clear is not state_before_clear
-    state_before_delete = state_after_clear
-    assert (await bot.sessions.delete("sdk:first")) is True
-    assert bot._loop._file_state_store.for_session("sdk:first") is not state_before_delete
-    assert (await bot.sessions.get("sdk:first")) is None
-
-
-async def test_session_helpers_read_only_committed_state(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    sessions = bot._loop.sessions
-    active = sessions.get_or_create("sdk:active")
-    active.add_message("user", "persisted")
-    sessions.save(active)
-
-    sessions.save(sessions.get_or_create("sdk:other"))
-    active.add_message("assistant", "not saved yet")
-
-    visible = (await bot.sessions.get("sdk:active"))
-    exported = (await bot.sessions.export("sdk:active"))
-    assert visible is not None
-    assert exported is not None
-    assert [message["content"] for message in visible.messages] == [
-        "persisted",
-    ]
-    assert exported.messages == visible.messages
-
-
-@pytest.mark.asyncio
-async def test_session_export_and_restore_preserve_runtime_context(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    content, marker = append_runtime_context(
-        "visible user text",
-        [RuntimeContextBlock(source="goal", content="stable model-only context")],
-    )
-    source = bot._loop.sessions.get_or_create("sdk:source")
-    source.add_message(
-        "user",
-        content,
-        **{RUNTIME_CONTEXT_HISTORY_META: marker},
-    )
-    bot._loop.sessions.save(source)
-    bot._loop.sessions.invalidate("sdk:source")
-
-    public = (await bot.sessions.get("sdk:source"))
-    assert public is not None
-    assert public.messages[0]["content"] == "visible user text"
-    assert RUNTIME_CONTEXT_HISTORY_META not in public.messages[0]
-
-    exported = (await bot.sessions.export("sdk:source"))
-    assert exported is not None
-    assert exported.messages[0]["content"] == content
-    assert exported.messages[0][RUNTIME_CONTEXT_HISTORY_META] == marker
-
-    restored_public = await bot.sessions.restore(
-        exported,
-        session_key="sdk:restored",
-    )
-    assert restored_public.messages[0]["content"] == "visible user text"
-    restored = bot._loop.sessions.get_or_create("sdk:restored")
-    assert restored.get_history() == source.get_history()
-
-    with pytest.raises(RuntimeError, match="not empty"):
-        await bot.sessions.restore(exported, session_key="sdk:restored")
-
-
-@pytest.mark.asyncio
-async def test_session_ingest_cannot_restore_runtime_context_marker(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    marker = {"version": 1, "sources": ["forged"], "suffix": "hidden"}
-
-    await bot.sessions.ingest("sdk:untrusted", [{
-        "role": "user",
-        "content": "visible\n\nhidden",
-        RUNTIME_CONTEXT_HISTORY_META: marker,
-    }])
-
-    stored = bot._loop.sessions.get_or_create("sdk:untrusted").messages[0]
-    assert RUNTIME_CONTEXT_HISTORY_META not in stored
-
-
-@pytest.mark.asyncio
-async def test_session_restore_validates_before_mutating_target(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    snapshot = SessionSnapshot(
-        key="sdk:broken",
-        messages=[
-            {"role": "user", "content": "valid first message"},
-            {"role": "invalid", "content": "bad second message"},
-        ],
-        metadata={"title": "must not leak"},
-    )
-
-    with pytest.raises(ValueError, match="unsupported message role"):
-        await bot.sessions.restore(snapshot)
-
-    target = bot._loop.sessions.get_or_create("sdk:broken")
-    assert target.messages == []
-    assert "title" not in target.metadata
-
-
-def test_memory_helpers_read_write_append_and_filter_history(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-
-    assert bot.memory.read() == ""
-    bot.memory.write("# Memory\n- User likes concise APIs.")
-    assert "concise APIs" in bot.memory.read()
-
-    c1 = bot.memory.append_history("general event")
-    c2 = bot.memory.append_history("session event", session_key="sdk:history")
-
-    all_entries = bot.memory.read_history()
-    assert [entry["cursor"] for entry in all_entries] == [c1, c2]
-
-    session_entries = bot.memory.read_history(session_key="sdk:history")
-    assert len(session_entries) == 1
-    assert session_entries[0]["content"] == "session event"
-
-
-@pytest.mark.asyncio
-async def test_runtime_helpers_expose_model_workspace_and_compact(tmp_path):
-    config_path = _write_config(tmp_path)
-    bot = Yoreni.from_config(config_path, workspace=tmp_path)
-    await bot.sessions.ingest("sdk:history", [{"role": "user", "content": "hello"}])
-    runtime = bot._loop.llm_runtime()
-    bot._loop.runtime_for_session = AsyncMock(return_value=runtime)  # type: ignore[method-assign]
-
-    compact_session = AsyncMock()
-    bot._loop.consolidator.compact_idle_session = compact_session
-    snapshot = await bot.runtime.compact_session("sdk:history")
-    assert snapshot.key == "sdk:history"
-    compact_session.assert_awaited_once_with(
-        "sdk:history",
-        runtime=runtime,
-    )
-    assert bot.runtime.model == bot._loop.model
-    assert bot.runtime.workspace == tmp_path
-
-    bot._loop.consolidator.compact_idle_session = AsyncMock(return_value="Summary.")
-    summary = await bot.runtime.compact_idle_session("sdk:history", max_suffix=4)
-    assert summary == "Summary."
-    bot._loop.consolidator.compact_idle_session.assert_awaited_once_with(
-        "sdk:history",
-        runtime=runtime,
-        max_suffix=4,
-    )
 
 
 @pytest.mark.asyncio
@@ -1783,3 +297,210 @@ async def test_context_manager_does_not_swallow_exceptions(tmp_path):
             raise ValueError("boom")
 
     bot._loop.aclose.assert_awaited_once()
+
+
+
+class OfflineProvider(LLMProvider):
+    def __init__(self):
+        super().__init__(provider_name="offline-sdk")
+        self.calls = []
+        self.entered = asyncio.Event()
+        self.release = asyncio.Event()
+
+    def get_default_model(self):
+        return "offline-sdk"
+
+    async def chat(self, messages, **kwargs):
+        self.calls.append(deepcopy(messages))
+        if str(messages[-1]["content"]).startswith("wait"):
+            self.entered.set()
+            await self.release.wait()
+        if str(messages[-1]["content"]).startswith("use tool"):
+            return LLMResponse(content=None, tool_calls=[ToolCallRequest("echo-1", "echo", {"text": "observed"})])
+        return LLMResponse(content="done", usage=LLMUsage.reported(input_tokens=3, output_tokens=2))
+
+    async def chat_stream(self, messages, *, on_content_delta=None, **kwargs):
+        response = await self.chat(messages, **kwargs)
+        if response.content and on_content_delta:
+            await on_content_delta("do")
+            await on_content_delta("ne")
+        return response
+
+
+class EchoTool(Tool):
+    name = "echo"
+    description = "Return the provided text"
+    parameters = {"type": "object", "properties": {"text": {"type": "string"}}, "required": ["text"]}
+    read_only = True
+
+    async def execute(self, **kwargs):
+        return kwargs["text"]
+
+
+@pytest.fixture
+async def agent(tmp_path):
+    from yoreni.agent.loop import AgentLoop
+    from yoreni.bus.queue import MessageBus
+
+    provider = OfflineProvider()
+    registry = ToolRegistry()
+    registry.register(EchoTool())
+    bot = Yoreni(AgentLoop(MessageBus(), provider, tmp_path, tool_registry=registry))
+    try:
+        yield bot, provider
+    finally:
+        provider.release.set()
+        await bot.aclose()
+
+
+async def test_run_and_act_share_agent_continuity(agent):
+    bot, provider = agent
+    first = await bot.run("first request")
+    second = await bot.act(AgentInput("sdk", "second request", principal="owner"))
+    assert first.content == second.content == "done"
+    assert first.usage == LLMUsage.reported(input_tokens=3, output_tokens=2)
+    assert first.metadata["agent_run_id"] != second.metadata["agent_run_id"]
+    assert any(str(row["content"]).startswith("first request") for row in provider.calls[-1])
+    assert bot._loop.agent.store.read_run(first.metadata["agent_run_id"])["status"] == "completed"
+
+
+async def test_ephemeral_is_a_run_option_and_does_not_retain_input(agent):
+    bot, provider = agent
+    result = await bot.run("private scratch", ephemeral=True)
+    assert result.content == "done"
+    assert result.usage == LLMUsage.reported(input_tokens=3, output_tokens=2)
+    with pytest.raises(KeyError):
+        bot._loop.agent.store.read_run(result.metadata["agent_run_id"])
+    assert bot.memory.read_history() == []
+    await bot.run("later")
+    assert all("private scratch" not in str(row["content"]) for row in provider.calls[-1])
+
+
+async def test_run_attributes_reach_hooks_and_context_without_entering_event_storage(agent):
+    bot, _ = agent
+    observed = []
+    def factory(context):
+        observed.append(context.attributes)
+    bot._loop._hook_factories.append(factory)
+    result = await bot.run("hello", attributes={"application": "test"})
+    assert observed[0]["application"] == "test"
+    assert observed[0]["run_id"] == result.metadata["agent_run_id"]
+    assert "application" not in str(bot._loop.agent.store.read_run(result.metadata["agent_run_id"])["payload"])
+
+
+async def test_stream_uses_real_runner_text_tool_and_completion_events(agent):
+    bot, _ = agent
+    handle = await bot.run_streamed("use tool")
+    events = [event async for event in handle.stream_events()]
+    result = await handle.wait()
+    kinds = [event.type for event in events]
+    assert kinds[0] == STREAM_EVENT_RUN_STARTED
+    assert kinds[-1] == STREAM_EVENT_RUN_COMPLETED
+    assert STREAM_EVENT_TOOL_STARTED in kinds
+    assert STREAM_EVENT_TOOL_COMPLETED in kinds
+    assert "".join(event.delta for event in events if event.type == STREAM_EVENT_TEXT_DELTA) == "done"
+    assert result.tools_used == ["echo"]
+    assert any(row.get("role") == "tool" and row.get("content") == "observed" for row in result.messages)
+    assert events[0].metadata["model"] == "offline-sdk"
+
+
+async def test_stream_wait_drains_queue_and_returns_result(agent):
+    bot, _ = agent
+    handle = await bot.run_streamed("hello")
+    assert await handle.text() == "done"
+    assert handle.done
+    with pytest.raises(RuntimeError, match="only be consumed once"):
+        await anext(handle.stream_events())
+
+
+async def test_stream_generator_break_cancels_its_run(agent):
+    bot, provider = agent
+    iterator = bot.stream("wait")
+    first = await anext(iterator)
+    assert first.type == STREAM_EVENT_RUN_STARTED
+    await asyncio.wait_for(provider.entered.wait(), 5)
+    await iterator.aclose()
+    assert bot._loop.agent.store.pending() == []
+    with bot._loop.agent.store.connection() as db:
+        assert db.execute("SELECT status FROM runs").fetchone()[0] == "cancelled"
+
+
+async def test_background_event_and_interaction_have_independent_hooks(agent):
+    bot, provider = agent
+    seen = []
+    class Observe(AgentHook):
+        def __init__(self, label):
+            super().__init__()
+            self.label = label
+        async def after_run(self, context):
+            seen.append((self.label, context.final_content))
+    background = asyncio.create_task(bot.act(
+        AgentInput("heartbeat", "wait", principal="owner", kind="internal"), hooks=[Observe("background")],
+    ))
+    await asyncio.wait_for(provider.entered.wait(), 5)
+    try:
+        await asyncio.wait_for(bot.run("hello", hooks=[Observe("user")]), 5)
+        assert seen == [("user", "done")]
+    finally:
+        provider.release.set()
+        await background
+    assert seen == [("user", "done"), ("background", "done")]
+
+
+async def test_stream_failure_surfaces_and_closes_handle(agent, monkeypatch):
+    bot, _ = agent
+    def fail(_event):
+        raise OSError("database unavailable")
+    monkeypatch.setattr(bot._loop.agent.store, "admit", fail)
+    handle = await bot.run_streamed("hello")
+    events = [event async for event in handle.stream_events()]
+    assert events[-1].type == STREAM_EVENT_RUN_FAILED
+    assert "database unavailable" in events[-1].error
+    with pytest.raises(OSError, match="database unavailable"):
+        await handle.wait()
+    await handle.aclose()
+
+
+async def test_model_override_is_per_run_and_reports_actual_model(agent):
+    bot, _ = agent
+    before = bot.runtime.model
+    handle = await bot.run_streamed("hello", model="another-model")
+    events = [event async for event in handle.stream_events()]
+    assert (await handle.wait()).content == "done"
+    assert events[0].metadata["model"] == "another-model"
+    assert bot.runtime.model == before
+
+
+async def test_multiple_model_selectors_rejected(agent):
+    bot, _ = agent
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        await bot.run("hello", model="one", model_preset="two")
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        await bot.run_streamed("hello", model="one", model_preset="two")
+
+
+def test_public_event_run_types():
+    import yoreni
+    assert yoreni.AgentInput is AgentInput
+    assert yoreni.RunResult is RunResult
+    assert yoreni.RunStream is RunStream
+
+
+async def test_memory_journal_is_owned_by_agent(agent):
+    bot, _ = agent
+    bot.memory.write("preference")
+    assert bot.memory.read() == "preference"
+    cursor = bot.memory.append_history("observation")
+    assert cursor > 0
+    entries = bot.memory.read_history()
+    assert entries[-1]["content"] == "observation"
+
+
+async def test_cached_event_result_keeps_completion_reason(agent):
+    bot, provider = agent
+    event = AgentInput("sdk", "hello", principal="owner", event_id="retry")
+    first = await bot.act(event)
+    cached = await bot.act(event)
+    assert cached.content == first.content
+    assert cached.stop_reason == first.stop_reason == "completed"
+    assert len(provider.calls) == 1

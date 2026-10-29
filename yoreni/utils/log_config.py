@@ -34,7 +34,7 @@ def prepare_log_record(record: "Record") -> bool:
         ("purpose", "purpose"),
         ("request", "request_id"),
         ("turn", "turn_id"),
-        ("session", "session_key"),
+        ("run", "run_id"),
     ):
         value = extra.get(field)
         if value not in (None, "", "-"):

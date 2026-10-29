@@ -23,15 +23,16 @@ from yoreni.agent.context_governance import (
     TranscriptBuilder,
 )
 from yoreni.agent.hook import AgentHook, AgentHookContext, AgentRunHookContext
+from yoreni.agent.summary import TranscriptSummaryCheckpoint
 from yoreni.agent.tools.context import tool_log_content_allowed
 from yoreni.agent.tools.execution import execute_tool_calls
 from yoreni.agent.tools.registry import ToolRegistry
+from yoreni.agent.transcript_visibility import is_hidden_history_message
 from yoreni.events import NO_EVENTS, EventSink
 from yoreni.llm_usage.context import (
     LLMUsageSource,
     bind_llm_usage_source,
     reset_llm_usage_source,
-    source_from_session_key,
 )
 from yoreni.providers.base import (
     LLMProvider,
@@ -41,8 +42,6 @@ from yoreni.providers.base import (
     ProviderConversationState,
 )
 from yoreni.providers.conversation_state import ProviderConversationStateController
-from yoreni.session.history_visibility import is_hidden_history_message
-from yoreni.session.summary import SessionSummaryCheckpoint
 from yoreni.utils.helpers import (
     build_assistant_message,
     estimate_message_tokens,
@@ -111,9 +110,10 @@ class AgentRunSpec:
     max_iterations_message: str | None = None
     concurrent_tools: bool = False
     workspace: Path | None = None
-    session_key: str | None = None
+    run_id: str | None = None
     provider_retry_mode: str = "standard"
     checkpoint_callback: CheckpointCallback | None = None
+    checkpoint_messages: bool = False
     consolidate_history: HistoryConsolidator | None = None
     consolidate_provider_compaction: ProviderCompactionConsolidator | None = None
     injection_callback: InjectionCallback | None = None
@@ -144,7 +144,7 @@ class AgentRunResult:
     # Terminal tail to emit when the preceding final-content prefix was already streamed.
     pending_stream_content: str | None = None
     provider_state: ProviderConversationState | None = field(default=None, repr=False)
-    summary_checkpoint: SessionSummaryCheckpoint | None = field(default=None, repr=False)
+    summary_checkpoint: TranscriptSummaryCheckpoint | None = field(default=None, repr=False)
     provider_compaction_applied: bool = field(default=False, repr=False)
 
 
@@ -219,6 +219,9 @@ class AgentRunner:
                     "completed_tool_results": [],
                     "pending_tool_calls": [],
                 }
+                if spec.checkpoint_messages:
+                    checkpoint["phase"] = "continuation"
+                    checkpoint["continuation_messages"] = injections
                 if conversation_state is not None:
                     checkpoint["provider_state"] = conversation_state.checkpoint(
                         messages
@@ -226,6 +229,7 @@ class AgentRunner:
                 await self._emit_checkpoint(
                     spec,
                     checkpoint,
+                    messages,
                 )
         self._append_injected_messages(messages, injections)
         if real_injection:
@@ -311,7 +315,7 @@ class AgentRunner:
         messages: list[dict[str, Any]] = []
         context = AgentRunHookContext(messages=[])
         llm_usage_source_token = bind_llm_usage_source(
-            spec.llm_usage_source or source_from_session_key(spec.session_key)
+            spec.llm_usage_source or "system"
         )
 
         try:
@@ -436,14 +440,14 @@ class AgentRunner:
             model=spec.runtime.model,
             messages=messages,
             state=spec.provider_state,
-            session_id=spec.session_key,
+            run_id=spec.run_id,
         )
         governance_config = ContextGovernanceConfig(
             provider=spec.runtime.provider,
             model=spec.runtime.model,
             tools=spec.tools,
             workspace=spec.workspace,
-            session_key=spec.session_key,
+            run_id=spec.run_id,
             max_tool_result_chars=spec.max_tool_result_chars,
             context_window_tokens=spec.runtime.context_window_tokens,
             max_tokens=spec.runtime.generation.max_tokens,
@@ -473,7 +477,7 @@ class AgentRunner:
             # A resumed iteration must not inherit a previous iteration's failure.
             stop_reason = "completed"
             error = None
-            # The session inbox cuts a finite snapshot before every model call.
+            # The Run input provider supplies a finite snapshot before every model call.
             # This includes follow-ups that arrived before the first request and
             # messages received while the previous request or tools were running.
             drained_before_request, injection_cycles = await self._try_drain_injections(
@@ -489,7 +493,7 @@ class AgentRunner:
             context = AgentHookContext(
                 iteration=iteration,
                 messages=messages,
-                session_key=spec.session_key,
+                run_id=spec.run_id,
             )
             await hook.before_iteration(context)
             request_message_count = len(messages)
@@ -555,6 +559,7 @@ class AgentRunner:
                         "completed_tool_results": [],
                         "pending_tool_calls": [tc.to_openai_tool_call() for tc in response.tool_calls],
                     },
+                    messages,
                 )
 
                 await hook.before_execute_tools(context)
@@ -615,6 +620,7 @@ class AgentRunner:
                             model_messages=checkpoint_model_messages,
                         ),
                     },
+                    messages,
                 )
                 empty_content_retries = 0
                 length_recovery_parts.clear()
@@ -625,7 +631,7 @@ class AgentRunner:
                 logger.warning(
                     "Ignoring tool calls under finish_reason='{}' for {}",
                     response.finish_reason,
-                    spec.session_key or "default",
+                    spec.run_id or "default",
                 )
 
             clean = hook.finalize_content(context, response.content)
@@ -639,7 +645,7 @@ class AgentRunner:
                     logger.warning(
                         "Empty response on turn {} for {} ({}/{}); retrying",
                         iteration,
-                        spec.session_key or "default",
+                        spec.run_id or "default",
                         empty_content_retries,
                         _MAX_EMPTY_RETRIES,
                     )
@@ -650,7 +656,7 @@ class AgentRunner:
                 logger.warning(
                     "Empty response on turn {} for {} after {} retries; attempting finalization",
                     iteration,
-                    spec.session_key or "default",
+                    spec.run_id or "default",
                     empty_content_retries,
                 )
                 if hook.wants_streaming():
@@ -679,7 +685,7 @@ class AgentRunner:
                     logger.info(
                         "Output truncated on turn {} for {} ({}/{}); continuing",
                         iteration,
-                        spec.session_key or "default",
+                        spec.run_id or "default",
                         len(length_recovery_parts),
                         _MAX_LENGTH_RECOVERIES,
                     )
@@ -838,6 +844,7 @@ class AgentRunner:
                     "pending_tool_calls": [],
                     "provider_state": conversation_state.checkpoint(messages),
                 },
+                messages,
             )
             if length_recovery_parts:
                 final_content = (
@@ -1149,7 +1156,7 @@ class AgentRunner:
         persisted into the assistant message it would be replayed on every
         subsequent turn, causing upstream validation errors
         (``tool_use.name: Input should be a valid string``) that permanently
-        wedge the session. Dropping it here keeps it out of execution, the
+        wedge the Run. Dropping it here keeps it out of execution, the
         assistant message, and the saved history in one place.
         """
         calls = getattr(response, "tool_calls", None)
@@ -1247,7 +1254,7 @@ class AgentRunner:
         except Exception:
             logger.opt(exception=tool_log_content_allowed()).error(
                 "Budget-exhausted finalization failed for {}; using fallback",
-                spec.session_key or "default",
+                spec.run_id or "default",
             )
             return None, usage
 
@@ -1260,7 +1267,7 @@ class AgentRunner:
                 "with {} tool call(s) for {}; using fallback",
                 response.finish_reason,
                 len(response.tool_calls),
-                spec.session_key or "default",
+                spec.run_id or "default",
             )
             return None, usage
 
@@ -1269,7 +1276,7 @@ class AgentRunner:
             messages=messages,
             response=response,
             usage=raw_usage,
-            session_key=spec.session_key,
+            run_id=spec.run_id,
         )
         clean = hook.finalize_content(context, response.content)
         if is_blank_text(clean):
@@ -1411,7 +1418,10 @@ class AgentRunner:
         self,
         spec: AgentRunSpec,
         payload: dict[str, Any],
+        messages: list[dict[str, Any]],
     ) -> None:
+        if spec.checkpoint_messages:
+            payload = {**payload, "messages": messages}
         callback = spec.checkpoint_callback
         if callback is not None:
             await callback(payload)

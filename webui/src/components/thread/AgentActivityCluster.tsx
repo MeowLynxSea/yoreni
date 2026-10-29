@@ -51,7 +51,6 @@ import { useFileEditDisplayMode } from "@/hooks/useFileEditDisplayMode";
 import { useLocalPreferences } from "@/hooks/useLocalPreferences";
 import { useLogoFallback } from "@/hooks/useLogoFallback";
 import { usePageVisibility } from "@/hooks/usePageVisibility";
-import { useThreadVisibility } from "@/hooks/useThreadVisibility";
 import type { FileEditDisplayMode } from "@/lib/local-preferences";
 import { logoFallbackUrls } from "@/lib/provider-brand";
 import { canonicalToolTrace, formatToolCallTrace } from "@/lib/tool-traces";
@@ -147,7 +146,7 @@ function countActivity(
 
 interface AgentActivityClusterProps {
   messages: UIMessage[];
-  /** True while the session turn is still running (drives “Working…” copy + header sheen). */
+  /** True while the Agent Run is still running (drives “Working…” copy + header sheen). */
   isTurnStreaming: boolean;
   hasBodyBelow: boolean;
   /** Persisted end-to-end turn latency from the assistant answer, used for history replay. */
@@ -249,7 +248,6 @@ function FoldedAgentActivity({
   const { t } = useTranslation();
   const { activityMode, fileEditDisplayMode } = useLocalPreferences();
   const pageVisible = usePageVisibility();
-  const threadVisible = useThreadVisibility();
   const activityMessages = useMemo(() => coalesceActivityMessages(messages), [messages]);
   const fileEditsByMessage = useMemo(
     () => summarizeFileEditsByMessage(activityMessages, isTurnStreaming),
@@ -385,11 +383,11 @@ function FoldedAgentActivity({
   }, [deferredTraceRefs, outerExpanded, requestTraceDetails]);
 
   useEffect(() => {
-    if (!isTurnStreaming || !pageVisible || !threadVisible) return undefined;
+    if (!isTurnStreaming || !pageVisible) return undefined;
     setNow(Date.now());
     const interval = window.setInterval(() => setNow(Date.now()), 1_000);
     return () => window.clearInterval(interval);
-  }, [isTurnStreaming, pageVisible, threadVisible]);
+  }, [isTurnStreaming, pageVisible]);
 
   useEffect(() => {
     const wasStreaming = wasTurnStreamingRef.current;

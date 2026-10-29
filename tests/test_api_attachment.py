@@ -34,7 +34,8 @@ AUTH_HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
 def _make_mock_agent(response_text: str = "mock response") -> MagicMock:
     agent = MagicMock()
-    agent.process_direct = AsyncMock(return_value=response_text)
+    agent.process_event = AsyncMock(return_value=response_text)
+    agent.process_event = AsyncMock(return_value=response_text)
     agent.aclose = AsyncMock()
     return agent
 
@@ -233,7 +234,7 @@ def test_parse_json_content_rejects_oversized_base64_file(tmp_path) -> None:
 @pytest.mark.skipif(not HAS_AIOHTTP, reason="aiohttp not installed")
 @pytest.mark.asyncio
 async def test_multipart_upload_saves_file(aiohttp_client, mock_agent, tmp_path) -> None:
-    """Multipart upload saves file to media dir and passes path to process_direct."""
+    """Multipart upload saves file to media dir and passes path to process_event."""
     import os
     original_cwd = os.getcwd()
     os.chdir(tmp_path)
@@ -251,7 +252,7 @@ async def test_multipart_upload_saves_file(aiohttp_client, mock_agent, tmp_path)
             data={"message": "analyze this", "files": data},
         )
         assert resp.status == 200
-        call_kwargs = mock_agent.process_direct.call_args.kwargs
+        call_kwargs = _event_payload(mock_agent.process_event)
         assert call_kwargs["content"] == "analyze this"
         assert len(call_kwargs.get("media") or []) == 1
     finally:
@@ -279,9 +280,9 @@ async def test_multipart_multiple_files(aiohttp_client, mock_agent, tmp_path, mo
     resp = await client.post("/v1/chat/completions", headers=AUTH_HEADERS, data=data)
 
     assert resp.status == 200
-    mock_agent.process_direct.assert_called_once()
-    mock_agent.process_direct.assert_awaited_once()
-    call_kwargs = mock_agent.process_direct.call_args.kwargs
+    mock_agent.process_event.assert_called_once()
+    mock_agent.process_event.assert_awaited_once()
+    call_kwargs = _event_payload(mock_agent.process_event)
     assert call_kwargs["content"] == "analyze both files"
     saved_paths = [Path(path) for path in call_kwargs["media"]]
     assert len(saved_paths) == 2
@@ -338,41 +339,8 @@ async def test_multipart_defaults_text_when_missing(aiohttp_client, mock_agent, 
             data={"files": data},
         )
         assert resp.status == 200
-        call_kwargs = mock_agent.process_direct.call_args.kwargs
+        call_kwargs = _event_payload(mock_agent.process_event)
         assert call_kwargs["content"] == "请分析上传的文件"
-    finally:
-        os.chdir(original_cwd)
-
-
-@pytest.mark.skipif(not HAS_AIOHTTP, reason="aiohttp not installed")
-@pytest.mark.asyncio
-@pytest.mark.parametrize(("session_id", "chat_id"), [
-    ("my-session", "my-session"), (" my-session ", "my-session"), ("  ", "default"),
-])
-async def test_multipart_with_session_id(
-    aiohttp_client, mock_agent, tmp_path, session_id, chat_id,
-) -> None:
-    """Multipart upload with session_id uses custom session key."""
-    import os
-    original_cwd = os.getcwd()
-    os.chdir(tmp_path)
-
-    try:
-        app = create_app(mock_agent, model_name="m", api_key=API_KEY)
-        client = await aiohttp_client(app)
-
-        file_data = b"content"
-        data = BytesIO(file_data)
-
-        resp = await client.post(
-            "/v1/chat/completions",
-            headers=AUTH_HEADERS,
-            data={"message": "hello", "session_id": session_id, "files": data},
-        )
-        assert resp.status == 200
-        call_kwargs = mock_agent.process_direct.call_args.kwargs
-        assert call_kwargs["session_key"] == f"api:{chat_id}"
-        assert call_kwargs["chat_id"] == chat_id
     finally:
         os.chdir(original_cwd)
 
@@ -383,7 +351,7 @@ async def test_multipart_with_session_id(
 
 @pytest.mark.skipif(not HAS_AIOHTTP, reason="aiohttp not installed")
 @pytest.mark.asyncio
-async def test_plain_text_backward_compat(aiohttp_client, mock_agent) -> None:
+async def test_plain_text_event_input(aiohttp_client, mock_agent) -> None:
     """Plain text JSON request (no media) works as before."""
     app = create_app(mock_agent, model_name="m", api_key=API_KEY)
     client = await aiohttp_client(app)
@@ -395,9 +363,9 @@ async def test_plain_text_backward_compat(aiohttp_client, mock_agent) -> None:
     assert resp.status == 200
     body = await resp.json()
     assert body["choices"][0]["message"]["content"] == "mock response"
-    call_kwargs = mock_agent.process_direct.call_args.kwargs
+    call_kwargs = _event_payload(mock_agent.process_event)
     assert call_kwargs["content"] == "hello world"
-    assert call_kwargs.get("media") is None
+    assert call_kwargs.get("media") == []
 
 
 @pytest.mark.skipif(not HAS_AIOHTTP, reason="aiohttp not installed")
@@ -430,8 +398,8 @@ async def test_json_base64_image_upload(
         },
     )
     assert resp.status == 200
-    mock_agent.process_direct.assert_awaited_once()
-    call_kwargs = mock_agent.process_direct.call_args.kwargs
+    mock_agent.process_event.assert_awaited_once()
+    call_kwargs = _event_payload(mock_agent.process_event)
     assert call_kwargs["content"] == "what is this"
     saved, = call_kwargs["media"]
     assert Path(saved).parent == tmp_path
@@ -469,10 +437,16 @@ async def test_docx_upload_passes_media_path(aiohttp_client, tmp_path) -> None:
 
         resp = await client.post("/v1/chat/completions", headers=AUTH_HEADERS, data=data)
         assert resp.status == 200
-        call_kwargs = agent.process_direct.call_args.kwargs
+        call_kwargs = _event_payload(agent.process_event)
         assert call_kwargs["content"] == "summarize the report"
         media = call_kwargs.get("media", [])
         assert len(media) == 1
         assert "report.docx" in media[0]
     finally:
         os.chdir(original_cwd)
+
+
+def _event_payload(mock):
+    event = mock.call_args.args[0]
+    return {"content": event.content, "media": list(event.media), "channel": event.channel,
+            "chat_id": event.chat_id, **mock.call_args.kwargs}

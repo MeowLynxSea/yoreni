@@ -16,10 +16,9 @@ from yoreni.agent.tools.schema import (
     StringSchema,
     tool_parameters_schema,
 )
+from yoreni.cron.events import is_bound_cron_job, is_cron_turn
 from yoreni.cron.service import CronService
-from yoreni.cron.session_turns import is_bound_cron_job, is_cron_turn
 from yoreni.cron.types import CronJob, CronJobState, CronSchedule
-from yoreni.session.keys import UNIFIED_SESSION_KEY
 
 _CRON_PARAMETERS = tool_parameters_schema(
     action=StringSchema(
@@ -83,11 +82,7 @@ class CronTool(Tool):
         ctx = current_request_context()
         if ctx is None:
             return "", "", "", {}
-        raw_key = f"{ctx.channel}:{ctx.chat_id}" if ctx.channel and ctx.chat_id else ""
-        session_key = (
-            raw_key if ctx.session_key == UNIFIED_SESSION_KEY else (ctx.session_key or "")
-        )
-        return session_key, ctx.channel or "", ctx.chat_id or "", dict(ctx.metadata or {})
+        return ctx.agent_id or "", ctx.channel, ctx.chat_id, dict(ctx.metadata)
 
     @staticmethod
     def _validate_timezone(tz: str) -> str | None:
@@ -176,11 +171,11 @@ class CronTool(Tool):
                 "describing what to do when the job triggers "
                 "(e.g. the reminder text). Retry including message=\"...\"."
             )
-        session_key, origin_channel, origin_chat_id, origin_metadata = self._request_route()
-        if not session_key:
-            return ToolResult.error("Error: scheduled cron jobs must be created from a chat session")
+        agent_id, origin_channel, origin_chat_id, origin_metadata = self._request_route()
+        if not agent_id:
+            return ToolResult.error("Error: scheduled cron jobs must be created by the Agent with an output address")
         if not origin_channel or not origin_chat_id:
-            return ToolResult.error("Error: scheduled cron jobs must be created from a chat session")
+            return ToolResult.error("Error: scheduled cron jobs must be created by the Agent with an output address")
         if cron_expr and not tz:
             tz = self._default_timezone
         schedule = self._parse_schedule(every_seconds, cron_expr, tz, at)
@@ -192,7 +187,7 @@ class CronTool(Tool):
             schedule=schedule,
             message=message,
             delete_after_run=schedule.kind == "at",
-            session_key=session_key,
+            agent_id=agent_id,
             origin_channel=origin_channel,
             origin_chat_id=origin_chat_id,
             origin_metadata=origin_metadata,
@@ -343,7 +338,7 @@ class CronTool(Tool):
         if job.payload.kind == "system_event":
             return ToolResult.error("Error: system-managed cron jobs are protected; change their configuration instead")
         if enabled and not is_bound_cron_job(job):
-            return ToolResult.error("Error: job has no linked chat; recreate it from a chat session")
+            return ToolResult.error("Error: job has no output destination; recreate it from an authorized Agent event")
         self._cron.enable_job(job_id, enabled=enabled)
         return f"{'Enabled' if enabled else 'Disabled'} job {job_id}"
 

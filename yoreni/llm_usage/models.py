@@ -13,7 +13,7 @@ class LLMCallRecord:
     """The small, chart-oriented result of one provider call attempt.
 
     Request messages, response text, reasoning, and tool payloads deliberately do
-    not belong to this contract. Sessions already own that content.
+    not belong to this contract. Run records own that content.
     """
 
     started_at_ms: int

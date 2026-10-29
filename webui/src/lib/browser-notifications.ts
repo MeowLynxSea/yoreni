@@ -1,5 +1,4 @@
 import { readLocalPreferences, writeLocalPreferences } from "./local-preferences";
-import type { TaskNotice } from "./yoreni-client";
 
 export type NotificationProblem = "insecure" | "unsupported" | "denied" | "revoked" | "dismissed" | "permissionFailed" | "workerUnavailable" | "displayFailed";
 export type NotificationResult = "submitted" | "skipped" | NotificationProblem;
@@ -70,22 +69,6 @@ export async function enableBrowserNotifications(): Promise<NotificationProblem 
   const workerProblem = await notificationWorkerProblem();
   if (!workerProblem) lastProblem = null;
   return workerProblem;
-}
-
-export function taskNoticeKey(notice: TaskNotice): string | null {
-  const event = notice.event;
-  if (event.event === "turn_end") {
-    if (event.outcome === "cancelled") return null;
-    return event.turn_id ? JSON.stringify([event.chat_id, event.turn_id, "end"]) : null;
-  }
-  return ["awaiting_user", "failed"].includes(event.status)
-    ? JSON.stringify([event.chat_id, event.recovery_id, event.status]) : null;
-}
-
-export function notificationChatUrl(chatId: string, temporary: boolean): string {
-  // The page origin identifies the gateway, including isolated remote views.
-  // Never copy the page's query, fragment, userinfo, or any auth token.
-  return `${window.location.origin}/${temporary ? "#/temporary/" : "#/chat/"}${encodeURIComponent(temporary ? chatId : `websocket:${chatId}`)}`;
 }
 
 export async function showBrowserNotification(body: string, options: {

@@ -1,4 +1,4 @@
-import type { ContextCompaction, NotificationEvent, RecoveryState, RetryStatus as WireRetryStatus } from "../../../packages/client-events/notifications";
+import type { ContextCompaction, RetryStatus as WireRetryStatus } from "../../../packages/client-events/notifications";
 export type { RecoveryState } from "../../../packages/client-events/notifications";
 
 type Role = "user" | "assistant" | "tool" | "system";
@@ -64,34 +64,6 @@ interface TurnUsage {
 
 export type RoundUsage = TurnUsage;
 
-export type SubagentTaskState = "queued" | "running" | "stopping" | "done" | "incomplete" | "error" | "cancelled" | "interrupted";
-
-export interface SubagentTaskSnapshot {
-  task_id: string;
-  revision?: number;
-  origin_message_id: string | null;
-  origin_turn_id: string | null;
-  created_at: number;
-  completed_at: number | null;
-  label: string;
-  task_description: string;
-  state: SubagentTaskState;
-  phase: string;
-  elapsed_seconds: number;
-  iteration: number;
-  tool_events: { name: string; status: string }[];
-  usage: Record<string, number | string | null> | null;
-  receipts: Record<string, "accepted" | "delivered" | "undelivered">;
-  result: string | null;
-  partial: boolean;
-  stop_reason: string | null;
-  error: string | null;
-}
-
-export interface SubagentTasksPayload {
-  tasks: SubagentTaskSnapshot[];
-}
-
 export interface ResponseSource {
   provider: string;
   model: string;
@@ -147,8 +119,6 @@ export interface UIMessage {
   cliApps?: UICliAppAttachment[];
   /** Settings-managed MCP presets explicitly attached to this user turn. */
   mcpPresets?: UIMcpPresetAttachment[];
-  /** Persisted sessions explicitly referenced by this user turn. */
-  sessionMentions?: SessionMention[];
   /** Assistant turn: accumulated model reasoning / thinking text. Built up
    * incrementally from ``reasoning_delta`` frames; finalized when
    * ``reasoning_end`` arrives. */
@@ -168,8 +138,6 @@ export interface UIMessage {
   contextWindowTokens?: number;
   /** Lightweight provenance for proactive assistant messages. */
   source?: UIMessageSource;
-  /** Structured provenance for a message delivered by another session. */
-  sessionMessage?: UISessionMessage;
   /** Stable protocol metadata for grouping all activity emitted by one user turn. */
   turnId?: string;
   turnPhase?: UITurnPhase;
@@ -204,86 +172,7 @@ export interface UIMcpPresetAttachment {
   logo_url?: string | null;
   brand_color?: string | null;
 }
-
-export interface SessionMention {
-  /** Stable public identity. Older transcript rows may not include it. */
-  id?: string;
-  /** Text token inserted in the composer, without the leading @. */
-  name: string;
-  /** Stable persisted-session identifier used by read_session. */
-  session_key: string;
-  title: string;
-}
-
-/** Stable public handle returned by the session-list endpoint. */
-export interface SessionHandle {
-  id: string;
-  name: string;
-}
-
-interface UISessionMessage {
-  message_id: string;
-  session: SessionHandle;
-}
-
-export interface SessionAutomationJob {
-  chat_binding_revision?: string;
-  id: string;
-  name: string;
-  enabled: boolean;
-  protected?: boolean;
-  delete_after_run?: boolean;
-  created_at_ms?: number | null;
-  updated_at_ms?: number | null;
-  kind?: "local_trigger" | "cron" | string;
-  schedule: {
-    kind: "at" | "every" | "cron" | "local" | string;
-    at_ms?: number | null;
-    every_ms?: number | null;
-    expr?: string | null;
-    tz?: string | null;
-  };
-  payload: {
-    message: string;
-    kind?: "agent_turn" | "system_event" | "local_trigger" | string;
-    command?: string;
-  };
-  state: {
-    next_run_at_ms?: number | null;
-    last_run_at_ms?: number | null;
-    last_status?: "ok" | "error" | "skipped" | string | null;
-    last_error?: string | null;
-    pending?: boolean;
-    run_history?: Array<{
-      run_at_ms: number;
-      status: "ok" | "error" | "skipped" | string;
-      duration_ms?: number;
-      error?: string | null;
-      webui_session_key?: string | null; // null: external chat; absent: older host.
-    }>;
-  };
-  origin?: {
-    session_key?: string;
-    channel: string;
-    chat_id?: string;
-    title?: string;
-    preview?: string;
-  } | null;
-  trigger?: {
-    id: string;
-    command: string;
-  };
-}
-
-export interface SessionAutomationsPayload { jobs: SessionAutomationJob[]; }
-export interface AutomationsPayload { jobs: SessionAutomationJob[]; }
-export interface AutomationChat { id: string; title: string; channel: string; unavailable?: boolean; }
-export interface AutomationChatsPayload {
-  revision: string;
-  current: AutomationChat | null;
-  chats: AutomationChat[];
-}
-export interface AutomationChatUpdate { target_id: string; revision: string; message: string; }
+export interface AutomationsPayload { jobs: AutomationJob[]; }
 export interface AutomationUpdatePayload {
   name?: string;
   message?: string;
@@ -294,12 +183,6 @@ export interface AutomationUpdatePayload {
     expr?: string;
     tz?: string;
   };
-}
-
-export interface SessionDeleteResult {
-  deleted: boolean;
-  blocked_by_automations?: boolean;
-  automations?: SessionAutomationJob[];
 }
 
 export interface SkillSummary {
@@ -388,12 +271,6 @@ export interface SkillInstallPayload extends SkillsPayload {
   };
 }
 
-/** Structured UI blob on ``progress`` WS frames; channels may add more ``kind`` values later. */
-interface AgentUIBlob {
-  kind: string;
-  data?: unknown;
-}
-
 /** WebSocket snapshot for sustained goals (`goal_state` events; keyed by ``chat_id``). */
 export interface GoalStateWsPayload {
   active: boolean;
@@ -438,29 +315,6 @@ export interface UIFileEdit {
   error?: string;
   pending?: boolean;
   diff?: UIFileDiff;
-}
-
-export interface ChatSummary {
-  /** Server-side session key, e.g. ``websocket:abcd-...``. */
-  key: string;
-  /** Local channel + chat_id parts derived from ``key`` for convenience. */
-  channel: string;
-  chatId: string;
-  createdAt: string | null;
-  updatedAt: string | null;
-  title?: string;
-  preview: string;
-  /** Model preset persisted for this session; null means it still follows the global default. */
-  modelPreset?: string | null;
-  /** Unix epoch seconds when this session currently has a turn in flight. */
-  runStartedAt?: number | null;
-  /** Durable recovery state that needs attention after an interrupted turn. */
-  recoveryState?: RecoveryState | null;
-  workspaceScope?: WorkspaceScopePayload | null;
-  /** Persisted sessions keep their project; only unpersisted drafts can change it. */
-  projectLocked?: boolean;
-  /** Stable, server-owned @handle for this session. */
-  handle?: SessionHandle | null;
 }
 
 export type WorkspaceAccessMode = "restricted" | "full";
@@ -552,7 +406,7 @@ export interface SidebarStatePayload {
 
 export interface BootstrapResponse {
   terminal?: {
-    webui?: { capabilities?: string[] };
+    webui?: { min_protocol: number; max_protocol: number; capabilities: string[] };
   };
   token?: string;
   api_token?: string;
@@ -858,7 +712,6 @@ export interface SettingsPayload {
     dream: {
       schedule: string;
     };
-    unified_session: boolean;
   };
   usage?: {
     days: Array<{
@@ -1472,211 +1325,6 @@ export type ConnectionStatus =
   | "closed"
   | "error";
 
-interface InboundTurnMetadata {
-  turn_id?: string;
-  turn_phase?: UITurnPhase;
-  turn_seq?: number;
-}
-
-export type InboundEvent =
-  | { event: "subagent_task"; chat_id: string; task: SubagentTaskSnapshot }
-  | { event: "ready"; chat_id: string; client_id: string; upload?: unknown }
-  | {
-      event: "attached";
-      chat_id: string;
-      temporary?: boolean;
-      recovery_state?: RecoveryState;
-      usage?: TurnUsage;
-    }
-  | {
-      event: "message_accepted";
-      chat_id: string;
-      turn_id: string;
-      media_urls?: UIMediaAttachment[];
-      starts_turn?: boolean;
-      active_turn_id?: string;
-      started_at?: number;
-    }
-  | ({
-      event: "user_message";
-      chat_id: string;
-      text: string;
-      turn_id?: string;
-      active_turn_id?: string;
-      starts_turn: boolean;
-      started_at?: number;
-      created_at_ms?: number;
-      media_urls?: UIMediaAttachment[];
-      cli_apps?: UICliAppAttachment[];
-      mcp_presets?: UIMcpPresetAttachment[];
-      session_mentions?: SessionMention[];
-      provenance?: { session_message?: UISessionMessage };
-    } & InboundTurnMetadata)
-  | ({
-      event: "message";
-      chat_id: string;
-      text: string;
-      render_as?: "text";
-      reply_to?: string;
-      media?: string[];
-      media_urls?: Array<{ url: string; name?: string; kind?: UIMediaKind }>;
-      tool_events?: ToolProgressEvent[];
-      /** Oversized persisted activity detail, fetched only when the trace is expanded. */
-      trace_detail?: UITraceDetail;
-      /** Present when the frame is an agent breadcrumb (e.g. tool hint,
-       * generic progress line) rather than a conversational reply. */
-      kind?: "tool_hint" | "progress" | "reasoning";
-      /** Server-measured turn wall time when this frame finishes an assistant reply. */
-      latency_ms?: number;
-      /** Lightweight provenance for proactive assistant messages. */
-      source?: UIMessageSource;
-      response_sources?: ResponseSource[];
-      /** Optional structured payload on progress frames (channel-specific). */
-      agent_ui?: AgentUIBlob;
-    } & InboundTurnMetadata)
-  | (NotificationEvent & InboundTurnMetadata)
-  | ({
-      event: "file_edit";
-      chat_id: string;
-      edits: UIFileEdit[];
-    } & InboundTurnMetadata)
-  | ({
-      event: "delta";
-      chat_id: string;
-      text: string;
-      stream_id?: string;
-      /** Lightweight provenance for proactive streamed assistant messages. */
-      source?: UIMessageSource;
-      response_sources?: ResponseSource[];
-    } & InboundTurnMetadata)
-  | ({
-      event: "stream_end";
-      chat_id: string;
-      stream_id?: string;
-      text?: string;
-      /** Lightweight provenance for proactive streamed assistant messages. */
-      source?: UIMessageSource;
-      response_sources?: ResponseSource[];
-      /** This answer segment ended, but the active agent turn will continue. */
-      resuming?: boolean;
-      /** The next answer segment continues this same assistant message. */
-      merge_next?: boolean;
-    } & InboundTurnMetadata)
-  | ({
-      event: "reasoning_delta";
-      chat_id: string;
-      text: string;
-      stream_id?: string;
-    } & InboundTurnMetadata)
-  | ({
-      event: "reasoning_end";
-      chat_id: string;
-      stream_id?: string;
-      /** Legacy persisted transcripts may carry the final reasoning text here. */
-      text?: string;
-    } & InboundTurnMetadata)
-  | { event: "pairing_changed" }
-  | {
-      event: "runtime_model_updated";
-      model_name: string;
-      model_preset?: string | null;
-    }
-  | {
-      event: "turn_model_updated";
-      chat_id: string;
-      model_name: string;
-      model_preset?: string | null;
-      fallback?: boolean;
-      reauth_provider?: string;
-    }
-  | ({
-      event: "turn_end";
-      chat_id: string;
-      latency_ms?: number;
-      usage?: TurnUsage;
-      round_usages?: RoundUsage[];
-      context_window_tokens?: number;
-      /** Authoritative sustained-goal snapshot for this chat (same shape as ``goal_state`` events). */
-      goal_state?: GoalStateWsPayload;
-      outcome?: "completed" | "failed" | "cancelled" | "interrupted";
-      failure_kind?: string;
-      failure_error_kind?: string;
-      failure_attempts?: number;
-      failure_message?: string;
-    } & InboundTurnMetadata)
-  | ({
-      event: "goal_status";
-      chat_id: string;
-      /** Turn executing (user message through agent loop). */
-      status: "running" | "idle";
-      /** Server ``time.time()`` when ``status`` is ``running``. */
-      started_at?: number;
-    } & InboundTurnMetadata)
-  | {
-      event: "goal_state";
-      chat_id: string;
-      goal_state: GoalStateWsPayload;
-    }
-  | {
-      event: "session_updated";
-      chat_id: string;
-      scope?: "metadata" | "thread" | string;
-      workspace_scope?: WorkspaceScopePayload;
-    }
-  | {
-      event: "sidebar_state_updated";
-      state: SidebarStatePayload;
-    }
-  | { event: "transcription_result"; request_id: string; text: string }
-  | {
-      event: "transcription_error";
-      request_id?: string;
-      detail?: string;
-      provider?: string;
-    }
-  | {
-      event: "webui_response";
-      request_id: string;
-      ok: true;
-      result: unknown;
-    }
-  | {
-      event: "webui_response";
-      request_id: string;
-      ok: false;
-      error: { status: number; message: string };
-    }
-  | {
-      event: "error";
-      chat_id?: string;
-      detail?: string;
-      reason?: string;
-      /** Present when this error rejects a specific outbound WebUI turn. */
-      turn_id?: string;
-    };
-
-type ThreadProjectionEventName =
-  | "user_message"
-  | "message"
-  | "file_edit"
-  | "delta"
-  | "stream_end"
-  | "reasoning_delta"
-  | "reasoning_end"
-  | "context_compaction"
-  | "turn_end";
-
-export type ThreadProjectionEvent = Extract<
-  InboundEvent,
-  { event: ThreadProjectionEventName }
-> & {
-  projection_id?: string;
-  created_at_ms?: number;
-  turn_seq?: number;
-  /** Actual facts represented by a compacted HTTP projection event. */
-  projection_receipts?: Array<{ turn_id: string; ranges: Array<[number, number]> }>;
-};
-
 /** Local draft/preview data, converted to HTTP binary before sending a message.
  *
  * ``data_url`` must use a server-whitelisted image, video, or document MIME
@@ -1706,55 +1354,6 @@ export interface OutboundMcpPresetMention {
   brand_color?: string | null;
 }
 
-/** Response shape for ``GET .../webui-thread`` (server-built transcript replay). */
-interface WebuiThreadPagePayload {
-  before_cursor?: string | null;
-  has_more_before?: boolean;
-  after_cursor?: string | null;
-  has_more_after?: boolean;
-  user_message_offset?: number;
-  loaded_event_count?: number;
-  truncated_oversized_turn?: boolean;
-}
-
-export interface PromptSummary {
-  id: string;
-  preview: string;
-  answerPreview: string;
-  createdAt: number;
-  cursor: string;
-  turnId: string;
-}
-
-export interface PromptIndex {
-  prompts: PromptSummary[];
-  revision?: string;
-}
-
-export interface WebuiThreadPersistedPayload {
-  schemaVersion: number;
-  sessionKey?: string;
-  savedAt?: string;
-  /** Cheap server revision used for application-managed conditional revalidation. */
-  revision?: string;
-  /** Canonical transcript events projected by the same reducer as live events. */
-  events: ThreadProjectionEvent[];
-  projection: "events";
-  fork_boundary_event_index?: number;
-  /** Turn ids backed by an explicit persisted ``turn_end`` event. */
-  completed_turn_ids?: string[];
-  has_pending_tool_calls?: boolean;
-  /** Exact active turn when supplied by a current gateway. */
-  active_turn_id?: string | null;
-  page?: WebuiThreadPagePayload;
-  workspace_scope?: WorkspaceScopePayload;
-}
-
-export interface WebuiThreadTraceDetailPayload {
-  message_id: string;
-  events: ThreadProjectionEvent[];
-}
-
 export interface FileReferenceMetadata {
   path: string;
   relative_path: string | null;
@@ -1772,35 +1371,49 @@ export type FilePreviewPayload = FilePreviewMetadata & (
   | { kind: "image"; mime_type: string; data_url: string }
 );
 
-export type Outbound =
-  | { type: "new_chat"; workspace_scope?: WorkspaceScopePayload }
-  | { type: "new_temporary_chat" }
-  | {
-      type: "webui_request";
-      request_id: string;
-      action: string;
-      payload: Record<string, unknown>;
-    }
-  | { type: "fork_chat"; source_chat_id: string; before_user_index: number; title?: string }
-  | { type: "attach"; chat_id: string }
-  | { type: "set_sidebar_state"; state: SidebarStatePayload }
-  | { type: "discard_temporary_chat"; chat_id: string }
-  | { type: "set_workspace_scope"; chat_id: string; workspace_scope: WorkspaceScopePayload }
-  | { type: "transcribe_audio"; request_id: string; data_url: string; duration_ms?: number }
-  | {
-      type: "message";
-      chat_id: string;
-      content: string;
-      media?: import("../../../packages/client-events/attachments").AttachmentReference[];
-      cli_apps?: OutboundCliAppMention[];
-      mcp_presets?: OutboundMcpPresetMention[];
-      session_mentions?: SessionMention[];
-      quoted_context?: string;
-      intent?: "create_automation";
-      user_shell?: true;
-      workspace_scope?: WorkspaceScopePayload;
-      turn_id?: string;
-      /** Marks messages sent by the embedded WebUI, without changing the
-       * generic websocket protocol for other clients. */
-      webui?: true;
-    };
+export interface AutomationJob {
+  id: string;
+  name: string;
+  enabled: boolean;
+  protected?: boolean;
+  delete_after_run?: boolean;
+  created_at_ms?: number | null;
+  updated_at_ms?: number | null;
+  kind?: "local_trigger" | "cron" | string;
+  schedule: {
+    kind: "at" | "every" | "cron" | "local" | string;
+    at_ms?: number | null;
+    every_ms?: number | null;
+    expr?: string | null;
+    tz?: string | null;
+  };
+  payload: {
+    message: string;
+    kind?: "agent_turn" | "system_event" | "local_trigger" | string;
+    command?: string;
+  };
+  state: {
+    next_run_at_ms?: number | null;
+    last_run_at_ms?: number | null;
+    last_status?: "ok" | "error" | "skipped" | string | null;
+    last_error?: string | null;
+    pending?: boolean;
+    run_history?: Array<{
+      run_at_ms: number;
+      status: "ok" | "error" | "skipped" | string;
+      duration_ms?: number;
+      error?: string | null; // null: external chat; absent: older host.
+    }>;
+  };
+  origin?: {
+    channel: string;
+    chat_id?: string;
+    title?: string;
+    preview?: string;
+  } | null;
+  trigger?: {
+    id: string;
+    command: string;
+  };
+}
+export type InboundEvent = import("./yoreni-client").AgentFrame;

@@ -1,4 +1,4 @@
-"""Execution helpers for session-bound cron jobs."""
+"""Execution helpers for Agent-owned cron jobs."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from typing import Any, Protocol
 
 from yoreni.bus.delivery import DELIVERY_RUN_META
 from yoreni.bus.events import InboundMessage, OutboundMessage
-from yoreni.cron.session_delivery import origin_delivery_context
-from yoreni.cron.session_turns import CRON_DEFER_UNTIL_IDLE_META, CRON_TRIGGER_META
+from yoreni.cron.delivery import origin_delivery_context
+from yoreni.cron.events import CRON_TRIGGER_META
 from yoreni.cron.types import CronJob, CronRunResult
 from yoreni.cron.webui_metadata import cron_proactive_delivery_metadata
 from yoreni.utils.prompt_templates import render_template
@@ -35,7 +35,7 @@ def _cron_prompt_ref(prompt: str) -> dict[str, Any]:
     }
 
 
-def _bound_session_delivery_context(
+def _origin_delivery_context(
     job: CronJob,
     *,
     turn_seed: str,
@@ -67,10 +67,10 @@ async def run_bound_cron_job(
     agent: BoundCronAgent,
     cron: CronRunRecorder,
 ) -> CronRunResult:
-    """Execute a session-bound cron job as a normal agent session turn."""
-    session_key = job.payload.session_key
-    if not session_key:
-        raise ValueError(f"cron job {job.id} is missing payload.session_key")
+    """Execute a Agent-owned cron job as an internal Event."""
+    agent_id = job.payload.agent_id
+    if not agent_id:
+        raise ValueError(f"cron job {job.id} is missing payload.agent_id")
 
     prompt = render_template(
         "agent/cron_reminder.md",
@@ -79,7 +79,7 @@ async def run_bound_cron_job(
     )
     prompt_ref = _cron_prompt_ref(prompt)
     run_id = f"{job.id}:{int(time.time() * 1000)}:{uuid.uuid4().hex[:8]}"
-    channel, chat_id, metadata = _bound_session_delivery_context(
+    channel, chat_id, metadata = _origin_delivery_context(
         job,
         turn_seed=f"cron:{job.id}",
         source_label=job.name,
@@ -87,18 +87,18 @@ async def run_bound_cron_job(
     metadata[CRON_TRIGGER_META] = {
         "job_id": job.id,
         "job_name": job.name,
+        "agent_id": agent_id,
         "run_id": run_id,
         "prompt_ref": prompt_ref,
         "persist_content": (
             f"Scheduled cron job triggered: {job.name}\n\n{job.payload.message}"
         ),
     }
-    metadata[CRON_DEFER_UNTIL_IDLE_META] = True
     metadata[DELIVERY_RUN_META] = run_id
     run_record_base: dict[str, Any] = {
         "job_id": job.id,
         "job_name": job.name,
-        "session_key": session_key,
+        "agent_id": agent_id,
         "prompt_ref": prompt_ref,
         "prompt_vars": {"message": job.payload.message},
         "rendered_prompt": prompt,
@@ -119,8 +119,8 @@ async def run_bound_cron_job(
                 sender_id="cron",
                 chat_id=chat_id,
                 content=prompt,
-                metadata=metadata,
-                session_key_override=session_key,
+                metadata=metadata, input_role="system",
+
             )
         )
     except (Exception, asyncio.CancelledError) as exc:

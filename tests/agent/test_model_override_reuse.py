@@ -220,7 +220,8 @@ async def test_sdk_stream_survives_reuse_replacement_and_invalidation(configured
     entered, release = asyncio.Event(), asyncio.Event()
     admitted = []
 
-    async def process(message, *, session_key, hooks, runtime, **_kwargs):
+    async def process(event, *, hooks, runtime, **_kwargs):
+        message = event.content
         admitted.append(runtime)
         if message == "stream":
             entered.set()
@@ -228,13 +229,13 @@ async def test_sdk_stream_survives_reuse_replacement_and_invalidation(configured
         assert runtime.provider.aclose.await_count == 0
         return OutboundMessage(channel="cli", chat_id="direct", content=message)
 
-    bot._loop.process_direct = process
+    bot._loop.process_event = process
     try:
-        stream = await bot.run_streamed("stream", model="tenant/override", session_key="sdk:stream")
+        stream = await bot.run_streamed("stream", model="tenant/override")
         await asyncio.wait_for(entered.wait(), timeout=2)
-        assert (await bot.run("same", model="tenant/override", session_key="sdk:same")).content == "same"
+        assert (await bot.run("same", model="tenant/override")).content == "same"
         assert admitted[0].provider is admitted[1].provider
-        await bot.run("different", model="tenant/other", session_key="sdk:other")
+        await bot.run("different", model="tenant/other")
         bot._loop.runtime_resolver.invalidate()
         assert not stream.done
         assert bot._loop.runtime_resolver.runtime is initial

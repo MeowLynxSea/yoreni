@@ -3,27 +3,19 @@ import { useRef, useState } from "react";
 import { StarLinkView, StarPromptView } from "@/components/StarPromptView";
 import { AboutSettingsView } from "@/components/settings/overview/AboutSettingsView";
 import { AppearanceSettingsView } from "@/components/settings/overview/AppearanceSettingsView";
-import { AutomationChatBindingView } from "@/components/settings/system/AutomationChatBindingView";
 import { AutomationRunDialogView, type AutomationRunResult } from "@/components/settings/system/AutomationRunDialogView";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DEFAULT_LOCAL_PREFS } from "@/lib/local-preferences";
 import type { ThemePreference } from "@/hooks/useTheme";
-import type { AutomationChatsPayload, SessionAutomationJob } from "@/lib/types";
+import type { AutomationJob } from "@/lib/types";
 import { StatePicker, type ComponentExample } from "./example";
 import { useGalleryTranslation } from "./i18n";
 
-const job: SessionAutomationJob = {
-  id: "gallery-report", name: "Weekly summary", enabled: true, chat_binding_revision: "gallery-1",
+const job: AutomationJob = {
+  id: "gallery-report", name: "Weekly summary", enabled: true,
   schedule: { kind: "cron", expr: "30 9 * * 1", tz: "UTC" },
   payload: { message: "Summarize the changes and open questions." }, state: {},
   origin: { channel: "websocket", title: "Planning" },
-};
-const chats: AutomationChatsPayload = {
-  revision: "gallery-1", current: { id: "planning", title: "Planning", channel: "websocket" },
-  chats: [{ id: "planning", title: "Planning", channel: "websocket" },
-    { id: "reviews", title: "Reviews", channel: "websocket" },
-    { id: "archived", title: "Archived chat", channel: "websocket", unavailable: true }],
 };
 
 function RunResultPreview() {
@@ -39,31 +31,6 @@ function RunResultPreview() {
     <AutomationRunDialogView job={job} run={{ run_at_ms: Date.UTC(2026, 9, 12, 9, 30), status: "ok", duration_ms: 3200 }}
       locale={i18n.language} open={open} result={result} onRetry={() => setMode("complete")} onOpenChange={setOpen}
       onCloseAutoFocus={(event) => { event.preventDefault(); trigger.current?.focus(); }} /></>;
-}
-
-function ChatBindingPreview() {
-  const { t } = useGalleryTranslation();
-  const [mode, setMode] = useState<"ready" | "pending" | "load-error" | "conflict">("ready");
-  const [task, setTask] = useState(job);
-  const [data, setData] = useState(chats);
-  const [targetTitle, setTargetTitle] = useState("");
-  return <><StatePicker label={t("controls.chatBinding.state")} value={mode} options={["ready", "pending", "load-error", "conflict"]} onChange={setMode} />
-    <Dialog><DialogTrigger asChild><Button variant="outline">{t("controls.chatBinding.setChat")}</Button></DialogTrigger>
-      <DialogContent aria-describedby={undefined} className="max-w-[520px] gap-0 p-0">
-        <AutomationChatBindingView job={mode === "pending" ? { ...task, state: { pending: true } } : task}
-          data={data} loadError={mode === "load-error"} showBrandLogos={false} onReload={() => setMode("ready")}
-          onSave={async (_task, values) => {
-            if (mode === "conflict") throw new Error("automation_chat_conflict");
-            setTask((current) => ({ ...current, chat_binding_revision: `${current.chat_binding_revision}-next`, payload: { ...current.payload, message: values.message } }));
-          }} onSaved={(target) => {
-            setData((current) => ({ ...current, current: target, revision: `${current.revision}-next` }));
-            setTargetTitle(target.title);
-          }}>{(picker) => <>
-            <DialogHeader className="px-6 pb-4 pr-12 pt-5"><DialogTitle>{task.name}</DialogTitle></DialogHeader>
-            <div className="px-6 pb-6">{picker}</div>
-          </>}</AutomationChatBindingView>
-      </DialogContent>
-    </Dialog><p role="status" className="mt-4 text-xs text-muted-foreground">{targetTitle ? t("controls.chatBinding.saved", { title: targetTitle }) : t("controls.chatBinding.hint")}</p></>;
 }
 
 function AboutPreview() {
@@ -100,24 +67,20 @@ function StarInvitationPreview() {
 }
 
 export const runtimeSettingsExamples: ComponentExample[] = [
-  { title: "controls.runResult.title", files: ["webui/src/components/settings/system/AutomationRunDialogView.tsx"], Preview: RunResultPreview,
+{ title: "controls.runResult.title", files: ["webui/src/components/settings/system/AutomationRunDialogView.tsx"], Preview: RunResultPreview,
     description: "controls.runResult.description",
     options: "controls.runResult.options",
     code: '<AutomationRunDialogView job={job} run={run} locale="zh-CN" open={open} result={{ status: "loaded", response }} onRetry={retry} onOpenChange={setOpen} onCloseAutoFocus={restoreFocus} />' },
-  { title: "controls.chatBinding.title", files: ["webui/src/components/settings/system/AutomationChatBindingView.tsx"], Preview: ChatBindingPreview,
-    description: "controls.chatBinding.description",
-    options: "controls.chatBinding.options",
-    code: '<AutomationChatBindingView job={job} data={chats} loadError={false} showBrandLogos={false} onSave={save} onSaved={updateCurrent} onReload={reload}>{renderDetails}</AutomationChatBindingView>' },
-  { title: "controls.about.title", files: ["webui/src/components/settings/overview/AboutSettingsView.tsx"], Preview: AboutPreview,
+{ title: "controls.about.title", files: ["webui/src/components/settings/overview/AboutSettingsView.tsx"], Preview: AboutPreview,
     description: "controls.about.description",
     options: "controls.about.options",
     code: '<AboutSettingsView reportIssueUrl={reportIssueUrl} version={<VersionRow currentVersion={version} />} starLink={<StarLinkView onActivate={star} />} />' },
-  { title: "controls.appearance.title", files: ["webui/src/components/settings/overview/AppearanceSettingsView.tsx"], Preview: AppearancePreview,
+{ title: "controls.appearance.title", files: ["webui/src/components/settings/overview/AppearanceSettingsView.tsx"], Preview: AppearancePreview,
     description: "controls.appearance.description",
     options: "controls.appearance.options",
     code: '<AppearanceSettingsView themePreference={preference} onChangeTheme={setTheme} localPrefs={preferences} onChangeLocalPrefs={setPreferences} />' },
-  { title: "controls.starInvitation.title", files: ["webui/src/components/StarPromptView.tsx"], Preview: StarInvitationPreview,
+{ title: "controls.starInvitation.title", files: ["webui/src/components/StarPromptView.tsx"], Preview: StarInvitationPreview,
     description: "controls.starInvitation.description",
     options: "controls.starInvitation.options",
-    code: '<StarPromptView open={open} saving={saving} error={error} onOpenChange={setOpen} onDismissForever={dismiss} onStar={openRepository} />' },
+    code: '<StarPromptView open={open} saving={saving} error={error} onOpenChange={setOpen} onDismissForever={dismiss} onStar={openRepository} />' }
 ];

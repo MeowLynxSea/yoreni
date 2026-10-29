@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent.session_helpers import mock_session_manager, run_session
+from agent.run_helpers import mock_session_manager, run_event
 from yoreni.agent.memory import Consolidator
 from yoreni.bus.outbound_events import StreamDeltaEvent, StreamEndEvent
 from yoreni.config.schema import AgentDefaults
@@ -380,7 +380,7 @@ class TestDispatch:
         loop._process_message = AsyncMock(
             return_value=OutboundMessage(channel="test", chat_id="c1", content="hi")
         )
-        await run_session(loop, msg)
+        await run_event(loop, msg)
         out = await asyncio.wait_for(bus.consume_outbound(), timeout=1.0)
         assert out.content == "hi"
 
@@ -409,7 +409,7 @@ class TestDispatch:
 
         loop._process_message = fake_process
 
-        await run_session(loop, msg)
+        await run_event(loop, msg)
         first = await asyncio.wait_for(bus.consume_outbound(), timeout=1.0)
         second = await asyncio.wait_for(bus.consume_outbound(), timeout=1.0)
 
@@ -441,9 +441,9 @@ class TestDispatch:
         msg1 = InboundMessage(channel="test", sender_id="u1", chat_id="c1", content="a")
         msg2 = InboundMessage(channel="test", sender_id="u1", chat_id="c1", content="b")
 
-        t1 = asyncio.create_task(run_session(loop, msg1))
+        t1 = asyncio.create_task(run_event(loop, msg1))
         await asyncio.wait_for(first_started.wait(), timeout=1.0)
-        t2 = asyncio.create_task(run_session(loop, msg2))
+        t2 = asyncio.create_task(run_event(loop, msg2))
         await asyncio.sleep(0)
         assert order == ["start-a"]
 

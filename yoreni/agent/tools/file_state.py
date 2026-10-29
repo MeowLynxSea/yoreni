@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-from collections import OrderedDict
 from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
@@ -51,7 +50,7 @@ def _hash_file(p: str) -> str | None:
 
 
 class FileStates:
-    """Cache read receipts per session; deduplicate only while their results are visible."""
+    """Cache read receipts per Run; deduplicate only while their results are visible."""
 
     __slots__ = ("_state",)
 
@@ -105,33 +104,6 @@ class FileStates:
         self._state.clear()
 
 
-class FileStateStore:
-    """Bounded lookup table for per-session file read/write state."""
-
-    __slots__ = ("_max_sessions", "_states_by_key")
-
-    def __init__(self, *, max_sessions: int = 128) -> None:
-        if max_sessions <= 0:
-            raise ValueError("max_sessions must be positive")
-        self._max_sessions = max_sessions
-        self._states_by_key: OrderedDict[str, FileStates] = OrderedDict()
-
-    def for_session(self, session_key: str | None) -> FileStates:
-        key = session_key or "__default__"
-        states = self._states_by_key.pop(key, None)
-        if states is None:
-            states = FileStates()
-        self._states_by_key[key] = states
-        while len(self._states_by_key) > self._max_sessions:
-            self._states_by_key.popitem(last=False)
-        return states
-
-    def discard(self, session_key: str | None) -> None:
-        """Forget file state when a session is reset or removed."""
-        self._states_by_key.pop(session_key or "__default__", None)
-
-    def clear(self) -> None:
-        self._states_by_key.clear()
 
 
 _current_file_states: ContextVar[FileStates | None] = ContextVar(

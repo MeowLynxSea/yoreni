@@ -19,7 +19,7 @@ from urllib.parse import unquote
 from loguru import logger
 
 from yoreni.agent.tools.base import Tool, ToolResult
-from yoreni.agent.tools.context import ToolContext, current_request_session_key
+from yoreni.agent.tools.context import ToolContext, current_execution_owner
 from yoreni.agent.tools.exec_session import (
     DEFAULT_EXEC_SESSION_MANAGER,
     DEFAULT_MAX_OUTPUT_CHARS,
@@ -350,7 +350,7 @@ class ExecTool(Tool):
                 stdin=(asyncio.subprocess.DEVNULL if yield_time_ms is None else asyncio.subprocess.PIPE),
                 idle_timeout=self._exec_config.idle_timeout,
                 idle_action=self._exec_config.idle_action,
-                owner_session_key=current_request_session_key(),
+                owner_id=current_execution_owner(),
                 max_output_chars=clamp_session_int(
                     max_output_chars,
                     DEFAULT_MAX_OUTPUT_CHARS,

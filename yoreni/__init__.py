@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from .agent.state import AgentInput
     from .agent.tools.context import RequestContext
-    from .bus.runtime_events import SessionTurnPersisted
     from .runtime_context import RuntimeContextBlock, RuntimeContextProvider
     from .yoreni import (
         STREAM_EVENT_REASONING_COMPLETED,
@@ -27,8 +27,6 @@ if TYPE_CHECKING:
         LLMUsage,
         RunResult,
         RunStream,
-        SessionInfo,
-        SessionSnapshot,
         StreamEvent,
         StreamEventType,
         Yoreni,
@@ -56,6 +54,7 @@ __version__ = _resolve_version()
 __logo__ = "◆"
 
 _LAZY_EXPORTS = {
+    "AgentInput": ".agent.state",
     "Yoreni": ".yoreni",
     "LLMUsage": ".llm_usage.types",
     "RunStream": ".yoreni",
@@ -63,8 +62,6 @@ _LAZY_EXPORTS = {
     "RequestContext": ".agent.tools.context",
     "RuntimeContextBlock": ".runtime_context",
     "RuntimeContextProvider": ".runtime_context",
-    "SessionInfo": ".yoreni",
-    "SessionSnapshot": ".yoreni",
     "STREAM_EVENT_REASONING_COMPLETED": ".yoreni",
     "STREAM_EVENT_REASONING_DELTA": ".yoreni",
     "STREAM_EVENT_RUN_COMPLETED": ".yoreni",
@@ -78,7 +75,6 @@ _LAZY_EXPORTS = {
     "STREAM_EVENT_TYPES": ".yoreni",
     "StreamEvent": ".yoreni",
     "StreamEventType": ".yoreni",
-    "SessionTurnPersisted": ".bus.runtime_events",
 }
 
 
@@ -94,6 +90,7 @@ def __getattr__(name: str) -> Any:
 
 
 __all__ = [
+    "AgentInput",
     "Yoreni",
     "LLMUsage",
     "RunResult",
@@ -101,8 +98,6 @@ __all__ = [
     "RuntimeContextBlock",
     "RuntimeContextProvider",
     "RunStream",
-    "SessionInfo",
-    "SessionSnapshot",
     "STREAM_EVENT_REASONING_COMPLETED",
     "STREAM_EVENT_REASONING_DELTA",
     "STREAM_EVENT_RUN_COMPLETED",
@@ -116,5 +111,4 @@ __all__ = [
     "STREAM_EVENT_TYPES",
     "StreamEvent",
     "StreamEventType",
-    "SessionTurnPersisted",
 ]

@@ -174,14 +174,6 @@
           "label": "Tamanho do resumo",
           "help": "Limite de caracteres dos resumos de atividade das ferramentas.\n\nTamanho máximo das indicações breves de atividade."
         },
-        "tools_max_session_messages_per_minute": {
-          "label": "Frequência de mensagens",
-          "help": "Máximo de mensagens de ferramentas para uma sessão por minuto.\n\nLimita a frequência das mensagens enviadas pelas ferramentas à conversa."
-        },
-        "agents_defaults_unified_session": {
-          "label": "Sessões compartilhadas",
-          "help": "Compartilhe o histórico de um usuário entre plataformas.\n\nUsa a mesma conversa para um usuário em diferentes plataformas de chat."
-        },
         "tools_exec_enable": {
           "label": "Ferramenta de shell",
           "help": "Permita que o agente execute comandos Shell.\n\nPermite que o agente execute comandos de shell."
@@ -324,10 +316,6 @@
           "title": "Limites de execução",
           "help": "Configure limites de ferramentas e novas tentativas."
         },
-        "sessions": {
-          "title": "Conversas",
-          "help": "Configure conversas compartilhadas entre plataformas."
-        },
         "tools": {
           "title": "Ferramentas integradas",
           "help": "Escolha as ferramentas que o agente pode usar."
@@ -386,13 +374,6 @@
       "search": "Buscar uma configuração avançada",
       "noResults": "Nenhuma configuração correspondente.",
       "pending": "Alterações não salvas",
-      "idleCompaction": {
-        "label": "Compactação automática por inatividade",
-        "help": "Compacta o contexto automaticamente ao atingir o limite de inatividade para reduzir o uso de tokens nas próximas solicitações.",
-        "wait": "Limite de inatividade",
-        "minutes": "minutos",
-        "numberError": "Digite um número inteiro de minutos maior ou igual a zero."
-      },
       "numberError": "Digite um número válido dentro do intervalo permitido.",
       "activeModel": "Usar o modelo ativo",
       "none": "Nenhum",
@@ -1494,7 +1475,6 @@
     "fallbackTitle": "Tópico {{id}}",
     "forkTitle": "Bifurcação: {{title}}",
     "loading": "Carregando…",
-    "noSessions": "Nenhuma sessão ainda.",
     "showMore": "Mostrar mais {{count}}",
     "collapsed": "{{count}} tópicos ocultos",
     "showLess": "Mostrar menos",
@@ -1697,34 +1677,7 @@
       "toggleSidebar": "Alternar barra lateral",
       "newChat": "Iniciar um novo tópico",
       "toggleTheme": "Alternar tema pelo cabeçalho",
-      "settings": "Abrir configurações",
-      "sessionInfo": "Detalhes da sessão"
-    },
-    "sessionInfo": {
-      "title": "Sessão",
-      "untitled": "Tópico sem título",
-      "automations": "Automações",
-      "count": "{{count}}",
-      "loading": "Carregando automações...",
-      "loadFailed": "Não foi possível carregar as automações.",
-      "empty": "Ainda não há automações nesta sessão.",
-      "openCalendar": "Ver tudo no calendário",
-      "disabled": "Desligado",
-      "schedule": {
-        "at": "{{time}}",
-        "every": "A cada {{duration}}",
-        "cron": "Cron {{expr}}",
-        "cronWithTz": "Cron {{expr}} ({{tz}})",
-        "local": "Gatilho local",
-        "unknown": "Agendamento personalizado"
-      },
-      "next": {
-        "label": "{{time}}",
-        "pending": "Executará em breve",
-        "disabled": "Pausada",
-        "local": "Aguardando gatilho",
-        "none": "Sem próxima execução"
-      }
+      "settings": "Abrir configurações"
     },
     "composer": {
       "placeholderThread": "Digite sua mensagem…",
@@ -1896,15 +1849,12 @@
         "label": "Aplicativos",
         "cliGroup": "Aplicativos CLI",
         "mcpGroup": "Serviços MCP",
-        "sessionGroup": "Conversas do Yoreni",
         "cliBadge": "CLI",
         "mcpBadge": "MCP",
         "cliDescription": "Chame CLI com @{{name}}.",
         "mcpDescription": "Chame MCP com @{{name}}.",
         "cliTitle": "Aplicativo CLI: {{name}}",
-        "mcpTitle": "Servidor MCP: {{name}}",
-        "sessionBadge": "Conversa do Yoreni",
-        "sessionDescription": "Referenciar @{{name}} como chat anterior"
+        "mcpTitle": "Servidor MCP: {{name}}"
       },
       "encoding": "Codificando…",
       "remove": "Remover anexo",

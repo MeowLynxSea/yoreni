@@ -275,7 +275,6 @@ class MattermostChannel(BaseChannel):
         thread_ts = root_id if root_id else None
         if self.config.reply_in_thread and not thread_ts and not is_dm:
             thread_ts = post_id
-        session_key = f"mattermost:{channel_id}:{thread_ts}" if thread_ts else None
 
         try:
             await self._add_reaction(post_id, self.config.react_emoji)
@@ -311,7 +310,6 @@ class MattermostChannel(BaseChannel):
                 "mattermost": mm_meta,
                 "message_id": post_id,
             },
-            session_key=session_key,
             is_dm=is_dm,
         )
 

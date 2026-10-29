@@ -4,17 +4,17 @@ import { useTranslation } from "react-i18next";
 import { MarkdownText } from "@/components/MarkdownText";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { SessionAutomationJob } from "@/lib/types";
+import type { AutomationJob } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export type AutomationRunRecord = NonNullable<SessionAutomationJob["state"]["run_history"]>[number];
+export type AutomationRunRecord = NonNullable<AutomationJob["state"]["run_history"]>[number];
 export type AutomationRunResult = {
   status: "loading" | "loaded" | "error";
   response: string | null;
 };
 
 export function AutomationRunDialogView({ job, run, locale, open, result, onRetry, onOpenChange, onCloseAutoFocus }: {
-  job: SessionAutomationJob;
+  job: AutomationJob;
   run: AutomationRunRecord;
   locale: string;
   open: boolean;
@@ -31,9 +31,7 @@ export function AutomationRunDialogView({ job, run, locale, open, result, onRetr
       : run.status === "skipped" ? t("settings.automations.skipped")
         : t("settings.automations.calendar.recorded");
   const duration = run.duration_ms;
-  const chatKey = run.webui_session_key !== undefined ? run.webui_session_key
-    : job.origin?.channel === "websocket" ? job.origin.session_key : null;
-  const chatHref = chatKey ? `#/chat/${encodeURIComponent(chatKey)}` : null;
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -89,13 +87,7 @@ export function AutomationRunDialogView({ job, run, locale, open, result, onRetr
               : "settings.automations.runDetails.emptyOutput")}</p>
           )}
         </div>
-        {chatHref ? (
-          <div className="flex shrink-0 justify-end border-t border-border/45 px-6 py-3">
-            <Button asChild variant="ghost" size="sm" className="font-normal text-muted-foreground">
-              <a href={chatHref}>{t("settings.automations.emptyAction")}</a>
-            </Button>
-          </div>
-        ) : null}
+
       </DialogContent>
     </Dialog>
   );

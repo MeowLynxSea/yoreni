@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from yoreni.agent.loop import AgentLoop
+from yoreni.agent.summary import SUMMARY_CONTINUATION_TEXT
 from yoreni.bus.queue import MessageBus
 from yoreni.providers.base import (
     GenerationSettings,
@@ -10,7 +11,6 @@ from yoreni.providers.base import (
     ProviderConversationState,
     ToolCallRequest,
 )
-from yoreni.session.summary import SUMMARY_CONTINUATION_TEXT
 
 
 def _make_loop(

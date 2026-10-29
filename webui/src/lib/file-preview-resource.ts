@@ -5,7 +5,7 @@ const RETAIN_MS = 60_000;
 const MAX_ENTRIES = 4;
 const MAX_BYTES = 8 * 1024 * 1024;
 
-/** Short-lived, in-memory only. The caller owns one resource per session/loader. */
+/** Short-lived, in-memory only. The caller owns one resource per preview loader. */
 export function createFilePreviewResource(fetchPreview: (path: string) => Promise<FilePreviewPayload>) {
   const entries = new Map<string, {
     payload?: FilePreviewPayload;

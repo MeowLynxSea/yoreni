@@ -14,7 +14,7 @@ import type {
   McpPresetsPayload,
   YoreniFeatureInfo,
   YoreniFeaturesPayload,
-  SessionAutomationJob,
+  AutomationJob,
 } from "@/lib/types";
 
 export type YoreniFeatureInstallRequest = {
@@ -61,9 +61,9 @@ export function useSystemSettingsState() {
   const [automationsError, setAutomationsError] = useState<string | null>(null);
   const [automationAction, setAutomationAction] = useState<string | null>(null);
   const [automationPendingDelete, setAutomationPendingDelete] =
-    useState<SessionAutomationJob | null>(null);
+    useState<AutomationJob | null>(null);
   const [automationPendingEdit, setAutomationPendingEdit] =
-    useState<SessionAutomationJob | null>(null);
+    useState<AutomationJob | null>(null);
   const [mcpFieldValues, setMcpFieldValues] = useState<Record<string, Record<string, string>>>({});
   const [customMcpForm, setCustomMcpForm] = useState<CustomMcpForm>(DEFAULT_CUSTOM_MCP_FORM);
   const [mcpConfigImport, setMcpConfigImport] = useState("");

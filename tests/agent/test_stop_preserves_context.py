@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent.session_helpers import mock_session_manager, run_session
+from agent.run_helpers import mock_session_manager, run_event
 from yoreni.agent.loop import AgentLoop
 from yoreni.bus.queue import MessageBus
 from yoreni.session.recovery import RUNTIME_CHECKPOINT_KEY
@@ -103,7 +103,7 @@ async def test_dispatch_cancellation_restores_checkpoint():
     msg = InboundMessage(channel="test", sender_id="u1", chat_id="c1", content="work")
 
     with pytest.raises(asyncio.CancelledError):
-        await run_session(loop, msg)
+        await run_event(loop, msg)
 
     roles = [m.get("role") for m in session.messages]
     assert roles == ["user", "assistant", "tool"], (
@@ -143,7 +143,7 @@ async def test_dispatch_cancellation_keeps_checkpoint_for_gateway_shutdown(tmp_p
     from yoreni.bus.events import InboundMessage
 
     with pytest.raises(asyncio.CancelledError):
-        await run_session(loop,
+        await run_event(loop,
             InboundMessage(channel="test", sender_id="u1", chat_id="c1", content="work")
         )
 

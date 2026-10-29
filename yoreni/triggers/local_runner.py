@@ -9,10 +9,9 @@ from typing import Any
 
 from loguru import logger
 
-from yoreni.agent.automation_turns import AutomationTurnError
 from yoreni.bus.events import InboundMessage, OutboundMessage
 from yoreni.runtime_admission import RuntimeAdmission
-from yoreni.triggers.local_session_turns import LOCAL_TRIGGER_META
+from yoreni.triggers.events import LOCAL_TRIGGER_META
 from yoreni.triggers.local_store import LocalTriggerStore
 from yoreni.triggers.local_types import LocalTrigger, TriggerDelivery
 from yoreni.webui.metadata import WEBUI_MESSAGE_SOURCE_METADATA_KEY, WEBUI_TURN_METADATA_KEY
@@ -27,7 +26,7 @@ async def run_local_trigger_queue(
     batch_size: int = 20,
     admission: RuntimeAdmission | None = None,
 ) -> None:
-    """Poll local trigger deliveries and submit them as session turns."""
+    """Poll local trigger deliveries and submit them as Agent Events."""
     if submit_turn is None:
         raise ValueError("run_local_trigger_queue requires submit_turn")
     gate = admission if admission is not None else RuntimeAdmission()
@@ -79,17 +78,6 @@ async def _run_delivery(
         logger.warning(
             "Trigger: dropped delivery {} for {}: {}", delivery.id, delivery.trigger_id, exc,
         )
-    except AutomationTurnError as exc:
-        error = str(exc) or exc.__class__.__name__
-        store.record_delivery(
-            delivery.trigger_id, status="error", error=error, run_at_ms=delivery.created_at_ms,
-        )
-        _write_delivery_run_record(store, delivery, status="error", error=error)
-        store.complete_delivery(delivery)
-        logger.warning(
-            "Trigger: delivery {} for {} reached the agent but failed: {}",
-            delivery.id, delivery.trigger_id, error,
-        )
     except Exception as exc:
         error = str(exc) or exc.__class__.__name__
         retried = store.retry_delivery(delivery, error)
@@ -131,7 +119,7 @@ async def _deliver_delivery(
         chat_id=trigger.chat_id,
         content=delivery.content,
         metadata=_delivery_metadata(trigger, delivery),
-        session_key_override=trigger.session_key,
+        input_role="system",
     )
     response = await submit_turn(msg)
     store.record_delivery(
@@ -175,6 +163,7 @@ def _write_delivery_run_record(
 def _delivery_metadata(trigger: LocalTrigger, delivery: TriggerDelivery) -> dict[str, Any]:
     metadata = dict(trigger.origin_metadata or {})
     metadata[LOCAL_TRIGGER_META] = {
+        "agent_id": trigger.agent_id,
         "trigger_id": trigger.id,
         "trigger_name": trigger.name,
         "delivery_id": delivery.id,

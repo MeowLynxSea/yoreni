@@ -49,14 +49,14 @@ class TriggerRunRecord:
 
 @dataclass
 class LocalTrigger:
-    """A session-bound local trigger."""
+    """A Agent-owned local trigger."""
 
     id: str
     name: str
     enabled: bool
     channel: str
     chat_id: str
-    session_key: str
+    agent_id: str
     sender_id: str = "trigger"
     origin_metadata: dict[str, Any] = field(default_factory=dict)
     created_at_ms: int = 0
@@ -86,7 +86,7 @@ class LocalTrigger:
             enabled=bool(data.get("enabled", True)),
             channel=str(data.get("channel") or ""),
             chat_id=str(_get(data, "chatId", "chat_id", "")),
-            session_key=str(_get(data, "sessionKey", "session_key", "")),
+            agent_id=str(_get(data, "agentId", "agent_id", "")),
             sender_id=str(_get(data, "senderId", "sender_id", "trigger") or "trigger"),
             origin_metadata=dict(_get(data, "originMetadata", "origin_metadata", {}) or {}),
             created_at_ms=_int_or_zero(_get(data, "createdAtMs", "created_at_ms", 0)),
@@ -105,7 +105,7 @@ class LocalTrigger:
             "enabled": self.enabled,
             "channel": self.channel,
             "chatId": self.chat_id,
-            "sessionKey": self.session_key,
+            "agentId": self.agent_id,
             "senderId": self.sender_id,
             "originMetadata": self.origin_metadata,
             "createdAtMs": self.created_at_ms,

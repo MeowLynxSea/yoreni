@@ -249,7 +249,6 @@ function isCompletedDisplayNoop(message: UIMessage): boolean {
     && !message.traces?.some((line) => line.trim().length > 0)
     && !message.toolEvents?.length
     && !message.fileEdits?.length
-    && !message.sessionMessage
   );
 }
 

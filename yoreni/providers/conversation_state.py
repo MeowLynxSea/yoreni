@@ -43,11 +43,11 @@ class ProviderConversationStateController:
         model: str | None,
         messages: list[dict[str, Any]],
         state: ProviderConversationState | None = None,
-        session_id: str | None = None,
+        run_id: str | None = None,
     ) -> None:
         self._provider = provider
         self._model = model
-        self._session_id = session_id
+        self._run_id = run_id
         self._state = (
             state
             if state is not None
@@ -63,11 +63,11 @@ class ProviderConversationStateController:
         context_window_tokens: int | None,
     ) -> ProviderCallContext | None:
         """Return typed provider context for a request that does not resume state."""
-        if context_window_tokens is None and self._session_id is None:
+        if context_window_tokens is None and self._run_id is None:
             return None
         return ProviderCallContext(
             context_window_tokens=context_window_tokens,
-            session_id=self._session_id,
+            run_id=self._run_id,
         )
 
     def estimate_request_context_tokens(
@@ -155,7 +155,7 @@ class ProviderConversationStateController:
                 if independent_context is not None
                 else None
             ),
-            session_id=self._session_id,
+            run_id=self._run_id,
         )
 
     def observe_response(

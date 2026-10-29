@@ -1316,10 +1316,6 @@ async def connect_mcp_servers(
     return server_stacks
 
 
-def session_extra(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
-    """Return persisted session kwargs for MCP preset attachments."""
-    mcp_presets = metadata.get("mcp_presets") if isinstance(metadata, Mapping) else None
-    return {"mcp_presets": mcp_presets} if isinstance(mcp_presets, list) and mcp_presets else {}
 
 
 def _configured_servers(config: Config) -> dict[str, MCPServerConfig]:

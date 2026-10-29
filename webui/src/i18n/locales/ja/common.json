@@ -174,14 +174,6 @@
           "label": "概要の長さ",
           "help": "ツールの実行概要に表示する文字数上限です。\n\nツールの動作を簡潔に表示する説明文の最大文字数です。"
         },
-        "tools_max_session_messages_per_minute": {
-          "label": "メッセージ頻度",
-          "help": "同じセッションにツールが送る毎分のメッセージ上限です。\n\nツールが会話にメッセージを送信する頻度を制限します。"
-        },
-        "agents_defaults_unified_session": {
-          "label": "セッション共有",
-          "help": "同じユーザーのチャット履歴を複数のプラットフォームで共有します。\n\n1 人のユーザーが複数のチャットプラットフォームで同じ会話を使用します。"
-        },
         "tools_exec_enable": {
           "label": "シェルツール",
           "help": "エージェントによる Shell コマンドの実行を許可します。\n\nエージェントによるシェルコマンドの実行を許可します。"
@@ -324,10 +316,6 @@
           "title": "実行の制限",
           "help": "ツールの上限と要求の再試行を設定します。"
         },
-        "sessions": {
-          "title": "会話",
-          "help": "複数プラットフォーム間のチャット共有を設定します。"
-        },
         "tools": {
           "title": "組み込みツール",
           "help": "エージェントが使えるツールを選びます。"
@@ -386,13 +374,6 @@
       "search": "詳細設定を検索",
       "noResults": "一致する設定はありません。",
       "pending": "未保存の変更",
-      "idleCompaction": {
-        "label": "未使用時の自動圧縮",
-        "help": "未使用時間が上限に達するとコンテキストを自動圧縮し、次回以降のトークン使用量を減らします。",
-        "wait": "未使用時間の上限",
-        "minutes": "分",
-        "numberError": "分数を0以上の整数で入力してください。"
-      },
       "numberError": "許可された範囲内の有効な数値を入力してください。",
       "activeModel": "現在のモデルを使用",
       "none": "なし",
@@ -1494,7 +1475,6 @@
     "fallbackTitle": "トピック {{id}}",
     "forkTitle": "分岐：{{title}}",
     "loading": "読み込み中…",
-    "noSessions": "まだセッションがありません。",
     "showMore": "さらに {{count}} 件表示",
     "collapsed": "{{count}} 件のトピックを折りたたみ中",
     "showLess": "折りたたむ",
@@ -1697,34 +1677,7 @@
       "toggleSidebar": "サイドバーを切り替える",
       "newChat": "新しいトピックを開始",
       "toggleTheme": "ヘッダーからテーマを切り替える",
-      "settings": "設定を開く",
-      "sessionInfo": "セッション詳細"
-    },
-    "sessionInfo": {
-      "title": "セッション",
-      "untitled": "無題のトピック",
-      "automations": "自動タスク",
-      "count": "{{count}}",
-      "loading": "自動タスクを読み込み中...",
-      "loadFailed": "自動タスクを読み込めませんでした。",
-      "empty": "このセッションにはまだ自動タスクがありません。",
-      "openCalendar": "カレンダーですべて表示",
-      "disabled": "オフ",
-      "schedule": {
-        "at": "{{time}}",
-        "every": "{{duration}}ごと",
-        "cron": "Cron {{expr}}",
-        "cronWithTz": "Cron {{expr}}（{{tz}}）",
-        "local": "ローカルトリガー",
-        "unknown": "カスタムスケジュール"
-      },
-      "next": {
-        "label": "次回 {{time}}",
-        "pending": "まもなく実行",
-        "disabled": "一時停止",
-        "local": "トリガー待ち",
-        "none": "次回実行なし"
-      }
+      "settings": "設定を開く"
     },
     "composer": {
       "placeholderThread": "メッセージを入力…",
@@ -1912,15 +1865,12 @@
         "label": "アプリ",
         "cliGroup": "CLI アプリ",
         "mcpGroup": "MCP サービス",
-        "sessionGroup": "Yoreni の会話",
         "cliBadge": "CLI",
         "mcpBadge": "MCP",
         "cliDescription": "@{{name}} で CLI を呼び出します。",
         "mcpDescription": "@{{name}} で MCP を呼び出します。",
         "cliTitle": "CLI アプリ: {{name}}",
-        "mcpTitle": "MCP サーバー: {{name}}",
-        "sessionBadge": "Yoreni の会話",
-        "sessionDescription": "@{{name}} を過去のチャットとして参照"
+        "mcpTitle": "MCP サーバー: {{name}}"
       },
       "workspace": {
         "accessAria": "ワークスペースのアクセスモード",

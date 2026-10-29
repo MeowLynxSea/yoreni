@@ -30,4 +30,4 @@ Apply this checklist to changes to WebUI HTTP, WebSocket events/mutations, boots
 
 ## Current baseline
 
-WebUI protocol **1** with capability **`webui.core.v1`** is the initial explicit client/host contract. It covers the existing authenticated WebUI read, mutation, event, and media interfaces. Hosts predating this declaration are unconfirmed; the local-client mode requires updating them to a build that declares support. Their independent server WebUI remains a separate way to use that installation. This is an intentional prerequisite for local-client mode, not a blanket claim that legacy yoreni installations no longer function.
+WebUI protocol **2** with capabilities **`webui.core.v2`**, **`webui.agent.v1`**, and **`webui.attachments.binary.v1`** is the supported authenticated Agent/Event/Run interface. The host and shipped client must declare this contract; hosts predating it are not supported by this WebUI. This is an intentional breaking change: there is no Session-based WebUI fallback.

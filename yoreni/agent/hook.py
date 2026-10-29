@@ -33,7 +33,7 @@ class AgentHookContext:
     final_content: str | None = None
     stop_reason: str | None = None
     error: str | None = None
-    session_key: str | None = None
+    run_id: str | None = None
 
 
 @dataclass(slots=True)
@@ -60,7 +60,7 @@ class AgentTurnHookContext:
     channel: str = "cli"
     chat_id: str = "direct"
     message_id: str | None = None
-    session_key: str | None = None
+    run_id: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
     ephemeral: bool = False
     attributes: dict[str, Any] = field(default_factory=dict)

@@ -70,7 +70,7 @@ class _FsTool(Tool):
         self._sandbox_restricts_workspace = sandbox_restricts_workspace
         # Explicit state is used by isolated runners like Dream/subagents.
         # Main AgentLoop tools leave this unset and resolve state from the
-        # current async task, which keeps shared tool instances session-safe.
+        # current async task, which keeps shared tool instances safe between concurrent Runs.
         self._explicit_file_states = file_states
         self._fallback_file_states = FileStates()
 

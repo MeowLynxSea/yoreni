@@ -79,10 +79,11 @@ def test_corruption_and_write_failure_never_grant_display(state_path, monkeypatc
 async def test_only_successful_webui_turns_record_usage(state_path, tmp_path, monkeypatch):
     from unittest.mock import AsyncMock, Mock
 
-    from yoreni.bus.queue import MessageBus
-    from yoreni.bus.runtime_events import RuntimeEventContext, TurnCompleted
     from yoreni.session.manager import SessionManager
     from yoreni.session.webui_turns import WebuiTurnCoordinator
+
+    from yoreni.bus.queue import MessageBus
+    from yoreni.bus.runtime_events import RuntimeEventContext, TurnCompleted
     from yoreni.webui.metadata import WEBUI_TURN_METADATA_KEY
 
     bus = MessageBus()

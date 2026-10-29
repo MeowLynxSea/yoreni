@@ -5,54 +5,18 @@ import mimetypes
 import platform
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence, cast
+from typing import Any, Sequence, cast
 
 from yoreni.agent.memory import MemoryStore
 from yoreni.agent.skills import SkillsLoader
-from yoreni.agent.tools import mcp as mcp_tools
-from yoreni.agent.tools import sessions as session_tools
-from yoreni.apps.cli import utils as cli_app_utils
+from yoreni.agent.summary import TranscriptSummary
 from yoreni.runtime_context import (
     RUNTIME_CONTEXT_MESSAGE_META,
     RuntimeContextBlock,
     append_runtime_context,
 )
-from yoreni.security.workspace_access import WorkspaceScopeResolver
-from yoreni.session.keys import last_channel_from_metadata
-from yoreni.session.manager import Session
-from yoreni.session.summary import SessionSummary
 from yoreni.utils.helpers import detect_image_mime, image_placeholder_text, load_bundled_template
 from yoreni.utils.prompt_templates import render_template
-
-
-def session_extra(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
-    """Return persisted kwargs for turn-attached capabilities."""
-    return (
-        cli_app_utils.session_extra(metadata)
-        | mcp_tools.session_extra(metadata)
-        | session_tools.session_extra(metadata)
-    )
-
-
-@dataclass(frozen=True, slots=True)
-class PersistedPromptContextResolver:
-    """Restore prompt routing context when no inbound message is available."""
-
-    workspace_scopes: WorkspaceScopeResolver
-    unified_session: bool = False
-
-    def __call__(self, session: Session) -> tuple[str | None, Path]:
-        channel = session.key.split(":", 1)[0] if ":" in session.key else None
-        if self.unified_session:
-            route = last_channel_from_metadata(session.metadata)
-            if route is not None:
-                channel = route[0]
-        scope = self.workspace_scopes.for_turn(
-            channel=channel,
-            message_metadata=None,
-            session_metadata=session.metadata,
-        )
-        return channel, scope.project_path
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,7 +27,7 @@ class TranscriptInput:
     current_message: str | None
     media: Sequence[str] | None = None
     current_role: str = "user"
-    session_summary: SessionSummary | None = None
+    context_summary: TranscriptSummary | None = None
     runtime_context_blocks: Sequence[RuntimeContextBlock] | None = None
 
     @property
@@ -88,7 +52,7 @@ class ContextBuilder:
         self,
         *,
         channel: str | None = None,
-        session_summary: SessionSummary | None = None,
+        context_summary: TranscriptSummary | None = None,
         workspace: Path | None = None,
         include_memory: bool = True,
     ) -> str:
@@ -129,11 +93,11 @@ class ContextBuilder:
         if skills_summary:
             parts.append(render_template("agent/skills_section.md", skills_summary=skills_summary))
 
-        if session_summary and session_summary["text"] != "(nothing)":
+        if context_summary and context_summary["text"] != "(nothing)":
             parts.append(
                 "[Archived Context Summary]\n\n"
-                f"Previous conversation summary (last active {session_summary['last_active']}):\n"
-                f"{session_summary['text']}"
+                f"Previous conversation summary (last active {context_summary['last_active']}):\n"
+                f"{context_summary['text']}"
             )
 
         return "\n\n---\n\n".join(parts)
@@ -223,7 +187,7 @@ class ContextBuilder:
         media: list[str] | None = None,
         channel: str | None = None,
         current_role: str = "user",
-        session_summary: SessionSummary | None = None,
+        context_summary: TranscriptSummary | None = None,
         runtime_context_blocks: Sequence[RuntimeContextBlock] | None = None,
         workspace: Path | None = None,
         include_memory: bool = True,
@@ -235,7 +199,7 @@ class ContextBuilder:
                 current_message=current_message,
                 media=media,
                 current_role=current_role,
-                session_summary=session_summary,
+                context_summary=context_summary,
                 runtime_context_blocks=runtime_context_blocks,
             ),
             channel=channel,
@@ -276,7 +240,7 @@ class ContextBuilder:
                     "role": "system",
                     "content": self.build_system_prompt(
                         channel=channel,
-                        session_summary=transcript.session_summary,
+                        context_summary=transcript.context_summary,
                         workspace=root,
                         include_memory=include_memory,
                     ),

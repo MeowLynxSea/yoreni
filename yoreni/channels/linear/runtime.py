@@ -457,7 +457,6 @@ class LinearChannel(BaseChannel):
                     chat_id=agent_session_id,
                     content=content,
                     metadata=metadata,
-                    session_key_override=f"linear:{organization_id}:{agent_session_id}",
                 )
             )
             return
@@ -486,7 +485,6 @@ class LinearChannel(BaseChannel):
             content=content,
             media=media,
             metadata=metadata,
-            session_key=f"linear:{organization_id}:{agent_session_id}",
             is_dm=True,
             authorization_id=authorization_id,
         )

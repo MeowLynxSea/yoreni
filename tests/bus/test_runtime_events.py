@@ -6,11 +6,11 @@ from yoreni.bus.events import InboundMessage
 from yoreni.bus.outbound_events import ProgressEvent
 from yoreni.bus.queue import MessageBus
 from yoreni.bus.runtime_events import (
+    RunPersisted,
+    RunStarted,
     RuntimeEventContext,
     RuntimeEventPublisher,
     RuntimeModelChanged,
-    SessionTurnPersisted,
-    SessionTurnStarted,
     TurnCompleted,
     TurnRunStatusChanged,
     TurnRuntimeAdmitted,
@@ -135,7 +135,7 @@ async def test_runtime_event_bus_filters_by_event_type() -> None:
             context=RuntimeEventContext(
                 channel="cli",
                 chat_id="direct",
-                session_key="cli:direct",
+                run_id="cli:direct",
             ),
             status="running",
         )
@@ -174,7 +174,7 @@ async def test_runtime_event_publisher_builds_context_from_inbound_message() -> 
 
     bus.subscribe(seen.append)
 
-    await publisher.session_turn_started(msg, "websocket:chat-a")
+    await publisher.run_started(msg, "websocket:chat-a")
     await publisher.run_status_changed(
         msg,
         "websocket:chat-a",
@@ -184,10 +184,10 @@ async def test_runtime_event_publisher_builds_context_from_inbound_message() -> 
 
     started = seen[0]
     running = seen[1]
-    assert isinstance(started, SessionTurnStarted)
+    assert isinstance(started, RunStarted)
     assert started.context.channel == "websocket"
     assert started.context.chat_id == "chat-a"
-    assert started.context.session_key == "websocket:chat-a"
+    assert started.context.run_id == "websocket:chat-a"
     assert started.context.metadata == {"trace_id": "turn-1"}
     assert started.context.metadata is not msg.metadata
     assert isinstance(running, TurnRunStatusChanged)
@@ -212,7 +212,7 @@ async def test_runtime_event_publisher_consumes_turn_metadata_on_complete() -> N
     await publisher.turn_completed(
         channel="cli",
         chat_id="direct",
-        session_key="cli:direct",
+        run_id="cli:direct",
         metadata={"source": "test"},
         outcome="failed",
         failure_kind="model",
@@ -221,7 +221,7 @@ async def test_runtime_event_publisher_consumes_turn_metadata_on_complete() -> N
     await publisher.turn_completed(
         channel="cli",
         chat_id="direct",
-        session_key="cli:direct",
+        run_id="cli:direct",
         metadata=None,
     )
 
@@ -260,7 +260,7 @@ async def test_runtime_event_publisher_exposes_admitted_runtime() -> None:
     await publisher.turn_completed(
         channel="websocket",
         chat_id="chat-a",
-        session_key="websocket:chat-a",
+        run_id="websocket:chat-a",
         metadata=None,
     )
 
@@ -286,8 +286,8 @@ async def test_runtime_event_publisher_emits_persisted_turn_attributes() -> None
         metadata={"internal": "routing"},
     )
 
-    bus.subscribe(seen.append, SessionTurnPersisted)
-    await publisher.session_turn_persisted(
+    bus.subscribe(seen.append, RunPersisted)
+    await publisher.run_persisted(
         msg,
         "sdk:chat-a",
         turn_id="turn-1",
@@ -295,8 +295,8 @@ async def test_runtime_event_publisher_emits_persisted_turn_attributes() -> None
     )
 
     event = seen[0]
-    assert isinstance(event, SessionTurnPersisted)
-    assert event.context.session_key == "sdk:chat-a"
+    assert isinstance(event, RunPersisted)
+    assert event.context.run_id == "sdk:chat-a"
     assert event.context.metadata == {"internal": "routing"}
     assert event.context.attributes == {"tenant": "acme"}
     assert event.turn_id == "turn-1"

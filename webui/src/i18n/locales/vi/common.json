@@ -174,14 +174,6 @@
           "label": "Độ dài tóm tắt",
           "help": "Giới hạn ký tự tóm tắt hoạt động công cụ.\n\nĐộ dài tối đa của gợi ý ngắn về hoạt động công cụ."
         },
-        "tools_max_session_messages_per_minute": {
-          "label": "Tần suất tin nhắn",
-          "help": "Số tin nhắn công cụ gửi đến một phiên mỗi phút tối đa.\n\nGiới hạn tần suất công cụ gửi tin nhắn vào cuộc trò chuyện."
-        },
-        "agents_defaults_unified_session": {
-          "label": "Phiên dùng chung",
-          "help": "Chia sẻ lịch sử trò chuyện của một người dùng giữa các nền tảng.\n\nDùng chung một cuộc trò chuyện cho một người dùng trên nhiều nền tảng."
-        },
         "tools_exec_enable": {
           "label": "Công cụ shell",
           "help": "Cho phép agent chạy lệnh Shell.\n\nCho phép tác nhân chạy lệnh shell."
@@ -324,10 +316,6 @@
           "title": "Giới hạn chạy",
           "help": "Đặt giới hạn công cụ và thử lại yêu cầu."
         },
-        "sessions": {
-          "title": "Cuộc trò chuyện",
-          "help": "Đặt chia sẻ trò chuyện giữa các nền tảng."
-        },
         "tools": {
           "title": "Công cụ tích hợp",
           "help": "Chọn công cụ agent được phép dùng."
@@ -386,13 +374,6 @@
       "search": "Tìm cài đặt nâng cao",
       "noResults": "Không có cài đặt phù hợp.",
       "pending": "Thay đổi chưa lưu",
-      "idleCompaction": {
-        "label": "Tự động nén khi không hoạt động",
-        "help": "Tự động nén ngữ cảnh khi hết thời gian chờ để giảm lượng token dùng cho các yêu cầu tiếp theo.",
-        "wait": "Giới hạn thời gian không hoạt động",
-        "minutes": "phút",
-        "numberError": "Nhập số phút là số nguyên không âm."
-      },
       "numberError": "Nhập số hợp lệ trong phạm vi cho phép.",
       "activeModel": "Dùng mô hình hiện tại",
       "none": "Không có",
@@ -1494,7 +1475,6 @@
     "fallbackTitle": "Chủ đề {{id}}",
     "forkTitle": "Nhánh: {{title}}",
     "loading": "Đang tải…",
-    "noSessions": "Chưa có phiên nào.",
     "showMore": "Hiển thị thêm {{count}}",
     "collapsed": "Đã thu gọn {{count}} chủ đề",
     "showLess": "Thu gọn",
@@ -1697,34 +1677,7 @@
       "toggleSidebar": "Bật/tắt thanh bên",
       "newChat": "Bắt đầu chủ đề mới",
       "toggleTheme": "Chuyển chủ đề từ header",
-      "settings": "Mở cài đặt",
-      "sessionInfo": "Chi tiết phiên"
-    },
-    "sessionInfo": {
-      "title": "Phiên",
-      "untitled": "Chủ đề chưa đặt tên",
-      "automations": "Tự động hóa",
-      "count": "{{count}}",
-      "loading": "Đang tải tự động hóa...",
-      "loadFailed": "Không thể tải tự động hóa.",
-      "empty": "Phiên này chưa có tự động hóa.",
-      "openCalendar": "Xem tất cả trong lịch",
-      "disabled": "Tắt",
-      "schedule": {
-        "at": "Lúc {{time}}",
-        "every": "Mỗi {{duration}}",
-        "cron": "Cron {{expr}}",
-        "cronWithTz": "Cron {{expr}} ({{tz}})",
-        "local": "Trình kích hoạt cục bộ",
-        "unknown": "Lịch tùy chỉnh"
-      },
-      "next": {
-        "label": "Tiếp theo {{time}}",
-        "pending": "Sắp chạy",
-        "disabled": "Đã tạm dừng",
-        "local": "Đang chờ kích hoạt",
-        "none": "Không có lần chạy tiếp theo"
-      }
+      "settings": "Mở cài đặt"
     },
     "composer": {
       "placeholderThread": "Nhập tin nhắn…",
@@ -1912,15 +1865,12 @@
         "label": "Ứng dụng",
         "cliGroup": "Ứng dụng CLI",
         "mcpGroup": "Dịch vụ MCP",
-        "sessionGroup": "Cuộc trò chuyện Yoreni",
         "cliBadge": "CLI",
         "mcpBadge": "MCP",
         "cliDescription": "Gọi CLI bằng @{{name}}.",
         "mcpDescription": "Gọi MCP bằng @{{name}}.",
         "cliTitle": "Ứng dụng CLI: {{name}}",
-        "mcpTitle": "Máy chủ MCP: {{name}}",
-        "sessionBadge": "Cuộc trò chuyện Yoreni",
-        "sessionDescription": "Tham chiếu @{{name}} như cuộc trò chuyện trước"
+        "mcpTitle": "Máy chủ MCP: {{name}}"
       },
       "workspace": {
         "accessAria": "Chế độ truy cập không gian làm việc",

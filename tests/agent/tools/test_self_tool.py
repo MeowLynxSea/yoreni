@@ -581,8 +581,9 @@ class TestSubagentHookStatus:
     @pytest.mark.asyncio
     async def test_after_iteration_updates_status(self):
         """after_iteration should copy iteration, tool_events, usage to status."""
-        from yoreni.agent.hook import AgentHookContext
         from yoreni.agent.subagent import SubagentStatus, _SubagentHook
+
+        from yoreni.agent.hook import AgentHookContext
 
         status = SubagentStatus(
             task_id="test",
@@ -608,8 +609,9 @@ class TestSubagentHookStatus:
     @pytest.mark.asyncio
     async def test_after_iteration_with_error(self):
         """after_iteration should set status.error when context has an error."""
-        from yoreni.agent.hook import AgentHookContext
         from yoreni.agent.subagent import SubagentStatus, _SubagentHook
+
+        from yoreni.agent.hook import AgentHookContext
 
         status = SubagentStatus(
             task_id="test",

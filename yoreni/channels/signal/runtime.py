@@ -429,11 +429,8 @@ class SignalChannel(BaseChannel):
         content: str,
         media: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
-        session_key: str | None = None,
         is_dm: bool = False,
         authorization_id: str | None = None,
-        require_existing_session: bool = False,
-        session_generation: str | None = None,
     ) -> None:
         """Handle an inbound message whose policy has already been checked.
 
@@ -455,9 +452,7 @@ class SignalChannel(BaseChannel):
                 content=content,
                 media=media or [],
                 metadata=meta,
-                session_key_override=session_key,
-                session_generation=session_generation,
-                require_existing_session=require_existing_session,
+                principal="owner" if is_dm else "untrusted",
             )
         )
 

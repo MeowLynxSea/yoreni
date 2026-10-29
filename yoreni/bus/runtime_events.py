@@ -20,22 +20,21 @@ class RuntimeEventContext:
 
     channel: str
     chat_id: str
-    session_key: str
+    run_id: str
     metadata: dict[str, Any] = field(default_factory=dict)
     attributes: dict[str, Any] = field(default_factory=dict)
-    session_generation: str | None = None
 
 
 @dataclass(frozen=True)
-class SessionTurnStarted(AgentEvent):
-    """A user/system turn has loaded its session and is about to build context."""
+class RunStarted(AgentEvent):
+    """A user/system turn has started its Run and is about to build context."""
 
     context: RuntimeEventContext
 
 
 @dataclass(frozen=True)
 class UserInputAccepted(AgentEvent):
-    """User input was accepted for dispatch or injection into a session."""
+    """User input was accepted for dispatch or injection into a Run."""
 
     context: RuntimeEventContext
     content: str
@@ -75,8 +74,8 @@ class TurnCompleted(AgentEvent):
 
 
 @dataclass(frozen=True)
-class SessionTurnPersisted(AgentEvent):
-    """A completed turn has been written to local session storage."""
+class RunPersisted(AgentEvent):
+    """A completed turn has been written to Run storage."""
 
     context: RuntimeEventContext
     turn_id: str
@@ -85,10 +84,11 @@ class SessionTurnPersisted(AgentEvent):
 
 @dataclass(frozen=True)
 class GoalStateChanged(AgentEvent):
-    """A session's sustained-goal state changed."""
+    """The Agent's sustained-goal state changed, regardless of its trigger."""
 
-    context: RuntimeEventContext
-    session_metadata: dict[str, Any] = field(default_factory=dict)
+    agent_id: str
+    state: dict[str, Any]
+    run_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -126,30 +126,28 @@ class RuntimeEventPublisher:
         *,
         channel: str,
         chat_id: str,
-        session_key: str,
+        run_id: str,
         metadata: dict[str, Any] | None,
         attributes: dict[str, Any] | None = None,
-        session_generation: str | None = None,
     ) -> RuntimeEventContext:
         return RuntimeEventContext(
             channel=channel,
             chat_id=chat_id,
-            session_key=session_key,
-            session_generation=session_generation,
+            run_id=run_id,
             metadata=dict(metadata or {}),
             attributes=dict(attributes or {}),
         )
 
-    def record_turn_runtime(self, session_key: str, runtime: LLMRuntime) -> None:
-        self._turn_runtime[session_key] = runtime
+    def record_turn_runtime(self, run_id: str, runtime: LLMRuntime) -> None:
+        self._turn_runtime[run_id] = runtime
 
-    def record_turn_latency(self, session_key: str, latency_ms: int | None) -> None:
+    def record_turn_latency(self, run_id: str, latency_ms: int | None) -> None:
         if latency_ms is not None:
-            self._turn_latency_ms[session_key] = int(latency_ms)
+            self._turn_latency_ms[run_id] = int(latency_ms)
 
     def record_turn_usage(
         self,
-        session_key: str,
+        run_id: str,
         round_usages: list[LLMUsage],
     ) -> None:
         if not round_usages:
@@ -158,50 +156,48 @@ class RuntimeEventPublisher:
         usage = round_usages[0]
         for round_usage in round_usages[1:]:
             usage += round_usage
-        previous = self._turn_usage.get(session_key)
-        self._turn_usage[session_key] = usage if previous is None else previous + usage
-        self._turn_round_usages[session_key] = (
-            *self._turn_round_usages.get(session_key, ()),
+        previous = self._turn_usage.get(run_id)
+        self._turn_usage[run_id] = usage if previous is None else previous + usage
+        self._turn_round_usages[run_id] = (
+            *self._turn_round_usages.get(run_id, ()),
             *round_usages,
         )
 
-    def clear_turn(self, session_key: str) -> None:
-        self._turn_latency_ms.pop(session_key, None)
-        self._turn_runtime.pop(session_key, None)
-        self._turn_usage.pop(session_key, None)
-        self._turn_round_usages.pop(session_key, None)
+    def clear_turn(self, run_id: str) -> None:
+        self._turn_latency_ms.pop(run_id, None)
+        self._turn_runtime.pop(run_id, None)
+        self._turn_usage.pop(run_id, None)
+        self._turn_round_usages.pop(run_id, None)
 
     async def user_input_accepted(
         self,
         msg: InboundMessage,
-        session_key: str,
+        run_id: str,
     ) -> None:
         await self.bus.publish(
             UserInputAccepted(
                 context=self._context(
                     channel=msg.channel,
                     chat_id=msg.chat_id,
-                    session_key=session_key,
+                    run_id=run_id,
                     metadata=msg.metadata,
-                    session_generation=msg.session_generation,
                 ),
                 content=msg.content,
             )
         )
 
-    async def session_turn_started(
+    async def run_started(
         self,
         msg: InboundMessage,
-        session_key: str,
+        run_id: str,
     ) -> None:
         await self.bus.publish(
-            SessionTurnStarted(
+            RunStarted(
                 context=self._context(
                     channel=msg.channel,
                     chat_id=msg.chat_id,
-                    session_key=session_key,
+                    run_id=run_id,
                     metadata=msg.metadata,
-                    session_generation=msg.session_generation,
                 ),
             )
         )
@@ -209,19 +205,18 @@ class RuntimeEventPublisher:
     async def turn_runtime_admitted(
         self,
         msg: InboundMessage,
-        session_key: str,
+        run_id: str,
         runtime: LLMRuntime,
     ) -> None:
         """Record and publish the runtime selected for one turn."""
-        self.record_turn_runtime(session_key, runtime)
+        self.record_turn_runtime(run_id, runtime)
         await self.bus.publish(
             TurnRuntimeAdmitted(
                 context=self._context(
                     channel=msg.channel,
                     chat_id=msg.chat_id,
-                    session_key=session_key,
+                    run_id=run_id,
                     metadata=msg.metadata,
-                    session_generation=msg.session_generation,
                 ),
                 runtime=runtime,
             )
@@ -230,7 +225,7 @@ class RuntimeEventPublisher:
     async def run_status_changed(
         self,
         msg: InboundMessage,
-        session_key: str,
+        run_id: str,
         status: str,
         *,
         started_at: float | None = None,
@@ -240,31 +235,29 @@ class RuntimeEventPublisher:
                 context=self._context(
                     channel=msg.channel,
                     chat_id=msg.chat_id,
-                    session_key=session_key,
+                    run_id=run_id,
                     metadata=msg.metadata,
-                    session_generation=msg.session_generation,
                 ),
                 status=status,
                 started_at=started_at,
             )
         )
 
-    async def session_turn_persisted(
+    async def run_persisted(
         self,
         msg: InboundMessage,
-        session_key: str,
+        run_id: str,
         *,
         turn_id: str,
         attributes: dict[str, Any] | None = None,
     ) -> None:
         await self.bus.publish(
-            SessionTurnPersisted(
+            RunPersisted(
                 context=self._context(
                     channel=msg.channel,
                     chat_id=msg.chat_id,
-                    session_key=session_key,
+                    run_id=run_id,
                     metadata=msg.metadata,
-                    session_generation=msg.session_generation,
                     attributes=attributes,
                 ),
                 turn_id=turn_id,
@@ -277,7 +270,7 @@ class RuntimeEventPublisher:
         *,
         channel: str,
         chat_id: str,
-        session_key: str,
+        run_id: str,
         metadata: dict[str, Any] | None,
         outcome: str = "completed",
         failure_kind: str | None = None,
@@ -289,13 +282,13 @@ class RuntimeEventPublisher:
                 context=self._context(
                     channel=channel,
                     chat_id=chat_id,
-                    session_key=session_key,
+                    run_id=run_id,
                     metadata=metadata,
                 ),
-                latency_ms=self._turn_latency_ms.pop(session_key, None),
-                runtime=self._turn_runtime.pop(session_key, None),
-                usage=self._turn_usage.pop(session_key, None),
-                round_usages=self._turn_round_usages.pop(session_key, ()),
+                latency_ms=self._turn_latency_ms.pop(run_id, None),
+                runtime=self._turn_runtime.pop(run_id, None),
+                usage=self._turn_usage.pop(run_id, None),
+                round_usages=self._turn_round_usages.pop(run_id, ()),
                 outcome=outcome,
                 failure_kind=failure_kind,
                 failure_error_kind=failure_error_kind,

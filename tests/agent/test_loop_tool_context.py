@@ -15,11 +15,9 @@ from yoreni.agent.tools.context import (
 )
 from yoreni.agent.tools.image_generation import ImageGenerationTool, register_image_generation_tool
 from yoreni.agent.tools.registry import ToolRegistry
-from yoreni.bus.events import InboundMessage
 from yoreni.bus.queue import MessageBus
 from yoreni.config.schema import Config
 from yoreni.providers.base import LLMResponse, ToolCallRequest
-from yoreni.session.turn_continuation import INTERNAL_CONTINUATION_META
 
 
 class _ContextRecordingTool:
@@ -38,7 +36,7 @@ class _ContextRecordingTool:
             "channel": ctx.channel,
             "chat_id": ctx.chat_id,
             "metadata": ctx.metadata,
-            "session_key": ctx.session_key,
+            "turn_id": ctx.turn_id,
         })
         return "created"
 
@@ -162,7 +160,7 @@ async def test_loop_binds_request_context_for_tool_execution(tmp_path: Path) -> 
         request_context=RequestContext(
             channel="slack",
             chat_id="C123",
-            session_key="slack:C123:111.222",
+            turn_id="slack:C123:111.222",
             runtime=runtime,
             metadata=metadata,
         ),
@@ -172,14 +170,14 @@ async def test_loop_binds_request_context_for_tool_execution(tmp_path: Path) -> 
         "channel": "slack",
         "chat_id": "C123",
         "metadata": metadata,
-        "session_key": "slack:C123:111.222",
+        "turn_id": "slack:C123:111.222",
     }
     assert cron.runtimes[-1] is runtime
 
 
 def test_request_context_nested_bind_restores_outer_context() -> None:
-    outer = RequestContext(channel="slack", chat_id="outer", session_key="slack:outer")
-    inner = RequestContext(channel="email", chat_id="inner", session_key="email:inner")
+    outer = RequestContext(channel="slack", chat_id="outer", turn_id="slack:outer")
+    inner = RequestContext(channel="email", chat_id="inner", turn_id="email:inner")
 
     outer_token = bind_request_context(outer)
     try:
@@ -215,8 +213,8 @@ async def test_request_context_bindings_are_isolated_between_concurrent_tasks() 
         finally:
             reset_request_context(token)
 
-    first = RequestContext(channel="feishu", chat_id="first", session_key="feishu:first")
-    second = RequestContext(channel="telegram", chat_id="second", session_key="telegram:second")
+    first = RequestContext(channel="feishu", chat_id="first", turn_id="feishu:first")
+    second = RequestContext(channel="telegram", chat_id="second", turn_id="telegram:second")
 
     observed = await asyncio.gather(
         observe(first, wait_first=True),
@@ -239,7 +237,7 @@ async def test_agent_loop_restores_outer_request_context_after_runner_exception(
         workspace=tmp_path,
         model="test-model",
     )
-    outer = RequestContext(channel="test", chat_id="outer", session_key="test:outer")
+    outer = RequestContext(channel="test", chat_id="outer", turn_id="test:outer")
     runtime = loop.llm_runtime()
 
     async def fail_run(spec):
@@ -249,7 +247,7 @@ async def test_agent_loop_restores_outer_request_context_after_runner_exception(
         assert current.runtime is runtime
         assert current.channel == "slack"
         assert current.chat_id == "C123"
-        assert current.session_key == "slack:C123:111.222"
+        assert current.turn_id == "slack:C123:111.222"
         assert current.original_user_text == "  unchanged user text  "
         raise RuntimeError("runner failed")
 
@@ -263,7 +261,7 @@ async def test_agent_loop_restores_outer_request_context_after_runner_exception(
                 request_context=RequestContext(
                     channel="slack",
                     chat_id="C123",
-                    session_key="slack:C123:111.222",
+                    turn_id="slack:C123:111.222",
                     original_user_text="  unchanged user text  ",
                     runtime=runtime,
                 ),
@@ -275,46 +273,3 @@ async def test_agent_loop_restores_outer_request_context_after_runner_exception(
     assert current_request_context() is None
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("metadata", "expected"),
-    [
-        ({}, "  original user text  "),
-        ({INTERNAL_CONTINUATION_META: True}, None),
-    ],
-)
-async def test_process_message_captures_original_text_before_restore(
-    tmp_path: Path,
-    metadata: dict,
-    expected: str | None,
-) -> None:
-    provider = MagicMock()
-    provider.get_default_model.return_value = "test-model"
-    loop = AgentLoop(
-        bus=MessageBus(),
-        provider=provider,
-        workspace=tmp_path,
-        model="test-model",
-    )
-    runtime = loop.llm_runtime()
-    seen: list[tuple[str | None, object]] = []
-
-    async def stop_after_capture(ctx) -> str:
-        seen.append((ctx.original_user_text, ctx.runtime))
-        raise RuntimeError("captured before restore")
-
-    loop._restore_turn = stop_after_capture  # type: ignore[method-assign]
-
-    with pytest.raises(RuntimeError, match="captured before restore"):
-        await loop._process_message(
-            InboundMessage(
-                channel="slack",
-                sender_id="user",
-                chat_id="C123",
-                content="  original user text  ",
-                metadata=metadata,
-            ),
-            runtime=runtime,
-        )
-
-    assert seen == [(expected, runtime)]

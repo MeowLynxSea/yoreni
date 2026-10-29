@@ -11,7 +11,6 @@ from yoreni.agent.memory import (
     Consolidator,
     MemoryStore,
 )
-from yoreni.events import AgentEvent, ContextCompactionEvent, EventSink
 from yoreni.providers.base import (
     GenerationSettings,
     LLMResponse,
@@ -23,8 +22,6 @@ from yoreni.runtime_context import (
     RuntimeContextBlock,
     append_runtime_context,
 )
-from yoreni.session.keys import UNIFIED_SESSION_KEY, remember_last_channel
-from yoreni.session.manager import Session
 from yoreni.utils.llm_runtime import LLMRuntime
 from yoreni.utils.prompt_templates import render_template
 
@@ -55,31 +52,7 @@ def runtime(mock_provider):
 
 @pytest.fixture
 def consolidator(store):
-    sessions = MagicMock()
-    sessions.save = MagicMock()
-    # Store sessions by key so refreshes observe the same test object.
-    _session_cache: dict[str, MagicMock] = {}
-    sessions.get_or_create = MagicMock(side_effect=lambda key: _session_cache.get(key, MagicMock()))
-    sessions._session_cache = _session_cache
-    return Consolidator(
-        store=store,
-        sessions=sessions,
-        build_messages=MagicMock(return_value=[]),
-        get_tool_definitions=MagicMock(return_value=[]),
-    )
-
-
-def _tool_round(call_id: str) -> list[dict]:
-    return [
-        {
-            "role": "assistant",
-            "content": None,
-            "tool_calls": [
-                {"id": call_id, "type": "function", "function": {"name": "x", "arguments": "{}"}}
-            ],
-        },
-        {"role": "tool", "tool_call_id": call_id, "name": "x", "content": "ok"},
-    ]
+    return Consolidator(store=store)
 
 
 def _provider_state() -> ProviderConversationState:
@@ -92,18 +65,6 @@ def _provider_state() -> ProviderConversationState:
     )
 
 
-def _build_test_messages(**kwargs):
-    system = "system prompt"
-    session_summary = kwargs.get("session_summary")
-    if session_summary:
-        system += f"\n\n[Archived Context Summary]\n{session_summary['text']}"
-    messages = [
-        {"role": "system", "content": system},
-        *kwargs["history"],
-    ]
-    if kwargs["current_message"] is not None:
-        messages.append({"role": "user", "content": kwargs["current_message"]})
-    return messages
 
 
 async def _archive(
@@ -111,13 +72,13 @@ async def _archive(
     messages,
     runtime,
     *,
-    session_key="test:session",
+    run_id="test:session",
     previous_summary=None,
 ):
     return await consolidator.archiver.archive(
         messages,
         runtime=runtime,
-        session_key=session_key,
+        run_id=run_id,
         history=[
             {"role": "system", "content": "system prompt"},
             *messages,
@@ -150,7 +111,7 @@ class TestTurnTranscriptSummary:
             accepted,
             "previous checkpoint",
             runtime=runtime,
-            session_key="test:turn",
+            run_id="test:turn",
             tools=tools,
         )
 
@@ -179,7 +140,7 @@ class TestTurnTranscriptSummary:
             accepted,
             None,
             runtime=runtime,
-            session_key="test:ephemeral-turn",
+            run_id="test:ephemeral-turn",
             tools=[],
             persist=False,
         )
@@ -210,7 +171,7 @@ class TestTurnTranscriptSummary:
             accepted,
             "previous checkpoint",
             runtime=runtime,
-            session_key="test:turn",
+            run_id="test:turn",
             tools=[{"type": "function", "function": {"name": "inspect"}}],
         )
 
@@ -261,7 +222,7 @@ class TestTurnTranscriptSummary:
             accepted,
             "previous checkpoint",
             runtime=runtime,
-            session_key="test:turn",
+            run_id="test:turn",
             tools=[{"type": "function", "function": {"name": "inspect"}}],
         )
 
@@ -339,7 +300,7 @@ class TestConsolidatorSummarize:
         entries = store.read_unprocessed_history(since_cursor=0)
         assert len(entries) == 1
 
-    async def test_summarize_appends_session_key_to_history(
+    async def test_summarize_appends_run_id_to_history(
         self,
         consolidator,
         mock_provider,
@@ -356,11 +317,11 @@ class TestConsolidatorSummarize:
             consolidator,
             messages,
             runtime,
-            session_key="telegram:chat-1",
+            run_id="telegram:chat-1",
         )
 
         entries = store.read_unprocessed_history(since_cursor=0)
-        assert entries[0]["session_key"] == "telegram:chat-1"
+        assert entries[0]["run_id"] == "telegram:chat-1"
 
     async def test_summarize_raw_dumps_on_llm_failure(
         self, consolidator, mock_provider, store, runtime
@@ -376,7 +337,7 @@ class TestConsolidatorSummarize:
         assert len(entries) == 1
         assert "[RAW]" in entries[0]["content"]
 
-    async def test_raw_dump_fallback_appends_session_key(
+    async def test_raw_dump_fallback_appends_run_id(
         self,
         consolidator,
         mock_provider,
@@ -390,11 +351,11 @@ class TestConsolidatorSummarize:
             consolidator,
             messages,
             runtime,
-            session_key="slack:chat-2",
+            run_id="slack:chat-2",
         )
 
         entries = store.read_unprocessed_history(since_cursor=0)
-        assert entries[0]["session_key"] == "slack:chat-2"
+        assert entries[0]["run_id"] == "slack:chat-2"
 
     async def test_raw_fallback_represents_previous_checkpoint_and_new_chunk(
         self,
@@ -523,1065 +484,15 @@ class TestConsolidatorArchiveErrorHandling:
             "yoreni.agent.memory.render_template",
             MagicMock(side_effect=RuntimeError("template failed")),
         )
-        session = Session(key="test:template")
-        session.add_message("user", "important")
 
         with pytest.raises(RuntimeError, match="template failed"):
-            await consolidator.archive_session(
-                session,
-                archive_end=len(session.messages),
-                runtime=runtime,
-            )
+            await _archive(consolidator, [{"role": "user", "content": "important"}], runtime)
 
         mock_provider.chat_stream_with_retry.assert_not_awaited()
         consolidator.store.raw_archive.assert_not_called()
 
 
-class TestConsolidatorPromptEstimate:
-    async def test_estimate_uses_full_unarchived_tail(self, consolidator, runtime):
-        """Consolidation pressure must account for the full unarchived tail."""
-        session = Session(key="test:full-tail")
-        for i in range(160):
-            session.add_message("user", f"msg-{i}")
 
-        captured: dict[str, list[dict]] = {}
-
-        def build_messages(**kwargs):
-            captured["history"] = kwargs["history"]
-            return kwargs["history"]
-
-        consolidator._build_messages = build_messages
-
-        consolidator.estimate_session_prompt_tokens(session, runtime=runtime)
-
-        assert len(captured["history"]) == 160
-        assert captured["history"][0]["content"].endswith("msg-0")
-
-    async def test_estimate_excludes_archived_replay(self, consolidator, runtime):
-        session = Session(key="test:archived-replay")
-        for i in range(10):
-            session.add_message("user", f"msg-{i}")
-        session.last_archived = len(session.messages)
-
-        captured: dict[str, list[dict]] = {}
-
-        def build_messages(**kwargs):
-            captured["history"] = kwargs["history"]
-            return kwargs["history"]
-
-        consolidator._build_messages = build_messages
-
-        consolidator.estimate_session_prompt_tokens(session, runtime=runtime)
-
-        assert captured["history"] == []
-
-class TestCompactIdleSession:
-    """Idle compaction tests."""
-
-    @pytest.fixture
-    def runtime(self, mock_provider):
-        """Exercise the structured idle-consolidation path by default."""
-        return LLMRuntime.capture(
-            mock_provider,
-            "test-model",
-            context_window_tokens=128_000,
-        )
-
-    @pytest.fixture
-    def real_consolidator(self, store, mock_provider):
-        """Create a Consolidator with a real SessionManager (not a mock)."""
-        from yoreni.session.manager import SessionManager
-
-        sessions = SessionManager(store.workspace)
-        return Consolidator(
-            store=store,
-            sessions=sessions,
-            build_messages=MagicMock(side_effect=_build_test_messages),
-            get_tool_definitions=MagicMock(return_value=[]),
-        )
-
-    async def test_partial_raw_write_does_not_advance_checkpoint(
-        self, real_consolidator, store, runtime, mock_provider, monkeypatch
-    ):
-        runtime = replace(runtime, context_window_tokens=1_000)
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:partial-raw")
-        session.add_message("user", "x " * 20_000 + "TAIL_MARKER")
-        expected = store._format_messages(session.messages)
-        sessions.save(session)
-        append = store._append_history_record
-        writes = 0
-
-        def fail_second(content, *, session_key=None):
-            nonlocal writes
-            writes += 1
-            if writes == 2:
-                raise OSError("disk full")
-            return append(content, session_key=session_key)
-
-        with monkeypatch.context() as patcher:
-            patcher.setattr(store, "_append_history_record", fail_second)
-            with pytest.raises(OSError, match="disk full"):
-                await real_consolidator.compact_idle_session(session.key, runtime=runtime)
-
-        sessions.invalidate(session.key)
-        unchanged = sessions.get_or_create(session.key)
-        assert unchanged.last_archived == 0
-        assert unchanged.messages == session.messages
-        partial_cursor = store.get_latest_cursor()
-        assert partial_cursor == 1
-
-        await real_consolidator.compact_idle_session(session.key, runtime=runtime)
-
-        entries = MemoryStore(store.workspace).read_unprocessed_history(partial_cursor)
-        assert "".join(entry["content"].split("\n", 1)[1] for entry in entries) == expected
-        sessions.invalidate(session.key)
-        assert sessions.get_or_create(session.key).last_archived == 1
-        mock_provider.chat_stream_with_retry.assert_not_awaited()
-
-    @pytest.mark.asyncio
-    async def test_archives_full_tail_preserves_messages_and_replays_checkpoint(
-        self, real_consolidator, mock_provider, runtime
-    ):
-        mock_provider.chat_stream_with_retry.return_value = MagicMock(
-            content="Summary of old conversation.", finish_reason="stop"
-        )
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:test")
-        session.provider_state = _provider_state()
-        old_ts = session.updated_at
-        for i in range(20):
-            session.add_message("user", f"user msg {i}")
-            session.add_message("assistant", f"assistant msg {i}")
-        session.updated_at = old_ts
-        sessions.save(session)
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:test", runtime=runtime, max_suffix=8
-        )
-        assert result == "Summary of old conversation."
-
-        sessions.invalidate("cli:test")
-        reloaded = sessions.get_or_create("cli:test")
-        assert len(reloaded.messages) == 41
-        assert reloaded.messages[0]["content"] == "user msg 0"
-        assert reloaded.last_archived == 40
-        assert reloaded.provider_state is None
-        visible = reloaded.get_history(max_messages=40)
-        assert visible == []
-        meta = reloaded.metadata.get("_last_summary")
-        assert meta is not None
-        assert meta["text"] == "Summary of old conversation."
-        assert "last_active" in meta
-        assert reloaded.updated_at == old_ts
-
-    @pytest.mark.asyncio
-    async def test_emits_manual_compaction_lifecycle(
-        self, real_consolidator, mock_provider, runtime
-    ):
-        mock_provider.chat_stream_with_retry.return_value = MagicMock(
-            content="Summary.", finish_reason="stop"
-        )
-        session = real_consolidator.sessions.get_or_create("cli:events")
-        session.add_message("user", "question")
-        session.add_message("assistant", "answer")
-        real_consolidator.sessions.save(session)
-        events: list[ContextCompactionEvent] = []
-
-        async def observe(event: AgentEvent) -> None:
-            if isinstance(event, ContextCompactionEvent):
-                events.append(event)
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:events",
-            runtime=runtime,
-            events=EventSink(observe),
-            notify=True,
-        )
-
-        assert result == "Summary."
-        assert [event.phase for event in events] == ["started", "succeeded"]
-        assert events[0].compaction_id == events[1].compaction_id
-        assert all(event.notify for event in events)
-
-    @pytest.mark.asyncio
-    async def test_event_callback_failure_does_not_abort_compaction(
-        self, real_consolidator, mock_provider, runtime
-    ):
-        mock_provider.chat_stream_with_retry.return_value = MagicMock(
-            content="Summary.", finish_reason="stop"
-        )
-        session = real_consolidator.sessions.get_or_create("cli:event-callback-failure")
-        session.add_message("user", "question")
-        real_consolidator.sessions.save(session)
-
-        async def fail_observer(_event: AgentEvent) -> None:
-            raise RuntimeError("channel unavailable")
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:event-callback-failure",
-            runtime=runtime,
-            events=EventSink(fail_observer),
-        )
-
-        assert result == "Summary."
-        reloaded = real_consolidator.sessions.get_or_create("cli:event-callback-failure")
-        assert reloaded.last_archived == 1
-
-    @pytest.mark.asyncio
-    async def test_short_idle_session_archives_once(
-        self, real_consolidator, mock_provider, store, runtime
-    ):
-        mock_provider.chat_stream_with_retry.return_value = MagicMock(
-            content="Short summary.", finish_reason="stop"
-        )
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:short")
-        session.add_message("user", "hello")
-        session.add_message("assistant", "hi")
-        sessions.save(session)
-
-        first = await real_consolidator.compact_idle_session("cli:short", runtime=runtime)
-        second = await real_consolidator.compact_idle_session("cli:short", runtime=runtime)
-
-        assert first == "Short summary."
-        assert second == ""
-        mock_provider.chat_stream_with_retry.assert_awaited_once()
-        assert len(store.read_unprocessed_history(since_cursor=0)) == 1
-        reloaded = sessions.get_or_create("cli:short")
-        assert reloaded.last_archived == 2
-        assert reloaded.get_history() == []
-
-    @pytest.mark.asyncio
-    async def test_idle_compaction_with_no_new_messages_is_noop(
-        self, real_consolidator, mock_provider, store, runtime
-    ):
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:archived-idle")
-        session.provider_state = _provider_state()
-        session.add_message("user", "already archived")
-        session.add_message("assistant", "old answer")
-        session.last_archived = 2
-        sessions.save(session)
-        sessions.invalidate("cli:archived-idle")
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:archived-idle",
-            runtime=runtime,
-        )
-
-        assert result == ""
-        mock_provider.chat_stream_with_retry.assert_not_awaited()
-        reloaded = sessions.get_or_create("cli:archived-idle")
-        assert reloaded.last_archived == 2
-        assert "_last_summary" not in reloaded.metadata
-        assert reloaded.provider_state == _provider_state()
-        assert store.read_unprocessed_history(since_cursor=0) == []
-
-    @pytest.mark.asyncio
-    async def test_next_turn_rebuilds_context_after_idle_compaction(
-        self, loop_factory, mock_provider,
-    ):
-        mock_provider.can_resume_conversation_state.return_value = True
-        mock_provider.estimate_prompt_tokens.return_value = (100, "test")
-        mock_provider.chat_stream_with_retry.return_value = LLMResponse(
-            content="Archived conversation summary.", finish_reason="stop",
-        )
-        loop = loop_factory(provider=mock_provider)
-        try:
-            session = loop.sessions.get_or_create("cli:idle-resume")
-            for i in range(10):
-                session.add_message("user", f"question-{i}")
-                session.add_message("assistant", f"answer-{i}")
-            session.provider_state = _provider_state()
-            loop.sessions.save(session)
-            await loop.consolidator.compact_idle_session(
-                session.key, runtime=loop.llm_runtime(),
-            )
-            loop.sessions.invalidate(session.key)
-            mock_provider.chat_stream_with_retry.reset_mock()
-            mock_provider.chat_stream_with_retry.return_value = LLMResponse(
-                content="Next answer.", finish_reason="stop",
-            )
-
-            response = await loop.process_direct("Next question", session_key=session.key)
-
-            assert response is not None
-            assert response.content == "Next answer."
-            sent = mock_provider.chat_stream_with_retry.call_args.kwargs
-            assert sent["provider_context"].conversation_state is None
-            contents = [message.get("content", "") for message in sent["messages"]]
-            assert "Archived conversation summary." in contents[0]
-            assert "question-0" not in contents
-            assert contents[1:-1] == []
-            assert "Next question" in contents[-1]
-        finally:
-            await loop.aclose()
-
-    @pytest.mark.asyncio
-    async def test_archive_failure_preserves_provider_state(self, real_consolidator, runtime):
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:failed-archive")
-        session.add_message("user", "Keep this context")
-        session.provider_state = _provider_state()
-        sessions.save(session)
-        real_consolidator.archive_session = AsyncMock(side_effect=OSError("disk full"))
-
-        with pytest.raises(OSError, match="disk full"):
-            await real_consolidator.compact_idle_session(session.key, runtime=runtime)
-
-        sessions.invalidate(session.key)
-        reloaded = sessions.get_or_create(session.key)
-        assert reloaded.provider_state == _provider_state()
-        assert reloaded.last_archived == 0
-        assert "_last_summary" not in reloaded.metadata
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize("summary", [None, ""])
-    async def test_missing_summary_preserves_replay(self, real_consolidator, runtime, summary):
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:missing-summary")
-        session.add_message("user", "Keep this context")
-        session.provider_state = _provider_state()
-        sessions.save(session)
-        real_consolidator.archive_session = AsyncMock(return_value=summary)
-        events = []
-
-        async def observe(event):
-            events.append(event)
-
-        result = await real_consolidator.compact_idle_session(
-            session.key, runtime=runtime, events=EventSink(observe),
-        )
-
-        assert result is None
-        assert [event.phase for event in events] == ["started", "failed"]
-        sessions.invalidate(session.key)
-        reloaded = sessions.get_or_create(session.key)
-        assert reloaded.provider_state == _provider_state()
-        assert reloaded.last_archived == 0
-        assert reloaded.get_history() == [{"role": "user", "content": "Keep this context"}]
-
-    @pytest.mark.asyncio
-    async def test_new_messages_advance_existing_archive_progress(
-        self, real_consolidator, mock_provider, runtime
-    ):
-        mock_provider.chat_stream_with_retry.side_effect = [
-            MagicMock(content="First replacement checkpoint.", finish_reason="stop"),
-            MagicMock(content="Second replacement checkpoint.", finish_reason="stop"),
-        ]
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:incremental")
-        session.add_message("user", "first user")
-        session.add_message("assistant", "first assistant")
-        sessions.save(session)
-
-        first = await real_consolidator.compact_idle_session(
-            "cli:incremental",
-            runtime=runtime,
-        )
-        current = await sessions.state.get("cli:incremental")
-        current.add_message("user", "second user")
-        current.add_message("assistant", "second assistant")
-        await sessions.state.finish_turn(current)
-        second = await real_consolidator.compact_idle_session(
-            "cli:incremental",
-            runtime=runtime,
-        )
-
-        assert first == "First replacement checkpoint."
-        assert second == "Second replacement checkpoint."
-        assert mock_provider.chat_stream_with_retry.await_count == 2
-        latest_build = real_consolidator.archiver._build_messages.call_args_list[-1].kwargs
-        assert latest_build["session_summary"]["text"] == "First replacement checkpoint."
-        latest_messages = mock_provider.chat_stream_with_retry.await_args_list[-1].kwargs["messages"]
-        assert [message["content"] for message in latest_messages[1:-1]] == [
-            "second user",
-            "second assistant",
-        ]
-        assert latest_messages[-1]["content"] == _ARCHIVE_PROMPT
-        sessions.invalidate("cli:incremental")
-        reloaded = sessions.get_or_create("cli:incremental")
-        assert reloaded.last_archived == 5
-        assert reloaded.metadata["_last_summary"]["text"] == second
-
-    @pytest.mark.asyncio
-    async def test_raw_fallback_preserves_previous_checkpoint_and_new_chunk(
-        self,
-        real_consolidator,
-        mock_provider,
-        store,
-        runtime,
-    ):
-        runtime = replace(runtime, generation=GenerationSettings(max_tokens=256))
-        mock_provider.chat_stream_with_retry.side_effect = [
-            LLMResponse(content="Earlier durable checkpoint.", finish_reason="stop"),
-            RuntimeError("LLM unavailable"),
-        ]
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:cumulative-fallback")
-        session.add_message("user", "first user")
-        session.add_message("assistant", "first answer")
-        sessions.save(session)
-
-        await real_consolidator.compact_idle_session(
-            "cli:cumulative-fallback",
-            runtime=runtime,
-        )
-        current = await sessions.state.get("cli:cumulative-fallback")
-        current.add_message("user", "second user")
-        current.add_message("assistant", "newest working state")
-        await sessions.state.finish_turn(current)
-
-        fallback = await real_consolidator.compact_idle_session(
-            "cli:cumulative-fallback",
-            runtime=runtime,
-        )
-
-        assert fallback is not None
-        assert "[Previous archived context]" in fallback
-        assert "Earlier durable checkpoint." in fallback
-        assert "[Newly archived raw context]" in fallback
-        assert "newest working state" in fallback
-        entries = store.read_unprocessed_history(0)
-        assert entries[0]["content"] == "Earlier durable checkpoint."
-        assert entries[1]["content"].startswith("[RAW] 2 messages")
-        sessions.invalidate("cli:cumulative-fallback")
-        reloaded = sessions.get_or_create("cli:cumulative-fallback")
-        assert reloaded.metadata["_last_summary"]["text"] == fallback
-
-    @pytest.mark.asyncio
-    async def test_nothing_replaces_previous_checkpoint(
-        self,
-        real_consolidator,
-        mock_provider,
-        runtime,
-    ):
-        mock_provider.chat_stream_with_retry.side_effect = [
-            LLMResponse(content="Existing checkpoint.", finish_reason="stop"),
-            LLMResponse(content="(nothing)", finish_reason="stop"),
-        ]
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:nothing-after-summary")
-        session.add_message("user", "important first turn")
-        session.add_message("assistant", "important result")
-        sessions.save(session)
-        await real_consolidator.compact_idle_session(
-            "cli:nothing-after-summary",
-            runtime=runtime,
-        )
-
-        current = await sessions.state.get("cli:nothing-after-summary")
-        current.add_message("user", "thanks")
-        current.add_message("assistant", "you're welcome")
-        await sessions.state.finish_turn(current)
-        result = await real_consolidator.compact_idle_session(
-            "cli:nothing-after-summary",
-            runtime=runtime,
-        )
-
-        assert result == "(nothing)"
-        sessions.invalidate("cli:nothing-after-summary")
-        reloaded = sessions.get_or_create("cli:nothing-after-summary")
-        assert reloaded.last_archived == 5
-        assert reloaded.metadata["_last_summary"]["text"] == result
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize("max_suffix", [8, 0])
-    async def test_concurrent_append_remains_unarchived(
-        self, real_consolidator, mock_provider, runtime, max_suffix
-    ):
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:concurrent")
-        session.provider_state = _provider_state()
-        session.add_message("user", "captured user")
-        session.add_message("assistant", "captured assistant")
-        sessions.save(session)
-
-        async def append_during_archive(**_kwargs):
-            current = await sessions.state.get("cli:concurrent")
-            current.add_message("user", "late user")
-            current.add_message("assistant", "late assistant")
-            await sessions.state.finish_turn(current)
-            return LLMResponse(content="Summary.", finish_reason="stop")
-
-        mock_provider.chat_stream_with_retry.side_effect = append_during_archive
-
-        await real_consolidator.compact_idle_session(
-            "cli:concurrent", runtime=runtime, max_suffix=max_suffix,
-        )
-
-        sessions.invalidate("cli:concurrent")
-        reloaded = sessions.get_or_create("cli:concurrent")
-        assert len(reloaded.messages) == 5
-        assert reloaded.last_archived == 2
-        assert reloaded.provider_state is None
-        assert reloaded.get_history()[-1]["content"] == "late assistant"
-        assert [m["content"] for m in reloaded.get_history()] == [
-            "late user", "late assistant",
-        ]
-
-    @pytest.mark.asyncio
-    async def test_summarizes_latest_correction_with_full_history(
-        self, real_consolidator, mock_provider, runtime
-    ):
-        """idleCompact must summarize over the full unarchived tail, including
-        the recent suffix it retains. Otherwise a late user correction / final
-        result that lands in the kept suffix is excluded from the persisted
-        summary, leaving a stale wrong conclusion in history. Regression for #4264."""
-        mock_provider.chat_stream_with_retry.return_value = MagicMock(
-            content="Summary.", finish_reason="stop"
-        )
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:correction")
-        for i in range(18):
-            session.add_message("user", f"user msg {i}")
-            session.add_message("assistant", f"assistant msg {i}")
-        # The latest correction must be included in the replacement summary.
-        session.add_message("user", "no, that's wrong, use approach B")
-        session.add_message("assistant", "CORRECTED_FINAL_RESULT_alpha")
-        sessions.save(session)
-
-        await real_consolidator.compact_idle_session(
-            "cli:correction", runtime=runtime, max_suffix=8
-        )
-
-        sent_messages = mock_provider.chat_stream_with_retry.call_args.kwargs["messages"]
-        assert any(
-            message.get("content") == "CORRECTED_FINAL_RESULT_alpha"
-            for message in sent_messages
-        )
-
-    @pytest.mark.asyncio
-    async def test_raw_dumps_full_archive_batch_on_llm_failure(
-        self, real_consolidator, mock_provider, store, runtime
-    ):
-        """The fallback covers the same full range as successful idle archival."""
-        mock_provider.chat_stream_with_retry.side_effect = RuntimeError("LLM unavailable")
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:rawdrop")
-        session.provider_state = _provider_state()
-        for i in range(18):
-            session.add_message("user", f"user msg {i}")
-            session.add_message("assistant", f"assistant msg {i}")
-        session.add_message("user", "final user follow-up")
-        session.add_message("assistant", "RETAINED_SUFFIX_marker")
-        sessions.save(session)
-
-        await real_consolidator.compact_idle_session(
-            "cli:rawdrop", runtime=runtime, max_suffix=8
-        )
-
-        raw = "\n".join(e["content"] for e in store.read_unprocessed_history(since_cursor=0))
-        assert "[RAW]" in raw
-        assert "user msg 0" in raw
-        assert "RETAINED_SUFFIX_marker" in raw
-        reloaded = sessions.get_or_create("cli:rawdrop")
-        assert len(reloaded.messages) == 39
-        assert reloaded.messages[-2]["content"] == "RETAINED_SUFFIX_marker"
-        assert reloaded.provider_state is None
-
-    @pytest.mark.asyncio
-    async def test_idle_compact_writes_session_key_to_history(
-        self,
-        real_consolidator,
-        mock_provider,
-        store,
-        runtime,
-    ):
-        mock_provider.chat_stream_with_retry.return_value = MagicMock(
-            content="Summary of old conversation.", finish_reason="stop"
-        )
-        session = real_consolidator.sessions.get_or_create("cli:test")
-        for i in range(10):
-            session.add_message("user", f"user msg {i}")
-            session.add_message("assistant", f"assistant msg {i}")
-        real_consolidator.sessions.save(session)
-
-        await real_consolidator.compact_idle_session(
-            "cli:test", runtime=runtime, max_suffix=4
-        )
-
-        entries = store.read_unprocessed_history(since_cursor=0)
-        assert entries[0]["session_key"] == "cli:test"
-
-    @pytest.mark.asyncio
-    async def test_empty_session_does_not_refresh_timestamp(
-        self, real_consolidator, runtime
-    ):
-        """Empty session with old updated_at does not look active after compaction."""
-        from datetime import datetime, timedelta
-
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:empty")
-        old_ts = datetime.now() - timedelta(hours=2)
-        session.updated_at = old_ts
-        sessions.save(session)
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:empty", runtime=runtime
-        )
-        assert result == ""
-
-        reloaded = sessions.get_or_create("cli:empty")
-        assert reloaded.updated_at == old_ts
-        assert reloaded.metadata == {}
-
-    @pytest.mark.asyncio
-    async def test_nothing_commits_checkpoint_once_without_raw_archive(
-        self, real_consolidator, mock_provider, runtime
-    ):
-        """A model's decision to retain nothing is a successful replacement."""
-        mock_provider.chat_stream_with_retry.return_value = MagicMock(
-            content="(nothing)", finish_reason="stop"
-        )
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:nothing")
-        for i in range(10):
-            session.add_message("user", f"u{i}")
-            session.add_message("assistant", f"a{i}")
-        sessions.save(session)
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:nothing", runtime=runtime, max_suffix=4
-        )
-        second = await real_consolidator.compact_idle_session(
-            "cli:nothing", runtime=runtime, max_suffix=4
-        )
-        assert result == "(nothing)"
-        assert second == ""
-
-        reloaded = sessions.get_or_create("cli:nothing")
-        assert reloaded.metadata["_last_summary"]["text"] == result
-        assert real_consolidator.store.read_unprocessed_history(0) == []
-        assert reloaded.last_archived == 20
-        assert reloaded.get_history() == []
-        mock_provider.chat_stream_with_retry.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    async def test_llm_failure_preserves_history_but_advances_replay_boundary(
-        self, real_consolidator, mock_provider, store, runtime
-    ):
-        mock_provider.chat_stream_with_retry.side_effect = RuntimeError("LLM unavailable")
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:fail")
-        session.add_message("user", "/compact", _command=True)
-        session.add_message("assistant", "Nothing to compact.", _command=True)
-        for i in range(10):
-            session.add_message("user", f"u{i}")
-            session.add_message("assistant", f"a{i}")
-        sessions.save(session)
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:fail", runtime=runtime, max_suffix=4
-        )
-        assert result is not None
-        assert "[RAW]" in result
-
-        # raw_archive should have been called (history.jsonl gets an entry)
-        entries = store.read_unprocessed_history(since_cursor=0)
-        assert entries[0]["content"].startswith("[RAW] 20 messages")
-
-        reloaded = sessions.get_or_create("cli:fail")
-        assert reloaded.messages[:-1] == session.messages
-        assert reloaded.last_archived == 22
-        assert reloaded.metadata["_last_summary"]["text"] == result
-        assert reloaded.get_history(max_messages=20) == []
-
-    @pytest.mark.asyncio
-    async def test_respects_last_archived(
-        self, real_consolidator, mock_provider, runtime
-    ):
-        """30 turns with last_archived=50 → only the unarchived tail is considered."""
-        mock_provider.chat_stream_with_retry.return_value = MagicMock(
-            content="Tail summary.", finish_reason="stop"
-        )
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:offset")
-        for i in range(30):
-            session.add_message("user", f"u{i}")
-            session.add_message("assistant", f"a{i}")
-        session.last_archived = 50  # Only 10 messages remain unarchived
-        sessions.save(session)
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:offset", runtime=runtime, max_suffix=4
-        )
-        assert result == "Tail summary."
-        reloaded = sessions.get_or_create("cli:offset")
-        assert len(reloaded.messages) == 61
-        assert reloaded.last_archived == 60
-
-        # Verify only the unarchived tail was processed:
-        # All 10 unarchived messages (50-59) are archived exactly once.
-        archived_call = mock_provider.chat_stream_with_retry.call_args
-        sent_messages = archived_call.kwargs["messages"]
-        sent_content = [message.get("content") for message in sent_messages]
-        # The replacement overview covers all model-visible conversation context.
-        assert "u0" not in sent_content
-        assert "u26" in sent_content
-        assert sent_messages[-1]["content"] == _ARCHIVE_PROMPT
-
-    @pytest.mark.asyncio
-    async def test_full_archive_replaces_entire_tool_turn(
-        self,
-        real_consolidator,
-        mock_provider,
-        runtime,
-    ):
-        mock_provider.chat_stream_with_retry.return_value = MagicMock(
-            content="Tail summary.", finish_reason="stop"
-        )
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:noncontiguous")
-        for i in range(15):
-            session.add_message("user", f"user-{i:02d}")
-        for i in range(10):
-            session.add_message("assistant", f"assistant-{i:02d}")
-        sessions.save(session)
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:noncontiguous", runtime=runtime, max_suffix=6
-        )
-        assert result == "Tail summary."
-
-        reloaded = sessions.get_or_create("cli:noncontiguous")
-        assert len(reloaded.messages) == 26
-        assert reloaded.last_archived == 25
-        assert reloaded.get_history(max_messages=25) == []
-
-        # Both the first question and the final tool-heavy exchange are summarized.
-        archived_call = mock_provider.chat_stream_with_retry.call_args
-        sent_content = [message.get("content") for message in archived_call.kwargs["messages"]]
-        assert "user-00" in sent_content
-        assert "assistant-09" in sent_content
-        assert "user-14" in sent_content
-
-    @pytest.mark.asyncio
-    async def test_preserves_tool_history_and_persists_only_overview(
-        self,
-        real_consolidator,
-        mock_provider,
-        store,
-        runtime,
-    ):
-        tools = [{"type": "function", "function": {"name": "lookup"}}]
-        real_consolidator.archiver._get_tool_definitions.return_value = tools
-        mock_provider.chat_stream_with_retry.return_value = LLMResponse(
-            content="Overview from the temporary turn.",
-            finish_reason="stop",
-        )
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:tool-history")
-        session.add_message("user", "look this up")
-        session.messages.extend(_tool_round("call-1"))
-        session.add_message("assistant", "final answer")
-        sessions.save(session)
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:tool-history",
-            runtime=runtime,
-        )
-
-        assert result == "Overview from the temporary turn."
-        call = mock_provider.chat_stream_with_retry.call_args.kwargs
-        sent_messages = call["messages"]
-        assert [message["role"] for message in sent_messages] == [
-            "system",
-            "user",
-            "assistant",
-            "tool",
-            "assistant",
-            "user",
-        ]
-        assert sent_messages[2]["tool_calls"][0]["id"] == "call-1"
-        assert sent_messages[-1]["content"] == _ARCHIVE_PROMPT
-        assert call["tools"] == tools
-        assert "tool_choice" not in call
-
-        reloaded = sessions.get_or_create("cli:tool-history")
-        assert len(reloaded.messages) == 5
-        assert reloaded.messages[-2]["content"] == "final answer"
-        assert all(
-            "memory overview" not in str(message.get("content", "")).lower()
-            for message in reloaded.messages
-        )
-        entries = store.read_unprocessed_history(since_cursor=0)
-        assert [entry["content"] for entry in entries] == [
-            "Overview from the temporary turn."
-        ]
-
-    @pytest.mark.asyncio
-    async def test_tool_call_response_retries_with_disabled_tool_results(
-        self,
-        real_consolidator,
-        mock_provider,
-        store,
-        runtime,
-    ):
-        tools = [
-            {"type": "function", "function": {"name": "lookup"}},
-            {"type": "function", "function": {"name": "read_file"}},
-        ]
-        real_consolidator.archiver._get_tool_definitions.return_value = tools
-        mock_provider.chat_stream_with_retry.side_effect = [
-            LLMResponse(
-                content=None,
-                tool_calls=[
-                    ToolCallRequest(id="call-1", name="lookup", arguments={}),
-                    ToolCallRequest(id="call-2", name="read_file", arguments={}),
-                ],
-                finish_reason="stop",
-                provider_state=_provider_state(),
-            ),
-            LLMResponse(content="Recovered archive summary.", finish_reason="stop"),
-        ]
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:unexpected-tool")
-        session.add_message("user", "remember this")
-        session.add_message("assistant", "important answer")
-        sessions.save(session)
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:unexpected-tool",
-            runtime=runtime,
-        )
-
-        assert result == "Recovered archive summary."
-        assert mock_provider.chat_stream_with_retry.await_count == 2
-        first_call, recovery_call = mock_provider.chat_stream_with_retry.await_args_list
-        assert first_call.kwargs["tools"] == recovery_call.kwargs["tools"] == tools
-        assert first_call.kwargs["provider_context"] is None
-        assert recovery_call.kwargs["provider_context"] is None
-        assert "tool_choice" not in first_call.kwargs
-        assert "tool_choice" not in recovery_call.kwargs
-        recovery_messages = recovery_call.kwargs["messages"]
-        assert [message["role"] for message in recovery_messages[-3:]] == [
-            "assistant",
-            "tool",
-            "tool",
-        ]
-        assert [message["tool_call_id"] for message in recovery_messages[-2:]] == [
-            "call-1",
-            "call-2",
-        ]
-        assert all(
-            "does not execute tools" in message["content"]
-            for message in recovery_messages[-2:]
-        )
-        entries = store.read_unprocessed_history(since_cursor=0)
-        assert [entry["content"] for entry in entries] == ["Recovered archive summary."]
-        assert sessions.get_or_create("cli:unexpected-tool").last_archived == 2
-
-    @pytest.mark.asyncio
-    async def test_repeated_tool_call_response_uses_raw_fallback(
-        self,
-        real_consolidator,
-        mock_provider,
-        store,
-        runtime,
-    ):
-        tool_response = LLMResponse(
-            content=None,
-            tool_calls=[ToolCallRequest(id="call-1", name="lookup", arguments={})],
-            finish_reason="tool_calls",
-        )
-        mock_provider.chat_stream_with_retry.side_effect = [tool_response, tool_response]
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:repeated-tool")
-        session.add_message("user", "remember this")
-        session.add_message("assistant", "important answer")
-        sessions.save(session)
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:repeated-tool",
-            runtime=runtime,
-        )
-
-        assert result is not None
-        assert "[RAW]" in result
-        assert mock_provider.chat_stream_with_retry.await_count == 2
-        entries = store.read_unprocessed_history(since_cursor=0)
-        assert len(entries) == 1
-        assert "important answer" in entries[0]["content"]
-        assert sessions.get_or_create("cli:repeated-tool").last_archived == 2
-
-    @pytest.mark.asyncio
-    async def test_empty_response_uses_raw_fallback(
-        self,
-        real_consolidator,
-        mock_provider,
-        store,
-        runtime,
-    ):
-        mock_provider.chat_stream_with_retry.return_value = LLMResponse(
-            content="",
-            finish_reason="stop",
-        )
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:empty-summary")
-        session.add_message("user", "remember this")
-        session.add_message("assistant", "important answer")
-        sessions.save(session)
-
-        result = await real_consolidator.compact_idle_session(
-            "cli:empty-summary",
-            runtime=runtime,
-        )
-
-        assert result is not None
-        assert "[RAW]" in result
-        entries = store.read_unprocessed_history(since_cursor=0)
-        assert len(entries) == 1
-        assert entries[0]["content"].startswith("[RAW] ")
-        assert "important answer" in entries[0]["content"]
-        assert sessions.get_or_create("cli:empty-summary").last_archived == 2
-
-    @pytest.mark.asyncio
-    async def test_oversized_prefix_raw_archives_without_flattened_llm_retry(
-        self,
-        real_consolidator,
-        mock_provider,
-        store,
-        runtime,
-    ):
-        runtime = replace(runtime, context_window_tokens=1_000)
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("sdk:oversized")
-        session.add_message("user", "x" * 100_000)
-        sessions.save(session)
-
-        result = await real_consolidator.compact_idle_session(
-            "sdk:oversized",
-            runtime=runtime,
-        )
-
-        assert result is not None
-        assert "[RAW]" in result
-        mock_provider.chat_stream_with_retry.assert_not_awaited()
-        entries = store.read_unprocessed_history(since_cursor=0)
-        assert len(entries) > 1
-        assert all(entry["content"].startswith("[RAW] ") for entry in entries)
-        assert "x" * 100_000 in "".join(entry["content"].split("\n", 1)[1] for entry in entries)
-        assert sessions.get_or_create("sdk:oversized").last_archived == 1
-
-    @pytest.mark.asyncio
-    async def test_archive_context_contains_only_model_visible_messages(
-        self,
-        real_consolidator,
-        mock_provider,
-        runtime,
-    ):
-        mock_provider.chat_stream_with_retry.return_value = LLMResponse(
-            content="Summary.",
-            finish_reason="stop",
-        )
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:commands")
-        session.add_message("user", "already archived user")
-        session.add_message("assistant", "already archived answer")
-        session.last_archived = 2
-        session.add_message("user", "/status", _command=True)
-        session.add_message("assistant", "status output", _command=True)
-        session.add_message("user", "new user")
-        session.add_message("assistant", "new answer")
-        sessions.save(session)
-
-        await real_consolidator.compact_idle_session(
-            "cli:commands",
-            runtime=runtime,
-        )
-
-        sent = mock_provider.chat_stream_with_retry.call_args.kwargs["messages"]
-        assert [message.get("content") for message in sent[1:-1]] == [
-            "new user",
-            "new answer",
-        ]
-        assert sent[-1]["content"] == _ARCHIVE_PROMPT
-
-    @pytest.mark.asyncio
-    async def test_reuses_real_prefix_for_unified_session_workspace(
-        self,
-        loop_factory,
-        mock_provider,
-        tmp_path,
-    ):
-        project = tmp_path / "project"
-        project.mkdir()
-        (tmp_path / "AGENTS.md").write_text("GLOBAL_WORKSPACE_MARKER", encoding="utf-8")
-        (project / "AGENTS.md").write_text("PROJECT_WORKSPACE_MARKER", encoding="utf-8")
-        loop = loop_factory(provider=mock_provider, unified_session=True)
-        runtime = loop.llm_runtime()
-        runtime.provider.chat_stream_with_retry.return_value = LLMResponse(
-            content="Summary.",
-            finish_reason="stop",
-        )
-        session = loop.sessions.get_or_create(UNIFIED_SESSION_KEY)
-        remember_last_channel(session.metadata, "websocket", "scope")
-        session.metadata["workspace_scope"] = {
-            "project_path": str(project),
-            "access_mode": "restricted",
-        }
-        session.add_message("user", "project question")
-        session.add_message("assistant", "project answer")
-        loop.sessions.save(session)
-        ordinary_messages = loop.context.build_messages(
-            history=session.get_history(max_messages=0),
-            current_message="next project question",
-            channel="websocket",
-            workspace=project,
-        )
-
-        await loop.consolidator.compact_idle_session(
-            session.key,
-            runtime=runtime,
-        )
-
-        sent_messages = runtime.provider.chat_stream_with_retry.call_args.kwargs["messages"]
-        assert sent_messages[:-1] == ordinary_messages[:-1]
-        assert sent_messages[-1]["content"] == _ARCHIVE_PROMPT
-        system = sent_messages[0]["content"]
-        assert "PROJECT_WORKSPACE_MARKER" in system
-        assert "GLOBAL_WORKSPACE_MARKER" not in system
-
-    @pytest.mark.asyncio
-    async def test_acquires_consolidation_lock(
-        self, real_consolidator, mock_provider, runtime
-    ):
-        """Verify lock is held during execution."""
-        import asyncio
-
-        # Use a slow LLM response to ensure the lock is held while we check
-        started = asyncio.Event()
-        release_chat = asyncio.Event()
-
-        async def slow_chat(**kwargs):
-            started.set()
-            await release_chat.wait()
-            return LLMResponse(content="Summary.", finish_reason="stop")
-
-        mock_provider.chat_stream_with_retry = slow_chat
-
-        sessions = real_consolidator.sessions
-        session = sessions.get_or_create("cli:lock")
-        for i in range(10):
-            session.add_message("user", f"u{i}")
-            session.add_message("assistant", f"a{i}")
-        sessions.save(session)
-
-        lock = real_consolidator.get_lock("cli:lock")
-        assert not lock.locked()
-
-        task = asyncio.ensure_future(
-            real_consolidator.compact_idle_session(
-                "cli:lock", runtime=runtime, max_suffix=4
-            )
-        )
-        await started.wait()
-        assert lock.locked()
-        release_chat.set()
-        await task
-        assert not lock.locked()
 
 
 class TestRawArchiveChunks:
@@ -1631,7 +542,7 @@ class TestRawArchiveChunks:
             }
         ]
 
-        checkpoint = store.raw_archive(messages, session_key="cli:test")
+        checkpoint = store.raw_archive(messages, run_id="cli:test")
 
         persisted = store.read_unprocessed_history(since_cursor=0)[0]["content"]
         assert checkpoint == persisted
@@ -1654,11 +565,11 @@ class TestRawArchiveChunks:
         assert "ship the feature" in entry
         assert "host-only goal guidance" not in entry
 
-    def test_raw_archive_preserves_session_key(self, store):
+    def test_raw_archive_preserves_run_id(self, store):
         messages = [{"role": "user", "content": "hello"}]
-        store.raw_archive(messages, session_key="websocket:chat-1")
+        store.raw_archive(messages, run_id="websocket:chat-1")
         entries = store.read_unprocessed_history(since_cursor=0)
-        assert entries[0]["session_key"] == "websocket:chat-1"
+        assert entries[0]["run_id"] == "websocket:chat-1"
 
     def test_raw_archive_custom_max_chars(self, store):
         """max_chars parameter should override default limit."""
@@ -1672,12 +583,12 @@ class TestRawArchiveChunks:
         messages = [{"role": "user", "content": "x " * 40_000 + "TAIL_MARKER"}]
         expected = store._format_messages(messages)
 
-        checkpoint = store.raw_archive(messages, max_chars=limit, session_key="cli:chunks")
+        checkpoint = store.raw_archive(messages, max_chars=limit, run_id="cli:chunks")
 
         entries = MemoryStore(store.workspace).read_unprocessed_history(since_cursor=0)
         assert "".join(entry["content"].split("\n", 1)[1] for entry in entries) == expected
         assert all(len(entry["content"]) <= _HISTORY_ENTRY_HARD_CAP for entry in entries)
-        assert all(entry["session_key"] == "cli:chunks" for entry in entries)
+        assert all(entry["run_id"] == "cli:chunks" for entry in entries)
         assert checkpoint == store._build_raw_checkpoint(messages, max_chars=limit)
 
 

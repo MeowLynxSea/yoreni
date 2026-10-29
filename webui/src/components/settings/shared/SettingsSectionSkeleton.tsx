@@ -54,11 +54,9 @@ function RuntimeGroups({ page }: { page: RuntimeConfigPage }) {
   return <>{RUNTIME_CONFIG_GROUPS.filter((group) => group.page === page).map((group) => group.id === "chat"
     ? <Group key={group.id} controls={["switch", "segments"]} />
     : group.id === "proxy" ? <ProxyGroup key={group.id} />
-    : <Group key={group.id} controls={RUNTIME_CONFIG_FIELDS.filter((field) => field.group === group.id && (!field.when || field.when.value === true)).flatMap<Control>((field) =>
-      field.kind === "idle-compaction" ? ["switch", "idle-timeout"] : [
-        field.kind === "boolean" || field.kind === "toggle" ? "switch" : field.kind === "list" ? "edit" : field.kind === "duration" ? "duration" : "input",
-      ],
-    )} />)}</>;
+    : <Group key={group.id} controls={RUNTIME_CONFIG_FIELDS.filter((field) => field.group === group.id && (!field.when || field.when.value === true)).flatMap<Control>((field) => [
+      field.kind === "boolean" || field.kind === "toggle" ? "switch" : field.kind === "list" ? "edit" : field.kind === "duration" ? "duration" : "input",
+    ])} />)}</>;
 }
 
 export function SettingsSectionSkeleton({ section, showRestart = false }: { section: SettingsSectionKey; showRestart?: boolean }) {

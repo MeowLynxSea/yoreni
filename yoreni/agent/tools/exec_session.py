@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import codecs
+import re
 import shlex
 import time
 import uuid
@@ -17,7 +18,7 @@ from loguru import logger
 from yoreni.agent.tools.base import Tool, ToolResult, tool_parameters
 from yoreni.agent.tools.context import (
     ToolContext,
-    current_request_session_key,
+    current_execution_owner,
     tool_log_content_allowed,
 )
 from yoreni.agent.tools.schema import (
@@ -28,6 +29,17 @@ from yoreni.agent.tools.schema import (
 )
 from yoreni.agent.tools.shell_config import ExecToolConfig
 from yoreni.agent.tools.shell_output import ShellOutputFilter
+
+_AGENT_EXECUTION_OWNER = re.compile(r"agent:([a-f0-9]{32}):run:[a-f0-9]{32}")
+
+
+def _same_execution_owner(owner: str | None, requester: str | None) -> bool:
+    if owner == requester:
+        return True
+    agent = _AGENT_EXECUTION_OWNER.fullmatch(owner or "")
+    other = _AGENT_EXECUTION_OWNER.fullmatch(requester or "")
+    return bool(agent and other and agent[1] == other[1])
+
 
 DEFAULT_YIELD_MS = 1000
 MAX_YIELD_MS = 30_000
@@ -81,7 +93,7 @@ class ExecSessionInfo:
     idle_s: float
     remaining_s: float | None
     returncode: int | None
-    owner_session_key: str | None = None
+    owner_id: str | None = None
     idle_timeout: int = 0
     stopping: bool = False
     finish_reason: FinishReason | None = None
@@ -157,7 +169,7 @@ class _ExecSession:
         command: str,
         cwd: str,
         timeout: int | None,
-        owner_session_key: str | None = None,
+        owner_id: str | None = None,
         process_tree: bool = False,
         idle_timeout: int = 300,
         idle_action: Literal["report", "terminate"] = "report",
@@ -167,7 +179,7 @@ class _ExecSession:
         self.process = process
         self.command = command
         self.cwd = cwd
-        self.owner_session_key = owner_session_key
+        self.owner_id = owner_id
         self._process_tree = process_tree
         self.started_at = time.monotonic() if started_at is None else started_at
         self.deadline = self.started_at + timeout if timeout else float("inf")
@@ -451,7 +463,7 @@ class ExecSessionManager:
         login: bool,
         yield_time_ms: int,
         max_output_chars: int,
-        owner_session_key: str | None = None,
+        owner_id: str | None = None,
         idle_timeout: int = 300,
         idle_action: Literal["report", "terminate"] = "report",
         stdin: int = asyncio.subprocess.PIPE,
@@ -474,10 +486,10 @@ class ExecSessionManager:
             launch = asyncio.create_task(self._launch(
                 session_id=session_id, command=command, cwd=cwd, env=env,
                 timeout=timeout, shell_program=shell_program, login=login,
-                owner_session_key=owner_session_key, idle_timeout=idle_timeout,
+                owner_id=owner_id, idle_timeout=idle_timeout,
                 idle_action=idle_action, stdin=stdin,
             ))
-            self._starting[session_id] = (owner_session_key, launch)
+            self._starting[session_id] = (owner_id, launch)
         try:
             session = await launch
             if until_exit:
@@ -500,7 +512,7 @@ class ExecSessionManager:
     async def _launch(
         self, *, session_id: str, command: str | list[str], cwd: str,
         env: dict[str, str], timeout: int | None, shell_program: str | None,
-        login: bool, owner_session_key: str | None, idle_timeout: int,
+        login: bool, owner_id: str | None, idle_timeout: int,
         idle_action: Literal["report", "terminate"], stdin: int,
     ) -> _ExecSession:
         session: _ExecSession | None = None
@@ -510,7 +522,7 @@ class ExecSessionManager:
             session = _ExecSession(
                 session_id=session_id, process=process,
                 command=shlex.join(command) if isinstance(command, list) else command,
-                cwd=cwd, timeout=timeout, owner_session_key=owner_session_key,
+                cwd=cwd, timeout=timeout, owner_id=owner_id,
                 process_tree=True, idle_timeout=idle_timeout, idle_action=idle_action,
                 started_at=started_at,
             )
@@ -541,14 +553,14 @@ class ExecSessionManager:
         terminate: bool,
         yield_time_ms: int,
         max_output_chars: int,
-        owner_session_key: str | None = None,
+        owner_id: str | None = None,
     ) -> _SessionPoll:
         async with self._lock:
             self._cleanup_finished_locked()
             session = self._sessions.get(session_id)
         if session is None:
             raise KeyError(session_id)
-        if session.owner_session_key and session.owner_session_key != owner_session_key:
+        if session.owner_id and not _same_execution_owner(session.owner_id, owner_id):
             raise KeyError(session_id)
 
         if chars:
@@ -573,7 +585,7 @@ class ExecSessionManager:
                 self._sessions.pop(session_id, None)
         return poll
 
-    async def list(self, *, owner_session_key: str | None = None) -> list[ExecSessionInfo]:
+    async def list(self, *, owner_id: str | None = None) -> list[ExecSessionInfo]:
         async with self._lock:
             self._cleanup_finished_locked()
             now = time.monotonic()
@@ -586,14 +598,14 @@ class ExecSessionManager:
                     idle_s=session.output_idle_s(now),
                     remaining_s=session.remaining_s(now),
                     returncode=session.process.returncode,
-                    owner_session_key=session.owner_session_key,
+                    owner_id=session.owner_id,
                     idle_timeout=session.idle_timeout,
                     stopping=session.stopping,
                     finish_reason=session.finish_reason,
                     cleanup_error=session.cleanup_error,
                 )
                 for session_id, session in sorted(self._sessions.items())
-                if session.owner_session_key == owner_session_key
+                if _same_execution_owner(session.owner_id, owner_id)
             ]
 
     async def close_all(self) -> int:
@@ -605,18 +617,18 @@ class ExecSessionManager:
             self._starting.clear()
         return await self._stop_owned(sessions, launches, "shutdown")
 
-    async def terminate_by_owner(self, owner_session_key: str) -> int:
-        """Terminate all sessions owned by owner_session_key. Returns count."""
+    async def terminate_by_owner(self, owner_id: str) -> int:
+        """Terminate all sessions owned by owner_id. Returns count."""
         async with self._lock:
             victims: list[_ExecSession] = []
             for s in self._sessions.values():
-                if s.owner_session_key == owner_session_key:
+                if s.owner_id == owner_id:
                     victims.append(s)
             launches = [
-                task for owner, task in self._starting.values() if owner == owner_session_key
+                task for owner, task in self._starting.values() if owner == owner_id
             ]
             for sid, (owner, _) in list(self._starting.items()):
-                if owner == owner_session_key:
+                if owner == owner_id:
                     self._starting.pop(sid)
         return await self._stop_owned(victims, launches, "owner_closed")
 
@@ -847,7 +859,7 @@ class ExecSessionTool(Tool):
                     terminate=True,
                     yield_time_ms=0,
                     max_output_chars=DEFAULT_MAX_OUTPUT_CHARS,
-                    owner_session_key=current_request_session_key(),
+                    owner_id=current_execution_owner(),
                 )
                 result = format_session_poll(session_id, poll)
                 return ToolResult.error(result) if poll.failed else result
@@ -904,7 +916,7 @@ class ExecSessionTool(Tool):
                 terminate=False,
                 yield_time_ms=step_ms,
                 max_output_chars=MAX_OUTPUT_CHARS,
-                owner_session_key=current_request_session_key(),
+                owner_id=current_execution_owner(),
             )
             first = False
             upstream_truncated += poll.truncated_chars
@@ -973,7 +985,7 @@ class ListExecSessionsTool(Tool):
     async def execute(self, **kwargs: Any) -> str:
         try:
             sessions = await self._manager.list(
-                owner_session_key=current_request_session_key(),
+                owner_id=current_execution_owner(),
             )
             if not sessions:
                 return "No active exec sessions."

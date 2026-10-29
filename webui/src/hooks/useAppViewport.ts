@@ -9,7 +9,7 @@ export function useAppViewport() {
     const viewport = window.visualViewport;
     const root = document.getElementById("root");
     if (!touch || !viewport || !root || isNativeRuntime()) return;
-    // Body portals (for example session search) share the app's viewport owner.
+    // Body portals share the app's viewport owner.
     const viewportStyle = document.documentElement.style;
 
     const update = () => {

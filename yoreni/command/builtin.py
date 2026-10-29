@@ -9,23 +9,18 @@ import sys
 import time
 from contextlib import suppress
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, Literal, cast
-
-from loguru import logger
+from typing import TYPE_CHECKING, Any, Literal
 
 from yoreni import __version__
+from yoreni.agent.state import AgentInput
 from yoreni.bus.events import INBOUND_META_USER_SHELL, InboundMessage, OutboundMessage
 from yoreni.command.router import CommandContext, CommandRouter, normalize_command_text
-from yoreni.providers.base import LLMUsage
-from yoreni.session.history_visibility import HIDDEN_HISTORY_META
-from yoreni.utils.cancellation import shield_and_drain
 from yoreni.utils.helpers import build_status_content
 from yoreni.utils.restart import set_restart_notice_to_env
 from yoreni.utils.workspace_prompts import initialize_workspace_prompt
 
 if TYPE_CHECKING:
     from yoreni.agent.loop import AgentLoop
-    from yoreni.session.manager import Session
     from yoreni.utils.gitstore import CommitInfo
 
 # WebUI protocol contract for how a slash command participates in turn state:
@@ -69,19 +64,6 @@ class BuiltinCommandSpec:
 
 BUILTIN_COMMAND_SPECS: tuple[BuiltinCommandSpec, ...] = (
     BuiltinCommandSpec(
-        "/new",
-        "New chat",
-        "Reset this chat and start a fresh conversation.",
-        "square-pen",
-        lifecycle="finalize_active_turn",
-    ),
-    BuiltinCommandSpec(
-        "/compact",
-        "Compact context",
-        "Compact this chat's context and continue the conversation.",
-        "archive",
-    ),
-    BuiltinCommandSpec(
         "/stop",
         "Stop current task",
         "Cancel the active agent turn for this chat.",
@@ -109,14 +91,6 @@ BUILTIN_COMMAND_SPECS: tuple[BuiltinCommandSpec, ...] = (
         accepts_args=True,
     ),
     BuiltinCommandSpec(
-        "/history",
-        "Show conversation history",
-        "Print the last N persisted conversation messages.",
-        "history",
-        "[n]",
-        accepts_args=True,
-    ),
-    BuiltinCommandSpec(
         "/goal",
         "Start long-running goal",
         "Tell the agent to treat the request as a long-running goal.",
@@ -128,7 +102,7 @@ BUILTIN_COMMAND_SPECS: tuple[BuiltinCommandSpec, ...] = (
     BuiltinCommandSpec(
         "/trigger",
         "Create named local trigger",
-        "Create a named CLI trigger bound to this chat session.",
+        "Create a named CLI trigger for the Agent.",
         "zap",
         "<name>",
         accepts_args=True,
@@ -213,19 +187,16 @@ def builtin_command_starts_agent_turn(text: str) -> bool:
 
 
 async def cmd_stop(ctx: CommandContext) -> OutboundMessage:
-    """Cancel all active tasks and subagents for the session."""
+    """Cancel the selected Run, or active Runs when no ID is supplied."""
     loop = ctx.loop
     msg = ctx.msg
-    total = await loop._cancel_active_tasks(ctx.key)  # pyright: ignore[reportPrivateUsage]
-    # Also drain pending queue to prevent mid-turn injection deadlock
-    pending = loop._pending_queues.pop(ctx.key, None)  # pyright: ignore[reportPrivateUsage]
-    if pending is not None:
-        while not pending.empty():
-            try:
-                pending.get_nowait()
-                total += 1
-            except Exception:
-                break
+    total = 0
+    run_id = ctx.msg.metadata.get("agent_run_id")
+    if isinstance(run_id, str):
+        total = await loop.cancel_run(run_id)
+    else:
+        for active_id in tuple(loop.active_run_ids):
+            total += await loop.cancel_run(active_id)
     content = f"Stopped {total} task(s)." if total else "No active task to stop."
     return OutboundMessage(
         channel=msg.channel, chat_id=msg.chat_id, content=content,
@@ -266,20 +237,12 @@ async def cmd_restart(ctx: CommandContext) -> OutboundMessage:
 
 
 async def cmd_status(ctx: CommandContext) -> OutboundMessage:
-    """Build an outbound status message for a session."""
+    """Build an outbound status message for the Agent."""
     loop = ctx.loop
-    session = ctx.session or await loop.sessions.state.get(ctx.key)
-    runtime = ctx.runtime or await loop.runtime_for_session(session)
+    runtime = ctx.runtime or await loop.agent_runtime()
+    recent = await asyncio.to_thread(loop.agent.store.recent)
     ctx_est = 0
-    with suppress(Exception):
-        ctx_est, _ = loop.consolidator.estimate_session_prompt_tokens(
-            session,
-            runtime=runtime,
-        )
-    last_usage = LLMUsage.from_dict(session.metadata.get("_last_usage"))
-    if ctx_est <= 0:
-        ctx_est = last_usage.input_tokens if last_usage is not None else 0
-
+    last_usage = None
     # Await web search provider usage; network requests have a bounded timeout.
     search_usage_text: str | None = None
     # Never let usage fetch break /status
@@ -291,10 +254,7 @@ async def cmd_status(ctx: CommandContext) -> OutboundMessage:
             api_key=search_cfg.api_key or None,
         )
         search_usage_text = usage.format()
-    active_tasks = loop._active_tasks.get(ctx.key, [])  # pyright: ignore[reportPrivateUsage]
-    task_count = sum(1 for t in active_tasks if not t.done())
-    with suppress(Exception):
-        task_count += loop.subagents.get_running_count_by_session(ctx.key)
+    task_count = len(loop.active_run_ids)
     return OutboundMessage(
         channel=ctx.msg.channel,
         chat_id=ctx.msg.chat_id,
@@ -302,7 +262,7 @@ async def cmd_status(ctx: CommandContext) -> OutboundMessage:
             version=__version__, model=runtime.model,
             start_time=loop._start_time, last_usage=last_usage,  # pyright: ignore[reportPrivateUsage]
             context_window_tokens=runtime.context_window_tokens,
-            session_msg_count=len(session.get_history(max_messages=0)),
+            recent_message_count=len(recent),
             context_tokens_estimate=ctx_est,
             search_usage_text=search_usage_text,
             active_task_count=task_count,
@@ -312,60 +272,8 @@ async def cmd_status(ctx: CommandContext) -> OutboundMessage:
     )
 
 
-async def cmd_new(ctx: CommandContext) -> OutboundMessage:
-    """Stop active task and start a fresh session."""
-    loop = ctx.loop
-    await loop._cancel_active_tasks(ctx.key)  # pyright: ignore[reportPrivateUsage]
-    loop.discard_session_file_state(ctx.key)
-    session = ctx.session or await loop.sessions.state.get(ctx.key)
-    snapshot = list(session.messages)
-    archive_snapshot = None
-    runtime = None
-    if session.last_archived < len(snapshot):
-        runtime = ctx.runtime or await loop.runtime_for_session(session)
-        archive_snapshot = replace(
-            session,
-            messages=snapshot,
-            metadata=dict(session.metadata),
-            provider_state=None,
-        )
-    async def reset_and_schedule_archive() -> None:
-        await loop.sessions.state.reset(session.key)
-        if archive_snapshot is not None and runtime is not None:
-            loop.schedule_background(
-                loop.consolidator.archive_session(  # pyright: ignore[reportUnknownMemberType]
-                    archive_snapshot,
-                    archive_end=len(snapshot),
-                    runtime=runtime,
-                )
-            )
-
-    await shield_and_drain(reset_and_schedule_archive())
-    return OutboundMessage(
-        channel=ctx.msg.channel, chat_id=ctx.msg.chat_id,
-        content="New session started.",
-        metadata=dict(ctx.msg.metadata or {})
-    )
 
 
-async def cmd_compact(ctx: CommandContext) -> None:
-    """Compact the current session without resetting the conversation."""
-    loop = ctx.loop
-    session = ctx.session or await loop.sessions.state.get(ctx.key)
-    runtime = ctx.runtime or await loop.runtime_for_session(session)
-    delivery = loop.turn_delivery_factory.create(ctx.msg, ctx.key)
-
-    try:
-        await loop.consolidator.compact_idle_session(
-            ctx.key,
-            runtime=runtime,
-            events=delivery.events,
-            notify=True,
-            reason="manual",
-        )
-    except Exception:
-        logger.exception("Manual context compaction failed for {}", ctx.key)
-        return
 
 
 
@@ -383,10 +291,10 @@ def _command_error_message(exc: Exception) -> str:
     return str(exc.args[0]) if isinstance(exc, KeyError) and exc.args else str(exc)
 
 
-async def _model_command_status(loop: AgentLoop, session: Session) -> str:
+async def _model_command_status(loop: AgentLoop) -> str:
     names = _model_preset_names(loop)
     try:
-        runtime = await loop.runtime_for_session(session, recover_removed=False)
+        runtime = await loop.agent_runtime()
     except (KeyError, ValueError) as exc:
         return "\n".join([
             "## Model",
@@ -410,17 +318,16 @@ async def cmd_model(ctx: CommandContext) -> OutboundMessage:
     metadata = {**dict(ctx.msg.metadata or {}), "render_as": "text"}
 
     if not args:
-        session = ctx.session or await loop.sessions.state.get(ctx.key)
         return OutboundMessage(
             channel=ctx.msg.channel,
             chat_id=ctx.msg.chat_id,
-            content=await _model_command_status(loop, session),
+            content=await _model_command_status(loop),
             metadata=metadata,
         )
 
     name = args
     try:
-        runtime = await loop.set_session_model_preset(ctx.key, name)
+        runtime = await loop.select_agent_model(name)
     except (KeyError, ValueError) as exc:
         names = _model_preset_names(loop)
         return OutboundMessage(
@@ -436,7 +343,7 @@ async def cmd_model(ctx: CommandContext) -> OutboundMessage:
     max_tokens = runtime.generation.max_tokens
     lines = [
         f"Switched model preset to `{runtime.model_preset}`.",
-        "- Scope: current session",
+        "- Scope: personal Agent",
         f"- Model: `{runtime.model}`",
         f"- Context window: {runtime.context_window_tokens}",
     ]
@@ -462,7 +369,6 @@ async def cmd_dream(ctx: CommandContext) -> OutboundMessage:
         async def _silent(*_args: Any, **_kwargs: Any) -> None:
             pass
 
-        dream_session_key = MemoryStore.dream_session_key
         build_dream_commit_message = MemoryStore.build_dream_commit_message
 
         store = loop.context.memory
@@ -480,12 +386,9 @@ async def cmd_dream(ctx: CommandContext) -> OutboundMessage:
                 ))
                 return
             prompt, last_cursor = result
-            key = dream_session_key()
             dream_runtime = loop.dream_runtime()
-            resp = await loop.process_direct(
-                prompt,
-                session_key=key,
-                ephemeral=True,
+            resp = await loop.process_event(
+                AgentInput("dream", prompt, principal="owner", kind="internal"),
                 tools=store.build_dream_tools(),
                 on_progress=_silent,
                 runtime=dream_runtime,
@@ -517,7 +420,6 @@ async def cmd_dream(ctx: CommandContext) -> OutboundMessage:
                 if sha:
                     content += f" (commit {sha})"
             store.compact_history()
-            await loop.sessions.state.prune_dream_sessions()
         await loop.bus.publish_outbound(OutboundMessage(
             channel=msg.channel, chat_id=msg.chat_id, content=content,
         ))
@@ -840,65 +742,8 @@ _HISTORY_MAX_COUNT = 50
 _HISTORY_MAX_CONTENT_CHARS = 200
 
 
-def _format_history_message(msg: dict[str, Any]) -> str | None:
-    """Format a single history message for display. Returns None to skip."""
-    role = msg.get("role")
-    if role not in ("user", "assistant"):
-        return None
-    content = msg.get("content") or ""
-    if isinstance(content, list):
-        parts = [
-            text
-            for block in cast(list[object], content)
-            if (item := cast(dict[str, Any], block) if isinstance(block, dict) else None)
-            and item.get("type") == "text"
-            and isinstance(text := item.get("text"), str)
-        ]
-        content = " ".join(parts)
-    content = str(content).strip()
-    if not content:
-        return None
-    if len(content) > _HISTORY_MAX_CONTENT_CHARS:
-        content = content[:_HISTORY_MAX_CONTENT_CHARS] + "…"
-    label = "👤 You" if role == "user" else "🤖 Bot"
-    return f"{label}: {content}"
 
 
-async def cmd_history(ctx: CommandContext) -> OutboundMessage:
-    """Show the last N messages of the current session (default 10, max 50).
-
-    Usage: /history [count]
-    """
-    count = _HISTORY_DEFAULT_COUNT
-    if ctx.args.strip():
-        try:
-            count = max(1, min(int(ctx.args.strip()), _HISTORY_MAX_COUNT))
-        except ValueError:
-            return OutboundMessage(
-                channel=ctx.msg.channel, chat_id=ctx.msg.chat_id,
-                content="Usage: /history [count] — e.g. /history 5 (default: 10, max: 50)",
-                metadata=dict(ctx.msg.metadata or {}),
-            )
-
-    session = ctx.session or await ctx.loop.sessions.state.get(ctx.key)
-    history = session.get_history(max_messages=0, include_runtime_context=False)
-    visible = [_format_history_message(m) for m in history]
-    visible = [m for m in visible if m is not None]
-    recent = visible[-count:]
-
-    if not recent:
-        return OutboundMessage(
-            channel=ctx.msg.channel, chat_id=ctx.msg.chat_id,
-            content="No conversation history yet.",
-            metadata=dict(ctx.msg.metadata or {}),
-        )
-
-    header = f"Last {len(recent)} message(s):\n"
-    return OutboundMessage(
-        channel=ctx.msg.channel, chat_id=ctx.msg.chat_id,
-        content=header + "\n".join(recent),
-        metadata={**dict(ctx.msg.metadata or {}), "render_as": "text"},
-    )
 
 
 async def cmd_goal(ctx: CommandContext) -> InboundMessage | OutboundMessage:
@@ -919,9 +764,6 @@ async def cmd_goal(ctx: CommandContext) -> InboundMessage | OutboundMessage:
             metadata={**dict(ctx.msg.metadata or {}), "render_as": "text"},
         )
 
-    session = ctx.session or await ctx.loop.sessions.state.get(ctx.key)
-    session.add_message("user", ctx.msg.content, _command=True, media=list(ctx.msg.media))
-    await ctx.loop.sessions.state.prepare_input(session)
     return replace(
         ctx.msg,
         content=goal,
@@ -931,7 +773,6 @@ async def cmd_goal(ctx: CommandContext) -> InboundMessage | OutboundMessage:
             "original_content": ctx.msg.content,
             "goal_requested": True,
             "goal_started_at": time.time(),
-            HIDDEN_HISTORY_META: {"kind": "goal_request"},
         },
     )
 
@@ -974,7 +815,7 @@ async def cmd_skill(ctx: CommandContext) -> OutboundMessage:
 
 
 async def cmd_trigger(ctx: CommandContext) -> OutboundMessage:
-    """Create a local trigger bound to the current session."""
+    """Create a local trigger owned by the Agent."""
     name = ctx.args.strip()
     if not name:
         return OutboundMessage(
@@ -982,7 +823,7 @@ async def cmd_trigger(ctx: CommandContext) -> OutboundMessage:
             chat_id=ctx.msg.chat_id,
             content=(
                 "Usage: /trigger <name>\n\n"
-                "Create a named local trigger bound to this chat session."
+                "Create a named local trigger for the Agent."
             ),
             metadata={**dict(ctx.msg.metadata or {}), "render_as": "text"},
         )
@@ -994,18 +835,11 @@ async def cmd_trigger(ctx: CommandContext) -> OutboundMessage:
     if store is None:
         store = LocalTriggerStore(loop.workspace)
 
-    from yoreni.session.keys import UNIFIED_SESSION_KEY
-
-    session_key = (
-        ctx.msg.session_key
-        if ctx.key == UNIFIED_SESSION_KEY
-        else ctx.key
-    )
     trigger = store.create(
         name=name,
         channel=ctx.msg.channel,
         chat_id=ctx.msg.chat_id,
-        session_key=session_key,
+        agent_id=loop.agent.store.identity().id,
         sender_id="trigger",
         origin_metadata=dict(ctx.msg.metadata or {}),
     )
@@ -1071,13 +905,9 @@ def register_builtin_commands(router: CommandRouter) -> None:
     router.priority("/stop", cmd_stop)
     router.priority("/restart", cmd_restart)
     router.priority("/status", cmd_status)
-    router.exact("/new", cmd_new)
-    router.exact("/compact", cmd_compact, session_queue=True)
     router.exact("/status", cmd_status)
     router.exact("/model", cmd_model)
     router.prefix("/model ", cmd_model)
-    router.exact("/history", cmd_history)
-    router.prefix("/history ", cmd_history)
     router.exact("/goal", cmd_goal)
     router.prefix("/goal ", cmd_goal)
     router.exact("/trigger", cmd_trigger)

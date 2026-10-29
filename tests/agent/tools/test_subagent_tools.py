@@ -27,6 +27,7 @@ def _runtime(provider: MagicMock, model: str = "test-model") -> LLMRuntime:
 async def test_run_inline_returns_result_without_announcement(tmp_path):
     """Inline subagents return directly instead of injecting a follow-up."""
     from yoreni.agent.subagent import SubagentManager
+
     from yoreni.bus.queue import MessageBus
 
     provider = MagicMock()
@@ -61,6 +62,7 @@ async def test_run_inline_returns_result_without_announcement(tmp_path):
 async def test_run_inline_returns_structured_error(tmp_path):
     """Inline subagent failures remain tool errors for the parent runner."""
     from yoreni.agent.subagent import SubagentManager
+
     from yoreni.agent.tools.registry import is_tool_error_result
     from yoreni.bus.queue import MessageBus
 
@@ -94,6 +96,7 @@ async def test_run_inline_returns_structured_error(tmp_path):
 async def test_subagent_exec_tool_receives_allowed_env_keys(tmp_path):
     """allowed_env_keys from ExecToolConfig must be forwarded to the subagent's ExecTool."""
     from yoreni.agent.subagent import SubagentManager
+
     from yoreni.agent.tools.shell import ExecToolConfig
     from yoreni.bus.queue import MessageBus
     from yoreni.config.schema import ToolsConfig
@@ -139,6 +142,7 @@ async def test_subagent_exec_tool_receives_allowed_env_keys(tmp_path):
 async def test_subagent_uses_configured_max_iterations(tmp_path):
     """Subagents should honor the configured tool-iteration limit."""
     from yoreni.agent.subagent import SubagentManager
+
     from yoreni.bus.queue import MessageBus
 
     bus = MessageBus()
@@ -180,6 +184,7 @@ async def test_subagent_uses_configured_max_iterations(tmp_path):
 async def test_subagent_checkpoint_updates_status_and_preserves_omitted_fields(tmp_path):
     """Runner checkpoints update detached task snapshots without resetting omitted fields."""
     from yoreni.agent.subagent import SubagentManager
+
     from yoreni.bus.queue import MessageBus
 
     mgr = SubagentManager(
@@ -226,6 +231,7 @@ async def test_subagent_checkpoint_updates_status_and_preserves_omitted_fields(t
 async def test_spawn_forwards_temperature_to_run_spec(tmp_path):
     """A temperature passed to spawn() should reach the AgentRunSpec."""
     from yoreni.agent.subagent import SubagentManager
+
     from yoreni.bus.queue import MessageBus
 
     bus = MessageBus()
@@ -265,6 +271,7 @@ async def test_background_spawn_waits_for_concurrency_capacity(tmp_path):
     """Background tasks should be accepted and start when capacity becomes available."""
     from yoreni.agent.subagent import SubagentManager
     from yoreni.agent.tools.subagent import SubagentTool
+
     from yoreni.bus.queue import MessageBus
 
     bus = MessageBus()
@@ -333,8 +340,9 @@ async def test_background_spawn_waits_for_concurrency_capacity(tmp_path):
 
 @pytest.mark.asyncio
 async def test_subagent_tool_waits_for_inline_result():
-    from yoreni.agent.tools.context import RequestContext, request_context
     from yoreni.agent.tools.subagent import SubagentTool
+
+    from yoreni.agent.tools.context import RequestContext, request_context
 
     class Manager:
         max_concurrent_subagents = 1
@@ -368,8 +376,9 @@ async def test_subagent_tool_waits_for_inline_result():
 @pytest.mark.asyncio
 async def test_inline_spawn_waits_for_concurrency_capacity(tmp_path):
     from yoreni.agent.subagent import SubagentManager
-    from yoreni.agent.tools.context import RequestContext, request_context
     from yoreni.agent.tools.subagent import SubagentTool
+
+    from yoreni.agent.tools.context import RequestContext, request_context
     from yoreni.bus.queue import MessageBus
 
     manager = SubagentManager(
@@ -430,12 +439,13 @@ async def test_inline_spawn_waits_for_concurrency_capacity(tmp_path):
 @pytest.mark.asyncio
 async def test_runner_executes_inline_spawn_batch_concurrently(tmp_path):
     """Adjacent blocking consultations should share one concurrent tool batch."""
-    from yoreni.agent.hook import AgentHook, AgentHookContext
     from yoreni.agent.subagent import SubagentManager
+    from yoreni.agent.tools.subagent import SubagentTool
+
+    from yoreni.agent.hook import AgentHook, AgentHookContext
     from yoreni.agent.tools.context import RequestContext, request_context
     from yoreni.agent.tools.execution import execute_tool_calls
     from yoreni.agent.tools.registry import ToolRegistry
-    from yoreni.agent.tools.subagent import SubagentTool
     from yoreni.bus.queue import MessageBus
     from yoreni.providers.base import ToolCallRequest
 
@@ -508,6 +518,7 @@ async def test_runner_executes_inline_spawn_batch_concurrently(tmp_path):
 @pytest.mark.asyncio
 async def test_cancel_by_session_cancels_inline_subagent(tmp_path):
     from yoreni.agent.subagent import SubagentManager
+
     from yoreni.bus.queue import MessageBus
 
     manager = SubagentManager(
@@ -541,6 +552,7 @@ async def test_cancel_by_session_cancels_inline_subagent(tmp_path):
 def test_subagent_default_max_concurrent_matches_agent_defaults(tmp_path):
     """Direct SubagentManager construction should use the agent default concurrency limit."""
     from yoreni.agent.subagent import SubagentManager
+
     from yoreni.bus.queue import MessageBus
 
     bus = MessageBus()
@@ -558,6 +570,7 @@ def test_subagent_default_max_concurrent_matches_agent_defaults(tmp_path):
 def test_subagent_default_max_iterations_matches_agent_defaults(tmp_path):
     """Direct SubagentManager construction should use the agent default limit."""
     from yoreni.agent.subagent import SubagentManager
+
     from yoreni.bus.queue import MessageBus
 
     bus = MessageBus()
@@ -687,9 +700,10 @@ async def test_drain_pending_no_block_when_no_subagents(tmp_path):
 @pytest.mark.asyncio
 async def test_terminal_drain_timeout(tmp_path):
     """The terminal drain should return empty after its shared timeout expires."""
+    from yoreni.session.manager import Session
+
     from yoreni.agent.loop import AgentLoop
     from yoreni.bus.queue import MessageBus
-    from yoreni.session.manager import Session
 
     bus = MessageBus()
     provider = MagicMock()
@@ -754,10 +768,11 @@ async def test_terminal_drain_timeout(tmp_path):
 @pytest.mark.asyncio
 async def test_terminal_drain_reuses_one_timeout_budget(tmp_path):
     """Repeated terminal rendezvous calls share one 300-second deadline."""
+    from yoreni.session.manager import Session
+
     from yoreni.agent.loop import AgentLoop
     from yoreni.bus.events import InboundMessage
     from yoreni.bus.queue import MessageBus
-    from yoreni.session.manager import Session
 
     loop = AgentLoop(
         bus=MessageBus(),

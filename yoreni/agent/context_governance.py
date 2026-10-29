@@ -3,7 +3,7 @@
 This module owns model-facing message shaping, request pressure, H/delta
 compaction state, and tool-result content normalization. It may return copied
 messages or persisted-result placeholders, but it must not mutate an existing
-session history list in place.
+Run transcript in place.
 """
 
 from __future__ import annotations
@@ -21,6 +21,11 @@ from uuid import uuid4
 from loguru import logger
 
 from yoreni.agent.context import TranscriptInput
+from yoreni.agent.summary import (
+    SUMMARY_CONTINUATION_TEXT,
+    TranscriptSummaryCheckpoint,
+)
+from yoreni.agent.transcript_visibility import is_hidden_history_message
 from yoreni.events import NO_EVENTS, ContextCompactionEvent, EventSink
 from yoreni.providers.base import (
     CONTEXT_SAFETY_BUFFER,
@@ -37,11 +42,6 @@ from yoreni.runtime_context import (
     RUNTIME_CONTEXT_MESSAGE_META,
     detach_runtime_context,
     reattach_runtime_context,
-)
-from yoreni.session.history_visibility import is_hidden_history_message
-from yoreni.session.summary import (
-    SUMMARY_CONTINUATION_TEXT,
-    SessionSummaryCheckpoint,
 )
 from yoreni.utils.cancellation import shield_and_drain
 from yoreni.utils.helpers import (
@@ -82,18 +82,18 @@ class ContextWindowExceededError(RuntimeError):
     def __init__(
         self,
         *,
-        session_key: str | None,
+        run_id: str | None,
         estimated_tokens: int,
         input_budget: int,
         source: str,
     ) -> None:
-        self.session_key = session_key
+        self.run_id = run_id
         self.estimated_tokens = estimated_tokens
         self.input_budget = input_budget
         self.source = source
         super().__init__(
             "Model input exceeds the local context budget "
-            f"for {session_key or 'default'}: {estimated_tokens}/{input_budget} via {source}"
+            f"for {run_id or 'default'}: {estimated_tokens}/{input_budget} via {source}"
         )
 
 
@@ -128,7 +128,7 @@ class ContextGovernanceConfig:
     model: str
     tools: ToolRegistry
     workspace: Path | None
-    session_key: str | None
+    run_id: str | None
     max_tool_result_chars: int
     context_window_tokens: int | None = None
     max_tokens: int | None = None
@@ -145,7 +145,7 @@ class ContextCompactionState:
     summary_transcript_builder: SummaryTranscriptBuilder
     consolidate_history: HistoryConsolidator
     consolidate_provider_compaction: ProviderCompactionConsolidator | None
-    summary_checkpoint: SessionSummaryCheckpoint | None = None
+    summary_checkpoint: TranscriptSummaryCheckpoint | None = None
 
     @classmethod
     def from_transcript(
@@ -166,7 +166,7 @@ class ContextCompactionState:
                     history=[],
                     current_message=None,
                     media=None,
-                    session_summary={
+                    context_summary={
                         "text": summary,
                         "last_active": datetime.now().astimezone().isoformat(),
                     },
@@ -179,8 +179,8 @@ class ContextCompactionState:
             accepted_messages=deepcopy(messages[:accepted_history_boundary]),
             raw_accepted_boundary=accepted_history_boundary,
             active_summary=(
-                transcript_input.session_summary["text"]
-                if transcript_input.session_summary is not None
+                transcript_input.context_summary["text"]
+                if transcript_input.context_summary is not None
                 else None
             ),
             summary_transcript_builder=build_summary_transcript,
@@ -449,7 +449,7 @@ class ContextGovernor:
         if budget > 0 and estimated <= budget:
             return messages
         raise ContextWindowExceededError(
-            session_key=config.session_key,
+            run_id=config.run_id,
             estimated_tokens=estimated,
             input_budget=budget,
             source=source,
@@ -603,7 +603,7 @@ class ContextGovernor:
         else:
             logger.warning(
                 "Ignoring provider compaction with missing request-boundary scope for {}",
-                state.config.session_key or "default",
+                state.config.run_id or "default",
             )
             return
 
@@ -615,7 +615,7 @@ class ContextGovernor:
         if not summary:
             return
         compaction.active_summary = summary
-        compaction.summary_checkpoint = SessionSummaryCheckpoint(
+        compaction.summary_checkpoint = TranscriptSummaryCheckpoint(
             summary=summary,
             transcript_boundary=transcript_boundary,
         )
@@ -649,7 +649,7 @@ class ContextGovernor:
             )
             if not summary:
                 raise ContextWindowExceededError(
-                    session_key=state.config.session_key,
+                    run_id=state.config.run_id,
                     estimated_tokens=measured,
                     input_budget=self.input_budget(state.config),
                     source=_source,
@@ -691,7 +691,7 @@ class ContextGovernor:
             # establish a new provider-owned state at the rewritten boundary.
             state.conversation.replace_transcript(compaction.raw_messages)
             state.usage = None
-            compaction.summary_checkpoint = SessionSummaryCheckpoint(
+            compaction.summary_checkpoint = TranscriptSummaryCheckpoint(
                 summary=summary,
                 transcript_boundary=compaction.raw_accepted_boundary,
             )
@@ -782,7 +782,7 @@ class ContextGovernor:
                 provider_context = replace(provider_context, compaction_input_budget=input_budget)
                 logger.info(
                     "Request requires provider pre-request compaction for {}: tokens={} budget={} via {}",
-                    state.config.session_key or "default", pressure[0], input_budget, pressure[1],
+                    state.config.run_id or "default", pressure[0], input_budget, pressure[1],
                 )
             else:
                 prepared = await self._compact_request_history(
@@ -841,7 +841,7 @@ class ContextGovernor:
         def persist_text(text: str, call_id: str) -> str:
             content = maybe_persist_tool_result(
                 config.workspace,
-                config.session_key,
+                config.run_id,
                 call_id,
                 text,
                 max_chars=config.max_tool_result_chars,
@@ -875,7 +875,7 @@ class ContextGovernor:
             logger.exception(
                 "Tool result persist failed for {} in {}; using raw result",
                 tool_call_id,
-                config.session_key or "default",
+                config.run_id or "default",
             )
             return truncate_text(result, config.max_tool_result_chars) if isinstance(result, str) else original_result
         return result
@@ -928,9 +928,9 @@ class ContextGovernor:
         saved history before this guard existed gets replayed on every turn and
         makes upstream APIs reject the whole request
         (``messages.content.N.tool_use.name: Input should be a valid string``),
-        permanently wedging the session. Removing the bad call here lets the
+        permanently wedging the Run. Removing the bad call here lets the
         existing orphan-result cleanup drop its now-dangling tool result, so a
-        polluted session self-heals on its next turn. The persisted transcript
+        polluted transcript can recover on the next model call. The persisted transcript
         is left untouched; only the model-facing copy is repaired (a copy is
         returned, or the same list object when nothing changes).
         """

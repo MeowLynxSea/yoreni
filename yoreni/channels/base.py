@@ -303,11 +303,8 @@ class BaseChannel(ABC):
         content: str,
         media: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
-        session_key: str | None = None,
         is_dm: bool = False,
         authorization_id: str | None = None,
-        require_existing_session: bool = False,
-        session_generation: str | None = None,
     ) -> None:
         """Handle a message after checking its authorization subject.
 
@@ -365,9 +362,7 @@ class BaseChannel(ABC):
             content=content,
             media=media or [],
             metadata=meta,
-            session_key_override=session_key,
-            session_generation=session_generation,
-            require_existing_session=require_existing_session,
+            principal="owner" if is_dm and self.is_allowed(str(sender_id)) else "untrusted",
         )
 
         await self.bus.publish_inbound(msg)

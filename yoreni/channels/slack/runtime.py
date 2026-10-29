@@ -522,7 +522,6 @@ class SlackChannel(BaseChannel):
         # message arrived inside one (raw_thread_ts) or reply_in_thread opens a new
         # thread for this channel message. DM roots have no thread_ts and keep the
         # default per-chat session, so context doesn't bleed across thread boundaries.
-        session_key = f"slack:{chat_id}:{thread_ts}" if thread_ts else None
         media_paths: list[str] = []
         file_markers: list[str] = []
         for file_info in _as_json_list(event.get("files")) or []:
@@ -561,7 +560,6 @@ class SlackChannel(BaseChannel):
                         "channel_type": channel_type,
                     },
                 },
-                session_key=session_key,
             )
         except Exception:
             self.logger.exception("Error handling message from {}", sender_id)
@@ -656,14 +654,12 @@ class SlackChannel(BaseChannel):
         channel_type = self._infer_channel_type(chat_id)
         if not self._is_allowed(sender_id, chat_id, channel_type):
             return
-        session_key = f"slack:{chat_id}:{thread_ts}" if thread_ts else None
         try:
             await self._handle_message(
                 sender_id=sender_id,
                 chat_id=chat_id,
                 content=value,
                 metadata={"slack": {"thread_ts": thread_ts, "channel_type": channel_type}},
-                session_key=session_key,
             )
         except Exception:
             self.logger.exception("Error handling button click from {}", sender_id)

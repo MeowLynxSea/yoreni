@@ -216,6 +216,14 @@ def public_history_message(message: Mapping[str, Any]) -> dict[str, Any]:
     """Return a user-visible copy with trusted runtime context removed exactly."""
     cleaned = deepcopy(dict(message))
     marker = cleaned.pop(RUNTIME_CONTEXT_HISTORY_META, None)
+    internal = cleaned.get("_meta")
+    if isinstance(internal, dict):
+        internal_data = cast(dict[str, Any], internal)
+        raw_marker = internal_data.pop(RUNTIME_CONTEXT_MESSAGE_META, None)
+        if not internal:
+            cleaned.pop("_meta")
+        if marker is None:
+            marker = raw_marker
     if not isinstance(marker, Mapping):
         return cleaned
     marker_data = cast(Mapping[str, Any], marker)

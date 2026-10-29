@@ -21,7 +21,7 @@ from yoreni.agent.tools.long_task import (
 from yoreni.agent.tools.registry import ToolRegistry
 from yoreni.bus.outbound_events import GoalStateSyncEvent
 from yoreni.bus.queue import MessageBus
-from yoreni.session.goal_state import GOAL_STATE_KEY, MAX_GOAL_OBJECTIVE_CHARS
+from yoreni.agent.goal_state import GOAL_STATE_KEY, MAX_GOAL_OBJECTIVE_CHARS
 from yoreni.session.manager import SessionManager
 from yoreni.session.turn_continuation import should_finalize_on_max_iterations
 from yoreni.session.webui_turns import WebuiTurnCoordinator

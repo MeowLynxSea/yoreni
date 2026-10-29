@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, TypeGuard, cast
 from loguru import logger
 
 from yoreni.agent.tools.base import Tool, ToolResult
-from yoreni.agent.tools.context import current_request_context, current_request_session_key
+from yoreni.agent.tools.context import current_request_context
 from yoreni.agent.tools.runtime_control import (
     RUNTIME_COMMAND_KEYS,
     RUNTIME_SNAPSHOT_KEYS,
@@ -60,14 +60,14 @@ class MyTool(Tool):
         # Config management
         "_runtime_vars",
         # Subsystems
-        "runner", "sessions", "consolidator", "subagents",
+        "runner", "consolidator",
         "dream", "auto_compact", "context", "commands",
         # Sensitive runtime state (credentials, message routing, task tracking)
         "_pending_queues",
-        "_session_locks", "_active_tasks", "_background_tasks",
+        "_active_tasks", "_background_tasks",
         # Security boundaries (inspect + modify both blocked)
         "restrict_to_workspace", "channels_config",
-        "_concurrency_gate", "_unified_session", "_extra_hooks", "_hook_factories",
+        "_extra_hooks", "_hook_factories",
     })
 
     READ_ONLY = frozenset({
@@ -129,8 +129,8 @@ class MyTool(Tool):
         base = (
             "Inspect runtime state with check: omit key for an overview or use a dot-path. "
             "set changes runtime parameters or stores scratchpad keys across turns, not restarts. "
-            "Use model_preset for session model/context switching; direct model and "
-            "context_window_tokens writes are disabled during active sessions. "
+            "Use model_preset for Agent model selection; direct model and "
+            "context_window_tokens writes are disabled during active Runs. "
             "Read-only access info: workspace_sandbox shows the current project and restriction; "
             "exec_config shows shell sandbox settings and binds. Shell binds do not grant "
             "file-tool access; OS permissions still apply. workspace is a legacy agent-directory "
@@ -162,12 +162,12 @@ class MyTool(Tool):
 
     def _audit(self, action: str, detail: str) -> None:
         ctx = current_request_context()
-        session = (
-            ctx.session_key or f"{ctx.channel}:{ctx.chat_id}"
+        run_id = (
+            ctx.turn_id or "unknown"
             if ctx is not None and ctx.channel
             else "unknown"
         )
-        logger.info("self.{} | {} | session:{}", action, detail, session)
+        logger.info("self.{} | {} | run:{}", action, detail, run_id)
 
     # ------------------------------------------------------------------
     # Path resolution
@@ -375,24 +375,15 @@ class MyTool(Tool):
         if not isinstance(value, str) or not value.strip():
             return ToolResult.error("Error: 'model_preset' must be a non-empty string")
         name = value.strip()
-        session_key = current_request_session_key()
         old = self._runtime_control.snapshot().model_preset
         try:
             runtime = await self._runtime_control.set_model_preset(
                 name,
-                session_key=session_key,
             )
         except (KeyError, ValueError) as exc:
             message = str(exc.args[0]) if exc.args else str(exc)
             punctuation = "" if message.endswith((".", "!", "?")) else "."
             return ToolResult.error(f"Error: {message}{punctuation}")
-        if session_key:
-            self._audit("modify", f"model_preset = {name!r}")
-            return (
-                f"Set model_preset = {name!r} for the next turn; "
-                f"model will be {runtime.model!r}; "
-                f"context_window_tokens will be {runtime.context_window_tokens!r}"
-            )
         self._audit("modify", f"model_preset: {old!r} -> {name!r}")
         return (
             f"Set model_preset = {name!r} (was {old!r}); model is now {runtime.model!r}; "
@@ -416,10 +407,10 @@ class MyTool(Tool):
             return ToolResult.error(f"Error: '{key}' must be <= {spec['max']}")
         if "min_len" in spec and len(str(value)) < spec["min_len"]:
             return ToolResult.error(f"Error: '{key}' must be at least {spec['min_len']} characters")
-        if key in {"model", "context_window_tokens"} and current_request_session_key():
+        if key in {"model", "context_window_tokens"} and current_request_context() is not None:
             return ToolResult.error(
                 f"Error: direct '{key}' changes are instance-wide and disabled "
-                "during an active session; use a configured model_preset"
+                "during an active Run; use a configured model_preset"
             )
         if key == "model":
             self._runtime_control.set_model(cast(str, value))

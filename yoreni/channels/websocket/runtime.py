@@ -23,6 +23,7 @@ from websockets.http11 import Request as WsRequest
 from websockets.http11 import Response as WsResponse
 from websockets.protocol import CONNECTING
 
+from yoreni.agent.state import PERSONAL_CHAT_ID
 from yoreni.bus.events import OutboundMessage
 from yoreni.bus.queue import MessageBus
 from yoreni.channels.base import BaseChannel
@@ -41,7 +42,6 @@ from yoreni.webui.http_utils import (
 )
 from yoreni.webui.inbound_commands import WebUICommandRouter
 from yoreni.webui.outbound_delivery import ChatAudience, WebUIAudience, WebUIOutboundDelivery
-from yoreni.webui.session_identity import is_valid_webui_chat_id
 from yoreni.webui.websocket_logging import websockets_server_logger
 
 # Plain HTTP WebUI routes also run through websockets.process_request.
@@ -171,7 +171,7 @@ class WebSocketConfig(Base):
     - ``public_ws_url``: Optional public WebSocket endpoint returned by WebUI bootstrap instead of
       deriving one from proxy request headers. Its path must match ``path``.
     - ``websocket_requires_token``: If True, the handshake must include a valid token (static or issued and not expired).
-    - Each connection has its own session: a unique ``chat_id`` maps to the agent session internally.
+    - Authenticated connections share the personal Agent output destination.
     - ``media`` field in outbound messages contains local filesystem paths; remote clients need a
       shared filesystem or an HTTP file server to access these files.
     """
@@ -296,7 +296,7 @@ def _parse_inbound_payload(raw: str) -> str | None:
 
 
 def _is_valid_chat_id(value: Any) -> TypeGuard[str]:  # pyright: ignore[reportUnusedFunction]
-    return is_valid_webui_chat_id(value)
+    return value == PERSONAL_CHAT_ID
 
 
 def _parse_envelope(raw: str) -> dict[str, Any] | None:
@@ -375,13 +375,7 @@ class WebSocketChannel(BaseChannel):
 
         self.gateway = gateway
         self._uploads = gateway.uploads
-        self._outbound = WebUIOutboundDelivery(
-            self,
-            media=gateway.media,
-            transcripts=gateway.transcripts,
-            temporary_chats=gateway.temporary_chats,
-            session_projection=gateway.session_projection,
-        )
+        self._outbound = WebUIOutboundDelivery(self, media=gateway.media)
         self._commands = WebUICommandRouter(self, gateway, outbound=self._outbound)
         self._webui_request_tasks = self._commands.request_tasks
         self._webui_request_operations = self._commands.request_operations
@@ -430,30 +424,6 @@ class WebSocketChannel(BaseChannel):
     ) -> None:
         await self._safe_send_to(connection, raw, label=label)
 
-    async def webui_dispatch_message(
-        self,
-        *,
-        sender_id: str,
-        chat_id: str,
-        content: str,
-        media: list[str] | None,
-        metadata: dict[str, Any],
-        is_dm: bool,
-        session_key: str | None,
-        require_existing_session: bool,
-        session_generation: str | None,
-    ) -> None:
-        await self._handle_message(
-            sender_id=sender_id,
-            chat_id=chat_id,
-            content=content,
-            media=media,
-            metadata=metadata,
-            is_dm=is_dm,
-            session_key=session_key,
-            require_existing_session=require_existing_session,
-            session_generation=session_generation,
-        )
 
     def _attach(self, connection: ServerConnection, chat_id: str) -> None:
         """Idempotently subscribe *connection* to *chat_id*."""
@@ -653,7 +623,6 @@ class WebSocketChannel(BaseChannel):
             )
 
     async def start(self) -> None:
-        await self._outbound.initialize()
         from yoreni.utils.logging_bridge import redirect_lib_logging
 
         redirect_lib_logging("websockets", level="WARNING")
@@ -827,7 +796,7 @@ class WebSocketChannel(BaseChannel):
             self.logger.warning("client_id too long ({} chars), truncating", len(client_id))
             client_id = client_id[:128]
 
-        default_chat_id = str(uuid.uuid4())
+        default_chat_id = PERSONAL_CHAT_ID
         from yoreni.webui.client_contract import gateway_identity
 
         try:
@@ -848,7 +817,6 @@ class WebSocketChannel(BaseChannel):
             # Register only after ready is successfully sent to avoid out-of-order sends
             self._conn_default[connection] = default_chat_id
             self._attach(connection, default_chat_id)
-            await self._outbound.hydrate(default_chat_id)
 
             async for raw in connection:
                 if isinstance(raw, bytes):

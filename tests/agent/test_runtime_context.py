@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import pytest
 
 from yoreni.agent.tools.context import RequestContext
@@ -9,6 +7,7 @@ from yoreni.runtime_context import (
     MAX_WEBUI_QUOTE_CHARS,
     RUNTIME_CONTEXT_HISTORY_META,
     RUNTIME_CONTEXT_INPUT_META,
+    RUNTIME_CONTEXT_MESSAGE_META,
     WEBUI_QUOTE_METADATA,
     WEBUI_QUOTE_SOURCE,
     RuntimeContextBlock,
@@ -19,10 +18,6 @@ from yoreni.runtime_context import (
     runtime_context_blocks_from_metadata,
     webui_quote_runtime_context,
 )
-from yoreni.sdk.types import snapshot_from_session
-from yoreni.session.manager import Session, message_preview_text
-from yoreni.session.webui_turns import _title_inputs
-from yoreni.webui.transcript import _session_user_event
 
 
 @pytest.mark.asyncio
@@ -116,6 +111,20 @@ def test_public_history_removes_only_trusted_exact_suffix() -> None:
     assert public_history_message(user_authored) == user_authored
 
 
+def test_public_history_removes_run_context_before_reusing_recent_interactions() -> None:
+    content, marker = append_runtime_context(
+        "visible", [RuntimeContextBlock(source="agent_state", content="old preferences")],
+    )
+    run_message = {
+        "role": "user", "content": content,
+        "_meta": {RUNTIME_CONTEXT_MESSAGE_META: marker, "timestamp": "2026-10-29"},
+    }
+    assert public_history_message(run_message) == {
+        "role": "user", "content": "visible", "_meta": {"timestamp": "2026-10-29"},
+    }
+    assert run_message["_meta"][RUNTIME_CONTEXT_MESSAGE_META] == marker
+
+
 def test_public_history_keeps_content_when_marker_does_not_match() -> None:
     message = {
         "role": "user",
@@ -133,38 +142,11 @@ def test_public_history_keeps_content_when_marker_does_not_match() -> None:
     }
 
 
-def test_sdk_snapshot_hides_runtime_context() -> None:
+def test_public_transcript_hides_runtime_context() -> None:
     block = RuntimeContextBlock(source="goal", content="private goal context")
     content, marker = append_runtime_context("visible user text", [block])
-    session = SimpleNamespace(
-        key="cli:direct",
-        created_at=SimpleNamespace(isoformat=lambda: "created"),
-        updated_at=SimpleNamespace(isoformat=lambda: "updated"),
-        metadata={},
-        messages=[{
-            "role": "user",
-            "content": content,
-            RUNTIME_CONTEXT_HISTORY_META: marker,
-        }],
-    )
-
-    snapshot = snapshot_from_session(session)
-
-    assert snapshot.messages == [{"role": "user", "content": "visible user text"}]
+    assert public_history_message({
+        "role": "user", "content": content, RUNTIME_CONTEXT_HISTORY_META: marker,
+    }) == {"role": "user", "content": "visible user text"}
 
 
-def test_webui_preview_title_and_backfill_hide_runtime_context() -> None:
-    block = RuntimeContextBlock(source="goal", content="private goal context")
-    content, marker = append_runtime_context("visible user text", [block])
-    persisted = {
-        "role": "user",
-        "content": content,
-        RUNTIME_CONTEXT_HISTORY_META: marker,
-    }
-    session = Session(key="websocket:chat", messages=[persisted])
-
-    assert message_preview_text(persisted) == "visible user text"
-    assert _title_inputs(session) == ("visible user text", "")
-    event = _session_user_event("websocket:chat", persisted)
-    assert event is not None
-    assert event["text"] == "visible user text"

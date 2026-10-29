@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, cast
 from loguru import logger
 
 from yoreni.bus.delivery import ChannelNotReadyError, DeliveryRejectedError
-from yoreni.bus.events import OutboundMessage
+from yoreni.bus.events import InboundMessage, OutboundMessage
 from yoreni.bus.outbound_events import (
     ProgressEvent,
     RetryWaitEvent,
@@ -47,9 +47,7 @@ from yoreni.utils.restart import (
 )
 
 if TYPE_CHECKING:
-    from yoreni.agent.subagent import SubagentManager
     from yoreni.cron.service import CronService
-    from yoreni.session.manager import SessionManager
     from yoreni.triggers.local_store import LocalTriggerStore
 
 
@@ -102,13 +100,11 @@ class ChannelManager:
         config: Config,
         bus: MessageBus,
         *,
-        session_manager: "SessionManager | None" = None,
         cron_service: CronService | None = None,
         local_trigger_store: LocalTriggerStore | None = None,
+        webui_accept_input: Callable[[InboundMessage], Awaitable[str | None]] | None = None,
         webui_runtime_model_name: Callable[[], str | None] | None = None,
         webui_refresh_runtime_config: Callable[[], None] | None = None,
-        webui_cron_pending_job_ids: Callable[[str], set[str]] | None = None,
-        webui_local_trigger_pending_ids: Callable[[str], set[str]] | None = None,
         webui_static_dist: bool = True,
         webui_runtime_surface: str = "browser",
         webui_runtime_capabilities: dict[str, Any] | None = None,
@@ -116,11 +112,9 @@ class ChannelManager:
         webui_mcp_reload: Callable[[], Awaitable[dict[str, Any]]] | None = None,
         webui_image_generation_reload: Callable[[], Awaitable[dict[str, Any]]] | None = None,
         webui_skill_state_action: Callable[[set[str]], None] | None = None,
-        webui_recovery_action: (
+        webui_agent_action: (
             Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]] | None
         ) = None,
-        webui_subagent_manager: SubagentManager | None = None,
-        webui_discard_session: Callable[[str], Awaitable[None]] | None = None,
         config_path: Path | None = None,
     ):
         if config_path is None:
@@ -130,13 +124,11 @@ class ChannelManager:
         self.config = config
         self._config_path = config_path.expanduser().resolve(strict=False)
         self.bus = bus
-        self._session_manager = session_manager
         self._cron_service = cron_service
         self._local_trigger_store = local_trigger_store
+        self._webui_accept_input = webui_accept_input
         self._webui_runtime_model_name = webui_runtime_model_name
         self._webui_refresh_runtime_config = webui_refresh_runtime_config
-        self._webui_cron_pending_job_ids = webui_cron_pending_job_ids
-        self._webui_local_trigger_pending_ids = webui_local_trigger_pending_ids
         self._webui_static_dist = webui_static_dist
         self._webui_runtime_surface = webui_runtime_surface
         self._webui_runtime_capabilities = dict(webui_runtime_capabilities or {})
@@ -144,9 +136,7 @@ class ChannelManager:
         self._webui_mcp_reload = webui_mcp_reload
         self._webui_image_generation_reload = webui_image_generation_reload
         self._webui_skill_state_action = webui_skill_state_action
-        self._webui_recovery_action = webui_recovery_action
-        self._webui_subagent_manager = webui_subagent_manager
-        self._webui_discard_session = webui_discard_session
+        self._webui_agent_action = webui_agent_action
         self.channels: dict[str, BaseChannel] = {}
         self._channel_owners: dict[str, str] = {}
         self._channel_runtime_specs: dict[str, tuple[str, str]] = {}
@@ -214,30 +204,25 @@ class ChannelManager:
             gateway = build_gateway_services(
                 config=parsed,
                 bus=self.bus,
-                session_manager=self._session_manager,
                 static_dist_path=static_path,
                 workspace_path=workspace,
                 default_restrict_to_workspace=self.config.tools.restrict_to_workspace,
-                unified_session=self.config.agents.defaults.unified_session,
                 config_path=self._config_path,
                 disabled_skills=set(self.config.agents.defaults.disabled_skills),
                 runtime_model_name=self._webui_runtime_model_name,
+                accept_input=self._webui_accept_input,
                 refresh_runtime_config=self._webui_refresh_runtime_config,
                 runtime_surface=self._webui_runtime_surface,
                 runtime_capabilities_overrides=self._webui_runtime_capabilities,
                 cron_service=self._cron_service,
                 local_trigger_store=self._local_trigger_store,
-                cron_pending_job_ids=self._webui_cron_pending_job_ids,
-                local_trigger_pending_ids=self._webui_local_trigger_pending_ids,
                 channel_feature_action=self.apply_channel_feature_action,
                 channel_runtime_status=self.get_status,
                 mcp_runtime_status=self._webui_mcp_runtime_status,
                 mcp_reload=self._webui_mcp_reload,
                 image_generation_reload=self._webui_image_generation_reload,
                 skill_state_action=self._webui_skill_state_action,
-                recovery_action=self._webui_recovery_action,
-                subagent_manager=self._webui_subagent_manager,
-                discard_session=self._webui_discard_session,
+                agent_action=self._webui_agent_action,
                 logger=logger,
             )
             kwargs["gateway"] = gateway
@@ -841,30 +826,21 @@ class ChannelManager:
         task.add_done_callback(finished)
 
     async def _send_scheduled(self, channel: BaseChannel, msg: OutboundMessage) -> None:
-        request = msg.delivery
-        if request is not None and request.session_generation is not None and self._session_manager:
-            session = await self._session_manager.state.read(request.session_key)
-            if session is None or session.generation != request.session_generation:
-                self._outbox.finish(msg, "failed", "session_replaced")
+        if msg.media:
+            scope = WorkspaceScopeResolver(
+                self.config.workspace_path, self.config.tools.restrict_to_workspace,
+            ).for_turn(channel=msg.channel, message_metadata=msg.metadata)
+            try:
+                for path in msg.media:
+                    if not path.startswith(("http://", "https://")):
+                        resolve_allowed_path(
+                            path, workspace=scope.project_path,
+                            allowed_root=scope.project_path if scope.restrict_to_workspace else None,
+                            extra_allowed_roots=[self._config_path.parent / "media"],
+                        )
+            except (OSError, ValueError):
+                self._outbox.finish(msg, "failed", "attachment_access_denied")
                 return
-            if msg.media:
-                # An accepted local path can become a symlink during an outage.
-                # Recheck the current source policy before the adapter opens it.
-                scope = WorkspaceScopeResolver(
-                    self.config.workspace_path, self.config.tools.restrict_to_workspace,
-                ).for_turn(channel=request.session_key.split(":", 1)[0],
-                           message_metadata={}, session_metadata=session.metadata)
-                try:
-                    for path in msg.media:
-                        if not path.startswith(("http://", "https://")):
-                            resolve_allowed_path(
-                                path, workspace=scope.project_path,
-                                allowed_root=scope.project_path if scope.restrict_to_workspace else None,
-                                extra_allowed_roots=[self._config_path.parent / "media"],
-                            )
-                except (OSError, ValueError):
-                    self._outbox.finish(msg, "failed", "attachment_access_denied")
-                    return
         if not self._outbox.claim(msg):
             return
         try:

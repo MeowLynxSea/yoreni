@@ -28,7 +28,7 @@ class AgentTurnHookSpec:
     chat_id: str = "direct"
     message_id: str | None = None
     metadata: dict[str, Any] | None = None
-    session_key: str | None = None
+    run_id: str | None = None
     workspace: Path | None = None
     registered_hook_factories: list[AgentTurnHookFactory] = field(default_factory=list)
     turn_hook_factories: list[AgentTurnHookFactory] = field(default_factory=list)
@@ -46,7 +46,7 @@ def build_agent_turn_hook(spec: AgentTurnHookSpec) -> AgentHook:
     progress_hook = AgentProgressHook(
         events=spec.events,
         streaming=spec.streaming,
-        session_key=spec.session_key,
+        run_id=spec.run_id,
         log_content=log_content,
     )
     if spec.ephemeral and not spec.run_extra_hooks_for_ephemeral:
@@ -58,7 +58,7 @@ def build_agent_turn_hook(spec: AgentTurnHookSpec) -> AgentHook:
         channel=spec.channel,
         chat_id=spec.chat_id,
         message_id=spec.message_id,
-        session_key=spec.session_key,
+        run_id=spec.run_id,
         metadata=dict(spec.metadata or {}),
         attributes=dict(spec.attributes or {}),
         ephemeral=spec.ephemeral,

@@ -13,13 +13,13 @@ import { Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { currentLocale } from "@/i18n";
 import { fmtDateTime } from "@/lib/format-time";
-import type { SessionAutomationJob } from "@/lib/types";
+import type { AutomationJob } from "@/lib/types";
 
 interface DeleteConfirmProps {
   open: boolean;
   title: string;
   count?: number;
-  automations?: SessionAutomationJob[];
+  automations?: AutomationJob[];
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -118,7 +118,7 @@ export function DeleteConfirm({
 }
 
 function formatAutomationSchedule(
-  job: SessionAutomationJob,
+  job: AutomationJob,
   t: TFunction,
   locale: string,
 ): string {
@@ -145,7 +145,7 @@ function formatAutomationSchedule(
 }
 
 function formatAutomationNextRun(
-  job: SessionAutomationJob,
+  job: AutomationJob,
   t: TFunction,
   locale: string,
 ): string {

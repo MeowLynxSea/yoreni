@@ -41,7 +41,6 @@ from yoreni.channels.feishu.instances import (
     upsert_feishu_instance,
 )
 from yoreni.channels.feishu.websocket import get_feishu_ws_runner
-from yoreni.command.router import normalize_command_text
 from yoreni.config.paths import get_media_dir
 from yoreni.events import ContextCompactionEvent
 from yoreni.pairing import PAIRING_CODE_META_KEY, clear_channel
@@ -932,12 +931,6 @@ def _qr_register_inner(
 
 
 _STREAM_ELEMENT_ID = "streaming_md"
-_NEW_SESSION_DIVIDER_CONTENT = json.dumps({
-    "type": "divider",
-    "params": {"divider_text": {"text": "New session started."}},
-})
-
-
 @dataclass
 class _FeishuStreamBuf:
     """Per-chat streaming accumulator using CardKit streaming API."""
@@ -2495,14 +2488,6 @@ class FeishuChannel(BaseChannel):
                     )
                 return
 
-            if (
-                msg.content.strip() == "New session started."
-                and msg.metadata.get("chat_type") == "p2p"
-                and not msg.media
-                and not msg.buttons
-            ):
-                return
-
             # Determine whether the first message should quote the user's message.
             # Only the very first send (media or text) in this call uses reply; subsequent
             # chunks/media fall back to plain create to avoid redundant quote bubbles.
@@ -2787,29 +2772,6 @@ class FeishuChannel(BaseChannel):
             if not content and not media_paths:
                 return
 
-            if chat_type == "p2p" and normalize_command_text(content).lower() == "/new":
-                loop = asyncio.get_running_loop()
-                await loop.run_in_executor(
-                    None,
-                    self._send_message_sync,
-                    "open_id",
-                    sender_id,
-                    "system",
-                    _NEW_SESSION_DIVIDER_CONTENT,
-                )
-
-            # Build session key for conversation isolation.
-            # If topic_isolation is True: each topic gets its own session via root_id/message_id.
-            # If topic_isolation is False: all messages in group share the same session.
-            # Private chat: no override — same behavior as Telegram/Slack.
-            if chat_type == "group":
-                if self.config.topic_isolation:
-                    session_key = f"{self.name}:{chat_id}:{root_id or message_id}"
-                else:
-                    session_key = f"{self.name}:{chat_id}"
-            else:
-                session_key = None
-
             # Forward to message bus
             reply_to = chat_id if chat_type == "group" else sender_id
             await self._handle_message(
@@ -2825,7 +2787,6 @@ class FeishuChannel(BaseChannel):
                     "root_id": root_id,
                     "thread_id": thread_id,
                 },
-                session_key=session_key,
                 is_dm=chat_type == "p2p",
             )
 

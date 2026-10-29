@@ -554,7 +554,7 @@ def _cleanup_tool_result_buckets(root: Path, current_bucket: Path) -> None:
 
 def maybe_persist_tool_result(
     workspace: Path | None,
-    session_key: str | None,
+    run_id: str | None,
     tool_call_id: str,
     content: str,
     *,
@@ -568,7 +568,7 @@ def maybe_persist_tool_result(
         return content
 
     root = ensure_dir(workspace / _TOOL_RESULTS_DIR)
-    bucket = ensure_dir(root / safe_filename(session_key or "default"))
+    bucket = ensure_dir(root / safe_filename(run_id or "default"))
     try:
         _cleanup_tool_result_buckets(root, bucket)
     except Exception:
@@ -835,7 +835,7 @@ def build_status_content(
     start_time: float,
     last_usage: LLMUsage | None,
     context_window_tokens: int,
-    session_msg_count: int,
+    recent_message_count: int,
     context_tokens_estimate: int,
     search_usage_text: str | None = None,
     active_task_count: int = 0,
@@ -875,7 +875,7 @@ def build_status_content(
         f"\U0001f9e0 Model: {model}",
         token_line,
         f"\U0001f4da Context: {ctx_used_str}/{ctx_total_str} ({ctx_pct}% of input budget)",
-        f"\U0001f4ac Session: {session_msg_count} messages",
+        f"\U0001f4ac Recent interactions: {recent_message_count} messages",
         f"\u23f1 Uptime: {uptime}",
         f"\u26a1 Tasks: {active_task_count} active",
     ]

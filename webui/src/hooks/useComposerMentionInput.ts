@@ -62,7 +62,7 @@ export function useComposerMentionInput({
       setCompositionValue(null);
       lastEdit.current.type = "";
     }
-    // Keep picker insertion undoable, but never restore a sent draft or another session's text.
+    // Keep picker insertion undoable, but never restore a sent draft or another draft's text.
     if (text.raw !== textRef.current.raw && !pendingSelection.current) {
       if (!text.raw) history.current = { undo: [], redo: [] };
       else {

@@ -36,7 +36,7 @@ async def _start_gated(tool: ExecTool, gate: Path) -> str:
 async def _wait_finished(manager: ExecSessionManager, owner: str | None, session_id: str) -> None:
     deadline = time.monotonic() + 10
     while time.monotonic() < deadline:
-        sessions = await manager.list(owner_session_key=owner)
+        sessions = await manager.list(owner_id=owner)
         if any(info.session_id == session_id and info.finish_reason == "exit" for info in sessions):
             return
         await asyncio.sleep(0.01)
@@ -76,7 +76,7 @@ async def test_finished_results_do_not_block_other_owner_tools(tmp_path, tool_na
             assert "Exit code: 0" in result
 
         with request_context(owner_a):
-            remaining = await manager.list(owner_session_key=owner_a.session_key)
+            remaining = await manager.list(owner_id=owner_a.session_key)
             assert [info.session_id for info in remaining] == [newest]
             result = await session_tool.execute(session_id=newest, timeout_ms=0)
             assert "retained result" in result

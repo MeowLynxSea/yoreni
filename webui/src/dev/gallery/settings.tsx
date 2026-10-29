@@ -33,7 +33,7 @@ import { AutomationRunDialogView } from "@/components/settings/system/Automation
 import { AutomationRunAtPicker } from "@/components/settings/system/AutomationRunAtPicker";
 import { TokenUsageCard } from "@/components/settings/TokenUsageCard";
 import { Button } from "@/components/ui/button";
-import type { ChannelValidationPayload, ModelAPIConfig, YoreniFeatureInfo, SessionAutomationJob, SettingsPayload } from "@/lib/types";
+import type { ChannelValidationPayload, ModelAPIConfig, YoreniFeatureInfo, AutomationJob, SettingsPayload } from "@/lib/types";
 import { Sample, StatePicker, type ComponentExample } from "./example";
 import { useGalleryTranslation } from "./i18n";
 
@@ -63,7 +63,7 @@ export const settings: SettingsPayload = {
   transcription: { enabled: true, provider: "groq", provider_configured: true, model: "whisper-large-v3", language: null,
     max_duration_sec: 120, max_upload_mb: 25, providers: [{ name: "groq", label: "Groq", configured: true }] },
   runtime: { config_path: "config.json", workspace_path: "workspace", gateway_host: "127.0.0.1", gateway_port: 8765,
-    heartbeat: { enabled: true, interval_s: 1800 }, dream: { schedule: "0 3 * * *" }, unified_session: false },
+    heartbeat: { enabled: true, interval_s: 1800 }, dream: { schedule: "0 3 * * *" } },
   advanced: { restrict_to_workspace: true, ssrf_whitelist_count: 0, webui_allow_local_service_access: true,
     webui_default_access_mode: "default", private_service_protection_enabled: true, mcp_server_count: 0,
     exec_enabled: true, exec_path_prepend_set: false, exec_path_append_set: false },
@@ -364,11 +364,11 @@ function AutomationCalendarPreview() {
   const [month, setMonth] = useState(() => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), 1); });
   const [mode, setMode] = useState<"scheduled" | "history" | "empty">("scheduled");
   const [selected, setSelected] = useState("");
-  const jobs: SessionAutomationJob[] = mode === "empty" ? [] : [{ id: "gallery-reminder", name: "Weekly report", enabled: mode === "scheduled",
+  const jobs: AutomationJob[] = mode === "empty" ? [] : [{ id: "gallery-reminder", name: "Weekly report", enabled: mode === "scheduled",
     schedule: { kind: "cron", expr: "30 9 * * 1", tz: "UTC" }, payload: { message: "Summarize this week's changes." },
     state: { next_run_at_ms: mode === "scheduled" ? new Date(month.getFullYear(), month.getMonth(), 15, 9, 30).getTime() : null,
-      run_history: [{ run_at_ms: new Date(month.getFullYear(), month.getMonth(), 8, 9, 30).getTime(), status: "ok", duration_ms: 3200, webui_session_key: null },
-        { run_at_ms: new Date(month.getFullYear(), month.getMonth(), 1, 9, 30).getTime(), status: "error", duration_ms: 1200, error: t("controls.automationCalendar.providerError"), webui_session_key: null }] } }];
+      run_history: [{ run_at_ms: new Date(month.getFullYear(), month.getMonth(), 8, 9, 30).getTime(), status: "ok", duration_ms: 3200 },
+        { run_at_ms: new Date(month.getFullYear(), month.getMonth(), 1, 9, 30).getTime(), status: "error", duration_ms: 1200, error: t("controls.automationCalendar.providerError") }] } }];
   return <><StatePicker label={t("controls.automationCalendar.state")} value={mode} options={["scheduled", "history", "empty"]} onChange={setMode} />
     <div className="mb-4 flex flex-wrap items-center gap-3"><Button size="sm" variant="outline" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>{t("controls.automationCalendar.previousMonth")}</Button>
       <span className="text-sm">{new Intl.DateTimeFormat(i18n.language, { year: "numeric", month: "long" }).format(month)}</span>

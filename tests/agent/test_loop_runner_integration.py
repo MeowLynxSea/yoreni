@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent.session_helpers import mock_session_manager
+from agent.run_helpers import mock_session_manager
 from yoreni.agent.context import TranscriptInput
 from yoreni.agent.goal_permission import goal_mutation_allowed, goal_mutation_permission
 from yoreni.agent.tools.context import RequestContext
@@ -29,7 +29,7 @@ from yoreni.runtime_context import (
     public_history_message,
     webui_quote_runtime_context,
 )
-from yoreni.session.goal_state import GOAL_STATE_KEY
+from yoreni.agent.goal_state import GOAL_STATE_KEY
 from yoreni.utils.llm_runtime import LLMRuntime
 from yoreni.utils.progress_events import output_events
 

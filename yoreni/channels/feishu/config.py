@@ -26,7 +26,6 @@ class FeishuConfig(Base):
     reply_to_message: bool = False
     streaming: bool = True
     domain: Literal["feishu", "lark"] = "feishu"
-    topic_isolation: bool = True
 
 
 def feishu_default_config() -> dict[str, object]:

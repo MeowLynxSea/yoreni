@@ -165,6 +165,7 @@ async def test_codex_title_failure_logs_request_purpose_and_safe_upstream_detail
 ) -> None:
     from yoreni.session.manager import SessionManager
     from yoreni.session.webui_turns import maybe_generate_webui_title
+
     from yoreni.utils.log_config import add_console_log_sink
 
     _mock_codex_token(monkeypatch)

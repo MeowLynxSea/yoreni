@@ -881,10 +881,10 @@ class OpenAICompatProvider(LLMProvider):
         if (
             not self._opencode_session_affinity
             or provider_context is None
-            or not provider_context.session_id
+            or not provider_context.run_id
         ):
             return None
-        session_key = hashlib.sha256(provider_context.session_id.encode("utf-8")).hexdigest()
+        session_key = hashlib.sha256(provider_context.run_id.encode("utf-8")).hexdigest()
         return {"x-opencode-session": session_key}
 
     def _build_kwargs(

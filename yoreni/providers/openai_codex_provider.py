@@ -231,8 +231,8 @@ class OpenAICodexProvider(LLMProvider):
         )
         body = prepared.body
         replayed = prepared.replayed
-        session_id = provider_context.session_id if provider_context is not None else None
-        session_routing_key = _prompt_cache_key(session_id) if session_id else None
+        run_id = provider_context.run_id if provider_context is not None else None
+        run_routing_key = _prompt_cache_key(run_id) if run_id else None
         body.update({
             "stream": True,
             "instructions": body["instructions"] or "",
@@ -240,8 +240,8 @@ class OpenAICodexProvider(LLMProvider):
             "tool_choice": tool_choice or "auto",
             "parallel_tool_calls": True,
         })
-        if session_routing_key:
-            body["prompt_cache_key"] = session_routing_key
+        if run_routing_key:
+            body["prompt_cache_key"] = run_routing_key
         body["include"] = ["reasoning.encrypted_content"]
         reasoning_options = _build_reasoning_options(reasoning_effort)
         if replayed and "gpt-5.6" in _strip_model_prefix(model).lower():
@@ -294,7 +294,7 @@ class OpenAICodexProvider(LLMProvider):
             headers = _build_headers(
                 cast(str, token.account_id),
                 token.access,
-                session_routing_key=(
+                run_routing_key=(
                     effective_cache_key if isinstance(effective_cache_key, str) else None
                 ),
             )
@@ -314,9 +314,9 @@ class OpenAICodexProvider(LLMProvider):
                 )
                 try:
                     result = None
-                    if session_id:
+                    if run_id:
                         result = await self._responses.websocket_request(
-                            session_id, DEFAULT_CODEX_URL, headers, wire_body,
+                            run_id, DEFAULT_CODEX_URL, headers, wire_body,
                             provider=self._responses_state_provider(),
                             verify=self._ssl_context(verify=True), proxy=self.proxy,
                             on_content_delta=on_content_delta if emit_deltas else None,
@@ -560,7 +560,7 @@ def _build_headers(
     account_id: str,
     token: str,
     *,
-    session_routing_key: str | None = None,
+    run_routing_key: str | None = None,
 ) -> dict[str, str]:
     headers = {
         "Authorization": f"Bearer {token}",
@@ -571,8 +571,8 @@ def _build_headers(
         "accept": "text/event-stream",
         "content-type": "application/json",
     }
-    if session_routing_key:
-        headers["session-id"] = session_routing_key
+    if run_routing_key:
+        headers["session-id"] = run_routing_key
     return headers
 
 
@@ -639,8 +639,8 @@ def _build_codex_http_error(status_code: int, headers: httpx.Headers, raw: str) 
     )
 
 
-def _prompt_cache_key(session_id: str) -> str:
-    return hashlib.sha256(session_id.encode("utf-8")).hexdigest()
+def _prompt_cache_key(run_id: str) -> str:
+    return hashlib.sha256(run_id.encode("utf-8")).hexdigest()
 
 
 def _friendly_error(status_code: int) -> str:

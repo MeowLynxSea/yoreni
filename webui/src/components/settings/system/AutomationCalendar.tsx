@@ -6,12 +6,12 @@ import { SkeletonStatus } from "@/components/settings/shared/SkeletonStatus";
 import { Button } from "@/components/ui/button";
 import { formControlFocusClassName } from "@/components/ui/form-control";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { SessionAutomationJob } from "@/lib/types";
+import type { AutomationJob } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type CalendarEntry = {
   id: string;
-  job: SessionAutomationJob;
+  job: AutomationJob;
   startMs: number;
   kind: "planned" | "recorded";
   run: AutomationRunRecord | null;
@@ -31,7 +31,7 @@ type CalendarCopy = {
 };
 
 export interface AutomationCalendarRunProps {
-  job: SessionAutomationJob;
+  job: AutomationJob;
   run: AutomationRunRecord;
   locale: string;
   open: boolean;
@@ -40,12 +40,12 @@ export interface AutomationCalendarRunProps {
 }
 
 interface AutomationCalendarProps {
-  jobs: SessionAutomationJob[];
+  jobs: AutomationJob[];
   loadingLabel?: string;
   month: Date;
   locale: string;
   copy: CalendarCopy;
-  onInspect: (job: SessionAutomationJob, trigger: HTMLElement) => void;
+  onInspect: (job: AutomationJob, trigger: HTMLElement) => void;
   renderRunDialog: (props: AutomationCalendarRunProps) => ReactNode;
 }
 
@@ -66,7 +66,7 @@ function dateKey(value: Date | number): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
-function entriesForJobs(jobs: SessionAutomationJob[]): CalendarEntry[] {
+function entriesForJobs(jobs: AutomationJob[]): CalendarEntry[] {
   return jobs.flatMap((job) => {
     const history = job.state.run_history ?? [];
     const nextRun = job.enabled ? job.state.next_run_at_ms : null;
@@ -231,7 +231,7 @@ function CalendarOverflowEntries({ entries, dayLabel, locale, copy, onInspect }:
 export function AutomationCalendar({ jobs, loadingLabel, month, locale, copy, onInspect, renderRunDialog }: AutomationCalendarProps) {
   const calendarRef = useRef<HTMLElement | null>(null);
   const runTrigger = useRef<HTMLElement | null>(null);
-  const [selectedRun, setSelectedRun] = useState<{ job: SessionAutomationJob; run: AutomationRunRecord } | null>(null);
+  const [selectedRun, setSelectedRun] = useState<{ job: AutomationJob; run: AutomationRunRecord } | null>(null);
   const [runOpen, setRunOpen] = useState(false);
   const inspectEntry = (entry: CalendarEntry, trigger: HTMLElement) => {
     if (!entry.run) {

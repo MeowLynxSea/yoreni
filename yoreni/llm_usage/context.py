@@ -15,28 +15,19 @@ _CURRENT_SOURCE: ContextVar[LLMUsageSource] = ContextVar(
 )
 
 
-def source_from_session_key(session_key: str | None) -> LLMUsageSource:
-    """Classify a private session key without persisting that key."""
-    key = session_key or ""
-    if key.startswith("dream:"):
-        return "dream"
-    if key == "heartbeat" or key.startswith("cron:"):
-        return "cron"
-    if key.startswith("api:"):
-        return "api"
-    if key.startswith("system:"):
-        return "system"
-    return "user"
 
 
 def source_from_request(
-    session_key: str | None,
     *,
     channel: str | None,
     metadata: Mapping[str, object] | None,
 ) -> LLMUsageSource:
     """Classify a turn from trusted ingress metadata without retaining identifiers."""
     values = metadata or {}
+    if values.get("_agent_event_source") == "dream":
+        return "dream"
+    if values.get("_agent_event_source") == "heartbeat":
+        return "cron"
     if isinstance(values.get("_cron_trigger"), Mapping):
         return "cron"
     if isinstance(values.get("_local_trigger"), Mapping):
@@ -45,7 +36,7 @@ def source_from_request(
         return "api"
     if channel == "system":
         return "system"
-    return source_from_session_key(session_key)
+    return "user"
 
 
 def current_llm_usage_source() -> LLMUsageSource:

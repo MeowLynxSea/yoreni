@@ -81,9 +81,6 @@ class GoalStateSyncEvent(AgentEvent):
     goal_state: dict[str, Any]
 
 
-@dataclass(frozen=True)
-class SessionUpdatedEvent(AgentEvent):
-    scope: str | None = None
 
 
 @dataclass(frozen=True)

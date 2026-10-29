@@ -1,14 +1,7 @@
 """Tests for CLI Apps loop helpers."""
 
 from yoreni.apps.cli.service import CliAppManager
-from yoreni.apps.cli.utils import runtime_lines_for_request, session_extra
-
-
-def test_session_extra_returns_cli_apps_only_when_present() -> None:
-    cli_apps = [{"name": "zoom"}]
-    assert session_extra({"cli_apps": cli_apps}) == {"cli_apps": cli_apps}
-    assert session_extra({}) == {}
-    assert session_extra(None) == {}
+from yoreni.apps.cli.utils import runtime_lines_for_request
 
 
 def test_cli_app_mentions_inject_runtime_metadata(tmp_path, monkeypatch):

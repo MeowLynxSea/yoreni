@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Literal, Mapping, TypeAlias, cast
+from typing import Any, Literal, TypeAlias
 
 from yoreni.providers.base import LLMUsage
-from yoreni.runtime_context import public_history_messages
 
 StreamEventType: TypeAlias = Literal[
     "run.started",
@@ -78,89 +76,6 @@ class StreamEvent:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(slots=True)
-class SessionSnapshot:
-    """A serializable session snapshot; trusted exports may include internal context."""
-
-    key: str
-    messages: list[dict[str, Any]]
-    metadata: dict[str, Any] = field(default_factory=dict)
-    created_at: str | None = None
-    updated_at: str | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        """Return a JSON-serializable copy of the snapshot."""
-        return {
-            "key": self.key,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
-            "metadata": deepcopy(self.metadata),
-            "messages": deepcopy(self.messages),
-        }
-
-
-@dataclass(slots=True)
-class SessionInfo:
-    """Compact session metadata for listings."""
-
-    key: str
-    created_at: str | None = None
-    updated_at: str | None = None
-    title: str = ""
-    preview: str = ""
-    path: str | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        """Return a JSON-serializable copy of the listing row."""
-        return {
-            "key": self.key,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at,
-            "title": self.title,
-            "preview": self.preview,
-            "path": self.path,
-        }
-
-
-def snapshot_from_session(
-    session: Any,
-    *,
-    include_runtime_context: bool = False,
-) -> SessionSnapshot:
-    messages = cast(list[dict[str, Any]], deepcopy(session.messages))
-    if not include_runtime_context:
-        messages = public_history_messages(messages)
-    return SessionSnapshot(
-        key=session.key,
-        created_at=session.created_at.isoformat(),
-        updated_at=session.updated_at.isoformat(),
-        metadata=deepcopy(session.metadata),
-        messages=messages,
-    )
-
-
-def snapshot_from_payload(
-    payload: Mapping[str, Any],
-    *,
-    include_runtime_context: bool = False,
-) -> SessionSnapshot:
-    raw_messages: list[Any] = list(payload.get("messages") or [])
-    messages: list[dict[str, Any]] = [
-        deepcopy(dict(cast(Mapping[str, Any], message)))
-        for message in raw_messages
-        if isinstance(message, Mapping)
-    ]
-    if not include_runtime_context:
-        messages = public_history_messages(messages)
-    return SessionSnapshot(
-        key=str(payload.get("key") or ""),
-        created_at=payload.get("created_at"),
-        updated_at=payload.get("updated_at"),
-        metadata=deepcopy(dict(cast(Mapping[str, Any], payload.get("metadata") or {}))),
-        messages=messages,
-    )
-
-
 def result_from_response(response: Any, capture: Any) -> RunResult:
     content = (response.content if response else None) or ""
     metadata = dict(response.metadata) if response and response.metadata else {}
@@ -169,7 +84,7 @@ def result_from_response(response: Any, capture: Any) -> RunResult:
         tools_used=capture.tools_used,
         messages=capture.messages,
         usage=capture.usage,
-        stop_reason=capture.stop_reason,
+        stop_reason=capture.stop_reason or metadata.get("_stop_reason"),
         error=capture.error,
         metadata=metadata,
     )

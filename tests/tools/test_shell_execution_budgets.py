@@ -501,7 +501,7 @@ async def test_execution_stop_stops_pipe_inheriting_child_after_root_exits(
         assert "worker launched" in final
         assert _exit_code(final) == 0  # Only the root exited successfully.
         assert not delayed_effect.exists()
-        assert await manager.list(owner_session_key=owner.session_key) == []
+        assert await manager.list(owner_id=owner.session_key) == []
     finally:
         try:
             await _cleanup_pidfiles(parent_pidfile, child_pidfile)

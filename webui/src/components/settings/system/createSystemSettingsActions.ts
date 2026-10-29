@@ -11,7 +11,6 @@ import { DEFAULT_CUSTOM_MCP_FORM } from "@/components/settings/system/AppsSettin
 import type { SystemSettingsState } from "@/components/settings/system/useSystemSettingsState";
 import {
   cancelMcpOAuth,
-  changeAutomationChat,
   completeMcpOAuth,
   disableYoreniFeature,
   enableYoreniFeature,
@@ -35,11 +34,10 @@ import { notifyMcpPresetsChanged } from "@/lib/mcp-preset-events";
 import type { YoreniClient } from "@/lib/yoreni-client";
 import type {
   AutomationUpdatePayload,
-  AutomationChatUpdate,
   McpOAuthFlowPayload,
   McpPresetsPayload,
   YoreniFeatureInfo,
-  SessionAutomationJob,
+  AutomationJob,
 } from "@/lib/types";
 
 function isExpectedMcpOAuthPendingReloadFailure(
@@ -262,7 +260,7 @@ export function createSystemSettingsActions({
 
   const handleAutomationAction = async (
     action: AutomationAction,
-    job: SessionAutomationJob,
+    job: AutomationJob,
   ) => {
     const key = `${action}:${job.id}`;
     setAutomationAction(key);
@@ -283,7 +281,7 @@ export function createSystemSettingsActions({
   };
 
   const handleAutomationEdit = async (
-    job: SessionAutomationJob,
+    job: AutomationJob,
     values: AutomationUpdatePayload,
   ) => {
     const key = `update:${job.id}`;
@@ -298,12 +296,6 @@ export function createSystemSettingsActions({
     } finally {
       setAutomationAction(null);
     }
-  };
-
-  const handleAutomationChat = async (job: SessionAutomationJob, values: AutomationChatUpdate) => {
-    // The dialog owns the draft and error. Publish only the server acknowledgement.
-    const payload = await changeAutomationChat(client, job.id, values);
-    setAutomations(payload);
   };
 
   const retireMcpProxyDrafts = (names: string[]) => {
@@ -710,7 +702,6 @@ export function createSystemSettingsActions({
     handleApiServiceAction,
     handleAutomationAction,
     handleAutomationEdit,
-    handleAutomationChat,
     handleCliAppAction,
     handleImportMcpConfig,
     handleMcpOAuthCancel,

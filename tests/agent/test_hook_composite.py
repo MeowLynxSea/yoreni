@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent.session_helpers import mock_session_manager
 from yoreni.agent.context import TranscriptInput
 from yoreni.agent.hook import (
     AgentHook,
@@ -424,19 +423,7 @@ def _make_loop(tmp_path, hooks=None, hook_factories=None):
     provider.get_default_model.return_value = "test-model"
     provider.generation.max_tokens = 4096
 
-    with patch("yoreni.agent.loop.ContextBuilder"), \
-         patch("yoreni.agent.loop.SessionManager", side_effect=mock_session_manager), \
-         patch("yoreni.agent.loop.SubagentManager") as mock_sub_mgr, \
-         patch("yoreni.agent.loop.Consolidator"):
-        mock_sub_mgr.return_value.cancel_by_session = AsyncMock(return_value=0)
-        loop = AgentLoop(
-            bus=bus,
-            provider=provider,
-            workspace=tmp_path,
-            hooks=hooks,
-            hook_factories=hook_factories,
-        )
-    return loop
+    return AgentLoop(bus=bus, provider=provider, workspace=tmp_path, hooks=hooks, hook_factories=hook_factories)
 
 
 @pytest.mark.asyncio
@@ -468,6 +455,7 @@ async def test_agent_loop_extra_hook_receives_calls(tmp_path):
     result = await loop._run_agent_loop(
         TranscriptInput(history=[{"role": "user", "content": "hi"}], current_message=None),
         runtime=loop.llm_runtime(),
+        request_context=RequestContext(channel="cli", chat_id="direct", turn_id="test-run"),
     )
 
     assert result.final_content == "done"
@@ -518,7 +506,7 @@ async def test_agent_loop_turn_hook_factories_receive_context(tmp_path):
             channel="websocket",
             chat_id="chat-1",
             message_id="msg-1",
-            session_key="websocket:chat-1",
+            turn_id="websocket:chat-1",
             runtime=runtime,
             metadata={"source": "test"},
         ),
@@ -533,7 +521,7 @@ async def test_agent_loop_turn_hook_factories_receive_context(tmp_path):
     assert [context.channel for _, context in captured] == ["websocket", "websocket"]
     assert [context.chat_id for _, context in captured] == ["chat-1", "chat-1"]
     assert [context.message_id for _, context in captured] == ["msg-1", "msg-1"]
-    assert [context.session_key for _, context in captured] == [
+    assert [context.run_id for _, context in captured] == [
         "websocket:chat-1",
         "websocket:chat-1",
     ]
@@ -561,6 +549,7 @@ async def test_agent_loop_extra_hook_error_isolation(tmp_path):
     result = await loop._run_agent_loop(
         TranscriptInput(history=[{"role": "user", "content": "hi"}], current_message=None),
         runtime=loop.llm_runtime(),
+        request_context=RequestContext(channel="cli", chat_id="direct", turn_id="test-run"),
     )
 
     assert result.final_content == "still works"
@@ -587,6 +576,7 @@ async def test_agent_loop_extra_hooks_do_not_swallow_loop_hook_errors(tmp_path):
         await loop._run_agent_loop(
             TranscriptInput(history=[], current_message=None),
             runtime=loop.llm_runtime(),
+        request_context=RequestContext(channel="cli", chat_id="direct", turn_id="test-run"),
             events=output_events(on_progress=bad_progress),
         )
 
@@ -608,6 +598,7 @@ async def test_agent_loop_no_hooks_backward_compat(tmp_path):
     result = await loop._run_agent_loop(
         TranscriptInput(history=[], current_message=None),
         runtime=loop.llm_runtime(),
+        request_context=RequestContext(channel="cli", chat_id="direct", turn_id="test-run"),
     )
     assert result.final_content == (
         "I reached the maximum number of tool call iterations (2) "

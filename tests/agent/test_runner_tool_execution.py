@@ -38,10 +38,10 @@ async def test_nested_arguments_reach_mcp_without_rewriting_model_history(schema
     from mcp.shared.memory import create_connected_server_and_client_session
     from mcp.types import TextContent
     from mcp.types import Tool as MCPTool
+    from yoreni.session.manager import Session
 
     from yoreni.agent.loop import AgentLoop
     from yoreni.agent.tools.mcp import MCPToolWrapper
-    from yoreni.session.manager import Session
 
     server = Server("nested-arguments-test")
     received = []

@@ -56,17 +56,17 @@ class LocalTriggerStore:
         name: str,
         channel: str,
         chat_id: str,
-        session_key: str,
+        agent_id: str,
         sender_id: str = "trigger",
         origin_metadata: dict[str, Any] | None = None,
     ) -> LocalTrigger:
-        """Create a new session-bound local trigger."""
+        """Create a new Agent-owned local trigger."""
         clean_name = _clean_name(name)
         channel = channel.strip()
         chat_id = chat_id.strip()
-        session_key = session_key.strip()
-        if not channel or not chat_id or not session_key:
-            raise ValueError("channel, chat_id, and session_key are required")
+        agent_id = agent_id.strip()
+        if not channel or not chat_id or not agent_id:
+            raise ValueError("channel, chat_id, and agent_id are required")
 
         now = _now_ms()
         self._ensure_dirs()
@@ -80,7 +80,7 @@ class LocalTriggerStore:
                 enabled=True,
                 channel=channel,
                 chat_id=chat_id,
-                session_key=session_key,
+                agent_id=agent_id,
                 sender_id=sender_id.strip() or "trigger",
                 origin_metadata=dict(origin_metadata or {}),
                 created_at_ms=now,
@@ -99,18 +99,6 @@ class LocalTriggerStore:
             triggers = [trigger for trigger in triggers if trigger.enabled]
         return sorted(triggers, key=lambda trigger: (trigger.updated_at_ms, trigger.id), reverse=True)
 
-    def list_for_session(
-        self,
-        session_key: str,
-        *,
-        include_disabled: bool = True,
-    ) -> list[LocalTrigger]:
-        """List triggers bound to one session key."""
-        return [
-            trigger
-            for trigger in self.list_triggers(include_disabled=include_disabled)
-            if trigger.session_key == session_key
-        ]
 
     def get(self, trigger_id: str) -> LocalTrigger | None:
         """Return one trigger by ID."""
@@ -454,7 +442,7 @@ def _delivery_run_record(
         record.update(
             {
                 "trigger_name": trigger.name,
-                "session_key": trigger.session_key,
+                "agent_id": trigger.agent_id,
                 "channel": trigger.channel,
                 "chat_id": trigger.chat_id,
                 "sender_id": trigger.sender_id,

@@ -45,7 +45,6 @@ def _isolate_runtime_stores(
     """Isolate writable stores without making a directory for pure tests."""
     import yoreni.llm_usage.service as llm_usage
     import yoreni.pairing.store as pairing_store
-    import yoreni.session.location as session_location
     from yoreni.webui import star_prompt
 
     # A sibling of tmp_path stays outside any test's agent workspace. mkdir is
@@ -61,8 +60,6 @@ def _isolate_runtime_stores(
         path.mkdir(parents=True, exist_ok=True)
         return path
 
-    monkeypatch.setattr(session_location, "get_runtime_subdir", runtime_subdir)
-    monkeypatch.setattr("yoreni.webui.history.get_webui_dir", lambda: runtime_subdir("webui"))
     monkeypatch.setattr(star_prompt, "get_webui_dir", lambda: runtime_subdir("webui"))
     monkeypatch.setattr(pairing_store, "_store_path", lambda: data_dir() / "pairing.json")
     monkeypatch.setattr(llm_usage, "get_data_dir", data_dir)

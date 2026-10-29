@@ -225,7 +225,6 @@ class DingTalkConfig(Base):
     allow_from: list[str] = Field(default_factory=list)
     allow_remote_media_redirects: bool = False
     remote_media_redirect_allowed_hosts: list[str] = Field(default_factory=list)
-    group_user_isolation: bool = False  # If True, each user in group chat gets their own session
     disable_private_chat: bool = False  # If True, reject 1:1 DMs with a notice; group chats only
 
 
@@ -794,9 +793,6 @@ class DingTalkChannel(BaseChannel):
                 return
             is_group = conversation_type == "2" and conversation_id
             chat_id = f"group:{conversation_id}" if is_group else sender_id
-            session_key = None
-            if is_group and self.config.group_user_isolation:
-                session_key = f"{self.name}:group:{conversation_id}:{sender_id}"
 
             if not is_group and self.config.disable_private_chat:
                 # Group-only kill switch: drop DMs with a notice *before* any
@@ -822,7 +818,6 @@ class DingTalkChannel(BaseChannel):
                     "platform": "dingtalk",
                     "conversation_type": conversation_type,
                 },
-                session_key=session_key,
             )
         except Exception:
             self.logger.exception("Error publishing message")

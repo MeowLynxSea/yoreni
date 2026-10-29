@@ -7,28 +7,23 @@ import os
 import re
 import threading
 from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 from zipfile import ZipFile
 
 import pytest
 
 from yoreni.agent.loop import AgentLoop
-from yoreni.agent.memory import Consolidator
-from yoreni.agent.subagent import SubagentManager
 from yoreni.agent.tools.registry import is_tool_error_result
 from yoreni.agent.tools.search import FindFilesTool, GrepTool
 from yoreni.agent.tools.web import WebSearchTool
 from yoreni.bus.queue import MessageBus
 from yoreni.config.schema import WebSearchConfig
-from yoreni.providers.base import GenerationSettings
 from yoreni.security.workspace_access import (
     bind_workspace_scope,
     default_workspace_scope,
     reset_workspace_scope,
 )
 from yoreni.utils.document import extract_text
-from yoreni.utils.llm_runtime import LLMRuntime
 
 
 @pytest.mark.asyncio
@@ -790,68 +785,8 @@ def test_agent_loop_registers_search_backend(tmp_path: Path, monkeypatch, use_rg
     assert ("grep" in loop.tools.tool_names) == (not use_rg)
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("use_rg", [True, False])
-async def test_subagent_registers_search_backend(tmp_path: Path, monkeypatch, use_rg) -> None:
-    monkeypatch.setattr("yoreni.agent.tools.rg.RgTool.enabled", lambda ctx: use_rg)
-    bus = MessageBus()
-    provider = MagicMock()
-    provider.get_default_model.return_value = "test-model"
-    provider.generation = GenerationSettings()
-    mgr = SubagentManager(
-        consolidator=MagicMock(spec=Consolidator),
-        workspace=tmp_path,
-        bus=bus,
-        max_tool_result_chars=4096,
-    )
-    captured: dict[str, list[str]] = {}
-
-    async def fake_run(spec):
-        captured["tool_names"] = spec.tools.tool_names
-        return SimpleNamespace(
-            stop_reason="ok",
-            final_content="done",
-            tool_events=[],
-            error=None,
-        )
-
-    mgr.runner.run = fake_run
-    mgr._announce_result = AsyncMock()
-
-    await mgr.spawn(
-        task="search task",
-        label="label",
-        origin_channel="cli",
-        origin_chat_id="direct",
-        runtime=LLMRuntime.capture(provider, "test-model", context_window_tokens=128_000),
-    )
-    await asyncio.gather(*mgr._running_tasks.values(), return_exceptions=True)
-
-    assert ("rg" in captured["tool_names"]) == use_rg
-    assert ("find_files" in captured["tool_names"]) == (not use_rg)
-    assert ("grep" in captured["tool_names"]) == (not use_rg)
 
 
-def test_subagent_prompt_respects_disabled_skills(tmp_path: Path) -> None:
-    bus = MessageBus()
-    skills_dir = tmp_path / "skills"
-    (skills_dir / "alpha").mkdir(parents=True)
-    (skills_dir / "alpha" / "SKILL.md").write_text("# Alpha\n\nhidden\n", encoding="utf-8")
-    (skills_dir / "beta").mkdir(parents=True)
-    (skills_dir / "beta" / "SKILL.md").write_text("# Beta\n\nshown\n", encoding="utf-8")
-
-    mgr = SubagentManager(
-        consolidator=MagicMock(spec=Consolidator),
-        workspace=tmp_path,
-        bus=bus,
-        max_tool_result_chars=4096,
-        disabled_skills=["alpha"],
-    )
-
-    prompt = mgr._build_subagent_prompt()
-
-    assert "alpha" not in prompt
-    assert "beta" in prompt
 
 
 @pytest.mark.parametrize("tool_class", [FindFilesTool, GrepTool])

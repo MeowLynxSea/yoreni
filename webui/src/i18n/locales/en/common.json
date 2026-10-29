@@ -174,14 +174,6 @@
           "label": "Summary length",
           "help": "Character limit for tool activity summaries.\n\nMaximum number of characters shown in a tool activity summary."
         },
-        "tools_max_session_messages_per_minute": {
-          "label": "Message rate",
-          "help": "Maximum tool messages to one session per minute.\n\nMaximum number of messages tools can send to the same session each minute."
-        },
-        "agents_defaults_unified_session": {
-          "label": "Shared sessions",
-          "help": "Share one user's chat history across platforms.\n\nShare conversation history across chat channels for a single user."
-        },
         "tools_exec_enable": {
           "label": "Shell tool",
           "help": "Allow the agent to run Shell commands.\n\nAllow the agent to run shell commands."
@@ -324,10 +316,6 @@
           "title": "Run limits",
           "help": "Set tool limits and request retries."
         },
-        "sessions": {
-          "title": "Sessions",
-          "help": "Set up shared chats across platforms."
-        },
         "tools": {
           "title": "Built-in tools",
           "help": "Choose which tools the agent can use."
@@ -386,13 +374,6 @@
       "search": "Find an advanced setting",
       "noResults": "No matching settings.",
       "pending": "Unsaved changes",
-      "idleCompaction": {
-        "label": "Auto-compact idle sessions",
-        "help": "Automatically compact context after the idle timeout to reduce token usage on subsequent requests.",
-        "wait": "Idle timeout",
-        "minutes": "minutes",
-        "numberError": "Enter a non-negative whole number of minutes."
-      },
       "numberError": "Enter a valid number within the allowed range.",
       "activeModel": "Use active model",
       "none": "None",
@@ -1494,7 +1475,6 @@
     "fallbackTitle": "Topic {{id}}",
     "forkTitle": "Fork: {{title}}",
     "loading": "Loading…",
-    "noSessions": "No sessions yet.",
     "showMore": "Show {{count}} more",
     "collapsed": "{{count}} hidden topics",
     "showLess": "Show less",
@@ -1697,34 +1677,7 @@
       "toggleSidebar": "Toggle sidebar",
       "newChat": "Start a new topic",
       "toggleTheme": "Toggle theme from header",
-      "settings": "Open settings",
-      "sessionInfo": "Session details"
-    },
-    "sessionInfo": {
-      "title": "Session",
-      "untitled": "Untitled topic",
-      "automations": "Automations",
-      "count": "{{count}}",
-      "loading": "Loading automations...",
-      "loadFailed": "Could not load automations.",
-      "empty": "No automations in this session yet.",
-      "openCalendar": "View all in calendar",
-      "disabled": "Off",
-      "schedule": {
-        "at": "{{time}}",
-        "every": "Every {{duration}}",
-        "cron": "Cron {{expr}}",
-        "cronWithTz": "Cron {{expr}} ({{tz}})",
-        "local": "Local trigger",
-        "unknown": "Custom schedule"
-      },
-      "next": {
-        "label": "{{time}}",
-        "pending": "Runs shortly",
-        "disabled": "Paused",
-        "local": "Waiting for trigger",
-        "none": "No next run"
-      }
+      "settings": "Open settings"
     },
     "composer": {
       "placeholderThread": "Type your message…",
@@ -1896,15 +1849,12 @@
         "label": "Apps",
         "cliGroup": "CLI apps",
         "mcpGroup": "MCP services",
-        "sessionGroup": "Yoreni conversations",
         "cliBadge": "CLI",
         "mcpBadge": "MCP",
         "cliDescription": "Call CLI with @{{name}}.",
         "mcpDescription": "Call MCP with @{{name}}.",
         "cliTitle": "CLI app: {{name}}",
-        "mcpTitle": "MCP server: {{name}}",
-        "sessionBadge": "Yoreni conversation",
-        "sessionDescription": "Reference @{{name}} as a previous chat"
+        "mcpTitle": "MCP server: {{name}}"
       },
       "encoding": "Encoding…",
       "remove": "Remove attachment",

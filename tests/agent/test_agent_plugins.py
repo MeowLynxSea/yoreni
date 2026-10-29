@@ -28,7 +28,6 @@ from yoreni.security.workspace_access import (
     reset_workspace_scope,
     validate_workspace_scope_payload,
 )
-from yoreni.session.manager import SessionManager
 
 
 @pytest.fixture(autouse=True)
@@ -170,7 +169,7 @@ async def test_prompt_snapshot_uses_approved_plugin_bytes_after_replacement(
             replaced.set()
 
     try:
-        await loop.process_direct("Explain this project", session_key="cli:approved")
+        await loop.process_direct("Explain this project")
         assert "ORIGINAL_APPROVED_INSTRUCTIONS" in provider.prompts[-1]
         original_iterdir = Path.iterdir
         original_read_bytes = Path.read_bytes

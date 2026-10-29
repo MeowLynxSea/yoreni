@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from agent.run_helpers import run_event, visible_message
 from agent.runner_helpers import make_run_spec
-from agent.session_helpers import run_session, visible_message
 from yoreni.agent.context import TranscriptInput
 from yoreni.agent.tools.context import RequestContext
 from yoreni.config.schema import AgentDefaults
@@ -839,9 +839,9 @@ async def test_pending_injection_resolves_its_own_runtime_context(tmp_path):
 @pytest.mark.asyncio
 async def test_subagent_pending_injection_is_hidden_history_and_not_merged(tmp_path):
     from yoreni.agent.loop import AgentLoop
+    from yoreni.agent.transcript_visibility import HIDDEN_HISTORY_META
     from yoreni.bus.events import InboundMessage
     from yoreni.bus.queue import MessageBus
-    from yoreni.session.history_visibility import HIDDEN_HISTORY_META
 
     bus = MessageBus()
     provider = MagicMock()
@@ -971,8 +971,9 @@ async def test_model_request_merges_injected_user_messages_without_losing_media(
 
 def test_runner_append_keeps_recovery_followups_separate() -> None:
     """Each raw follow-up keeps its own recovery identity."""
-    from yoreni.agent.runner import AgentRunner
     from yoreni.session.recovery import PENDING_FOLLOWUP_ID_KEY
+
+    from yoreni.agent.runner import AgentRunner
 
     messages = [{"role": "user", "content": "first", PENDING_FOLLOWUP_ID_KEY: "one"}]
     AgentRunner._append_injected_messages(
@@ -1108,8 +1109,9 @@ async def test_no_injections_flag_is_false_by_default():
 @pytest.mark.asyncio
 async def test_followup_routed_to_pending_queue(tmp_path):
     """Unified-session follow-ups should route into the active pending queue."""
-    from yoreni.bus.events import InboundMessage
     from yoreni.session.keys import UNIFIED_SESSION_KEY
+
+    from yoreni.bus.events import InboundMessage
 
     loop = _make_loop(tmp_path)
     loop._unified_session = True
@@ -1165,8 +1167,9 @@ async def test_websocket_followup_is_admitted_before_recovery_queue(tmp_path):
 @pytest.mark.asyncio
 async def test_unified_websocket_followup_admits_effective_session(tmp_path):
     """Recovery admission and the pending queue must use the same session key."""
-    from yoreni.bus.events import InboundMessage
     from yoreni.session.keys import UNIFIED_SESSION_KEY
+
+    from yoreni.bus.events import InboundMessage
 
     admission = MagicMock()
     admission.admit = AsyncMock(return_value=True)
@@ -1459,7 +1462,7 @@ async def test_persistent_conversion_error_does_not_drop_later_session_inputs(tm
     provider.chat_stream_with_retry = chat
     loop.register_runtime_context_provider(context_provider)
     try:
-        await run_session(loop, InboundMessage(
+        await run_event(loop, InboundMessage(
             channel="cli", sender_id="u", chat_id="c", content="root",
         ))
         loop.sessions.invalidate("cli:c")
@@ -1536,11 +1539,11 @@ async def test_busy_session_burst_reaches_next_model_call_as_one_ordered_batch(
 ):
     """Messages accumulated during a model call share its next request snapshot."""
     from loguru import logger
+    from yoreni.session.manager import SessionPolicy
 
     from yoreni.agent.loop import AgentLoop
     from yoreni.bus.events import InboundMessage
     from yoreni.bus.queue import MessageBus
-    from yoreni.session.manager import SessionPolicy
 
     records = []
     sink = logger.add(lambda message: records.append(message.record))
@@ -1658,7 +1661,7 @@ async def test_session_worker_processes_leftovers_without_republishing(tmp_path)
         ))
     loop._pending_queues[session_key] = pending
 
-    await loop._run_session_queue(session_key, pending)
+    await loop._run_event_queue(session_key, pending)
 
     assert processed == ["first", "leftover-1", "leftover-2"]
     assert session_key not in loop._pending_queues

@@ -13,7 +13,6 @@ import { DisclosureContent } from "@/components/ui/disclosure";
 
 import { AttachmentTile } from "@/components/AttachmentTile";
 import { CodeBlock } from "@/components/CodeBlock";
-import { SessionHandleLabel } from "@/components/SessionHandleLabel";
 import { FallbackResponseSources } from "@/components/ResponseSourceBadge";
 import { ImageGallery } from "@/components/ImageGallery";
 import { InlineImageProvider, useInlineImages } from "@/components/InlineImageContext";
@@ -370,41 +369,6 @@ function UserDeliveryStatus({
   );
 }
 
-function IncomingSessionMessage({
-  message,
-  contextMenu,
-  onOpenFilePreview,
-}: {
-  message: UIMessage;
-  contextMenu?: ReactNode;
-  onOpenFilePreview?: (path: string) => void;
-}) {
-  const handle = message.sessionMessage!.session;
-  const handleName = `@${handle.name}`;
-
-  return (
-    <div
-      data-session-message
-      className="group relative mr-auto w-fit min-w-0 max-w-[min(85%,36rem)] text-reading"
-    >
-      <div className="mb-1.5 flex items-center px-4 text-[12px] text-muted-foreground">
-        <SessionHandleLabel id={handle.id}>{handleName}</SessionHandleLabel>
-      </div>
-      <div data-theme-surface className="relative min-w-0 rounded-floating bg-secondary/70 px-4 py-2">
-        {contextMenu}
-        <div data-assistant-selectable="true" className="min-w-0">
-          <MarkdownText
-            preserveStreamingLayout
-            onOpenFilePreview={onOpenFilePreview}
-          >
-            {message.content}
-          </MarkdownText>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /** Render user turns as compact bubbles and assistant turns as document-like prose. */
 export function MessageBubble({
   message,
@@ -433,15 +397,7 @@ export function MessageBubble({
     return <TraceGroup message={message} />;
   }
 
-  if (message.role === "user" && message.sessionMessage) {
-    return (
-      <IncomingSessionMessage
-        message={message}
-        contextMenu={contextMenu}
-        onOpenFilePreview={onOpenFilePreview}
-      />
-    );
-  }
+
 
   if (message.role === "user") {
     const images = message.images ?? [];
@@ -471,7 +427,6 @@ export function MessageBubble({
           text={userContent.slice(slashCommand.command.length)}
           cliApps={mentionCliApps}
           mcpPresets={mentionMcpPresets}
-          sessionMentions={message.sessionMentions}
         />
       </>
     ) : (
@@ -479,7 +434,6 @@ export function MessageBubble({
         text={userContent}
         cliApps={mentionCliApps}
         mcpPresets={mentionMcpPresets}
-        sessionMentions={message.sessionMentions}
       />
     );
     return (

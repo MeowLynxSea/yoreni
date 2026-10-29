@@ -90,7 +90,7 @@ class ToolCallRequest:
         Such a call cannot be executed and, if persisted and replayed, makes
         upstream APIs reject the whole request (e.g. Anthropic-style
         ``messages.content.N.tool_use.name: Input should be a valid string``),
-        which permanently wedges the session.
+        which permanently wedges the Run.
         """
         runtime_name = cast(object, self.name)
         return isinstance(runtime_name, str) and bool(runtime_name)
@@ -208,7 +208,7 @@ class ProviderConversationState:
         )
 
     def to_private_record(self) -> dict[str, Any]:
-        """Serialize for the private session sidecar, never for public history."""
+        """Serialize for the private Run checkpoint, never for public history."""
         return {
             "kind": self.kind,
             "provider": self.provider,
@@ -223,7 +223,7 @@ class ProviderConversationState:
         cls,
         value: object,
     ) -> ProviderConversationState | None:
-        """Validate and deserialize a private session-sidecar value."""
+        """Validate and deserialize a private Run checkpoint value."""
         if not isinstance(value, dict):
             return None
         data = cast(dict[str, Any], value)
@@ -267,13 +267,13 @@ class ProviderCallContext:
     The regular ``chat`` contract stays provider-agnostic. Responses-capable
     providers consume this context through the opt-in ``chat_with_context``
     hooks, while every other provider inherits the context-free delegation.
-    ``session_id`` gives providers a stable conversation-scoped routing key
+    ``run_id`` gives providers a stable conversation-scoped routing key
     without exposing that identity in the public message transcript.
     """
 
     conversation_state: ProviderConversationState | None = field(default=None, repr=False)
     context_window_tokens: int | None = None
-    session_id: str | None = field(default=None, repr=False)
+    run_id: str | None = field(default=None, repr=False)
     events: EventSink = field(default=NO_EVENTS, repr=False, compare=False)
     # None opts out (auxiliary calls); an empty name denotes an unnamed preset.
     response_preset: str | None = None
@@ -1740,7 +1740,7 @@ class LLMProvider(ABC):
                 # Native payloads may retain images: rebuild from the public transcript.
                 stripped_context = ProviderCallContext(
                     context_window_tokens=provider_context.context_window_tokens,
-                    session_id=provider_context.session_id,
+                    run_id=provider_context.run_id,
                     events=provider_context.events,
                     response_preset=provider_context.response_preset,
                     response_is_fallback=provider_context.response_is_fallback,

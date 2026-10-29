@@ -1,9 +1,9 @@
 import { SettingsPage } from "@/components/settings/SettingsPage";
 import type { SettingsExitGuard, SettingsSectionKey } from "@/components/settings/contracts";
 import { useSettingsController } from "@/components/settings/useSettingsController";
-import type { SendAttachment, SendOptions } from "@/hooks/useYoreniStream";
+import type { SendAttachment, SendOptions } from "@/lib/agent-input";
 import type { ThemePreference } from "@/hooks/useTheme";
-import type { ChatSummary, SettingsPayload, SkillSummary } from "@/lib/types";
+import type { SettingsPayload, SkillSummary } from "@/lib/types";
 
 export type { SettingsSectionKey } from "@/components/settings/contracts";
 
@@ -28,7 +28,6 @@ interface SettingsViewProps {
     modelPreset?: string | null,
   ) => boolean | void | Promise<boolean | void>;
   titleOverrides?: Record<string, string>;
-  sessions?: ChatSummary[];
   onSectionChange?: (section: SettingsSectionKey) => void;
   onLogout?: () => void;
   onRestart?: () => void;
@@ -53,7 +52,6 @@ export function SettingsView({
   skillsError = false,
   onStartAutomationChat,
   titleOverrides,
-  sessions,
   onSectionChange,
   onLogout,
   onRestart,
@@ -85,7 +83,6 @@ export function SettingsView({
       skillsError={skillsError}
       onStartAutomationChat={onStartAutomationChat}
       titleOverrides={titleOverrides}
-      sessions={sessions}
       onLogout={onLogout}
       isRestarting={isRestarting}
       hostChromeInset={hostChromeInset}

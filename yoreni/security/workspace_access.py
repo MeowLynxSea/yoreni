@@ -130,28 +130,16 @@ class WorkspaceScopeResolver:
         *,
         channel: str | None,
         message_metadata: Any,
-        session_metadata: Any,
     ) -> WorkspaceScope:
         if channel != self.scoped_channel:
             return self.default()
         return resolve_effective_workspace_scope(
             message_metadata=message_metadata,
-            session_metadata=session_metadata,
             default_workspace=self.default_workspace,
             default_restrict_to_workspace=self.default_restrict_to_workspace,
             source_channel=channel,
         )
 
-    def persist_message_scope(self, session: Any, msg: Any) -> None:
-        if getattr(msg, "channel", None) != self.scoped_channel:
-            return
-        metadata = getattr(msg, "metadata", None)
-        if not isinstance(metadata, dict):
-            return
-        metadata_data = cast(dict[str, Any], metadata)
-        raw = metadata_data.get(WORKSPACE_SCOPE_METADATA_KEY)
-        if isinstance(raw, dict):
-            session.metadata[WORKSPACE_SCOPE_METADATA_KEY] = dict(cast(dict[str, Any], raw))
 
 
 def workspace_sandbox_status(
@@ -295,7 +283,7 @@ def workspace_scope_from_metadata(
     default_restrict_to_workspace: bool,
     source_channel: str | None = None,
 ) -> WorkspaceScope:
-    """Resolve persisted metadata, falling back safely for old or stale sessions."""
+    """Resolve persisted metadata, using the configured scope when no Event scope is available."""
     if not isinstance(metadata, dict):
         return default_workspace_scope(
             default_workspace,
@@ -321,21 +309,12 @@ def workspace_scope_from_metadata(
 def resolve_effective_workspace_scope(
     *,
     message_metadata: Any,
-    session_metadata: Any,
     default_workspace: str | Path,
     default_restrict_to_workspace: bool,
     source_channel: str | None = None,
 ) -> WorkspaceScope:
-    if isinstance(message_metadata, dict) and WORKSPACE_SCOPE_METADATA_KEY in message_metadata:
-        message_metadata_data = cast(dict[str, Any], message_metadata)
-        return workspace_scope_from_metadata(
-            message_metadata_data,
-            default_workspace=default_workspace,
-            default_restrict_to_workspace=default_restrict_to_workspace,
-            source_channel=source_channel,
-        )
     return workspace_scope_from_metadata(
-        session_metadata,
+        message_metadata,
         default_workspace=default_workspace,
         default_restrict_to_workspace=default_restrict_to_workspace,
         source_channel=source_channel,

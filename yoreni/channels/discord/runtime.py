@@ -177,21 +177,18 @@ if DISCORD_AVAILABLE:
                 "guild_id": str(interaction.guild_id) if interaction.guild_id else None,
                 "is_slash_command": True,
             }
-            session_key = None
             if channel is not None:
                 parent_channel_id = self._channel._channel_parent_key(channel)
                 if parent_channel_id is not None:
                     metadata["parent_channel_id"] = parent_channel_id
                     metadata["context_chat_id"] = parent_channel_id
                     metadata["thread_id"] = str(channel_id)
-                    session_key = f"{self._channel.name}:{parent_channel_id}:thread:{channel_id}"
 
             await self._channel._handle_message(
                 sender_id=sender_id,
                 chat_id=str(channel_id),
                 content=command_text,
                 metadata=metadata,
-                session_key=session_key,
             )
 
         def _register_app_commands(self) -> None:
@@ -652,12 +649,10 @@ class DiscordChannel(BaseChannel):
         full_content = self._compose_inbound_content(content, attachment_markers)
         metadata = self._build_inbound_metadata(message)
         parent_channel_id = self._channel_parent_key(message.channel)
-        session_key = None
         if parent_channel_id is not None:
             metadata["parent_channel_id"] = parent_channel_id
             metadata["context_chat_id"] = parent_channel_id
             metadata["thread_id"] = channel_id
-            session_key = f"{self.name}:{parent_channel_id}:thread:{channel_id}"
 
         await self._start_typing(message.channel)
 
@@ -693,7 +688,6 @@ class DiscordChannel(BaseChannel):
                 content=full_content,
                 media=media_paths,
                 metadata=metadata,
-                session_key=session_key,
                 is_dm=message.guild is None,
             )
         except Exception:

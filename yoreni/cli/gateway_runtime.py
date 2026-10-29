@@ -4,9 +4,9 @@ import asyncio
 import hashlib
 import os
 import signal
-from collections.abc import Awaitable, Callable, Coroutine, Iterable
+from collections.abc import Callable, Iterable
 from contextlib import suppress
-from dataclasses import asdict, replace
+from dataclasses import asdict
 from functools import partial
 from pathlib import Path
 from typing import Any, cast
@@ -46,76 +46,19 @@ from yoreni.config.paths import is_default_workspace
 from yoreni.config.schema import Config
 from yoreni.gateway.runtime import GatewayHealthIdentity, GatewayInstance, GatewayRuntime
 from yoreni.security.network import is_loopback_host
-from yoreni.session.keys import (
-    HEARTBEAT_SESSION_KEY,
-    UNIFIED_SESSION_KEY,
-    last_channel_from_metadata,
-    session_key_for_channel,
-)
-from yoreni.session.manager import SessionManager
 from yoreni.utils.evaluator import evaluate_response, resolve_evaluator_prompt
 from yoreni.utils.helpers import sync_workspace_templates
 from yoreni.utils.token_encoding import warmup_token_encoding
 from yoreni.webui.build import BuildMode
 from yoreni.webui.dev import WebUIDevError, WebUIDevServer
-from yoreni.webui.sidebar_state import read_webui_sidebar_state
 
 __all__ = ["_run_gateway"]
 
 console = Console()
 
 
-async def _deliver_to_channel(
-    msg: OutboundMessage,
-    *,
-    bus: MessageBus,
-    session_manager: SessionManager,
-    unified_session: bool = False,
-    record: bool = False,
-    session_key: str | None = None,
-    session_generation: str | None = None,
-) -> None:
-    """Publish a user-visible message and mirror it into its admitted session."""
-    metadata = dict(msg.metadata or {})
-    record = record or bool(metadata.pop("_record_channel_delivery", False))
-    raw_key = metadata.pop("_session_key", None)
-    raw_generation = metadata.pop("_session_generation", None)
-    expected_generation = (
-        session_generation
-        if session_generation is not None
-        else raw_generation if isinstance(raw_generation, str) else None
-    )
-    key = session_key or (raw_key if isinstance(raw_key, str) else None)
-    if key is None:
-        key = session_key_for_channel(
-            msg.channel, msg.chat_id, unified_session=unified_session,
-        )
-    if msg.channel == "websocket":
-        from yoreni.agent.turn_delivery import TurnRoute
-        from yoreni.session.display_history import HISTORY_GENERATION_METADATA_KEY
-        from yoreni.session.webui_turns import WebuiTurnRoutePolicy
-        from yoreni.webui.session_identity import webui_session_key
-
-        route = await WebuiTurnRoutePolicy(session_manager).admit(
-            TurnRoute(msg.channel, msg.chat_id, metadata), key, expected_generation,
-        )
-        metadata = route.metadata
-        if key == webui_session_key(msg.chat_id):
-            expected_generation = cast(str, metadata[HISTORY_GENERATION_METADATA_KEY])
-    if metadata != (msg.metadata or {}):
-        msg = replace(msg, metadata=metadata)
-    if record and msg.channel != "cli" and msg.content.strip():
-        if expected_generation is None:
-            # Cross-target sends admit their target before recording; subsequent
-            # deletion or reset must still revoke this delivery's generation.
-            target = await session_manager.state.get_header(key)
-            expected_generation = target.generation
-        extra: dict[str, Any] = {"_channel_delivery": True}
-        if msg.media:
-            extra["media"] = list(msg.media)
-        await session_manager.state.record_delivery(
-            key, msg.content, extra, expected_generation=expected_generation,
-        )
+async def _deliver_to_channel(msg: OutboundMessage, *, bus: MessageBus) -> None:
+    """Deliver a tool result through the shared authenticated channel dispatcher."""
     await bus.publish_outbound(msg)
 
 
@@ -272,34 +215,11 @@ def _heartbeat_has_active_tasks(content: str) -> bool:
     return False
 
 
-def _pick_heartbeat_target_from_sessions(
-    *,
-    enabled_channels: Iterable[str],
-    sessions: Iterable[dict[str, Any]],
-    archived_keys: Iterable[str],
-    unified_session_metadata: dict[str, Any] | None = None,
-) -> tuple[str, str]:
-    enabled = set(enabled_channels)
-    archived = set(archived_keys)
-    for item in sessions:
-        key = item.get("key") or ""
-        if key in archived:
-            continue
-        if key == UNIFIED_SESSION_KEY:
-            route = last_channel_from_metadata(unified_session_metadata)
-            if route is not None:
-                channel, chat_id = route
-                if channel not in {"cli", "system"} and channel in enabled:
-                    return channel, chat_id
-            continue
-        if ":" not in key:
-            continue
-        channel, chat_id = key.split(":", 1)
-        if channel in {"cli", "system"}:
-            continue
-        if channel in enabled and chat_id:
-            return channel, chat_id
-    return "cli", "direct"
+def _heartbeat_target(enabled_channels: Iterable[str]) -> tuple[str, str]:
+    """Personal proactive results go only to the authenticated personal client."""
+    from yoreni.agent.state import PERSONAL_CHAT_ID
+
+    return ("websocket", PERSONAL_CHAT_ID) if "websocket" in enabled_channels else ("cli", "direct")
 
 
 _GATEWAY_HEALTH_MAX_CONNECTIONS = 64
@@ -476,8 +396,8 @@ def _run_claimed_gateway(
     from yoreni.channels.manager import ChannelManager
     from yoreni.config.watcher import watch_config_file
     from yoreni.cron.bound_runner import run_bound_cron_job
+    from yoreni.cron.events import is_bound_cron_job
     from yoreni.cron.service import CronJobSkippedError, CronService
-    from yoreni.cron.session_turns import is_bound_cron_job
     from yoreni.cron.types import CronJob, CronRunResult
     from yoreni.llm_usage import record_llm_call
     from yoreni.llm_usage.context import llm_usage_source
@@ -488,15 +408,9 @@ def _run_claimed_gateway(
         load_provider_snapshot,
     )
     from yoreni.providers.fallback_provider import FallbackProvider
-    from yoreni.session.manager import SessionManager
-    from yoreni.session.webui_turns import (
-        WebuiTurnCoordinator,
-        WebuiTurnRoutePolicy,
-        build_webui_fallback_model_observer,
-    )
     from yoreni.triggers.local_runner import run_local_trigger_queue
     from yoreni.triggers.local_store import LocalTriggerStore
-    from yoreni.webui.recovery import RecoveryCoordinator
+    from yoreni.webui.run_events import build_webui_fallback_model_observer, connect_run_events
 
     webui_url = _webui_browser_url(config)
     gateway_host_for_browser = _host_for_local_browser(config.gateway.host)
@@ -553,7 +467,6 @@ def _run_claimed_gateway(
         except ValueError as exc:
             console.print(f"[red]Error: {exc}[/red]")
             raise typer.Exit(1) from exc
-    session_manager = SessionManager(config.workspace_path)
 
     # Use the same runtime identity for foreground and managed gateway processes.
     from yoreni.gateway.runtime import (
@@ -572,22 +485,11 @@ def _run_claimed_gateway(
     cron = CronService(cron_store_path, admission=bus.admission)
     trigger_store = LocalTriggerStore(config.workspace_path)
 
-    webui_route_policy = WebuiTurnRoutePolicy(session_manager)
-    turn_delivery_factory = TurnDeliveryFactory(
-        bus,
-        route_policy=webui_route_policy,
-        route_admission=webui_route_policy.admit,
-    )
+    turn_delivery_factory = TurnDeliveryFactory(bus)
 
     tools = ToolRegistry()
     register_image_generation_tool(config, tools, workspace=config.workspace_path)
     mcp_provider = MCPProvider.from_config(config, tools)
-
-    recovery = RecoveryCoordinator(
-        sessions=session_manager,
-        bus=bus,
-        unified_session=config.agents.defaults.unified_session,
-    )
 
     # Create agent with cron service
     agent = AgentLoop.from_config(
@@ -596,7 +498,6 @@ def _run_claimed_gateway(
         model=provider_snapshot.model,
         context_window_tokens=provider_snapshot.context_window_tokens,
         cron_service=cron,
-        session_manager=session_manager,
         provider_snapshot_loader=_load_gateway_provider_snapshot,
         preset_catalog_loader=load_model_preset_catalog,
         turn_delivery_factory=turn_delivery_factory,
@@ -605,30 +506,24 @@ def _run_claimed_gateway(
         hooks=[_MCPReadinessHook(mcp_provider)],
         hook_factories=[create_file_edit_activity_hook],
         tool_registry=tools,
-        recovery_admission=recovery,
     )
-    def _schedule_webui_background(awaitable: Awaitable[None]) -> None:
-        agent.schedule_background(cast(Coroutine[Any, Any, None], awaitable))
 
-    webui_turn_coordinator = WebuiTurnCoordinator(
-        bus=bus,
-        sessions=session_manager,
-        schedule_background=_schedule_webui_background,
-        recovery=recovery,
-    )
-    def _channel_session_key(channel: str, chat_id: str) -> str:
-        return session_key_for_channel(
-            channel,
-            chat_id,
-            unified_session=config.agents.defaults.unified_session,
-        )
+    deliver_to_channel = partial(_deliver_to_channel, bus=bus)
 
-    deliver_to_channel = partial(
-        _deliver_to_channel,
-        bus=bus,
-        session_manager=session_manager,
-        unified_session=config.agents.defaults.unified_session,
-    )
+    async def agent_action(action: str, payload: dict[str, Any]) -> dict[str, Any]:
+        run_id = payload["run_id"]
+        record = await asyncio.to_thread(agent.agent.store.read_run, run_id)
+        if action == "cancel":
+            count = await agent.cancel_run(run_id)
+            if not count and record["status"] in {"queued", "running", "interrupted"}:
+                await asyncio.to_thread(agent.agent.store.interrupt, run_id, "Cancelled by owner", cancelled=True)
+            return {"cancelled": count}
+        if record["status"] not in {"queued", "running", "interrupted"}:
+            raise RuntimeError("Run is already settled")
+        if run_id in agent.active_run_ids:
+            raise RuntimeError("Run is already active")
+        agent.schedule_background(agent.agent.resume(run_id, deliver=True))
+        return {"accepted": True}
 
     message_tool = agent.tools.get("message")
     if isinstance(message_tool, MessageTool):
@@ -644,24 +539,22 @@ def _run_claimed_gateway(
         if job.name == "dream":
             from yoreni.agent.memory import MemoryStore
 
-            dream_session_key = MemoryStore.dream_session_key
-
             store = agent.context.memory
             resp = None
             diff_body = ""
             try:
+                await agent.agent.archive_pending()
                 result = store.build_dream_prompt()
                 if result is None:
                     logger.info("Dream: nothing to process")
                     return None
                 prompt, last_cursor = result
-                key = dream_session_key()
                 dream_runtime = agent.dream_runtime()
                 await mcp_provider.connect()
-                resp = await agent.process_direct(
-                    prompt,
-                    session_key=key,
-                    ephemeral=True,
+                from yoreni.agent.state import AgentInput
+
+                resp = await agent.process_event(
+                    AgentInput("dream", prompt, principal="owner", kind="internal"),
                     tools=store.build_dream_tools(),
                     on_progress=_silent,
                     runtime=dream_runtime,
@@ -696,7 +589,6 @@ def _run_claimed_gateway(
                 if sha:
                     logger.info("Dream commit: {}", sha)
                 store.compact_history()
-                await agent.sessions.state.prune_dream_sessions()
             return None
 
         # Heartbeat is a system job that checks HEARTBEAT.md for active tasks.
@@ -711,14 +603,7 @@ def _run_claimed_gateway(
                 logger.debug("Heartbeat: HEARTBEAT.md has no active tasks")
                 return None
 
-            channel, chat_id = await _pick_heartbeat_target()
-            if channel == "cli":
-                return None
-            delivery_key = _channel_session_key(channel, chat_id)
-            delivery_session = await session_manager.state.read(delivery_key)
-            if delivery_session is None:
-                return None
-            delivery_generation = delivery_session.generation
+            channel, chat_id = _heartbeat_target(channels.enabled_channels)
 
             prompt = (
                 _HEARTBEAT_PREAMBLE
@@ -732,11 +617,13 @@ def _run_claimed_gateway(
                 suppress_token = message_tool.set_suppress_delivery(True)
             try:
                 await mcp_provider.connect()
-                resp = await agent.process_direct(
-                    prompt,
-                    session_key=HEARTBEAT_SESSION_KEY,
-                    channel=channel,
-                    chat_id=chat_id,
+                from yoreni.agent.state import AgentInput
+
+                resp = await agent.process_event(
+                    AgentInput(
+                        "heartbeat", prompt, principal="owner", kind="internal",
+                        channel=channel, chat_id=chat_id,
+                    ),
                     on_progress=_silent,
                 )
             finally:
@@ -761,13 +648,10 @@ def _run_claimed_gateway(
                     default_notify=False,
                 )
 
-            if should_notify:
+            if should_notify and channel != "cli":
                 logger.info("Heartbeat: completed, delivering response")
-                await deliver_to_channel(
+                await bus.publish_outbound(
                     OutboundMessage(channel=channel, chat_id=chat_id, content=response),
-                    record=True,
-                    session_key=delivery_key,
-                    session_generation=delivery_generation,
                 )
             else:
                 logger.info("Heartbeat: silenced by post-run evaluation")
@@ -776,7 +660,7 @@ def _run_claimed_gateway(
         if is_bound_cron_job(job):
             return await run_bound_cron_job(job, agent=agent, cron=cron)
 
-        reason = "unbound agent cron job must be recreated from a chat session"
+        reason = "scheduled task must be bound to the Agent and an output address"
         logger.warning(
             "Cron: skipped unbound agent job '{}' ({}): {}",
             job.name,
@@ -796,7 +680,6 @@ def _run_claimed_gateway(
     def _webui_skill_state_action(disabled_skills: set[str]) -> None:
         config.agents.defaults.disabled_skills = sorted(disabled_skills)
         agent.context.skills.disabled_skills = set(disabled_skills)
-        agent.subagents.disabled_skills = set(disabled_skills)
 
     async def _webui_image_generation_reload() -> dict[str, Any]:
         return await reload_image_generation_tool(
@@ -805,18 +688,14 @@ def _run_claimed_gateway(
             registry=tools,
         )
 
-    # Create channel manager (forwards SessionManager so the WebSocket channel
-    # can serve the embedded webui's REST surface).
+    # Create the channel manager that serves the embedded WebUI and channel adapters.
     channels = ChannelManager(
         config,
         bus,
-        session_manager=session_manager,
         cron_service=cron,
         local_trigger_store=trigger_store,
         webui_runtime_model_name=_webui_runtime_model_name,
         webui_refresh_runtime_config=_webui_refresh_runtime_config,
-        webui_cron_pending_job_ids=agent.pending_cron_job_ids_for_session,
-        webui_local_trigger_pending_ids=agent.pending_local_trigger_ids_for_session,
         webui_static_dist=webui_static_dist,
         webui_runtime_surface=webui_runtime_surface,
         webui_runtime_capabilities=webui_runtime_capabilities,
@@ -824,26 +703,10 @@ def _run_claimed_gateway(
         webui_mcp_reload=mcp_provider.reload,
         webui_image_generation_reload=_webui_image_generation_reload,
         webui_skill_state_action=_webui_skill_state_action,
-        webui_recovery_action=recovery.handle_action,
-        webui_subagent_manager=agent.subagents,
-        webui_discard_session=agent.discard_session,
+        webui_agent_action=agent_action,
+        webui_accept_input=agent.accept_message,
         config_path=Path(config_path),
     )
-
-    async def _pick_heartbeat_target() -> tuple[str, str]:
-        """Pick a routable channel/chat target for heartbeat-triggered messages."""
-        sidebar_state = await asyncio.to_thread(read_webui_sidebar_state)
-        unified_metadata = None
-        if config.agents.defaults.unified_session:
-            record = await session_manager.state.read_metadata(UNIFIED_SESSION_KEY)
-            if isinstance(record, dict) and isinstance(record.get("metadata"), dict):
-                unified_metadata = record["metadata"]
-        return _pick_heartbeat_target_from_sessions(
-            enabled_channels=channels.enabled_channels,
-            sessions=await session_manager.state.list_sessions(),
-            archived_keys=sidebar_state.get("archived_keys", []),
-            unified_session_metadata=unified_metadata,
-        )
 
     if channels.enabled_channels:
         console.print(f"[green]✓[/green] Channels enabled: {', '.join(channels.enabled_channels)}")
@@ -1007,13 +870,11 @@ def _run_claimed_gateway(
             console.print,
         )
         try:
-            await agent.subagents.recover_interrupted()
             # Re-read once on first admission to close the watcher subscription window.
             agent.runtime_resolver.invalidate()
             # Recovery must finish before WebSocket and other channels begin
             # accepting new input.  That makes a new user message reliably
             # supersede an old recoverable turn instead of racing its queue.
-            await recovery.scan()
             await cron.start()
             async def _run_agent() -> None:
                 try:
@@ -1126,7 +987,7 @@ def _run_claimed_gateway(
             finally:
                 restore_shutdown_handlers()
 
-    with webui_turn_coordinator.connected():
+    with connect_run_events(bus):
         if health_server_enabled:
             gateway_runtime.publish_health_host(config.gateway.host)
         asyncio.run(run())

@@ -11,14 +11,10 @@ from typing import Literal, TypedDict, cast
 
 from yoreni import __version__
 
-WEBUI_PROTOCOL = 1
-CORE_CAPABILITY = "webui.core.v1"
-SUBAGENT_CAPABILITY = "webui.subagents.v1"
-SUBAGENT_EVENTS_CAPABILITY = "webui.subagents.events.v1"
-SUBAGENT_HISTORY_CAPABILITY = "webui.subagents.history.v1"
-AUTOMATION_CHAT_CAPABILITY = "webui.automation-chat.v1"
+WEBUI_PROTOCOL = 2
+CORE_CAPABILITY = "webui.core.v2"
 BINARY_ATTACHMENTS_CAPABILITY = "webui.attachments.binary.v1"
-PROMPT_NAVIGATION_CAPABILITY = "webui.prompt-navigation.v1"
+AGENT_CAPABILITY = "webui.agent.v1"
 
 
 class Compatibility(TypedDict):
@@ -33,9 +29,9 @@ def webui_contract() -> dict[str, object]:
         "min_protocol": WEBUI_PROTOCOL,
         "max_protocol": WEBUI_PROTOCOL,
         "capabilities": [
-            CORE_CAPABILITY, SUBAGENT_CAPABILITY, SUBAGENT_EVENTS_CAPABILITY,
-            SUBAGENT_HISTORY_CAPABILITY, AUTOMATION_CHAT_CAPABILITY,
-            BINARY_ATTACHMENTS_CAPABILITY, PROMPT_NAVIGATION_CAPABILITY,
+            CORE_CAPABILITY,
+            BINARY_ATTACHMENTS_CAPABILITY,
+            AGENT_CAPABILITY,
         ],
     }
 

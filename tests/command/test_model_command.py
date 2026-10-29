@@ -16,7 +16,7 @@ from yoreni.command.builtin import (
 )
 from yoreni.command.router import CommandContext, CommandRouter
 from yoreni.config.schema import ModelPresetConfig
-from yoreni.session.history_visibility import HIDDEN_HISTORY_META
+from yoreni.agent.transcript_visibility import HIDDEN_HISTORY_META
 from yoreni.session.model_selection import (
     SESSION_MODEL_PRESET_METADATA_KEY,
     model_preset_from_metadata,

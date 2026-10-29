@@ -20,6 +20,7 @@ from yoreni.agent.context_governance import (
     _request_extends_measured,
 )
 from yoreni.agent.runner import AgentRunner, AgentRunSpec
+from yoreni.agent.summary import SUMMARY_CONTINUATION_TEXT
 from yoreni.config.schema import AgentDefaults, ModelPresetConfig
 from yoreni.events import ContextCompactionEvent, EventSink
 from yoreni.providers.base import (
@@ -33,15 +34,14 @@ from yoreni.providers.base import (
 from yoreni.providers.conversation_state import ProviderConversationStateController
 from yoreni.providers.fallback_provider import FallbackProvider
 from yoreni.runtime_context import public_history_message
-from yoreni.session.summary import SUMMARY_CONTINUATION_TEXT
 
 _MAX_TOOL_RESULT_CHARS = AgentDefaults().max_tool_result_chars
 
 
 def _build_transcript(transcript: TranscriptInput) -> list[dict]:
     system = (
-        transcript.session_summary["text"]
-        if transcript.session_summary is not None
+        transcript.context_summary["text"]
+        if transcript.context_summary is not None
         else "system"
     )
     messages = [{"role": "system", "content": system}, *transcript.history]
@@ -60,7 +60,7 @@ def _governance_config(
         model=spec.runtime.model,
         tools=tools,
         workspace=spec.workspace,
-        session_key=spec.session_key,
+        run_id=spec.run_id,
         max_tool_result_chars=spec.max_tool_result_chars,
         context_window_tokens=spec.runtime.context_window_tokens,
         max_tokens=spec.runtime.generation.max_tokens,
@@ -177,7 +177,7 @@ async def test_runner_summarizes_history_and_preserves_current_input(monkeypatch
                 {"role": "assistant", "content": old_answer},
             ],
             current_message="continue the current task",
-            session_summary=previous,
+            context_summary=previous,
         ),
         transcript_builder=_build_transcript,
         consolidate_history=consolidate,
@@ -746,10 +746,11 @@ async def test_file_reads_that_fit_each_round_are_not_omitted(
 async def test_recovered_file_read_results_survive_session_replay(
     tmp_path, monkeypatch, structured_transcript,
 ):
+    from yoreni.session.manager import SessionManager
+
     from yoreni.agent.loop import AgentLoop
     from yoreni.agent.tools.filesystem import ReadFileTool
     from yoreni.agent.tools.registry import ToolRegistry
-    from yoreni.session.manager import SessionManager
 
     monkeypatch.setattr(
         "yoreni.utils.helpers._get_token_encoding",
@@ -808,7 +809,7 @@ async def test_recovered_file_read_results_survive_session_replay(
         initial_messages=None,
         transcript_input=TranscriptInput(
             history=reopened.get_history(), current_message="which files are still pending?",
-            session_summary=reopened.metadata["_last_summary"],
+            context_summary=reopened.metadata["_last_summary"],
         ),
         transcript_builder=_build_transcript,
         consolidate_history=consolidate,

@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Callable, Protocol, runtime_checkable
 from yoreni.config.network import NetworkConfig
 
 if TYPE_CHECKING:
-    from yoreni.agent.subagent import SubagentManager
+    from yoreni.agent.state import AgentStore
     from yoreni.agent.tools.exec_session import ExecSessionManager
     from yoreni.agent.tools.file_state import FileStates
     from yoreni.agent.tools.runtime_control import RuntimeControl
@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from yoreni.cron.service import CronService
     from yoreni.providers.factory import ProviderSnapshot
     from yoreni.security.workspace_access import WorkspaceSandboxStatus, WorkspaceScope
-    from yoreni.session.manager import SessionManager
     from yoreni.utils.llm_runtime import LLMRuntime
 
 _CURRENT_REQUEST_CONTEXT: ContextVar["RequestContext | None"] = ContextVar(
@@ -34,8 +33,6 @@ class RequestContext:
     channel: str
     chat_id: str
     message_id: str | None = None
-    session_key: str | None = None
-    session_generation: str | None = field(default=None, kw_only=True)
     original_user_text: str | None = None
     runtime: LLMRuntime | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -46,9 +43,9 @@ class RequestContext:
     log_content: bool = True
     # The host can consume completion messages after this request returns.
     can_receive_background_results: bool = True
-    persist_session: bool = True
     # Effective tool scope; injected inputs retain the active run's scope.
     workspace_scope: WorkspaceScope | None = None
+    agent_id: str | None = None
 
 
 @runtime_checkable
@@ -85,9 +82,16 @@ def tool_log_content_allowed() -> bool:
     return ctx is None or ctx.log_content
 
 
-def current_request_session_key() -> str | None:
+
+
+def current_execution_owner() -> str | None:
+    """Scope process execution to a run while retaining agent-wide access."""
     ctx = current_request_context()
-    return ctx.session_key if ctx else None
+    if ctx is None:
+        return None
+    if ctx.agent_id and ctx.turn_id:
+        return f"agent:{ctx.agent_id}:run:{ctx.turn_id}"
+    return ctx.turn_id
 
 
 @dataclass
@@ -96,10 +100,9 @@ class ToolContext:
     workspace: str
     network: NetworkConfig = field(default_factory=NetworkConfig)
     bus: MessageBus | None = None
-    subagent_manager: SubagentManager | None = None
     cron_service: CronService | None = None
     exec_session_manager: ExecSessionManager | None = None
-    sessions: SessionManager | None = None
+    agent_store: AgentStore | None = None
     file_state_store: FileStates | None = None
     provider_snapshot_loader: Callable[..., ProviderSnapshot] | None = None
     providers_config: ProvidersConfig | None = None

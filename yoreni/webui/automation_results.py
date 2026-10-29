@@ -57,7 +57,7 @@ def cron_run_response(runs_dir: Path, job: CronJob, run: CronRunRecord) -> str |
                 records.append(record)
     matching = [record for record in records
                 if record.get("job_id") == job.id
-                and record.get("session_key") == (run.session_key or job.payload.session_key)
+                and record.get("agent_id") == (run.agent_id or job.payload.agent_id)
                 and record.get("status") == run.status]
     if len(matching) != 1:
         return None
@@ -68,12 +68,12 @@ def cron_run_response(runs_dir: Path, job: CronJob, run: CronRunRecord) -> str |
 def trigger_run_response(
     runs_dir: Path, trigger: LocalTrigger, run: TriggerRunRecord,
 ) -> str | None:
-    """Match a trigger delivery by its saved creation time and session, never the latest reply."""
+    """Match a trigger delivery by its saved creation time and Agent, never the latest reply."""
     matching: list[dict[str, object]] = []
     for path in runs_dir.glob("*.json"):
         record = _read_record(path, runs_dir)
         if (record and record.get("trigger_id") == trigger.id
-                and record.get("session_key") == trigger.session_key
+                and record.get("agent_id") == trigger.agent_id
                 and record.get("created_at_ms") == run.run_at_ms
                 and record.get("status") == run.status):
             matching.append(record)

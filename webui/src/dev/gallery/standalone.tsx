@@ -5,8 +5,6 @@ import { ChatList } from "@/components/ChatList";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SidebarResizeHandle } from "@/components/SidebarResizeHandle";
-import { HostSwitcherView } from "@/components/remote/HostSwitcherView";
-import type { HostPicker } from "@/components/remote/host-navigation";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LinearAvatar } from "../../../../yoreni/channels/linear/webui/LinearAvatar";
@@ -22,29 +20,6 @@ function ConnectionPreview() {
   const [status, setStatus] = useState<ConnectionStatus>("open");
   return <><StatePicker label={t("previews.connectionBadge.state")} value={status} options={["idle", "connecting", "open", "reconnecting", "closed", "error"]} onChange={setStatus} />
     <div className="flex items-center gap-3"><ConnectionBadge status={status} /><span className="text-sm">{t(`previews.connectionBadge.${status}`)}</span></div></>;
-}
-
-function HostPickerPreview() {
-  const { t } = useTranslation();
-  const { t: g } = useGalleryTranslation();
-  const [mode, setMode] = useState<"ready" | "pending" | "offline" | "collapsed">("ready");
-  const [currentId, setCurrentId] = useState<string | null>(null);
-  const [action, setAction] = useState("");
-  const profiles: HostPicker["profiles"] = [
-    { id: "gallery-development", name: "开发主机", host: "developer@dev.example", state: "open" },
-    { id: "gallery-build", name: "构建主机", host: "builder@build.example", state: "closed" },
-  ];
-  const selected = profiles.find((profile) => profile.id === currentId);
-  const picker: HostPicker = {
-    kind: "shell", name: selected?.name ?? t("remote.local"), hostname: selected?.host ?? "gallery", localName: "gallery",
-    currentId, profiles, recentIds: [], pending: mode === "pending" ? { id: profiles[0].id, name: profiles[0].name } : null,
-    error: mode === "offline" ? g("previews.hostPicker.offline") : "", offline: mode === "offline",
-    select: (id) => { setCurrentId(id); setMode("ready"); }, manage: () => setAction("previews.hostPicker.manage"),
-    cancel: () => { setMode("ready"); setAction("previews.hostPicker.cancelled"); }, clearError: () => setMode("ready"), restoreFocus: () => {},
-  };
-  return <><StatePicker label={g("previews.hostPicker.state")} value={mode} options={["ready", "pending", "offline", "collapsed"]} onChange={setMode} />
-    <div className="max-w-sm rounded-panel bg-sidebar p-4"><HostSwitcherView picker={picker} status="open" collapsed={mode === "collapsed"} /></div>
-    <p role="status" className="mt-4 text-sm text-muted-foreground">{action ? g(action) : g("previews.hostPicker.selected", { name: picker.name })}</p></>;
 }
 
 const initialSessions: ChatSummary[] = [
@@ -132,9 +107,6 @@ export const standaloneExamples: ComponentExample[] = [
   { title: "previews.connectionBadge.title", files: [`${components}ConnectionBadge.tsx`], Preview: ConnectionPreview,
     description: "previews.connectionBadge.description", options: "previews.connectionBadge.options",
     code: '<ConnectionBadge status={status} />' },
-  { title: "previews.hostPicker.title", files: [`${components}remote/HostSwitcherView.tsx`], Preview: HostPickerPreview,
-    description: "previews.hostPicker.description", options: "previews.hostPicker.options",
-    code: '<HostSwitcherView picker={picker} status="open" collapsed={false} />' },
   { title: "previews.chats.title", files: [`${components}ChatList.tsx`, `${components}SidebarSelectionHighlight.tsx`], Preview: ChatsPreview,
     description: "previews.chats.description", options: "previews.chats.options",
     code: '<ChatList sessions={sessions} activeKey={active} onSelect={setActive} onTogglePin={pin} onToggleArchive={archive} onRequestDelete={remove} onRequestRename={rename} />' },

@@ -72,21 +72,6 @@
     "activate": "Chọn ngăn này để kích hoạt",
     "hint": "Đang hoạt động: {{title}}. Kéo tay nắm bên dưới để di chuyển ngăn, kéo đường biên để đổi kích thước."
   },
-  "hostConnection": {
-    "title": "HostConnectionStatus · Trạng thái kết nối",
-    "description": "So sánh trạng thái đã kết nối, ngắt kết nối, đang kết nối và lỗi.",
-    "options": "state điều khiển biểu tượng và văn bản. compact ẩn văn bản hiển thị nhưng giữ trạng thái hỗ trợ tiếp cận và chú giải.",
-    "state": "Trạng thái kết nối",
-    "withText": "Trạng thái kèm văn bản",
-    "compact": "Hiển thị thu gọn"
-  },
-  "compatibility": {
-    "title": "HostCompatibilityDialog · Tương thích phiên bản",
-    "description": "Xem phiên bản, hướng dẫn chuẩn bị và nâng cấp cho từng kết quả tương thích.",
-    "options": "profile mở hộp thoại; compatibility cung cấp kết quả và phiên bản. onClose đóng hộp thoại. Thành phần này chỉ hiển thị thông tin.",
-    "state": "Tương thích phiên bản",
-    "open": "Xem chi tiết tương thích"
-  },
   "composer": {
     "title": "ThreadComposer · Soạn tin nhắn",
     "description": "Thử tin nhắn, tệp đính kèm, lệnh và trích dẫn ở trạng thái bận hoặc bị vô hiệu hóa.",
@@ -248,31 +233,6 @@
     "options": "Runtime chiếu messages sang giao diện. loading và error dùng thành phần trạng thái lịch sử chung; isStreaming và activeTurnId xác định hoạt động. Giao diện không tải lịch sử.",
     "state": "Trạng thái trò chuyện tác nhân phụ"
   },
-  "pairRoute": {
-    "title": "PairRouteSettingsView · Tuyến ghép nối",
-    "description": "Chọn và lưu tuyến cục bộ, so sánh trạng thái lưu, lỗi và làm mới thất bại.",
-    "options": "Bên gọi quản lý route và original; routes cung cấp tuyến SSH. Lưu thành công và làm mới thư mục thất bại được hiển thị riêng. Thư viện và cài đặt dùng cùng giao diện.",
-    "state": "Trạng thái tuyến"
-  },
-  "quickPair": {
-    "title": "QuickPairSetupView · Ghép nối nhanh",
-    "description": "Thử sao chép lời mời, nhập mã phản hồi, xác nhận quyền, máy chủ hiện có và thử lại.",
-    "options": "state cung cấp trạng thái ghép nối và hiển thị; hàm gọi lại thực hiện thao tác. routeSettings kết hợp cài đặt tuyến. Thư viện dùng dữ liệu ví dụ và hàm cục bộ; QuickPairSetup quản lý ghép nối thực.",
-    "state": "Giai đoạn ghép nối",
-    "open": "Mở ghép nối nhanh",
-    "connected": "Kết nối đã chọn: {{name}}.",
-    "ssh": "Đã chọn kết nối SSH.",
-    "hint": "Lời mời và mã phản hồi ví dụ chỉ để minh họa. Xác nhận chỉ cập nhật phản hồi cục bộ."
-  },
-  "sshHost": {
-    "title": "SSHHostPickerView · Địa chỉ SSH",
-    "description": "Lọc bí danh SSH, chọn bằng phím mũi tên và so sánh nhập, đang tải và lỗi.",
-    "options": "discovery cung cấp máy chủ từ cấu hình hiện tại. Bên gọi điều khiển value, busy, error và hàm gọi lại. customConfig giữ khả năng tìm bí danh từ cấu hình tùy chỉnh; inputRef khôi phục tiêu điểm sau khi chọn.",
-    "state": "Trạng thái địa chỉ SSH",
-    "refreshed": "Đã làm mới địa chỉ ví dụ.",
-    "entered": "Đã nhập: {{value}}",
-    "hint": "Nhập để lọc địa chỉ; dùng phím mũi tên để chọn bí danh SSH."
-  },
   "connectionBadge": {
     "title": "ConnectionBadge · Chỉ báo kết nối",
     "description": "So sánh màu, chuyển động và văn bản trạng thái hỗ trợ tiếp cận.",
@@ -284,16 +244,6 @@
     "reconnecting": "Đang kết nối lại",
     "closed": "Đã ngắt kết nối",
     "error": "Lỗi kết nối"
-  },
-  "hostPicker": {
-    "title": "HostSwitcherView · Menu máy chủ",
-    "description": "Chọn máy cục bộ hoặc máy chủ ví dụ; so sánh đang chờ, ngoại tuyến và thu gọn.",
-    "options": "picker cung cấp dữ liệu máy chủ và hàm gọi lại; status là trạng thái kết nối hiện tại. HostSwitcher thực đăng ký theo dõi client.",
-    "state": "Trạng thái menu máy chủ",
-    "offline": "Máy chủ ví dụ đã ngắt kết nối.",
-    "manage": "Đã mở quản lý kết nối.",
-    "cancelled": "Đã hủy chuyển máy chủ ví dụ.",
-    "selected": "Máy chủ xem trước: {{name}}"
   },
   "chats": {
     "title": "ChatList · Danh sách trò chuyện",

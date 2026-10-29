@@ -58,8 +58,6 @@ RULES = (
       "yoreni/webui/recovery.py", "yoreni/webui/forking.py", "yoreni/session/*", "yoreni/events.py",
       "yoreni/bus/events.py", "yoreni/api/*", "yoreni/channels/websocket/*.py"),
      PYTHON | WEBUI, "shared backend client protocol, transport or session representation"),
-    (("yoreni/webui/local_client_assets.py",), PYTHON | WEBUI | NATIVE,
-     "installed client asset discovery"),
     (("yoreni/webui/*",), PYTHON | WEBUI, "WebUI backend"),
     (("yoreni/bun.py",
       "yoreni/build_info.py", "yoreni/__init__.py", "yoreni/__main__.py",

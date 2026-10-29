@@ -52,7 +52,6 @@ def selected(result):
         (".github/workflows/ci.yml", {"python", "webui", "native"}),
         ("scripts/ci_scope.py", {"python", "webui", "native"}),
         ("yoreni/webui/build.py", {"python", "webui", "native"}),
-        ("yoreni/webui/local_client_assets.py", {"python", "webui", "native"}),
     ],
 )
 def test_existing_path_policy(path, expected):

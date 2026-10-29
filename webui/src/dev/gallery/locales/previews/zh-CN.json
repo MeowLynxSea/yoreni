@@ -72,21 +72,6 @@
     "activate": "选择此窗格以激活",
     "hint": "当前：{{title}}。拖动底部手柄移动窗格，拖动边界调整尺寸。"
   },
-  "hostConnection": {
-    "title": "HostConnectionStatus · 连接状态",
-    "description": "比较已连接、断开、连接中和出错状态。",
-    "options": "state 控制图标与文字；compact 隐藏可见文字，保留可访问状态和悬浮标题。",
-    "state": "连接状态",
-    "withText": "状态与文字",
-    "compact": "紧凑显示"
-  },
-  "compatibility": {
-    "title": "HostCompatibilityDialog · 版本兼容",
-    "description": "查看兼容结果、版本和升级指南。",
-    "options": "profile 存在时打开对话框；compatibility 指定结果与版本。onClose 由调用方关闭；此组件只展示信息。",
-    "state": "版本兼容状态",
-    "open": "查看兼容详情"
-  },
   "composer": {
     "title": "ThreadComposer · 消息输入",
     "description": "试用消息、附件、命令和引用等输入状态。",
@@ -248,31 +233,6 @@
     "options": "messages 已由运行时投影；loading 和 error 复用历史加载组件；isStreaming 与 activeTurnId 决定活动。界面不获取任务历史。",
     "state": "子任务会话状态"
   },
-  "pairRoute": {
-    "title": "PairRouteSettingsView · 配对路由",
-    "description": "选择路由并比较保存与刷新失败状态。",
-    "options": "route 与 original 由调用方管理；routes 提供 SSH 路由。保存成功与目录刷新失败分别呈现；画廊与设置使用同一个视图。",
-    "state": "路由状态"
-  },
-  "quickPair": {
-    "title": "QuickPairSetupView · 快速配对",
-    "description": "试用邀请、回执、访问确认和重试界面。",
-    "options": "state 提供配对和显示状态，回调执行动作，routeSettings 组合路由设置。画廊使用示例数据和本地回调；实际配对由 QuickPairSetup 管理。",
-    "state": "配对阶段",
-    "open": "打开快速配对",
-    "connected": "已选择连接：{{name}}。",
-    "ssh": "已选择 SSH 连接方式。",
-    "hint": "示例邀请与回执仅用于展示；确认动作更新本地反馈。"
-  },
-  "sshHost": {
-    "title": "SSHHostPickerView · SSH 地址",
-    "description": "筛选 SSH 别名并查看导入与读取状态。",
-    "options": "discovery 提供当前配置文件的地址；value、busy、error 与回调由调用方控制。customConfig 保留自定义配置的别名发现行为；inputRef 用于选择后的焦点。",
-    "state": "SSH 地址状态",
-    "refreshed": "已刷新示例地址。",
-    "entered": "已输入：{{value}}",
-    "hint": "输入内容筛选地址；按方向键选择 SSH 别名。"
-  },
   "connectionBadge": {
     "title": "ConnectionBadge · 连接指示",
     "description": "查看连接颜色、动画和可访问状态。",
@@ -284,16 +244,6 @@
     "reconnecting": "重新连接中",
     "closed": "已断开",
     "error": "连接出错"
-  },
-  "hostPicker": {
-    "title": "HostSwitcherView · 主机菜单",
-    "description": "选择主机并比较待连接、断开与收起状态。",
-    "options": "picker 提供主机数据与回调；status 为当前连接状态。生产 HostSwitcher 负责订阅客户端。",
-    "state": "主机菜单状态",
-    "offline": "示例主机已断开。",
-    "manage": "已打开连接管理。",
-    "cancelled": "已取消示例切换。",
-    "selected": "预览中的主机：{{name}}"
   },
   "chats": {
     "title": "ChatList · 会话列表",

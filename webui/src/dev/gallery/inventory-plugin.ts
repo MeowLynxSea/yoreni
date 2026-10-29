@@ -19,7 +19,6 @@ function groupFor(file: string): string {
   if (file.includes("/settings/shared/")) return "Settings / shared";
   if (file.includes("/settings/")) return "Settings";
   if (file.includes("/thread/")) return "Conversation";
-  if (file.includes("/remote/")) return "Hosts";
   if (file.includes("/workbench/")) return "Workbench";
   if (file.includes("/icons/")) return "Icons";
   return "Shared views & shell";

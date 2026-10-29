@@ -72,21 +72,6 @@
     "activate": "Sélectionnez ce volet pour l’activer",
     "hint": "Actif : {{title}}. Faites glisser la poignée inférieure pour déplacer un volet, ses bords pour le redimensionner."
   },
-  "hostConnection": {
-    "title": "HostConnectionStatus · État de connexion",
-    "description": "Comparez les états connecté, déconnecté, en cours de connexion et en erreur.",
-    "options": "state contrôle l’icône et le texte. compact masque le texte visible mais conserve l’état accessible et l’infobulle.",
-    "state": "État de connexion",
-    "withText": "État avec texte",
-    "compact": "Affichage compact"
-  },
-  "compatibility": {
-    "title": "HostCompatibilityDialog · Compatibilité des versions",
-    "description": "Consultez les versions, les préparatifs et le guide de mise à niveau pour chaque résultat.",
-    "options": "Un profile ouvre la boîte de dialogue ; compatibility fournit le résultat et les versions. onClose la ferme. Ce composant affiche uniquement des informations.",
-    "state": "Compatibilité des versions",
-    "open": "Voir les détails de compatibilité"
-  },
   "composer": {
     "title": "ThreadComposer · Saisie des messages",
     "description": "Essayez l’envoi, les pièces jointes, les commandes et les citations, y compris les états occupé et désactivé.",
@@ -248,31 +233,6 @@
     "options": "Le runtime projette messages. loading et error utilisent l’état partagé de l’historique ; isStreaming et activeTurnId identifient l’activité. La vue ne récupère pas l’historique.",
     "state": "État de la discussion du sous-agent"
   },
-  "pairRoute": {
-    "title": "PairRouteSettingsView · Route d’appairage",
-    "description": "Sélectionnez et enregistrez des routes localement, avec les états de sauvegarde et d’erreur.",
-    "options": "L’appelant gère route et original ; routes fournit les routes SSH. Le succès d’enregistrement et l’échec d’actualisation sont distincts. La galerie et les paramètres partagent cette vue.",
-    "state": "État de la route"
-  },
-  "quickPair": {
-    "title": "QuickPairSetupView · Appairage rapide",
-    "description": "Essayez copie d’invitation, saisie du reçu, confirmation d’accès, hôtes existants et nouvelles tentatives.",
-    "options": "state fournit l’état d’appairage et d’affichage ; les rappels exécutent les actions. routeSettings intègre les paramètres de route. La galerie utilise des données d’exemple ; QuickPairSetup gère l’appairage réel.",
-    "state": "Étape d’appairage",
-    "open": "Ouvrir l’appairage rapide",
-    "connected": "Connexion sélectionnée : {{name}}.",
-    "ssh": "Connexion SSH sélectionnée.",
-    "hint": "Les invitations et reçus d’exemple servent uniquement à l’affichage. La confirmation met à jour le retour local."
-  },
-  "sshHost": {
-    "title": "SSHHostPickerView · Adresse SSH",
-    "description": "Filtrez les alias SSH, sélectionnez avec les flèches et comparez import, chargement et erreurs.",
-    "options": "discovery fournit les hôtes de la configuration actuelle. L’appelant contrôle value, busy, error et les rappels. customConfig conserve la découverte d’alias personnalisés ; inputRef rétablit le focus après sélection.",
-    "state": "État de l’adresse SSH",
-    "refreshed": "Adresses d’exemple actualisées.",
-    "entered": "Saisie : {{value}}",
-    "hint": "Saisissez du texte pour filtrer les adresses ; utilisez les flèches pour choisir un alias SSH."
-  },
   "connectionBadge": {
     "title": "ConnectionBadge · Indicateur de connexion",
     "description": "Comparez les couleurs, animations et textes d’état accessibles.",
@@ -284,16 +244,6 @@
     "reconnecting": "Reconnexion en cours",
     "closed": "Déconnecté",
     "error": "Erreur de connexion"
-  },
-  "hostPicker": {
-    "title": "HostSwitcherView · Menu des hôtes",
-    "description": "Choisissez un hôte local ou d’exemple ; comparez attente, déconnexion et repli.",
-    "options": "picker fournit les hôtes et les rappels ; status est l’état de connexion actuel. Le HostSwitcher de production s’abonne au client.",
-    "state": "État du menu des hôtes",
-    "offline": "L’hôte d’exemple est déconnecté.",
-    "manage": "Gestion des connexions ouverte.",
-    "cancelled": "Changement d’hôte d’exemple annulé.",
-    "selected": "Hôte de l’aperçu : {{name}}"
   },
   "chats": {
     "title": "ChatList · Liste des discussions",

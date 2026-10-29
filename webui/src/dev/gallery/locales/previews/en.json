@@ -72,21 +72,6 @@
     "activate": "Select this pane to activate it",
     "hint": "Active: {{title}}. Drag the bottom handle to move a pane; drag its edges to resize."
   },
-  "hostConnection": {
-    "title": "HostConnectionStatus · Connection status",
-    "description": "Compare connected, disconnected, connecting and error states.",
-    "options": "state controls the icon and text. compact hides visible text but keeps the accessible status and tooltip.",
-    "state": "Connection state",
-    "withText": "Status with text",
-    "compact": "Compact display"
-  },
-  "compatibility": {
-    "title": "HostCompatibilityDialog · Version compatibility",
-    "description": "Inspect versions, preparation notes and the upgrade guide for each compatibility result.",
-    "options": "A profile opens the dialog; compatibility supplies the result and versions. onClose closes it. This component only displays information.",
-    "state": "Version compatibility",
-    "open": "View compatibility details"
-  },
   "composer": {
     "title": "ThreadComposer · Message input",
     "description": "Try sending messages, attachments, commands and quotes in busy and disabled states.",
@@ -248,31 +233,6 @@
     "options": "The runtime projects messages. loading and error use the shared history status; isStreaming and activeTurnId identify activity. The view does not fetch history.",
     "state": "Subagent chat state"
   },
-  "pairRoute": {
-    "title": "PairRouteSettingsView · Pairing route",
-    "description": "Select and locally save routes, with saved, saving, error and refresh-failure states.",
-    "options": "The caller manages route and original; routes supplies SSH routes. Save success and directory refresh failure are shown separately. Gallery and settings share this view.",
-    "state": "Route state"
-  },
-  "quickPair": {
-    "title": "QuickPairSetupView · Quick pairing",
-    "description": "Try invitation copying, receipt entry, access confirmation, existing hosts and retries.",
-    "options": "state supplies pairing and display state; callbacks perform actions. routeSettings composes route settings. Gallery uses fixtures and local callbacks; QuickPairSetup manages real pairing.",
-    "state": "Pairing stage",
-    "open": "Open quick pairing",
-    "connected": "Selected connection: {{name}}.",
-    "ssh": "Selected SSH connection.",
-    "hint": "Example invitations and receipts are for display only. Confirmation updates local feedback."
-  },
-  "sshHost": {
-    "title": "SSHHostPickerView · SSH address",
-    "description": "Filter SSH aliases, select with arrow keys, and compare import, loading and error states.",
-    "options": "discovery supplies hosts from the current config. The caller controls value, busy, error and callbacks. customConfig retains custom-config alias discovery; inputRef restores focus after selection.",
-    "state": "SSH address state",
-    "refreshed": "Example addresses refreshed.",
-    "entered": "Entered: {{value}}",
-    "hint": "Type to filter addresses; use arrow keys to select an SSH alias."
-  },
   "connectionBadge": {
     "title": "ConnectionBadge · Connection indicator",
     "description": "Compare connection colors, animations and accessible status text.",
@@ -284,16 +244,6 @@
     "reconnecting": "Reconnecting",
     "closed": "Disconnected",
     "error": "Connection error"
-  },
-  "hostPicker": {
-    "title": "HostSwitcherView · Host menu",
-    "description": "Choose local or example hosts; compare pending, offline and collapsed states.",
-    "options": "picker supplies host data and callbacks; status is the current connection state. Production HostSwitcher subscribes to the client.",
-    "state": "Host menu state",
-    "offline": "The example host is disconnected.",
-    "manage": "Opened connection management.",
-    "cancelled": "Example host switch cancelled.",
-    "selected": "Preview host: {{name}}"
   },
   "chats": {
     "title": "ChatList · Chat list",

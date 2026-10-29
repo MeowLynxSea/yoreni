@@ -72,21 +72,6 @@
     "activate": "このペインを選択して有効にする",
     "hint": "選択中：{{title}}。下部のハンドルをドラッグして移動し、境界をドラッグしてサイズを変更します。"
   },
-  "hostConnection": {
-    "title": "HostConnectionStatus · 接続状態",
-    "description": "接続済み、切断、接続中、エラーの状態を比較できます。",
-    "options": "state がアイコンとテキストを制御します。compact は表示テキストを隠し、アクセシブルな状態とツールチップを残します。",
-    "state": "接続状態",
-    "withText": "テキスト付きの状態",
-    "compact": "コンパクト表示"
-  },
-  "compatibility": {
-    "title": "HostCompatibilityDialog · バージョン互換性",
-    "description": "各互換性結果のバージョン、事前準備、更新ガイドを確認できます。",
-    "options": "profile を渡すとダイアログが開き、compatibility が結果とバージョンを提供します。onClose で閉じます。このコンポーネントは情報の表示のみを行います。",
-    "state": "バージョンの互換性",
-    "open": "互換性の詳細を見る"
-  },
   "composer": {
     "title": "ThreadComposer · メッセージ入力",
     "description": "送信、添付、コマンド、引用と、処理中・無効の状態を試せます。",
@@ -248,31 +233,6 @@
     "options": "messages はランタイムが投影します。loading と error は共通の履歴状態表示を使用し、isStreaming と activeTurnId が活動を指定します。ビューは履歴を取得しません。",
     "state": "サブエージェントのチャット状態"
   },
-  "pairRoute": {
-    "title": "PairRouteSettingsView · ペアリング経路",
-    "description": "経路を選択してローカル保存し、保存中や更新失敗などを比較できます。",
-    "options": "呼び出し元が route と original を管理し、routes が SSH 経路を提供します。保存成功とディレクトリ更新失敗を別々に表示します。ギャラリーと設定は同じビューを使います。",
-    "state": "経路の状態"
-  },
-  "quickPair": {
-    "title": "QuickPairSetupView · クイックペアリング",
-    "description": "招待のコピー、応答コード入力、アクセス確認、既存ホストと再試行を試せます。",
-    "options": "state がペアリングと表示状態を提供し、コールバックが操作を実行します。routeSettings は経路設定を組み込みます。ギャラリーはサンプルとローカル処理を使い、実際のペアリングは QuickPairSetup が管理します。",
-    "state": "ペアリングの段階",
-    "open": "クイックペアリングを開く",
-    "connected": "選択した接続：{{name}}。",
-    "ssh": "SSH 接続を選択しました。",
-    "hint": "サンプルの招待と応答コードは表示専用です。確認操作はローカルの結果表示を更新します。"
-  },
-  "sshHost": {
-    "title": "SSHHostPickerView · SSH アドレス",
-    "description": "SSH エイリアスの絞り込み、矢印キー選択、取り込みや読み込み状態を試せます。",
-    "options": "discovery が現在の設定からホストを提供します。呼び出し元が value、busy、error、コールバックを制御します。customConfig はカスタム設定のエイリアス検出を維持し、inputRef は選択後のフォーカスに使います。",
-    "state": "SSH アドレスの状態",
-    "refreshed": "サンプルアドレスを更新しました。",
-    "entered": "入力内容：{{value}}",
-    "hint": "入力してアドレスを絞り込み、矢印キーで SSH エイリアスを選択してください。"
-  },
   "connectionBadge": {
     "title": "ConnectionBadge · 接続インジケーター",
     "description": "接続状態ごとの色、アニメーション、アクセシブルなテキストを確認できます。",
@@ -284,16 +244,6 @@
     "reconnecting": "再接続中",
     "closed": "切断済み",
     "error": "接続エラー"
-  },
-  "hostPicker": {
-    "title": "HostSwitcherView · ホストメニュー",
-    "description": "ローカルやサンプルホストを選び、接続待ち、オフライン、折りたたみを比較できます。",
-    "options": "picker がホスト情報とコールバック、status が現在の接続状態を提供します。本番の HostSwitcher がクライアントを購読します。",
-    "state": "ホストメニューの状態",
-    "offline": "サンプルホストは切断されています。",
-    "manage": "接続管理を開きました。",
-    "cancelled": "サンプルホストの切り替えをキャンセルしました。",
-    "selected": "プレビューのホスト：{{name}}"
   },
   "chats": {
     "title": "ChatList · チャット一覧",

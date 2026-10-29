@@ -24,7 +24,6 @@ import {
   type SidebarDeleteItem,
   type SidebarPaneGroup,
 } from "@/components/ChatList";
-import { HostSwitcher } from "@/components/remote/HostSwitcher";
 import {
   SIDEBAR_SELECTION_ACTION_ITEM_CLASS,
   SidebarSelectionHighlight,
@@ -336,7 +335,6 @@ export function Sidebar(props: SidebarProps) {
           onIntent={props.onSettingsIntent}
           icon={<SettingsIcon className="h-4 w-4" />}
         />
-        <HostSwitcher collapsed={collapsed} portalContainer={props.containActionMenus ? menuPortalContainer : undefined} />
       </div>
     </nav>
   );

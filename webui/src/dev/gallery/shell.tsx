@@ -13,14 +13,10 @@ import { SlashCommandText } from "@/components/SlashCommandText";
 import { StartupShell } from "@/components/StartupShell";
 import { UserMessageText } from "@/components/UserMessageText";
 import * as ProductIcons from "@/components/icons/product-icons";
-import { HostCompatibilityDialog } from "@/components/remote/HostCompatibilityDialog";
-import { HostConnectionStatus } from "@/components/remote/HostConnectionStatus";
-import type { HostConnectionState } from "@/components/remote/remote-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { PaneWorkbench, type WorkbenchPane } from "@/components/workbench/PaneWorkbench";
-import type { HostCompatibility, RemoteProfile } from "@/lib/remote-instances";
 import type { CliAppInfo, McpPresetInfo, SessionAutomationJob, SessionMention, WorkbenchLayout } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Sample, StatePicker, type ComponentExample } from "./example";
@@ -211,34 +207,6 @@ function WorkbenchPreview() {
   </>;
 }
 
-function ConnectionPreview() {
-  const { t } = useGalleryTranslation();
-  const [state, setState] = useState<HostConnectionState>("open");
-  return <>
-    <StatePicker label={t("previews.hostConnection.state")} value={state} options={["open", "closed", "connecting", "error"]} onChange={setState} />
-    <div className="flex flex-wrap gap-8"><Sample label={t("previews.hostConnection.withText")}><HostConnectionStatus state={state} /></Sample>
-      <Sample label={t("previews.hostConnection.compact")}><HostConnectionStatus state={state} compact /></Sample></div>
-  </>;
-}
-
-function CompatibilityPreview() {
-  const { t } = useGalleryTranslation();
-  const [status, setStatus] = useState<HostCompatibility["status"] | "unchecked">("compatible");
-  const [open, setOpen] = useState(false);
-  const profile: RemoteProfile = {
-    id: "gallery-host", name: "开发主机", host: "dev.example", port: 22, ssh_config: "", identity_file: "",
-    config_path: "~/.yoreni/config.json", runtime_user: "developer", connected: false,
-    compatibility: status === "unchecked" ? undefined : {
-      status, client_version: "0.3.0", host_version: status === "update_host" ? "0.2.0" : status === "update_client" ? "0.4.0" : "0.3.0",
-    },
-  };
-  return <>
-    <StatePicker label={t("previews.compatibility.state")} value={status} options={["compatible", "update_host", "update_client", "unknown", "unchecked"]} onChange={setStatus} />
-    <Button variant="outline" onClick={() => setOpen(true)}>{t("previews.compatibility.open")}</Button>
-    <HostCompatibilityDialog profile={open ? profile : undefined} clientVersion="0.3.0" onClose={() => setOpen(false)} />
-  </>;
-}
-
 const components = "webui/src/components/";
 export const shellExamples: ComponentExample[] = [
   { title: "previews.rename.title", files: ["RenameDialog"], Preview: RenamePreview,
@@ -268,10 +236,4 @@ export const shellExamples: ComponentExample[] = [
   { title: "previews.workbench.title", files: ["workbench/PaneWorkbench"], Preview: WorkbenchPreview,
     description: "previews.workbench.description", options: "previews.workbench.options",
     code: '<PaneWorkbench panes={panes} activePaneKey={active} layout={layout} showLayoutControl onActivatePane={setActive} onAddPane={addPane} onLayoutChange={setLayout} onPaneOrderChange={reorder} renderPane={renderPane} />' },
-  { title: "previews.hostConnection.title", files: ["remote/HostConnectionStatus"], Preview: ConnectionPreview,
-    description: "previews.hostConnection.description", options: "previews.hostConnection.options",
-    code: '<HostConnectionStatus state="connecting" />\n<HostConnectionStatus state="open" compact />' },
-  { title: "previews.compatibility.title", files: ["remote/HostCompatibilityDialog"], Preview: CompatibilityPreview,
-    description: "previews.compatibility.description", options: "previews.compatibility.options",
-    code: '<HostCompatibilityDialog profile={selectedProfile} clientVersion="0.3.0" onClose={close} />' },
 ].map((example) => ({ ...example, files: example.files.map((file) => `${components}${file}.tsx`) }));

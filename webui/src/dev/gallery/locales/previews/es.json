@@ -72,21 +72,6 @@
     "activate": "Selecciona este panel para activarlo",
     "hint": "Activo: {{title}}. Arrastra el tirador inferior para mover un panel y sus bordes para cambiar su tamaño."
   },
-  "hostConnection": {
-    "title": "HostConnectionStatus · Estado de conexión",
-    "description": "Compara los estados conectado, desconectado, conectando y error.",
-    "options": "state controla el icono y el texto. compact oculta el texto visible, pero conserva el estado accesible y la descripción emergente.",
-    "state": "Estado de conexión",
-    "withText": "Estado con texto",
-    "compact": "Vista compacta"
-  },
-  "compatibility": {
-    "title": "HostCompatibilityDialog · Compatibilidad de versiones",
-    "description": "Consulta versiones, preparación y guía de actualización para cada resultado de compatibilidad.",
-    "options": "Un profile abre el diálogo; compatibility aporta el resultado y las versiones. onClose lo cierra. Este componente solo muestra información.",
-    "state": "Compatibilidad de versiones",
-    "open": "Ver detalles de compatibilidad"
-  },
   "composer": {
     "title": "ThreadComposer · Entrada de mensajes",
     "description": "Prueba mensajes, adjuntos, comandos y citas en los estados ocupado y desactivado.",
@@ -248,31 +233,6 @@
     "options": "El entorno de ejecución proyecta messages. loading y error usan el estado compartido del historial; isStreaming y activeTurnId identifican la actividad. La vista no obtiene el historial.",
     "state": "Estado del chat del subagente"
   },
-  "pairRoute": {
-    "title": "PairRouteSettingsView · Ruta de emparejamiento",
-    "description": "Selecciona y guarda rutas localmente, con estados de guardado, error y fallo de actualización.",
-    "options": "El componente padre gestiona route y original; routes aporta rutas SSH. El guardado correcto y el fallo de actualización del directorio se muestran por separado. Galería y ajustes comparten esta vista.",
-    "state": "Estado de la ruta"
-  },
-  "quickPair": {
-    "title": "QuickPairSetupView · Emparejamiento rápido",
-    "description": "Prueba la copia de invitación, el recibo, la confirmación de acceso, hosts existentes y reintentos.",
-    "options": "state aporta el estado visual y del emparejamiento; las funciones ejecutan acciones. routeSettings integra los ajustes de ruta. La galería usa ejemplos y funciones locales; QuickPairSetup gestiona el emparejamiento real.",
-    "state": "Etapa de emparejamiento",
-    "open": "Abrir emparejamiento rápido",
-    "connected": "Conexión seleccionada: {{name}}.",
-    "ssh": "Conexión SSH seleccionada.",
-    "hint": "Las invitaciones y los recibos de ejemplo son solo visuales. La confirmación actualiza el resultado local."
-  },
-  "sshHost": {
-    "title": "SSHHostPickerView · Dirección SSH",
-    "description": "Filtra alias SSH, elige con las flechas y compara importación, carga y errores.",
-    "options": "discovery aporta los hosts de la configuración actual. El componente padre controla value, busy, error y las funciones. customConfig conserva el descubrimiento de alias personalizados; inputRef restaura el foco tras seleccionar.",
-    "state": "Estado de la dirección SSH",
-    "refreshed": "Direcciones de ejemplo actualizadas.",
-    "entered": "Entrada: {{value}}",
-    "hint": "Escribe para filtrar direcciones y usa las flechas para elegir un alias SSH."
-  },
   "connectionBadge": {
     "title": "ConnectionBadge · Indicador de conexión",
     "description": "Compara colores, animaciones y textos de estado accesibles.",
@@ -284,16 +244,6 @@
     "reconnecting": "Reconectando",
     "closed": "Desconectado",
     "error": "Error de conexión"
-  },
-  "hostPicker": {
-    "title": "HostSwitcherView · Menú de hosts",
-    "description": "Elige hosts locales o de ejemplo y compara espera, desconexión y vista contraída.",
-    "options": "picker aporta datos y funciones de los hosts; status es el estado de conexión actual. HostSwitcher de producción se suscribe al cliente.",
-    "state": "Estado del menú de hosts",
-    "offline": "El host de ejemplo está desconectado.",
-    "manage": "Gestión de conexiones abierta.",
-    "cancelled": "Cambio de host de ejemplo cancelado.",
-    "selected": "Host de la vista previa: {{name}}"
   },
   "chats": {
     "title": "ChatList · Lista de chats",

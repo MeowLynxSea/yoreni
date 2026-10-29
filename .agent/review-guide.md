@@ -1,6 +1,6 @@
 # Review guide: independently updated WebUI clients and hosts
 
-Apply this checklist to changes to WebUI HTTP, WebSocket events/mutations, bootstrap, capabilities, host switching, and persisted browser state. Read this alongside the design and security constraints, not instead of them.
+Apply this checklist to changes to WebUI HTTP, WebSocket events/mutations, bootstrap, capabilities, and persisted browser state. Read this alongside the design and security constraints, not instead of them.
 
 ## Compatibility is a contract, not a package-version comparison
 

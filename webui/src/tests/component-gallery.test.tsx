@@ -157,24 +157,6 @@ it("switches the chat list preview between ready, loading, empty and archived st
   expect(preview.getAllByRole("button", { name: /^@/ })).toHaveLength(2);
 });
 
-it("edits a pairing route without mounting a client or making a gateway mutation", async () => {
-  const source = "webui/src/components/remote/PairRouteSettingsView.tsx";
-  window.history.replaceState({}, "", `/gallery.html#${new URLSearchParams({ component: source })}`);
-  const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => inventory });
-  vi.stubGlobal("fetch", fetch);
-  render(<Gallery />);
-  await screen.findByRole("heading", { name: "PairRouteSettingsView · Pairing route" });
-  const preview = within(screen.getByRole("region", { name: "Component preview" }));
-  expect(preview.getByRole("button", { name: "Save changes" })).toBeDisabled();
-  await userEvent.click(preview.getByRole("combobox", { name: "Network route" }));
-  await userEvent.click(screen.getByRole("option", { name: "VPN 路由" }));
-  await userEvent.click(preview.getByRole("button", { name: "Save changes" }));
-  expect(preview.getByRole("status")).toHaveTextContent("Saved");
-  expect(preview.getByRole("button", { name: "Save changes" })).toBeDisabled();
-  expect(fetch).toHaveBeenCalledTimes(1);
-  expect(fetch.mock.calls[0][0]).toBe("/__yoreni_components");
-});
-
 it("uses the real provider manager and saves a new provider entirely in preview state", async () => {
   const source = "webui/src/components/settings/models/ProviderSettings.tsx";
   window.history.replaceState({}, "", `/gallery.html#${new URLSearchParams({ component: source })}`);

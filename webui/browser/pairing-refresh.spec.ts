@@ -24,7 +24,6 @@ for (const width of [1440, 390]) {
       if (path === "/api/sessions") return route.fulfill({ json: { sessions: [] } });
       if (path === "/api/skills") return route.fulfill({ json: { skills: [] } });
       if (path === "/api/webui/sidebar-state") return route.fulfill({ json: {} });
-      if (path === "/api/remote-instances") return route.fulfill({ status: 403, json: {} });
       return route.fulfill({ status: 404, json: {} });
     });
     await page.routeWebSocket("**/pairing-events-fixture*", ws => {

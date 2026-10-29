@@ -4,14 +4,13 @@ import {
   ImageGenerationIcon,
   VoiceIcon,
 } from "@/components/icons/product-icons";
-import { useContext, type Dispatch, type SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import {
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { HostNavigationContext } from "@/components/remote/HostSwitcher";
 import { StarLink } from "@/components/StarPrompt";
 import { AboutSettingsView } from "./AboutSettingsView";
 import { AppearanceSettingsView } from "./AppearanceSettingsView";
@@ -126,7 +125,6 @@ export function OverviewSettings({
 }
 
 export function AboutSettings({ settings }: { settings: SettingsPayload }) {
-  const hostPicker = useContext(HostNavigationContext);
   const currentVersion = settings.version?.current;
   const currentCommit = settings.version?.commit;
   const environment = settings.environment;
@@ -147,8 +145,7 @@ export function AboutSettings({ settings }: { settings: SettingsPayload }) {
   const provider = settings.agent.resolved_provider || settings.agent.provider;
   if (provider) reportIssueUrl.searchParams.set("llm_provider", provider);
   reportIssueUrl.searchParams.set("browser", navigator.userAgent);
-  reportIssueUrl.searchParams.set("connection", hostPicker?.kind === "embedded"
-    ? "Remote host" : hostPicker ? "Local host" : "Direct WebUI");
+  reportIssueUrl.searchParams.set("connection", "Direct WebUI");
   return <AboutSettingsView reportIssueUrl={reportIssueUrl.href}
     version={<VersionRow currentVersion={currentVersion} currentCommit={currentCommit} />}
     starLink={<StarLink />} />;

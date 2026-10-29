@@ -72,21 +72,6 @@
     "activate": "Pilih panel ini untuk mengaktifkannya",
     "hint": "Aktif: {{title}}. Seret pegangan bawah untuk memindahkan panel dan tepinya untuk mengubah ukuran."
   },
-  "hostConnection": {
-    "title": "HostConnectionStatus · Status koneksi",
-    "description": "Bandingkan status terhubung, terputus, menghubungkan, dan kesalahan.",
-    "options": "state mengatur ikon dan teks. compact menyembunyikan teks yang terlihat, tetapi mempertahankan status aksesibel dan tooltip.",
-    "state": "Status koneksi",
-    "withText": "Status dengan teks",
-    "compact": "Tampilan ringkas"
-  },
-  "compatibility": {
-    "title": "HostCompatibilityDialog · Kompatibilitas versi",
-    "description": "Lihat versi, persiapan, dan panduan peningkatan untuk setiap hasil kompatibilitas.",
-    "options": "profile membuka dialog; compatibility menyediakan hasil dan versi. onClose menutupnya. Komponen ini hanya menampilkan informasi.",
-    "state": "Kompatibilitas versi",
-    "open": "Lihat detail kompatibilitas"
-  },
   "composer": {
     "title": "ThreadComposer · Penulisan pesan",
     "description": "Coba pesan, lampiran, perintah, dan kutipan dalam status sibuk dan nonaktif.",
@@ -248,31 +233,6 @@
     "options": "Runtime memproyeksikan messages. loading dan error memakai tampilan status riwayat bersama; isStreaming dan activeTurnId menentukan aktivitas. Tampilan tidak mengambil riwayat.",
     "state": "Status percakapan subagen"
   },
-  "pairRoute": {
-    "title": "PairRouteSettingsView · Rute pemasangan",
-    "description": "Pilih dan simpan rute secara lokal, dengan status penyimpanan, kesalahan, dan kegagalan penyegaran.",
-    "options": "Pemanggil mengelola route dan original; routes menyediakan rute SSH. Penyimpanan berhasil dan penyegaran direktori gagal ditampilkan terpisah. Galeri dan pengaturan memakai tampilan yang sama.",
-    "state": "Status rute"
-  },
-  "quickPair": {
-    "title": "QuickPairSetupView · Pemasangan cepat",
-    "description": "Coba salin undangan, masukkan balasan, konfirmasi akses, host yang ada, dan percobaan ulang.",
-    "options": "state menyediakan status pemasangan dan tampilan; callback menjalankan tindakan. routeSettings menyusun pengaturan rute. Galeri memakai contoh dan callback lokal; QuickPairSetup mengelola pemasangan nyata.",
-    "state": "Tahap pemasangan",
-    "open": "Buka pemasangan cepat",
-    "connected": "Koneksi terpilih: {{name}}.",
-    "ssh": "Koneksi SSH dipilih.",
-    "hint": "Undangan dan balasan contoh hanya untuk tampilan. Konfirmasi memperbarui umpan balik lokal."
-  },
-  "sshHost": {
-    "title": "SSHHostPickerView · Alamat SSH",
-    "description": "Filter alias SSH, pilih dengan tombol panah, dan bandingkan impor, pemuatan, serta kesalahan.",
-    "options": "discovery menyediakan host dari konfigurasi saat ini. Pemanggil mengontrol value, busy, error, dan callback. customConfig mempertahankan penemuan alias konfigurasi khusus; inputRef memulihkan fokus setelah pemilihan.",
-    "state": "Status alamat SSH",
-    "refreshed": "Alamat contoh disegarkan.",
-    "entered": "Masukan: {{value}}",
-    "hint": "Ketik untuk memfilter alamat; gunakan tombol panah untuk memilih alias SSH."
-  },
   "connectionBadge": {
     "title": "ConnectionBadge · Indikator koneksi",
     "description": "Bandingkan warna, animasi, dan teks status yang aksesibel.",
@@ -284,16 +244,6 @@
     "reconnecting": "Menghubungkan ulang",
     "closed": "Terputus",
     "error": "Kesalahan koneksi"
-  },
-  "hostPicker": {
-    "title": "HostSwitcherView · Menu host",
-    "description": "Pilih host lokal atau contoh; bandingkan status menunggu, luring, dan diciutkan.",
-    "options": "picker menyediakan data host dan callback; status adalah status koneksi saat ini. HostSwitcher produksi berlangganan ke klien.",
-    "state": "Status menu host",
-    "offline": "Host contoh terputus.",
-    "manage": "Pengelolaan koneksi dibuka.",
-    "cancelled": "Peralihan host contoh dibatalkan.",
-    "selected": "Host pratinjau: {{name}}"
   },
   "chats": {
     "title": "ChatList · Daftar percakapan",

@@ -3,7 +3,6 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./globals.css";
 import { initializeI18n } from "./i18n";
-import { initializePairReturn } from "./lib/remote-pair-return";
 
 // `crypto.randomUUID` is only defined in secure contexts (HTTPS or localhost).
 // LAN access over plain HTTP leaves it undefined, which crashes components that
@@ -23,9 +22,6 @@ if (typeof globalThis.crypto !== "undefined" && !("randomUUID" in globalThis.cry
 
 const root = document.getElementById("root");
 if (!root) throw new Error("root element missing");
-
-initializePairReturn();
-window.addEventListener("hashchange", initializePairReturn);
 
 async function renderWebui(container: HTMLElement) {
   // The critical skeleton paints immediately; React must wait for the full stylesheet.

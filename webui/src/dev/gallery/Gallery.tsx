@@ -14,7 +14,6 @@ import { providerExamples } from "./providers";
 import { conversationExamples } from "./conversation";
 import { shellExamples } from "./shell";
 import { standaloneExamples } from "./standalone";
-import { remoteExamples } from "./remote";
 import { contentExamples } from "./content";
 import { runtimeSettingsExamples } from "./runtime-settings";
 import { channelExamples, withChannelEntries } from "./channels";
@@ -25,11 +24,11 @@ import { weixinChannelExamples } from "./channels-weixin";
 import { foundationPath, type ComponentSource } from "./inventory";
 import { useGalleryTranslation } from "./i18n";
 
-export const examples = [...foundationExamples, ...sharedExamples, ...settingsExamples, ...providerExamples, ...conversationExamples, ...shellExamples, ...standaloneExamples, ...remoteExamples, ...contentExamples, ...runtimeSettingsExamples,
+export const examples = [...foundationExamples, ...sharedExamples, ...settingsExamples, ...providerExamples, ...conversationExamples, ...shellExamples, ...standaloneExamples, ...contentExamples, ...runtimeSettingsExamples,
   ...channelExamples, ...withChannelEntries([...feishuWhatsAppChannelExamples, ...linearChannelExamples, ...qqChannelExamples, ...weixinChannelExamples])];
 const examplesByPath = new Map(examples.flatMap((example) => example.files.map((file) => [file, example] as const)));
 const groupKeys: Record<string, string> = {
-  All: "all", "Shared views & shell": "shared", Icons: "icons", Hosts: "hosts", Settings: "settings",
+  All: "all", "Shared views & shell": "shared", Icons: "icons", Settings: "settings",
   "Settings / shared": "settingsShared", Conversation: "conversation", Foundations: "foundations", Workbench: "workbench",
 };
 

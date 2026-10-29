@@ -1,6 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
-import { HostNavigationContext } from "@/components/remote/HostSwitcher";
 import { AboutSettings } from "@/components/settings/overview/OverviewSettings";
 import { YoreniClient } from "@/lib/yoreni-client";
 import { ClientProvider } from "@/providers/ClientProvider";
@@ -72,7 +71,7 @@ describe("Settings overview and appearance", () => {
     expect(reportUrl.searchParams.get("additional")).toBeNull();
   });
 
-  it("prefills the remote gateway environment separately from the browser", () => {
+  it("prefills the gateway environment separately from the browser", () => {
     vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Browser on Windows");
     const payload: SettingsPayload = {
       ...settingsPayload(),
@@ -80,9 +79,7 @@ describe("Settings overview and appearance", () => {
     };
     render(
       <ClientProvider client={new YoreniClient({ url: "ws://localhost:8765" })} token="tok">
-        <HostNavigationContext.Provider value={{ kind: "embedded", name: "Remote", hostname: "private-host", open: vi.fn() }}>
-          <AboutSettings settings={payload} />
-        </HostNavigationContext.Provider>
+        <AboutSettings settings={payload} />
       </ClientProvider>,
     );
     const url = new URL(screen.getByRole("link", { name: "Report an issue" }).getAttribute("href")!);
@@ -90,12 +87,11 @@ describe("Settings overview and appearance", () => {
     expect(url.searchParams.get("os")).toBe("macOS 24.4.0 (arm64)");
     expect(url.searchParams.get("channel")).toBe("WebSocket");
     expect(url.searchParams.get("browser")).toBe("Browser on Windows");
-    expect(url.searchParams.get("connection")).toBe("Remote host");
+    expect(url.searchParams.get("connection")).toBe("Direct WebUI");
     expect(url.searchParams.get("model")).toBe("openai/gpt-4o");
     expect(url.searchParams.get("llm_provider")).toBe("openai");
     expect(url.searchParams.get("additional")).toBeNull();
     expect(url.href).not.toContain(encodeURIComponent(payload.runtime.config_path));
-    expect(url.href).not.toContain("private-host");
   });
 
   it("edits browser appearance while gateway settings are pending or unavailable", async () => {

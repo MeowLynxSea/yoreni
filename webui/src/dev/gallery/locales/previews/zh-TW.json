@@ -72,21 +72,6 @@
     "activate": "選擇此窗格以啟用",
     "hint": "目前：{{title}}。拖曳底部把手移動窗格，拖曳邊界調整尺寸。"
   },
-  "hostConnection": {
-    "title": "HostConnectionStatus · 連線狀態",
-    "description": "比較已連線、中斷、連線中與錯誤狀態。",
-    "options": "state 控制圖示與文字；compact 隱藏可見文字，保留無障礙狀態與提示。",
-    "state": "連線狀態",
-    "withText": "狀態與文字",
-    "compact": "精簡顯示"
-  },
-  "compatibility": {
-    "title": "HostCompatibilityDialog · 版本相容",
-    "description": "查看相容結果、版本與升級指南。",
-    "options": "profile 存在時開啟對話框；compatibility 指定結果與版本。onClose 由呼叫端關閉；此元件僅顯示資訊。",
-    "state": "版本相容狀態",
-    "open": "查看相容詳細資訊"
-  },
   "composer": {
     "title": "ThreadComposer · 訊息輸入",
     "description": "試用訊息、附件、指令與引用等輸入狀態。",
@@ -248,31 +233,6 @@
     "options": "messages 已由執行階段投影；loading 與 error 共用歷史載入元件；isStreaming 與 activeTurnId 決定活動。介面不擷取任務歷史。",
     "state": "子任務對話狀態"
   },
-  "pairRoute": {
-    "title": "PairRouteSettingsView · 配對路由",
-    "description": "選擇路由並比較儲存與重新整理失敗狀態。",
-    "options": "route 與 original 由呼叫端管理；routes 提供 SSH 路由。儲存成功與目錄重新整理失敗分別呈現；元件庫與設定共用此檢視。",
-    "state": "路由狀態"
-  },
-  "quickPair": {
-    "title": "QuickPairSetupView · 快速配對",
-    "description": "試用邀請、回執、存取確認與重試介面。",
-    "options": "state 提供配對與顯示狀態，回呼執行操作，routeSettings 組合路由設定。元件庫使用範例資料與本機回呼；實際配對由 QuickPairSetup 管理。",
-    "state": "配對階段",
-    "open": "開啟快速配對",
-    "connected": "已選擇連線：{{name}}。",
-    "ssh": "已選擇 SSH 連線方式。",
-    "hint": "範例邀請與回執僅供展示；確認操作更新本機回饋。"
-  },
-  "sshHost": {
-    "title": "SSHHostPickerView · SSH 位址",
-    "description": "篩選 SSH 別名並查看匯入與讀取狀態。",
-    "options": "discovery 提供目前設定檔的位址；value、busy、error 與回呼由呼叫端控制。customConfig 保留自訂設定的別名探索行為；inputRef 用於選擇後的焦點。",
-    "state": "SSH 位址狀態",
-    "refreshed": "已重新整理範例位址。",
-    "entered": "已輸入：{{value}}",
-    "hint": "輸入文字篩選位址；按方向鍵選擇 SSH 別名。"
-  },
   "connectionBadge": {
     "title": "ConnectionBadge · 連線指示",
     "description": "查看連線色彩、動畫與無障礙狀態。",
@@ -284,16 +244,6 @@
     "reconnecting": "重新連線中",
     "closed": "已中斷",
     "error": "連線錯誤"
-  },
-  "hostPicker": {
-    "title": "HostSwitcherView · 主機選單",
-    "description": "選擇主機並比較待連線、中斷與收合狀態。",
-    "options": "picker 提供主機資料與回呼；status 為目前連線狀態。正式 HostSwitcher 負責訂閱用戶端。",
-    "state": "主機選單狀態",
-    "offline": "範例主機已中斷連線。",
-    "manage": "已開啟連線管理。",
-    "cancelled": "已取消範例切換。",
-    "selected": "預覽中的主機：{{name}}"
   },
   "chats": {
     "title": "ChatList · 對話清單",

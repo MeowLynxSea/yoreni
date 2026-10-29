@@ -1,17 +1,13 @@
-# nanobot WebUI Source
+# WebUI Source
 
-This directory contains the React/TypeScript source for the nanobot WebUI. If you installed `nanobot-ai` from PyPI and only want to use the bundled browser UI, read the user guide in [`docs/webui.md`](../docs/webui.md). You do not need Node.js, Bun, Vite, or anything in this directory unless you are changing the frontend.
-
-For the project overview, install guide, and general docs map, see the root [`README.md`](../README.md) and [`docs/README.md`](../docs/README.md).
+This directory contains the React/TypeScript source for the browser client. Build output is written to `nanobot/web/dist/` and served by the gateway; you do not need Node.js, Bun, or Vite unless you are changing the frontend.
 
 ## Pick a Path
 
 | Goal | Start with | Opens at |
 |---|---|---|
-| Use the bundled browser UI | [`docs/webui.md`](../docs/webui.md) | `http://127.0.0.1:8765` |
-| Use the WebUI from another device | [`docs/webui.md#lan-access`](../docs/webui.md#lan-access) | `http://<your-ip>:8765` |
 | Change WebUI source code | [Develop the WebUI (Vite HMR)](#develop-the-webui-vite-hmr) | `http://127.0.0.1:5173` |
-| Debug setup failures | [`docs/troubleshooting.md#webui-problems`](../docs/troubleshooting.md#webui-problems) | Diagnosis order and common fixes |
+| Build the production bundle | [Build for packaged runtime](#build-for-packaged-runtime) | `nanobot/web/dist/` |
 
 The source app is built with Vite + React 18 + TypeScript + Tailwind 3 + shadcn/ui. It talks to the gateway over the WebSocket multiplex protocol and reads session metadata from the embedded REST surface on the same port.
 
@@ -93,7 +89,7 @@ If your gateway listens on a non-default port, point the dev server at it:
 NANOBOT_API_URL=http://127.0.0.1:9000 bun run dev
 ```
 
-This variable sets the HTTP target. Check the bootstrap response's `ws_url` when HTTP works but chat cannot connect: that address must be reachable by the browser. For a reverse proxy, configure the gateway's `channels.websocket.publicWsUrl` as described in [WebSocket deployment](../docs/websocket.md), rather than adding a Vite WebSocket proxy. If authentication is enabled, use the launcher's full login link or sign in with the configured bootstrap secret.
+This variable sets the HTTP target. Check the bootstrap response's `ws_url` when HTTP works but chat cannot connect: that address must be reachable by the browser. For a reverse proxy, configure the gateway's `channels.websocket.publicWsUrl` rather than adding a Vite WebSocket proxy. If authentication is enabled, use the launcher's full login link or sign in with the configured bootstrap secret.
 
 ## Build for packaged runtime
 

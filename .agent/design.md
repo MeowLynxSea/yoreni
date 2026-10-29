@@ -16,7 +16,7 @@ Generic recovery checkpoints belong in `session/recovery.py`; WebUI recovery and
 
 Core execution, session storage, and security primitives stay independent of API, channel, CLI, and WebUI adapter implementations. Core may consume channel-owned pure address contracts, which must stay independent of runtime implementations. Shared client contracts stay independent of UI implementations, and client initialization dependencies must be acyclic.
 
-Python rules live in [scripts/check_import_boundaries.py](../scripts/check_import_boundaries.py); run `python -m scripts.check_import_boundaries` from the repository root. Client rules live in [scripts/check_client_import_boundaries.mjs](../scripts/check_client_import_boundaries.mjs); run `bun run check:imports` and `bun run test:imports` from `webui/` or `tui/` for that project. These scripts are the source of truth for checked modules, dependency rules, and exceptions.
+Python rules live in [scripts/check_import_boundaries.py](../scripts/check_import_boundaries.py); run `python -m scripts.check_import_boundaries` from the repository root. Client rules live in [scripts/check_client_import_boundaries.mjs](../scripts/check_client_import_boundaries.mjs); run `bun run check:imports` and `bun run test:imports` from `webui/`. These scripts are the source of truth for checked modules, dependency rules, and exceptions.
 
 The checks cover selected direct imports and client initialization dependencies. They do not establish a complete runtime dependency graph; execution, state ownership, and security contracts still require behavioral verification.
 

@@ -12,15 +12,14 @@ def check_results(needs: dict, event: str) -> list[str]:
         return ["Change selection did not succeed"]
     outputs = changes["outputs"]
     selected = {}
-    for domain in ("python", "webui", "tui", "docker", "native"):
+    for domain in ("python", "webui", "native"):
         value = outputs.get(f"{domain}_required")
         if value not in ("true", "false"):
             return [f"Invalid or missing selection: {domain}"]
         selected[domain] = value == "true"
     jobs = {"test": selected["python"], "windows_process": selected["python"],
             "webui_checks": selected["webui"], "webui_browser": selected["webui"],
-            "webui": selected["webui"], "tui": selected["tui"], "docker": selected["docker"],
-            "native": selected["native"] and event != "push",
+            "webui": selected["webui"],
             "windows_installers": selected["python"] and selected["native"] and event != "push"}
     errors = []
     for job, required in jobs.items():

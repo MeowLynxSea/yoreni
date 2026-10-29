@@ -116,7 +116,7 @@ def inspect_installation() -> InstallationSnapshot:
     owner: Owner = "venv"
     if Path("/.dockerenv").exists() or os.environ.get("RENDER") == "true":
         owner = "container"
-    elif (root / "pyproject.toml").is_file() and (root / "tui/package.json").is_file():
+    elif (root / "pyproject.toml").is_file():
         owner = "source"
     elif "uv-receipt.toml" in fresh.records:
         owner = "uv"

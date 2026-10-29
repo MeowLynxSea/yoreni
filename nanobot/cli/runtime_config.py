@@ -156,7 +156,6 @@ def _validate_session_storage(config: Config, *, workspace_override: str | None 
     console.print("  1. Stop the instance and back up its files.")
     console.print("  2. Move config.json and its runtime data outside the workspace.")
     console.print("  3. Restart with --config pointing to the moved config file.")
-    console.print("Migration help: docs/troubleshooting.md")
     raise typer.Exit(1)
 
 

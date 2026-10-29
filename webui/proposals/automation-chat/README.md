@@ -1,6 +1,6 @@
 # Automation chat selection
 
-Chat selection uses the production WebUI and Python gateway. The earlier in-memory preview and its build transform have been removed. See [the user guide](../../../docs/automations.md#change-the-chat-for-a-scheduled-task) for the interaction, limits, and downgrade warning.
+Chat selection uses the production WebUI and Python gateway. The earlier in-memory preview and its build transform have been removed. The proposal is historical; the production behavior is defined by the current source.
 
 ## Design decision
 

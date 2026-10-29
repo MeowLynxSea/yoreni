@@ -21,7 +21,7 @@ Channel = Literal["stable", "preview"]
 Sha256 = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 Commit = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
 
-# Minimums verified against BOTH Bun and the embedded OpenTUI library.
+# Minimums verified against the target platforms.
 PLATFORMS = {
     "darwin-arm64": "macosx_13_0_arm64",
     "darwin-x64": "macosx_13_0_x86_64",
@@ -46,9 +46,6 @@ def release_filenames(version: str) -> set[str]:
     release_version(version)
     names = {f"nanobot_ai-{version}-py3-none-{platform}.whl" for platform in PLATFORMS.values()}
     names.add(f"nanobot_ai-{version}.tar.gz")
-    for target in PLATFORMS:
-        asset = f"nanobot-tui-{target}" + (".exe" if target == "win32-x64" else "")
-        names.update((f"{asset}.zip", f"{asset}.zip.sha256"))
     return names
 
 
@@ -68,7 +65,7 @@ class ReleaseManifest(ReleaseRecord):
     source_commit: Commit
     candidate_commit: Commit
     requires_python: str
-    artifacts: list[ReleaseArtifact] = Field(min_length=16, max_length=16)
+    artifacts: list[ReleaseArtifact] = Field(min_length=6, max_length=6)
 
     _version = field_validator("version")(release_version)
 

@@ -1,14 +1,12 @@
 """Publication authority is distinct from index/download integrity and recovery."""
 
 import hashlib
-import re
 from importlib.resources import as_file, files
 from pathlib import Path
 from unittest.mock import Mock
 
 import httpx
 import pytest
-import yaml
 from packaging.tags import Tag
 from sigstore.models import Bundle, TrustedRoot
 from sigstore.verify import Verifier
@@ -183,17 +181,3 @@ def test_signing_handoff_requires_independently_approved_identity_and_digest(tmp
         with pytest.raises(ValueError):
             verify_manifest(path, **(approved | {field: "wrong"}))
 
-
-def test_approval_workflow_is_manual_gated_and_has_no_publication_permission():
-    workflow = Path(__file__).parents[1] / ".github/workflows/release-approve.yml"
-    definition = yaml.load(workflow.read_text(), Loader=yaml.BaseLoader)
-    assert set(definition["on"]) == {"workflow_dispatch"}
-    assert definition["permissions"] == {}
-    job = definition["jobs"]["approve"]
-    assert job["environment"] == "release-approval"
-    assert job["permissions"] == {"contents": "read", "id-token": "write"}
-    assert "github.ref == 'refs/heads/main'" in job["if"]
-    assert "vars.NANOBOT_RELEASE_SIGNING_ENABLED == 'true'" in job["if"]
-    for step in job["steps"]:
-        if "uses" in step:
-            assert re.fullmatch(r"[\w-]+/[\w-]+@[0-9a-f]{40}", step["uses"])

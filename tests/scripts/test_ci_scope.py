@@ -22,57 +22,45 @@ def selected(result):
 @pytest.mark.parametrize(
     ("path", "expected"),
     [
-        ("docs/releasing.md", set()),
+        (".agent/design.md", set()),
+        ("README.md", set()),
         ("webui/README.md", set()),
-        ("README.md", {"docker"}),
-        ("Dockerfile", {"docker"}),
-        ("entrypoint.sh", {"docker"}),
-        ("tests/test_docker_config.py", {"python", "docker"}),
-        ("tests/test_docker_smoke.py", {"python", "docker"}),
-        ("tests/test_docker.sh", {"docker"}),
         ("tests/webui/fixtures/runtime-config-keys.json", {"python", "webui"}),
         ("tests/session/fixtures/sqlite_v1.sql", {"python"}),
         ("tests/fixtures/sigstore/bundle_v3.txt", {"python", "native"}),
         ("tests/fixtures/sigstore/bundle_v3.txt.sigstore", {"python", "native"}),
         ("tests/fixtures/sigstore/README.md", set()),
         ("tests/fixtures/sigstore/LICENSE", set()),
-        ("webui/package.json", {"webui", "docker"}),
-        ("nanobot/channels/discord/webui/index.ts", {"webui", "docker"}),
-        ("tui/package.json", {"tui", "native"}),
-        ("tui/scripts/build.ts", {"tui", "native"}),
-        ("tui/src/composer/textarea.ts", {"tui"}),
-        ("nanobot/channels/websocket/runtime.py", {"python", "webui", "tui", "docker", "native"}),
-        ("nanobot/providers/registry.py", {"python", "docker"}),
-        ("nanobot/webui/native_file_picker.py", {"python", "webui", "docker"}),
-        ("nanobot/webui/client_contract.py", {"python", "webui", "tui", "docker"}),
-        ("nanobot/webui/forking.py", {"python", "webui", "tui", "docker"}),
-        ("nanobot/cli/webui.py", {"python", "docker", "native"}),
-        ("nanobot/webui/ws_http.py", {"python", "webui", "tui", "docker"}),
-        ("nanobot/session/session_messages.py", {"python", "webui", "tui", "docker"}),
-        ("packages/client-events/notifications.ts", {"webui", "tui", "docker"}),
-        ("nanobot/update_recovery.py", {"python", "docker", "native"}),
-        ("nanobot/release_trust.py", {"python", "docker", "native"}),
-        ("nanobot/gateway/runtime.py", {"python", "docker", "native"}),
-        ("nanobot/process_runtime.py", {"python", "docker", "native"}),
-        ("nanobot/cli/entry.py", {"python", "docker", "native"}),
-        ("nanobot/utils/atomic_file.py", {"python", "docker", "native"}),
+        ("webui/package.json", {"webui"}),
+        ("nanobot/channels/discord/webui/index.ts", {"webui"}),
+        ("nanobot/channels/websocket/runtime.py", {"python", "webui", "native"}),
+        ("nanobot/providers/registry.py", {"python"}),
+        ("nanobot/webui/native_file_picker.py", {"python", "webui"}),
+        ("nanobot/webui/client_contract.py", {"python", "webui"}),
+        ("nanobot/webui/forking.py", {"python", "webui"}),
+        ("nanobot/cli/webui.py", {"python", "native"}),
+        ("nanobot/webui/ws_http.py", {"python", "webui"}),
+        ("nanobot/session/session_messages.py", {"python", "webui"}),
+        ("packages/client-events/notifications.ts", {"webui"}),
+        ("nanobot/update_recovery.py", {"python", "native"}),
+        ("nanobot/release_trust.py", {"python", "native"}),
+        ("nanobot/gateway/runtime.py", {"python", "native"}),
+        ("nanobot/process_runtime.py", {"python", "native"}),
+        ("nanobot/cli/entry.py", {"python", "native"}),
+        ("nanobot/utils/atomic_file.py", {"python", "native"}),
         ("tests/test_update_backup.py", {"python", "native"}),
         ("tests/test_install_scripts.py", {"python", "native"}),
         ("tests/providers/test_cached_tokens.py", {"python"}),
         ("scripts/pytest_timing.py", {"python"}),
         ("tests/scripts/test_pytest_timing.py", {"python"}),
-        ("scripts/verify_packaged_update.py", {"python", "native"}),
-        ("scripts/check_client_import_boundaries.mjs", {"webui", "tui"}),
-        (".github/workflows/release-candidate.yml", {"python", "native"}),
-        (".github/workflows/release-approve.yml", {"python", "native"}),
-        (".github/workflows/tui-release.yml", {"python", "tui", "native"}),
-        ("pyproject.toml", {"python", "webui", "tui", "docker", "native"}),
-        ("hatch_build.py", {"python", "webui", "tui", "docker", "native"}),
-        ("scripts/install_channel_dependencies.py", {"python", "webui", "tui", "docker", "native"}),
-        (".github/workflows/ci.yml", {"python", "webui", "tui", "docker", "native"}),
-        ("scripts/ci_scope.py", {"python", "webui", "tui", "docker", "native"}),
-        ("nanobot/webui/build.py", {"python", "webui", "tui", "docker", "native"}),
-        ("nanobot/webui/local_client_assets.py", {"python", "webui", "docker", "native"}),
+        ("scripts/check_client_import_boundaries.mjs", {"webui"}),
+        ("pyproject.toml", {"python", "webui", "native"}),
+        ("hatch_build.py", {"python", "webui", "native"}),
+        ("scripts/install_channel_dependencies.py", {"python", "webui", "native"}),
+        (".github/workflows/ci.yml", {"python", "webui", "native"}),
+        ("scripts/ci_scope.py", {"python", "webui", "native"}),
+        ("nanobot/webui/build.py", {"python", "webui", "native"}),
+        ("nanobot/webui/local_client_assets.py", {"python", "webui", "native"}),
     ],
 )
 def test_existing_path_policy(path, expected):
@@ -92,8 +80,9 @@ def test_new_or_cross_domain_paths_require_every_job(path):
 
 
 def test_union_preserves_each_reason():
-    result = classify_paths(["docs/releasing.md", "tui/package.json", "nanobot/providers/registry.py"])
-    assert selected(result) == {"python", "docker", "tui", "native"}
+    result = classify_paths(["README.md", "packages/client-events/notifications.ts",
+                             "nanobot/providers/registry.py"])
+    assert selected(result) == {"python", "webui"}
     assert len(result["paths"]) == 3
 
 
@@ -104,11 +93,11 @@ def test_union_preserves_each_reason():
          {"python", "webui"}),
         (["tests/webui/fixtures/runtime-config-keys.json", "nanobot/webui/settings_runtime.py",
           "webui/src/tests/settings-runtime-config.test.tsx"],
-         {"python", "webui", "tui", "docker"}),
+         {"python", "webui"}),
         (["tests/webui/fixtures/runtime-config-keys.json", "tests/fixtures/sigstore/bundle_v3.txt"],
          {"python", "webui", "native"}),
         (["tests/session/fixtures/sqlite_v1.sql", "tests/webui/fixtures/new-contract.json"],
-         {"python", "webui", "tui", "docker", "native"}),
+         {"python", "webui", "native"}),
     ],
 )
 def test_fixture_requirements_combine_with_other_changed_paths(paths, expected):
@@ -141,45 +130,45 @@ def repo(tmp_path):
 
 def test_push_includes_all_commits_not_only_last(repo):
     cwd, _, commit = repo
-    base = commit("docs/guide.md", "initial")
+    base = commit(".agent/guide.md", "initial")
     commit("nanobot/providers/new.py", "production")
     head = commit("webui/src/new.ts", "frontend")
     result = select_scope("push", base, head, cwd=cwd)
-    assert selected(result) == {"python", "webui", "docker"}
+    assert selected(result) == {"python", "webui"}
     assert result["diff_range"] == f"{base}..{head}"
 
 
 def test_pr_uses_merge_base_not_base_tip(repo):
     cwd, git, commit = repo
-    commit("docs/guide.md", "initial")
+    commit(".agent/guide.md", "initial")
     git("checkout", "-b", "feature")
     head = commit("webui/src/new.ts", "frontend")
     git("checkout", "main")
-    base = commit("tui/src/base-only.ts", "base branch only")
-    assert selected(select_scope("pull_request", base, head, cwd=cwd)) == {"webui", "docker"}
-    assert selected(select_scope("push", base, head, cwd=cwd)) == {"webui", "docker", "tui"}
+    base = commit("nanobot/providers/base-only.py", "base branch only")
+    assert selected(select_scope("pull_request", base, head, cwd=cwd)) == {"webui"}
+    assert selected(select_scope("push", base, head, cwd=cwd)) == {"python", "webui"}
 
 
 def test_rename_and_delete_keep_old_domain(repo):
     cwd, git, commit = repo
     commit("nanobot/providers/old.py", "production")
-    base = commit("tui/src/removed.ts", "native package")
-    target = cwd / "docs" / "renamed file.md"
+    base = commit("packages/client-events/removed.ts", "client event package")
+    target = cwd / ".agent" / "renamed file.md"
     target.parent.mkdir()
     (cwd / "nanobot/providers/old.py").rename(target)
-    (cwd / "tui/src/removed.ts").unlink()
+    (cwd / "packages/client-events/removed.ts").unlink()
     git("add", "--all")
     git("commit", "-m", "rename and delete")
     result = select_scope("push", base, git("rev-parse", "HEAD"), cwd=cwd)
-    assert selected(result) == {"python", "docker", "tui"}
+    assert selected(result) == {"python", "webui"}
     assert {item["path"] for item in result["paths"]} == {
-        "nanobot/providers/old.py", "tui/src/removed.ts", "docs/renamed file.md",
+        "nanobot/providers/old.py", "packages/client-events/removed.ts", ".agent/renamed file.md",
     }
 
 
 def test_empty_missing_and_invalid_diff_are_full(repo):
     cwd, _, commit = repo
-    head = commit("docs/guide.md", "initial")
+    head = commit(".agent/guide.md", "initial")
     for base, expected in [(head, "empty diff"), ("0" * 40, "git diff unavailable"), ("--help", "invalid")]:
         result = select_scope("push", base, head, cwd=cwd)
         assert all(result["outputs"].values())
@@ -197,10 +186,10 @@ def test_non_repository_and_dispatch_are_full(tmp_path):
 
 def test_cli_emits_only_fixed_boolean_outputs_and_escaped_summary(repo):
     cwd, git, commit = repo
-    base = commit("docs/guide.md", "initial")
+    base = commit(".agent/guide.md", "initial")
     # A PR authored on Unix can contain names Windows cannot check out or add
     # to its index. Build the actual Git tree directly, without materializing it.
-    blob = git("rev-parse", "HEAD:docs/guide.md")
+    blob = git("rev-parse", "HEAD:.agent/guide.md")
     subtree = git("mktree", "-z", input=f"100644 blob {blob}\t```\npython_required=false<script>.ts\0")
     tree = git("mktree", "-z", input=f"040000 tree {subtree}\twebui\0")
     head = git("commit-tree", tree, "-p", base, "-m", "untrusted filename")
@@ -211,7 +200,7 @@ def test_cli_emits_only_fixed_boolean_outputs_and_escaped_summary(repo):
         env={**os.environ, "GITHUB_OUTPUT": str(output), "GITHUB_STEP_SUMMARY": str(summary)},
     )
     result = json.loads(proc.stdout)
-    assert selected(result) == {"webui", "docker"}
+    assert selected(result) == {"webui"}
     assert output.read_text().splitlines() == [
         f"{job}={str(result['outputs'][job]).lower()}" for job in JOBS
     ]
@@ -221,7 +210,7 @@ def test_cli_emits_only_fixed_boolean_outputs_and_escaped_summary(repo):
     assert json.loads(html.unescape(summary_json)) == result
 
 
-def test_every_frozen_worker_source_selects_native_acceptance(tmp_path):
+def test_every_frozen_worker_source_selects_native_lane(tmp_path):
     from nanobot.update_jobs import _worker_archive
 
     archive = tmp_path / "worker.pyz"

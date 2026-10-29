@@ -21,7 +21,7 @@ from typing import TypedDict
 from packaging.version import Version
 
 from nanobot import __version__
-from nanobot.bun import bun_environment, ensure_bun
+from nanobot.bun import ensure_bun
 from nanobot.installation_lock import (
     InstallationBusyError,
     installation_access,
@@ -68,7 +68,7 @@ def _checked(command: list[str], *, cwd: Path | None = None) -> str:
 
 def source_checkout() -> Path | None:
     root = Path(__file__).resolve().parent.parent
-    if (root / "pyproject.toml").is_file() and (root / "tui/package.json").is_file():
+    if (root / "pyproject.toml").is_file():
         return root
     return None
 
@@ -270,11 +270,6 @@ def update_installation(
             if dev:
                 bun = ensure_bun(output=output)
                 root = _prepare_source(output, before_change=_mark_installing)
-                output("Preparing TUI dependencies…")
-                with bun_environment(bun) as env:
-                    result = _run([bun, "install", "--frozen-lockfile"], cwd=root / "tui", env=env)
-                if result.returncode:
-                    raise UpdateError(f"TUI dependencies failed: {(result.stderr or result.stdout)[-4000:]}")
                 output("Building WebUI…")
                 from nanobot.webui.build import build_webui_bundle
 

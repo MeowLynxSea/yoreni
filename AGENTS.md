@@ -1,6 +1,6 @@
-# Working on nanobot
+# Working on yoreni
 
-The Python gateway owns agent execution, sessions, tools, memory, and security policy. WebUI and TUI share that runtime; keep execution and policy out of the clients.
+The Python gateway owns agent execution, sessions, tools, memory, and security policy. WebUI clients share that runtime; keep execution and policy out of the clients.
 
 ## Task-specific guidance
 
@@ -13,7 +13,7 @@ The Python gateway owns agent execution, sessions, tools, memory, and security p
 | Dependency setup, WebUI transport, config, Windows, prompts, or persistence | [`.agent/gotchas.md`](.agent/gotchas.md) |
 | Reusing verification evidence | [`.agent/workflow.md`](.agent/workflow.md) |
 | WebUI/host compatibility | [`.agent/review-guide.md`](.agent/review-guide.md) |
-| Contribution or publication | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`docs/releasing.md`](docs/releasing.md) |
+| Contribution setup or code style | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 
 ## Development constraints
 

@@ -1,7 +1,7 @@
 """Temporary input compatibility for the former OpenAI API selector.
 
 Keep this conversion for the first two releases shipping it; remove it before
-the third release. The removal checklist is in docs/releasing.md.
+the third release.
 """
 
 from typing import Any

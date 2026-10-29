@@ -518,11 +518,8 @@ def fetch_release(version, manifest_hash, cache, dry_run):
                "win32-x64": "win_amd64"}
     expected = {f"nanobot_ai-{version}-py3-none-{tag}.whl" for tag in targets.values()}
     expected.add(f"nanobot_ai-{version}.tar.gz")
-    for target in targets:
-        name = "nanobot-tui-" + target + (".exe" if target == "win32-x64" else "") + ".zip"
-        expected.update((name, name + ".sha256"))
     artifacts = manifest["artifacts"]
-    if (not isinstance(artifacts, list) or len(artifacts) != 16
+    if (not isinstance(artifacts, list) or len(artifacts) != 6
             or any(not isinstance(item, dict) or set(item) != {"filename", "size", "sha256"}
                    or not isinstance(item["filename"], str) or type(item["size"]) is not int
                    or not 0 < item["size"] <= 2 * 1024**3

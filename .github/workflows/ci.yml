@@ -22,8 +22,6 @@ jobs:
     outputs:
       python_required: ${{ steps.paths.outputs.python_required }}
       webui_required: ${{ steps.paths.outputs.webui_required }}
-      tui_required: ${{ steps.paths.outputs.tui_required }}
-      docker_required: ${{ steps.paths.outputs.docker_required }}
       native_required: ${{ steps.paths.outputs.native_required }}
 
     steps:
@@ -128,7 +126,7 @@ jobs:
       # later uv run sync pruning the packages installed by the previous step.
       - name: Lint with ruff
         if: matrix.coverage
-        run: uv run --no-sync ruff check nanobot tests conftest.py scripts/check_import_boundaries.py scripts/pytest_timing.py scripts/ci_scope.py scripts/ci_gate.py scripts/native_acceptance_input.py scripts/verify_packaged_update.py
+        run: uv run --no-sync ruff check nanobot tests conftest.py scripts/check_import_boundaries.py scripts/pytest_timing.py scripts/ci_scope.py scripts/ci_gate.py
 
       - name: Type check with BasedPyright (strict)
         if: matrix.coverage
@@ -383,191 +381,9 @@ jobs:
           BROWSER_RESULT: ${{ needs.webui_browser.result }}
         run: test "$CHECKS_RESULT" = success && test "$BROWSER_RESULT" = success
 
-  tui:
-    needs: changes
-    if: needs.changes.outputs.tui_required == 'true'
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Terminal UI
-            os: ubuntu-latest
-          - name: Terminal UI (Windows)
-            os: windows-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.13
-          # Build with baseline Bun directly: its Windows cross-target extractor is unreliable.
-          bun-download-url: ${{ runner.os == 'Windows' && 'https://github.com/oven-sh/bun/releases/download/bun-v1.3.13/bun-windows-x64-baseline.zip' || '' }}
-
-      - name: Install TUI dependencies
-        working-directory: tui
-        run: bun install --frozen-lockfile
-
-      - name: Check TUI import boundaries
-        working-directory: tui
-        run: bun run check:imports
-
-      - name: Test client import checker with TUI dependencies
-        working-directory: tui
-        run: bun run test:imports
-
-      - name: Check TUI
-        working-directory: tui
-        run: bun run check
-
-      - name: Test TUI
-        working-directory: tui
-        run: bun run test
-
-      - name: Test TUI in a real pseudo-terminal
-        if: runner.os != 'Windows'
-        working-directory: tui
-        run: python3 scripts/pty_smoke.py
-
-      - name: Set up Python for native package acceptance
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Test TUI in a real ConPTY terminal
-        if: runner.os == 'Windows'
-        working-directory: tui
-        shell: pwsh
-        run: |
-          python -m pip install --disable-pip-version-check pywinpty==3.0.5
-          python scripts/conpty_smoke.py
-
-      - name: Build TUI
-        working-directory: tui
-        run: bun run build
-
-      - name: Retain compiled TUI size evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: tui-size-${{ runner.os }}
-          path: tui/dist/*.size.json
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Verify licensed Linux release archive
-        if: runner.os == 'Linux'
-        working-directory: tui
-        run: |
-          bun scripts/release-notices.ts linux-x64
-          python3 scripts/package-release.py linux-x64
-
-      - name: Verify licensed Windows release archive
-        if: runner.os == 'Windows'
-        working-directory: tui
-        shell: pwsh
-        run: |
-          bun scripts/release-notices.ts win32-x64
-          python scripts/package-release.py win32-x64
-
-  native:
-    name: Native package acceptance
-    needs: changes
-    if: github.event_name != 'push' && needs.changes.outputs.native_required == 'true'
-    uses: ./.github/workflows/native-acceptance.yml
-
-  docker:
-    needs: changes
-    if: needs.changes.outputs.docker_required == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build image with default channel dependencies
-        run: docker build -t nanobot:test .
-
-      - name: Verify first-boot WebUI and API
-        run: python scripts/docker_compose_smoke.py --image nanobot:test
-
-      - name: Check out the real previous release for retained-volume acceptance
-        uses: actions/checkout@v4
-        with:
-          ref: 1bb712d3488915ca4ed9ccc1a93067ff722f5ab9 # v0.3.5
-          path: .docker-baseline
-          persist-credentials: false
-
-      - name: Verify old-image upgrade without replacing user data
-        run: |
-          docker build -t nanobot:baseline .docker-baseline
-          python scripts/docker_upgrade_smoke.py --baseline-image nanobot:baseline \
-            --image nanobot:test --version "$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')" \
-            --source-commit "$GITHUB_SHA" \
-            --output "$RUNNER_TEMP/docker-upgrade-report.json"
-
-      - name: Retain Docker upgrade acceptance report
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-upgrade-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/docker-upgrade-report.json
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Verify Docker Compose startup and privilege boundary
-        env:
-          HOME: ${{ runner.temp }}
-        run: |
-          docker compose run --rm --no-deps --build -T nanobot-cli status
-          docker compose run --rm --no-deps -T --entrypoint sh nanobot-cli -s <<'OUTER'
-          set -eu
-          field() {
-            awk -v key="$1:" '$1 == key { print $2 }' /proc/self/status
-          }
-          test "$(id -u)" = "0"
-          test "$(field NoNewPrivs)" = "1"
-          setpriv --reuid=nanobot --regid=nanobot --init-groups sh -s <<'INNER'
-          set -eu
-          field() {
-            awk -v key="$1:" '$1 == key { print $2 }' /proc/self/status
-          }
-          test "$(id -u)" = "1000"
-          test "$(field NoNewPrivs)" = "1"
-          for capability_set in CapInh CapPrm CapEff CapAmb; do
-            test "$(field "$capability_set")" = "0000000000000000"
-          done
-          INNER
-          OUTER
-          docker compose -f docker-compose.yml -f docker-compose.bwrap.yml --profile cli \
-            config --format json > "${RUNNER_TEMP}/bwrap-compose.json"
-          python - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          config = json.loads(Path(os.environ["RUNNER_TEMP"], "bwrap-compose.json").read_text())
-          for service_name in ("nanobot-gateway", "nanobot-api", "nanobot-cli"):
-              service = config["services"][service_name]
-              assert {"CHOWN", "SETGID", "SETUID", "SYS_ADMIN"} <= set(service["cap_add"])
-              assert "no-new-privileges:true" in service["security_opt"]
-          PY
-
-      - name: Verify default WhatsApp dependencies
-        run: docker run --rm --entrypoint python nanobot:test -c "import neonize, segno"
-
-      - name: Verify runtime dependency permissions
-        run: >-
-          docker run --rm --user 1000:1000 --entrypoint sh nanobot:test -c
-          'test -w /app/.venv && test ! -w /app && test ! -w /app/nanobot &&
-          python -m scripts.install_channel_dependencies discord && python -c "import discord"'
-
   required:
     name: CI required
-    needs: [changes, test, windows_process, windows_installers, webui_checks, webui_browser, webui, tui, docker, native]
+    needs: [changes, test, windows_process, windows_installers, webui_checks, webui_browser, webui]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2

@@ -138,7 +138,7 @@ def verify_target_handoff(wheel: ZipFile) -> None:
 
     Protocol 1 covers request schema 4, protected -I -S gateway startup, scoped
     data grants and exact-run activation. A matching package version or Python
-    filename does not establish that contract. See docs/releasing.md.
+    filename does not establish that contract.
     """
     message = ("This release cannot use this updater's protected restart. "
                "Use the installation owner's external update procedure instead.")

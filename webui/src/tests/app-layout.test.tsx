@@ -3263,7 +3263,6 @@ describe("App layout", () => {
   it("opens the settings view from the sidebar footer", async () => {
     mockFetchRoutes({
       "/api/settings": baseSettingsPayload(),
-      "/api/settings/version-check": { updateAvailable: null },
     });
     render(<App />);
     await waitFor(() => expect(connectSpy).toHaveBeenCalled());
@@ -3281,8 +3280,8 @@ describe("App layout", () => {
     fireEvent.click(within(nav).getByRole("button", { name: "Capabilities" }));
     expect(screen.getByRole("switch", { name: "Image generation" })).toBeInTheDocument();
     fireEvent.click(within(nav).getByRole("button", { name: "About" }));
-    expect(await screen.findByText("You're up to date")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Check again" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /Source code/ })).toBeInTheDocument();
+    expect(screen.getByText("Version")).toBeInTheDocument();
   });
 
   it.each([true, false])("completes focused settings edits before history changes section (saved=%s)", async (saved) => {

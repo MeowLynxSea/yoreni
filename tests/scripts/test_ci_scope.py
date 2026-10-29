@@ -6,7 +6,6 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from zipfile import ZipFile
 
 import pytest
 
@@ -27,10 +26,6 @@ def selected(result):
         ("webui/README.md", set()),
         ("tests/webui/fixtures/runtime-config-keys.json", {"python", "webui"}),
         ("tests/session/fixtures/sqlite_v1.sql", {"python"}),
-        ("tests/fixtures/sigstore/bundle_v3.txt", {"python", "native"}),
-        ("tests/fixtures/sigstore/bundle_v3.txt.sigstore", {"python", "native"}),
-        ("tests/fixtures/sigstore/README.md", set()),
-        ("tests/fixtures/sigstore/LICENSE", set()),
         ("webui/package.json", {"webui"}),
         ("yoreni/channels/discord/webui/index.ts", {"webui"}),
         ("yoreni/channels/websocket/runtime.py", {"python", "webui", "native"}),
@@ -42,13 +37,10 @@ def selected(result):
         ("yoreni/webui/ws_http.py", {"python", "webui"}),
         ("yoreni/session/session_messages.py", {"python", "webui"}),
         ("packages/client-events/notifications.ts", {"webui"}),
-        ("yoreni/update_recovery.py", {"python", "native"}),
-        ("yoreni/release_trust.py", {"python", "native"}),
         ("yoreni/gateway/runtime.py", {"python", "native"}),
         ("yoreni/process_runtime.py", {"python", "native"}),
         ("yoreni/cli/entry.py", {"python", "native"}),
         ("yoreni/utils/atomic_file.py", {"python", "native"}),
-        ("tests/test_update_backup.py", {"python", "native"}),
         ("tests/test_install_scripts.py", {"python", "native"}),
         ("tests/providers/test_cached_tokens.py", {"python"}),
         ("scripts/pytest_timing.py", {"python"}),
@@ -73,7 +65,7 @@ def test_existing_path_policy(path, expected):
 
 @pytest.mark.parametrize("path", [
     "new-domain/source.txt", ".github/workflows/publish-index.yml", "uv.lock",
-    "tests/webui/fixtures/new-contract.json", "tests/fixtures/sigstore/new-proof.sigstore",
+    "tests/webui/fixtures/new-contract.json", "tests/fixtures/new-proof.bin",
 ])
 def test_new_or_cross_domain_paths_require_every_job(path):
     assert all(classify_paths([path])["outputs"].values())
@@ -94,7 +86,7 @@ def test_union_preserves_each_reason():
         (["tests/webui/fixtures/runtime-config-keys.json", "yoreni/webui/settings_runtime.py",
           "webui/src/tests/settings-runtime-config.test.tsx"],
          {"python", "webui"}),
-        (["tests/webui/fixtures/runtime-config-keys.json", "tests/fixtures/sigstore/bundle_v3.txt"],
+        (["tests/webui/fixtures/runtime-config-keys.json", "scripts/install.sh"],
          {"python", "webui", "native"}),
         (["tests/session/fixtures/sqlite_v1.sql", "tests/webui/fixtures/new-contract.json"],
          {"python", "webui", "native"}),
@@ -208,17 +200,3 @@ def test_cli_emits_only_fixed_boolean_outputs_and_escaped_summary(repo):
     assert "\\npython_required=false" in summary.read_text()
     summary_json = summary.read_text().split("<pre>", 1)[1].removesuffix("</pre>\n")
     assert json.loads(html.unescape(summary_json)) == result
-
-
-def test_every_frozen_worker_source_selects_native_lane(tmp_path):
-    from yoreni.update_jobs import _worker_archive
-
-    archive = tmp_path / "worker.pyz"
-    _worker_archive(archive)
-    with ZipFile(archive) as bundle:
-        sources = ["yoreni/" + name.removeprefix("_yoreni_update/")
-                   for name in bundle.namelist()
-                   if name.startswith("_yoreni_update/") and not name.endswith("__init__.py")]
-    assert sources
-    for path in sources:
-        assert classify_paths([path])["outputs"]["native_required"], path

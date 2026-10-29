@@ -481,15 +481,10 @@
     "hint": "Escolha um chat de destino e confirme ou edite as instruções da tarefa."
   },
   "about": {
-    "title": "Sobre e versão",
-    "description": "Compare estados de versão, links de commits, atualizações e a página Sobre; os botões exibem resultados de exemplo.",
-    "options": "AboutSettingsView aceita uma composição de links de versão e suporte. VersionCheckRowView exibe checking/result e solicita verificações por onCheck. O ponto de entrada gerencia as verificações reais e os dados dos links de diagnóstico.",
-    "error": "Não foi possível obter a versão. Tente novamente.",
-    "state": "Estado da versão",
-    "selectedLink": "Link do GitHub selecionado",
-    "preferenceSaved": "Preferência de exemplo salva; nada será instalado ou reiniciado.",
-    "updateRequested": "Revisão da atualização selecionada; esta prévia não instala nem reinicia nada.",
-    "dismissed": "Aviso de atualização dispensado"
+    "title": "Página Sobre",
+    "description": "Mostra a página Sobre com a versão reportada, o commit e os links de suporte.",
+    "options": "AboutSettingsView recebe uma linha de versão já composta e os links de suporte. O ponto de entrada do recurso fornece a versão e o ambiente do link de relato.",
+    "selectedLink": "Link do GitHub selecionado"
   },
   "appearance": {
     "title": "Preferências de aparência",

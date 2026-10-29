@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 
 import { SettingsGroup } from "@/components/settings/shared/SettingsControls";
 
-export function AboutSettingsLayout({ versionCheck, links, starLink }: {
-  versionCheck: ReactNode;
+export function AboutSettingsLayout({ version, links, starLink }: {
+  version: ReactNode;
   links: ReactNode;
   starLink: ReactNode;
 }) {
@@ -14,15 +14,15 @@ export function AboutSettingsLayout({ versionCheck, links, starLink }: {
       <img src="/brand/yoreni_mark.svg" alt="" className="h-16 w-16 select-none" draggable={false} />
       <h1><img src="/brand/yoreni_wordmark.svg" alt="yoreni" width={800} height={164} className="h-auto w-40 select-none dark:brightness-150" draggable={false} /></h1>
     </div>
-    {versionCheck}
+    {version}
     {links}
     <div className="mt-auto pt-8 text-center">{starLink}</div>
   </div>;
 }
 
-export function AboutSettingsView({ reportIssueUrl, versionCheck, starLink }: {
+export function AboutSettingsView({ reportIssueUrl, version, starLink }: {
   reportIssueUrl: string;
-  versionCheck: ReactNode;
+  version: ReactNode;
   starLink: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -32,7 +32,7 @@ export function AboutSettingsView({ reportIssueUrl, versionCheck, starLink }: {
     { key: "reportIssue", icon: MessageCircle, href: reportIssueUrl },
   ];
   return (
-    <AboutSettingsLayout versionCheck={versionCheck} starLink={starLink} links={
+    <AboutSettingsLayout version={version} starLink={starLink} links={
       <SettingsGroup>
         {links.map(({ key, icon: Icon, href }) => (
           <a key={key} href={href} target="_blank" rel="noopener noreferrer"

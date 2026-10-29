@@ -6,12 +6,6 @@ install_target="$package"
 install_source="PyPI"
 dry_run="0"
 yoreni_python=""
-release_wheel=""
-release_sha256=""
-release_kind=""
-expected_version=""
-release_version=""
-manifest_sha256=""
 
 info() {
   printf '%s\n' "$*"
@@ -23,11 +17,7 @@ fail() {
 }
 
 install_failure_hint() {
-  printf '%s\n' "Error: could not install yoreni from $install_source." >&2
-  if [ -n "$expected_version" ]; then
-    printf '%s\n' "Inspect the original manager error and retry this exact handoff. No setup or other installation was attempted." >&2
-    exit 1
-  fi
+  printf '%s\n' "Error: could not install yoreni." >&2
   printf '%s\n' "If pip mentioned externally-managed-environment, use uv, pipx, or a virtual environment instead of system pip." >&2
   printf '%s\n' "You can also run manually:" >&2
   printf '  %s\n' "uv tool install --force --upgrade $install_target" >&2
@@ -40,16 +30,12 @@ install_failure_hint() {
 
 usage() {
   cat <<'EOF'
-Usage: install.sh [--dry-run] [--wheel PATH --sha256 HASH]
-       install.sh [--dry-run] --release VERSION --manifest-sha256 HASH
+Usage: install.sh [--dry-run]
 
-By default this installs or upgrades yoreni from PyPI.
-Use --dry-run to print what would happen without installing or starting setup.
-For a verified release handoff, use --wheel and --sha256 together. Keep that
-downloaded wheel in place; your manager may record it as the installation source.
-Stop affected gateways and back up their data before updating an existing install.
---release downloads the matching platform wheel from the official release using
-its published manifest hash. This selects one version, not a Preview subscription.
+This installs or upgrades yoreni from PyPI with an existing manager or a
+dedicated virtual environment. Use --dry-run to print what would happen
+without installing or starting setup.
+Stop affected gateways and back up their data before upgrading an existing install.
 
 For current main, clone the repository and run `python -m pip install -e .`.
 EOF
@@ -129,7 +115,7 @@ ensure_pip() {
 select_installed_python() {
   # Keep the venv interpreter path (resolving its symlink would select base Python).
   # Isolated mode also prevents a checkout/PYTHONPATH from shadowing the new package.
-  yoreni_python="$("$1" -I - "$2" "$expected_version" <<'PY'
+  yoreni_python="$("$1" -I - "$2" <<'PY'
 import sys
 from importlib.metadata import distribution
 from pathlib import Path
@@ -143,8 +129,6 @@ if sys.prefix == sys.base_prefix or (expected and prefix != Path(expected).resol
     raise SystemExit("The installed interpreter does not belong to the expected virtual environment")
 if not package.is_relative_to(prefix) or package != Path(distribution("yoreni").locate_file("yoreni/__init__.py")).resolve():
     raise SystemExit("yoreni imports from outside the installed package")
-if sys.argv[2] and distribution("yoreni").version != sys.argv[2]:
-    raise SystemExit("The requested version was not installed. Check manager pins or locks; no setup was started.")
 print(Path(sys.executable).absolute())
 PY
   )" || fail "The installed yoreni environment could not be verified. No setup or other installation was attempted."
@@ -210,7 +194,7 @@ install_with_pipx() {
   [ -n "$tool_dir" ] || fail "pipx returned an empty environments directory"
   if [ -f "$tool_dir/$package/pipx_metadata.json" ]; then
     # Bootstrap must not import the installed application or expose private options.
-    "$python_bin" -I - "$tool_dir/$package/pipx_metadata.json" "$expected_version" <<'PY' || fail "Review the original pipx installation settings; no installation was attempted."
+    "$python_bin" -I - "$tool_dir/$package/pipx_metadata.json" <<'PY' || fail "Review the original pipx installation settings; no installation was attempted."
 import json
 import re
 import sys
@@ -222,21 +206,16 @@ try:
         raise ValueError
     record = json.loads(path.read_text(encoding="utf-8"))
     main = record["main_package"]
-    name = r"(?i)yoreni[-_.]ai(?:\[[a-z0-9_., -]+\])?"
+    name = r"(?i)yoreni(?:\[[a-z0-9_., -]+\])?"
     spec = main["package_or_url"]
-    # An explicit wheel may replace an earlier wheel source, but not discard
-    # registry constraints, lock workflows or recorded installer options.
-    allowed = re.fullmatch(name, spec) or (sys.argv[2] and re.fullmatch(name + r"\s*@\s*\S+\.whl", spec))
+    # Never discard registry constraints, lock workflows or recorded options.
+    allowed = re.fullmatch(name, spec)
     if record["pipx_metadata_version"] not in {"0.5", "0.12"} or not allowed or main.get("pip_args") or main.get("lock_file"):
         raise ValueError
 except (OSError, ValueError, KeyError, TypeError):
     raise SystemExit("Cannot safely reuse pipx installation settings; inspect the original requirement and options.") from None
 PY
-    if [ -n "$expected_version" ]; then
-      pipx install --skip-maintenance --upgrade "$install_target" || fail "pipx could not upgrade yoreni. Resolve the error above and retry; no other installation was attempted."
-    else
-      pipx upgrade "$package" || fail "pipx could not upgrade yoreni. Resolve the error above and retry; no other installation was attempted."
-    fi
+    pipx upgrade "$package" || fail "pipx could not upgrade yoreni. Resolve the error above and retry; no other installation was attempted."
   elif [ -e "$tool_dir/$package" ]; then
     fail "The pipx environment exists without its installation record. Repair it with pipx before rerunning this installer."
   else
@@ -320,19 +299,6 @@ PY
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --wheel|--sha256|--release|--manifest-sha256)
-      [ "$#" -ge 2 ] || fail "$1 requires a value"
-      case "$1" in --wheel|--sha256) wanted_kind="wheel" ;; *) wanted_kind="release" ;; esac
-      [ -z "$release_kind" ] || [ "$release_kind" = "$wanted_kind" ] || fail "Choose --release or --wheel, not both"
-      release_kind="$wanted_kind"
-      case "$1" in
-        --wheel) release_wheel="$2" ;;
-        --sha256) release_sha256="$2" ;;
-        --release) release_version="$2" ;;
-        --manifest-sha256) manifest_sha256="$2" ;;
-      esac
-      shift
-      ;;
     --dev)
       fail "--dev installed an untracked main snapshot and is no longer supported; clone the repository and run 'python -m pip install -e .' instead"
       ;;
@@ -365,208 +331,6 @@ fi
 info "Using Python: $("$python_bin" --version 2>&1)"
 select_install_method
 
-if [ -n "$release_kind" ]; then
-  if [ "$release_kind" = "release" ]; then
-    [ -n "$release_version" ] && [ -n "$manifest_sha256" ] || fail "--release and --manifest-sha256 must be supplied together"
-    [ -z "$release_wheel$release_sha256" ] || fail "Choose --release or --wheel, not both"
-    [ -n "${HOME:-}" ] || fail "HOME is required to retain the downloaded release"
-  else
-    [ -n "$release_wheel" ] && [ -n "$release_sha256" ] || fail "--wheel and --sha256 must be supplied together"
-  fi
-  target_python="$python_bin"
-  case "$install_method" in
-    uv) [ ! -x "$uv_dir/$package/bin/python" ] || target_python="$uv_dir/$package/bin/python" ;;
-    pipx) [ ! -x "$pipx_dir/$package/bin/python" ] || target_python="$pipx_dir/$package/bin/python" ;;
-    managed)
-      candidate_python="${YORENI_VENV:-${HOME:-}/.yoreni/venv}/bin/python"
-      [ ! -x "$candidate_python" ] || target_python="$candidate_python"
-      ;;
-  esac
-  owner_record="-"
-  if [ "$install_method" = "pipx" ]; then owner_record="$pipx_dir/$package/pipx_metadata.json"; fi
-  wheel_identity="$("$target_python" -I - "$release_wheel" "$release_sha256" "$owner_record" "$release_version" "$manifest_sha256" "${YORENI_RELEASE_CACHE:-${HOME:-}/.yoreni/downloads/releases}" "$dry_run" <<'PY'
-import hashlib
-import json
-import re
-import sys
-from email.parser import BytesParser
-from pathlib import Path
-from zipfile import ZipFile
-
-import os
-import platform
-import struct
-import sysconfig
-import tempfile
-from urllib.parse import urlsplit
-from urllib.request import HTTPRedirectHandler, Request, build_opener
-
-# Bootstrap has no installed yoreni/packaging dependency. This closed platform
-# set matches the five published wheel tags; the owner still checks compatibility.
-def native_platform():
-    if struct.calcsize("P") != 8:
-        raise SystemExit("No native release wheel is available for 32-bit Python")
-    machine = platform.machine().lower()
-    if sys.platform == "darwin":
-        if int(platform.mac_ver()[0].split(".")[0]) < 13:
-            raise SystemExit("The native release requires macOS 13 or newer")
-        if machine in ("arm64", "x86_64"):
-            return "macosx_13_0_" + machine
-    elif sys.platform == "linux":
-        try:
-            libc = os.confstr("CS_GNU_LIBC_VERSION") or ""
-        except (ValueError, OSError):
-            libc = ""
-        if not re.fullmatch(r"glibc \d+\.\d+", libc) or tuple(map(int, libc.split()[1].split("."))) < (2, 17):
-            raise SystemExit("The native release requires glibc 2.17+; no musl wheel is published")
-        if machine in ("aarch64", "x86_64"):
-            return "manylinux_2_17_" + machine
-    elif sys.platform == "win32" and sysconfig.get_platform() == "win-amd64":
-        return "win_amd64"
-    raise SystemExit("No native release wheel is published for this Python platform")
-
-def checked_url(url):
-    parsed = urlsplit(url)
-    if (parsed.scheme != "https" or parsed.hostname not in
-            {"github.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com"}
-            or parsed.username is not None or parsed.password is not None
-            or parsed.port not in (None, 443) or parsed.fragment):
-        raise SystemExit("Release download redirected outside the approved HTTPS hosts")
-    return url
-
-class ReleaseRedirect(HTTPRedirectHandler):
-    max_redirections = 4
-    max_repeats = 1
-
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        checked_url(newurl)
-        return super().redirect_request(req, fp, code, msg, headers, newurl)
-
-def fetch_release(version, manifest_hash, cache, dry_run):
-    number = r"(?:0|[1-9]\d*)"
-    if not re.fullmatch(rf"{number}\.{number}\.{number}(?:\.dev{number}|\.post{number})?", version):
-        raise SystemExit("Expected a canonical release version, not a branch or URL")
-    if not re.fullmatch(r"[0-9a-f]{64}", manifest_hash):
-        raise SystemExit("A trusted published manifest SHA-256 is required")
-    selected_platform = native_platform()
-    base = "https://github.com/MeowLynxSea/yoreni/releases/download/v" + version + "/"
-    opener = build_opener(ReleaseRedirect())
-    with opener.open(Request(checked_url(base + "release-manifest.json"),
-                             headers={"Accept-Encoding": "identity"}), timeout=20) as response:
-        payload = response.read(64 * 1024 + 1)
-    if len(payload) > 64 * 1024 or hashlib.sha256(payload).hexdigest() != manifest_hash:
-        raise SystemExit("Release manifest size or SHA-256 mismatch")
-    manifest = json.loads(payload)
-    if (not isinstance(manifest, dict) or type(manifest.get("schema_version")) is not int
-            or manifest["schema_version"] != 1 or manifest.get("version") != version
-            or set(manifest) != {"schema_version", "version", "source_commit", "candidate_commit",
-                                 "requires_python", "artifacts"}):
-        raise SystemExit("Unsupported or mismatched release manifest")
-    for key in ("source_commit", "candidate_commit"):
-        if not isinstance(manifest[key], str) or not re.fullmatch(r"[0-9a-f]{40}", manifest[key]):
-            raise SystemExit("Invalid release commit identity")
-    if not isinstance(manifest["requires_python"], str) or not 0 < len(manifest["requires_python"]) <= 200:
-        raise SystemExit("Invalid Python requirement in release manifest")
-    targets = {"darwin-arm64": "macosx_13_0_arm64", "darwin-x64": "macosx_13_0_x86_64",
-               "linux-arm64": "manylinux_2_17_aarch64", "linux-x64": "manylinux_2_17_x86_64",
-               "win32-x64": "win_amd64"}
-    expected = {f"yoreni-{version}-py3-none-{tag}.whl" for tag in targets.values()}
-    expected.add(f"yoreni-{version}.tar.gz")
-    artifacts = manifest["artifacts"]
-    if (not isinstance(artifacts, list) or len(artifacts) != 6
-            or any(not isinstance(item, dict) or set(item) != {"filename", "size", "sha256"}
-                   or not isinstance(item["filename"], str) or type(item["size"]) is not int
-                   or not 0 < item["size"] <= 2 * 1024**3
-                   or not isinstance(item["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", item["sha256"])
-                   for item in artifacts)
-            or {item["filename"] for item in artifacts} != expected):
-        raise SystemExit("Release manifest does not contain the complete matching artifact set")
-    filename = f"yoreni-{version}-py3-none-{selected_platform}.whl"
-    artifact = next(item for item in artifacts if item["filename"] == filename)
-    if dry_run:
-        print("yoreni @ " + base + filename + "#sha256=" + artifact["sha256"] + "|" + version)
-        raise SystemExit(0)
-    directory = Path(cache).expanduser().absolute() / version / artifact["sha256"]
-    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-    destination = directory / filename
-    if destination.exists() or destination.is_symlink():
-        if destination.is_symlink() or not destination.is_file() or destination.stat().st_size != artifact["size"]:
-            raise SystemExit("Invalid cached release file; inspect the release download directory")
-        return destination, artifact["sha256"]
-    descriptor, name = tempfile.mkstemp(prefix=".download-", suffix=".part", dir=directory)
-    temporary = Path(name)
-    try:
-        size = 0
-        digest = hashlib.sha256()
-        with os.fdopen(descriptor, "wb") as output:
-            with opener.open(Request(checked_url(base + filename),
-                                     headers={"Accept-Encoding": "identity"}), timeout=20) as response:
-                while chunk := response.read(64 * 1024):
-                    size += len(chunk)
-                    if size > artifact["size"]:
-                        raise SystemExit("Release wheel exceeds its verified size")
-                    digest.update(chunk)
-                    output.write(chunk)
-        if size != artifact["size"] or digest.hexdigest() != artifact["sha256"]:
-            raise SystemExit("Release wheel size or SHA-256 mismatch")
-        try:
-            os.link(temporary, destination)
-        except FileExistsError:
-            if destination.is_symlink() or not destination.is_file() or destination.stat().st_size != size:
-                raise SystemExit("The cached release destination changed during download")
-        return destination, artifact["sha256"]
-    finally:
-        temporary.unlink(missing_ok=True)
-
-expected_hash = sys.argv[2]
-if sys.argv[4] not in ("", "-"):
-    path, expected_hash = fetch_release(sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7] == "1")
-else:
-    path = Path(sys.argv[1]).absolute()
-match = re.fullmatch(r"yoreni-(\d+\.\d+\.\d+(?:\.dev\d+|\.post\d+)?)-py3-none-(macosx_13_0_(?:arm64|x86_64)|manylinux_2_17_(?:aarch64|x86_64)|win_amd64)\.whl", path.name)
-if not match or path.is_symlink() or not path.is_file() or not re.fullmatch(r"[0-9a-f]{64}", expected_hash):
-    raise SystemExit("Expected a saved native yoreni wheel and its published SHA-256")
-with path.open("rb") as stream:
-    if hashlib.file_digest(stream, "sha256").hexdigest() != expected_hash:
-        raise SystemExit("Wheel SHA-256 mismatch; no package manager was started")
-version = match[1]
-with ZipFile(path) as wheel:
-    metadata_path = f"yoreni-{version}.dist-info/METADATA"
-    if wheel.getinfo(metadata_path).file_size > 256 * 1024:
-        raise SystemExit("Wheel metadata exceeds its size limit")
-    metadata = BytesParser().parsebytes(wheel.read(metadata_path))
-    if metadata["Name"] != "yoreni" or metadata["Version"] != version:
-        raise SystemExit("Wheel identity does not match its filename")
-extras = []
-record = Path(sys.argv[3])
-if sys.argv[3] != "-" and record.is_file():
-    if record.stat().st_size > 1024 * 1024:
-        raise SystemExit("pipx installation record is too large; inspect it before updating")
-    spec = json.loads(record.read_text(encoding="utf-8"))["main_package"]["package_or_url"]
-    extra_match = re.match(r"(?i)^yoreni[-_.]ai\[([a-z0-9_., -]+)\]", spec)
-    if extra_match:
-        extras = sorted({re.sub(r"[-_.]+", "-", extra.strip().lower()) for extra in extra_match[1].split(",")})
-        if any(not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", extra) for extra in extras):
-            raise SystemExit("Cannot preserve pipx extras; review the installation manually")
-    elif "[" in spec:
-        raise SystemExit("Cannot preserve pipx extras; review the installation manually")
-    provided = {re.sub(r"[-_.]+", "-", extra.lower()) for extra in metadata.get_all("Provides-Extra", [])}
-    if not set(extras) <= provided:
-        raise SystemExit("The target wheel does not provide all existing pipx extras")
-requirement = "yoreni" + ("[" + ",".join(extras) + "]" if extras else "")
-print(requirement + " @ " + path.as_uri() + "|" + version)
-PY
-  )" || fail "Release verification failed; no installation was attempted."
-  install_target="${wheel_identity%|*}"
-  expected_version="${wheel_identity##*|}"
-  install_source="verified wheel $expected_version"
-  if [ "$release_kind" = "release" ] && [ "$dry_run" = "1" ]; then
-    info "Selected yoreni $expected_version from verified release metadata; its wheel was not downloaded."
-  else
-    info "Verified yoreni $expected_version. Keep the downloaded wheel at its current path."
-  fi
-fi
-
 if [ "$dry_run" = "1" ]; then
   info "Dry run: would install or upgrade yoreni from $install_source."
   if [ "$install_method" = "python" ]; then
@@ -588,7 +352,7 @@ if [ "$dry_run" = "1" ]; then
     info "Dry run: would skip automatic setup because YORENI_SKIP_WIZARD=1."
   elif is_fresh_yoreni_install && has_browser_session; then
     info "Dry run: would start the WebUI for this fresh desktop install."
-    info "Dry run: would fall back to the setup wizard for older releases."
+    info "Dry run: would fall back to the setup wizard if this build lacks a WebUI."
   else
     info "Dry run: would run the setup wizard."
   fi
@@ -624,7 +388,7 @@ if is_fresh_yoreni_install && has_browser_session; then
     run_yoreni webui --yes
     exit 0
   fi
-  info "The installed release does not support yoreni webui yet."
+  info "This yoreni build does not support the WebUI command yet."
   info "Falling back to the setup wizard..."
 fi
 

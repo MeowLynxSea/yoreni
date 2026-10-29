@@ -1,4 +1,4 @@
-"""Read-only local attachment checks shared by WebUI and native TUI ingress."""
+"""Read-only local attachment checks shared by WebUI ingress."""
 
 from __future__ import annotations
 

@@ -1,13 +1,15 @@
 """Foreground gateway runtime and lifecycle helpers."""
 
 import asyncio
+import hashlib
+import os
 import signal
 from collections.abc import Awaitable, Callable, Coroutine, Iterable
-from contextlib import ExitStack, suppress
+from contextlib import suppress
 from dataclasses import asdict, replace
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 
 import typer
 from loguru import logger
@@ -26,7 +28,6 @@ from yoreni.agent.tools.registry import ToolRegistry
 from yoreni.bus.events import OutboundMessage
 from yoreni.bus.queue import MessageBus
 from yoreni.cli import terminal as cli_terminal
-from yoreni.cli.dock import watch_gateway_icon
 from yoreni.cli.runtime_config import _migrate_cron_store
 from yoreni.cli.webui_support import (
     _gateway_health_bind_note,
@@ -41,10 +42,9 @@ from yoreni.cli.webui_support import (
     _webui_display_url,
     _webui_endpoint_reachable,
 )
-from yoreni.config.paths import get_data_dir, is_default_workspace
+from yoreni.config.paths import is_default_workspace
 from yoreni.config.schema import Config
 from yoreni.gateway.runtime import GatewayHealthIdentity, GatewayInstance, GatewayRuntime
-from yoreni.installation_lock import installation_access
 from yoreni.security.network import is_loopback_host
 from yoreni.session.keys import (
     HEARTBEAT_SESSION_KEY,
@@ -59,10 +59,6 @@ from yoreni.utils.token_encoding import warmup_token_encoding
 from yoreni.webui.build import BuildMode
 from yoreni.webui.dev import WebUIDevError, WebUIDevServer
 from yoreni.webui.sidebar_state import read_webui_sidebar_state
-
-if TYPE_CHECKING:
-    from yoreni.update_profiles import ProfileReceipt
-    from yoreni.update_restart import GatewayStartup
 
 __all__ = ["_run_gateway"]
 
@@ -431,39 +427,28 @@ def _run_gateway(
     unconfigured_provider_error: str | None = None,
     webui_dev_server: WebUIDevServer | None = None,
     gateway_instance: GatewayInstance | None = None,
-    update_startup: "GatewayStartup | None" = None,
 ) -> None:
-    """Claim the installation and profile before initializing any runtime writers."""
+    """Claim this instance before initializing any runtime writers."""
+    from uuid import uuid4
+
     from yoreni.config.loader import get_config_path
-    from yoreni.update_profiles import record_gateway_profile
 
     port = port if port is not None else config.gateway.port
     instance = gateway_instance or GatewayInstance.resolve(config_path=get_config_path())
     gateway_runtime = GatewayRuntime(paths=instance.paths)
-    with installation_access(allow_incomplete=update_startup is not None):
-        if update_startup is not None:
-            update_startup.validate_installation()
-        with (
-            gateway_runtime.foreground_instance(instance.start_options(port=port, verbose=verbose)),
-            record_gateway_profile(instance, gateway_runtime, data_dir=get_data_dir(),
-                                   workspace=config.workspace_path, port=port, verbose=verbose,
-                                   grant=update_startup.grant if update_startup else None,
-                                   cooperative_stop=True) as profile,
-        ):
-            if update_startup is not None:
-                update_startup.validate_profile(profile)
-            _run_claimed_gateway(
-                config, port=port, gateway_instance=instance, gateway_runtime=gateway_runtime,
-                health_identity=profile.health_identity, update_startup=update_startup,
-                update_profile=profile,
-                open_browser_url=open_browser_url, open_browser_ready_url=open_browser_ready_url,
-                webui_static_dist=webui_static_dist, webui_bundle_mode=webui_bundle_mode,
-                webui_runtime_surface=webui_runtime_surface,
-                webui_runtime_capabilities=webui_runtime_capabilities,
-                health_server_enabled=health_server_enabled,
-                unconfigured_provider_error=unconfigured_provider_error,
-                webui_dev_server=webui_dev_server,
-            )
+    instance_id = hashlib.sha256(os.fsencode(instance.paths.state_path.resolve())).hexdigest()
+    with gateway_runtime.foreground_instance(instance.start_options(port=port, verbose=verbose)):
+        _run_claimed_gateway(
+            config, port=port, gateway_instance=instance, gateway_runtime=gateway_runtime,
+            health_identity=GatewayHealthIdentity(instance_id, uuid4().hex, __version__),
+            open_browser_url=open_browser_url, open_browser_ready_url=open_browser_ready_url,
+            webui_static_dist=webui_static_dist, webui_bundle_mode=webui_bundle_mode,
+            webui_runtime_surface=webui_runtime_surface,
+            webui_runtime_capabilities=webui_runtime_capabilities,
+            health_server_enabled=health_server_enabled,
+            unconfigured_provider_error=unconfigured_provider_error,
+            webui_dev_server=webui_dev_server,
+        )
 
 
 def _run_claimed_gateway(
@@ -482,8 +467,6 @@ def _run_claimed_gateway(
     health_server_enabled: bool,
     unconfigured_provider_error: str | None,
     webui_dev_server: WebUIDevServer | None,
-    update_startup: "GatewayStartup | None" = None,
-    update_profile: "ProfileReceipt | None" = None,
 ) -> None:
     """Initialize and run only while the caller holds the gateway lifecycle claim."""
     from yoreni.agent.model_presets import load_model_preset_catalog
@@ -1011,8 +994,6 @@ def _run_claimed_gateway(
             console.print(f"[yellow]Could not open browser ({e}); visit {display_url}[/yellow]")
 
     async def run() -> None:
-        startup_gate = ExitStack()
-        desktop_activated = asyncio.Event()
         tasks: list[asyncio.Task[Any]] = []
         shutdown_task: asyncio.Task[Any] | None = None
         runtime_tasks: asyncio.Future[list[Any]] | None = None
@@ -1033,10 +1014,6 @@ def _run_claimed_gateway(
             # accepting new input.  That makes a new user message reliably
             # supersede an old recoverable turn instead of racing its queue.
             await recovery.scan()
-            if update_startup is not None:
-                # Recovery may reconstruct queued work, but no consumer or
-                # external listener has started. Keep that work parked too.
-                startup_gate.enter_context(bus.admission.pause_before_start())
             await cron.start()
             async def _run_agent() -> None:
                 try:
@@ -1082,28 +1059,6 @@ def _run_claimed_gateway(
                     name="yoreni-gateway-client-monitor",
                 ),
             ])
-            if update_startup is not None:
-                async def activate(startup: "GatewayStartup") -> None:
-                    await startup.wait_for_activation(health_identity)
-                    startup_gate.close()
-                    desktop_activated.set()
-
-                tasks.append(asyncio.create_task(activate(update_startup), name="yoreni-update-activation"))
-            else:
-                desktop_activated.set()
-            if _webui_channel_enabled(config):
-                tasks.append(asyncio.create_task(
-                    watch_gateway_icon(webui_url, instance=gateway_instance.paths.state_path,
-                                       activated=desktop_activated),
-                    name="yoreni-dock",
-                ))
-            if update_profile is not None:
-                from yoreni.update_stop import watch_gateway_stop
-
-                tasks.append(asyncio.create_task(
-                    watch_gateway_stop(update_profile, agent.maintenance, shutdown_event, startup_gate),
-                    name="yoreni-update-stop",
-                ))
             if health_server_enabled:
                 tasks.append(asyncio.create_task(
                     _health_server(config.gateway.host, port),
@@ -1169,9 +1124,6 @@ def _run_claimed_gateway(
                 )
                 await bus.drain()
             finally:
-                # On a failed/aborted startup, keep intake closed until all
-                # runtime consumers have been cancelled and cleanup finished.
-                startup_gate.close()
                 restore_shutdown_handlers()
 
     with webui_turn_coordinator.connected():

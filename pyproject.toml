@@ -32,7 +32,6 @@ dependencies = [
     "aiohttp>=3.14.3,<4.0.0",
     "yarl>=1.17.0,<2.0.0",
     "cryptography>=46.0.0",
-    "sigstore==4.5.0",
     "ddgs>=9.16.1,<10.0.0",
     "oauth-cli-kit>=0.1.6,<1.0.0",
     "loguru>=0.7.3,<1.0.0",
@@ -117,7 +116,6 @@ dev = [
 
 [project.scripts]
 yoreni = "yoreni.cli.entry:main"
-yoreni-desktop-tui = "yoreni.cli.desktop_tui:main"
 
 # Third-party tool plugins register here.  Built-in tools are discovered
 # automatically via pkgutil scanning in ToolLoader.discover().
@@ -137,8 +135,6 @@ allow-direct-references = true
 [tool.hatch.build]
 include = [
     "yoreni/**/*.py",
-    "yoreni/cli/assets/*.png",
-    "yoreni/update_contract.json",
     "yoreni/webui/mcp_presets.json",
     "yoreni/templates/**/*.md",
     "yoreni/skills/**/*.md",

@@ -481,15 +481,10 @@
     "hint": "選擇目標聊天，確認或修改任務說明。"
   },
   "about": {
-    "title": "關於與版本",
-    "description": "比較版本檢查狀態、提交連結、更新入口與關於頁面；按鈕以範例結果更新顯示。",
-    "options": "AboutSettingsView 接受版本與支援連結的組合。VersionCheckRowView 顯示 checking/result，並透過 onCheck 請求檢查。實際檢查與診斷連結資料由功能入口負責。",
-    "error": "無法取得版本資訊，請重試。",
-    "state": "版本狀態",
-    "selectedLink": "已選取 GitHub 連結",
-    "preferenceSaved": "已儲存範例偏好；不會安裝或重新啟動。",
-    "updateRequested": "已選擇查看更新；元件預覽不會安裝或重新啟動。",
-    "dismissed": "已收起更新提示"
+    "title": "關於頁面",
+    "description": "展示關於頁面，包含回報的版本、提交與支援連結。",
+    "options": "AboutSettingsView 接受組合好的版本列與支援連結；回報連結中的版本與環境資料由功能入口提供。",
+    "selectedLink": "已選取 GitHub 連結"
   },
   "appearance": {
     "title": "外觀選項",

@@ -481,15 +481,10 @@
     "hint": "대상 채팅을 선택한 뒤 작업 지침을 확인하거나 수정하세요."
   },
   "about": {
-    "title": "정보와 버전",
-    "description": "버전 검사 상태, 커밋 링크, 업데이트, 정보 페이지를 비교합니다. 버튼은 예제 결과로 화면을 갱신합니다.",
-    "options": "AboutSettingsView는 버전과 지원 링크 조합을 받습니다. VersionCheckRowView는 checking/result를 표시하며 onCheck로 검사를 요청합니다. 실제 검사와 진단 링크 데이터는 기능 진입점이 담당합니다.",
-    "error": "버전 정보를 가져올 수 없습니다. 다시 시도하세요.",
-    "state": "버전 상태",
-    "selectedLink": "GitHub 링크를 선택했습니다",
-    "preferenceSaved": "예시 설정을 저장했습니다. 설치하거나 다시 시작하지 않습니다.",
-    "updateRequested": "업데이트 검토를 선택했습니다. 이 미리보기에서는 설치하거나 다시 시작하지 않습니다.",
-    "dismissed": "업데이트 알림을 닫았습니다"
+    "title": "정보 페이지",
+    "description": "보고된 버전, 커밋, 지원 링크가 포함된 정보 페이지를 표시합니다.",
+    "options": "AboutSettingsView는 구성된 버전 행과 지원 링크를 받습니다. 보고 링크의 버전과 환경 데이터는 기능 진입점이 담당합니다.",
+    "selectedLink": "GitHub 링크를 선택했습니다"
   },
   "appearance": {
     "title": "화면 환경설정",

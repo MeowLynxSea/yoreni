@@ -9,8 +9,6 @@ import {
 
 import type { YoreniClient } from "@/lib/yoreni-client";
 import type { WebUIIngressLimits } from "@/lib/types";
-import { VersionCheckProvider } from "@/providers/VersionCheckProvider";
-import { UpdateFlowProvider } from "@/providers/UpdateFlowProvider";
 
 interface ClientContextValue {
   client: YoreniClient;
@@ -29,7 +27,6 @@ export function ClientProvider({
   modelName = null,
   ingressLimits = null,
   webuiCapabilities = [],
-  allowUpdateFlow = true,
   children,
 }: {
   client: YoreniClient;
@@ -37,7 +34,6 @@ export function ClientProvider({
   modelName?: string | null;
   ingressLimits?: WebUIIngressLimits | null;
   webuiCapabilities?: string[];
-  allowUpdateFlow?: boolean;
   children: ReactNode;
 }) {
   const tokenRef = useRef(token);
@@ -48,17 +44,7 @@ export function ClientProvider({
     [client, getToken, ingressLimits, modelName, token, webuiCapabilities],
   );
 
-  return (
-    <ClientContext.Provider value={value}>
-      <VersionCheckProvider token={token} client={client}
-        channels={allowUpdateFlow && webuiCapabilities.includes("webui.update-channels.v1")}>
-        <UpdateFlowProvider client={client} token={token} enabled={allowUpdateFlow && webuiCapabilities.includes("webui.update-flow.v1")}
-          canSettleHandoff={webuiCapabilities.includes("webui.update-jobs.settle-handoff.v1")}>
-          {children}
-        </UpdateFlowProvider>
-      </VersionCheckProvider>
-    </ClientContext.Provider>
-  );
+  return <ClientContext.Provider value={value}>{children}</ClientContext.Provider>;
 }
 
 export function useClient(): ClientContextValue {

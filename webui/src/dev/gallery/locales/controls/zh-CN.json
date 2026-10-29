@@ -481,15 +481,10 @@
     "hint": "选择目标聊天，确认或修改任务说明。"
   },
   "about": {
-    "title": "关于与版本",
-    "description": "比较版本检查状态、提交链接、更新入口和关于页面；按钮用示例结果更新显示。",
-    "options": "AboutSettingsView 接受版本与支持链接的组合。VersionCheckRowView 展示 checking/result，并通过 onCheck 请求检查。真实检查与诊断链接数据由功能入口负责。",
-    "error": "无法获取版本信息，请重试。",
-    "state": "版本状态",
-    "selectedLink": "选择了 GitHub 链接",
-    "preferenceSaved": "已保存示例偏好；不会安装或重启。",
-    "updateRequested": "已选择查看更新；组件预览不会安装或重启。",
-    "dismissed": "已收起更新提示"
+    "title": "关于页面",
+    "description": "展示关于页面，包含上报的版本、提交和支持链接。",
+    "options": "AboutSettingsView 接受组合好的版本行与支持链接；上报链接中的版本与环境数据由功能入口提供。",
+    "selectedLink": "选择了 GitHub 链接"
   },
   "appearance": {
     "title": "外观选项",

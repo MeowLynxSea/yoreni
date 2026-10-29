@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from yoreni.cli import desktop_target, webui_support
+from yoreni.cli import webui_support
 
 
 @pytest.fixture
@@ -80,28 +80,3 @@ def test_macos_browser_failures_never_fall_back_or_log_url(
         foundation.CFRelease.assert_not_called()
 
 
-@pytest.mark.parametrize("launch_status, exit_code", [(0, 0), (-50, 3)])
-def test_desktop_handoff_uses_the_protected_shared_launcher(
-    macos_url_services, monkeypatch, capsys, launch_status, exit_code,
-):
-    foundation, services = macos_url_services
-    services.LSOpenCFURLRef.return_value = launch_status
-    url = "http://localhost:8765/#/?bootstrapSecret=synthetic-only"
-    calls = []
-
-    class Target:
-        def request(self, operation):
-            calls.append(operation)
-            return desktop_target.DesktopReply(
-                "ready", frozenset({"webui"}), url if operation == "webui" else None,
-            )
-
-    monkeypatch.setattr(desktop_target, "_interactive_shell", lambda: True)
-    monkeypatch.setattr(desktop_target, "discover_desktop_target", Target)
-    monkeypatch.setattr(desktop_target, "_choose_target", lambda _: "desktop")
-    assert desktop_target.dispatch_bare_desktop_target(["webui"]) == exit_code
-    assert calls == ["status", "webui"]
-    assert foundation.CFURLCreateWithBytes.call_args.args[1] == url.encode()
-    output = capsys.readouterr()
-    assert "synthetic-only" not in output.out + output.err
-    assert "Using current Python" not in output.out

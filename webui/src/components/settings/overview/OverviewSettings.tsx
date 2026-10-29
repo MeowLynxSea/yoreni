@@ -4,7 +4,7 @@ import {
   ImageGenerationIcon,
   VoiceIcon,
 } from "@/components/icons/product-icons";
-import { useContext, useEffect, type Dispatch, type SetStateAction } from "react";
+import { useContext, type Dispatch, type SetStateAction } from "react";
 import {
   ChevronRight,
   type LucideIcon,
@@ -15,7 +15,6 @@ import { HostNavigationContext } from "@/components/remote/HostSwitcher";
 import { StarLink } from "@/components/StarPrompt";
 import { AboutSettingsView } from "./AboutSettingsView";
 import { AppearanceSettingsView } from "./AppearanceSettingsView";
-import { VersionCheckRowView, type VersionInfoProps } from "./VersionCheckRowView";
 import { DEFAULT_TRANSCRIPTION_SETTINGS } from "@/components/settings/capabilities/TranscriptionSettings";
 import type { SettingsSectionKey } from "@/components/settings/contracts";
 import { settingsProviderConfigured } from "@/components/settings/shared/ModelControls";
@@ -32,8 +31,6 @@ import type {
 import { providerBrand, providerDisplayLabel } from "@/lib/provider-brand";
 import type { SettingsPayload } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useUpdateFlow } from "@/providers/UpdateFlowProvider";
-import { useVersionCheck } from "@/providers/VersionCheckProvider";
 
 export function OverviewSettings({
   settings,
@@ -128,10 +125,8 @@ export function OverviewSettings({
   );
 }
 
-export function AboutSettings({ settings, onRequestUpdate: requestUpdate }: { settings: SettingsPayload; onRequestUpdate?: () => void }) {
+export function AboutSettings({ settings }: { settings: SettingsPayload }) {
   const hostPicker = useContext(HostNavigationContext);
-  const flow = useUpdateFlow();
-  const onRequestUpdate = requestUpdate ?? flow.open;
   const currentVersion = settings.version?.current;
   const currentCommit = settings.version?.commit;
   const environment = settings.environment;
@@ -155,22 +150,20 @@ export function AboutSettings({ settings, onRequestUpdate: requestUpdate }: { se
   reportIssueUrl.searchParams.set("connection", hostPicker?.kind === "embedded"
     ? "Remote host" : hostPicker ? "Local host" : "Direct WebUI");
   return <AboutSettingsView reportIssueUrl={reportIssueUrl.href}
-    versionCheck={<VersionCheckRow currentVersion={currentVersion} currentCommit={currentCommit}
-      onRequestUpdate={onRequestUpdate} hasPendingUpdate={flow.pending} />}
+    version={<VersionRow currentVersion={currentVersion} currentCommit={currentCommit} />}
     starLink={<StarLink />} />;
 }
 
-function VersionCheckRow({ currentVersion, currentCommit, onRequestUpdate, hasPendingUpdate }: VersionInfoProps) {
-  const { checking, result, check, releaseStatus, canChangeChannel,
-    changingChannel, channelError, changeChannel, installationMethod } = useVersionCheck();
-  useEffect(() => { void check(); }, [check]);
-
-  return <VersionCheckRowView currentVersion={currentVersion} currentCommit={currentCommit}
-    checking={checking} result={result} onCheck={() => void check()}
-    onRequestUpdate={onRequestUpdate} hasPendingUpdate={hasPendingUpdate}
-    installationMethod={installationMethod}
-    releaseStatus={releaseStatus} canChangeChannel={canChangeChannel} changingChannel={changingChannel}
-    channelError={channelError} onChangeChannel={changeChannel} />;
+function VersionRow({ currentVersion, currentCommit }: { currentVersion?: string; currentCommit?: string | null }) {
+  const { t } = useTranslation();
+  const detail = [currentVersion, currentCommit && currentCommit.slice(0, 7)]
+    .filter(Boolean).join(" · ");
+  return <SettingsGroup>
+    <div className="settings-list-row flex items-center gap-3 text-[14px]">
+      <span className="flex-1">{t("settings.about.version")}</span>
+      <span className="text-muted-foreground">{detail || "—"}</span>
+    </div>
+  </SettingsGroup>;
 }
 
 export function AppearanceSettings({ themePreference, onChangeTheme, localPrefs, onChangeLocalPrefs }: {

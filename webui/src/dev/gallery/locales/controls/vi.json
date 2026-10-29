@@ -481,15 +481,10 @@
     "hint": "Chọn trò chuyện đích rồi xác nhận hoặc sửa hướng dẫn tác vụ."
   },
   "about": {
-    "title": "Giới thiệu và phiên bản",
-    "description": "So sánh kiểm tra phiên bản, liên kết commit, cập nhật và trang giới thiệu; các nút dùng kết quả ví dụ để cập nhật hiển thị.",
-    "options": "AboutSettingsView nhận tổ hợp liên kết phiên bản và hỗ trợ. VersionCheckRowView hiển thị checking/result và yêu cầu kiểm tra qua onCheck. Điểm vào tính năng quản lý kiểm tra thực tế và dữ liệu liên kết chẩn đoán.",
-    "error": "Không thể lấy thông tin phiên bản. Hãy thử lại.",
-    "state": "Trạng thái phiên bản",
-    "selectedLink": "Đã chọn liên kết GitHub",
-    "preferenceSaved": "Đã lưu tùy chọn mẫu; sẽ không cài đặt hay khởi động lại.",
-    "updateRequested": "Đã chọn xem xét bản cập nhật; bản xem trước này không cài đặt hay khởi động lại.",
-    "dismissed": "Đã ẩn thông báo cập nhật"
+    "title": "Trang Giới thiệu",
+    "description": "Hiển thị trang Giới thiệu với phiên bản được báo cáo, commit và các liên kết hỗ trợ.",
+    "options": "AboutSettingsView nhận một hàng phiên bản đã dựng sẵn cùng các liên kết hỗ trợ. Điểm vào tính năng cung cấp phiên bản và môi trường cho liên kết báo lỗi.",
+    "selectedLink": "Đã chọn liên kết GitHub"
   },
   "appearance": {
     "title": "Tùy chọn giao diện",

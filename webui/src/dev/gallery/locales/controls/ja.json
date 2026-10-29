@@ -481,15 +481,10 @@
     "hint": "実行先チャットを選び、タスクの指示を確認または編集してください。"
   },
   "about": {
-    "title": "製品情報とバージョン",
-    "description": "バージョン確認、コミットリンク、更新、製品情報を比較します。ボタンはサンプル結果で表示を更新します。",
-    "options": "AboutSettingsView はバージョンとサポートリンクの組み合わせを受け取ります。VersionCheckRowView は checking/result を表示し、onCheck で確認を要求します。実際の確認と診断リンクのデータは機能の入口が管理します。",
-    "error": "バージョン情報を取得できませんでした。再試行してください。",
-    "state": "バージョンの状態",
-    "selectedLink": "GitHub リンクを選択しました",
-    "preferenceSaved": "サンプル設定を保存しました。インストールや再起動は行いません。",
-    "updateRequested": "更新の確認を選択しました。このプレビューではインストールや再起動は行いません。",
-    "dismissed": "更新通知を閉じました"
+    "title": "About ページ",
+    "description": "報告されたバージョン、コミット、サポートリンクを含む About ページを表示します。",
+    "options": "AboutSettingsView は組み立て済みのバージョン行とサポートリンクを受け取ります。レポートリンクのバージョンと環境データは機能の入口が管理します。",
+    "selectedLink": "GitHub リンクを選択しました"
   },
   "appearance": {
     "title": "表示設定",

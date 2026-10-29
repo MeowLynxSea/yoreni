@@ -7,9 +7,8 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const UI_PACKAGES = ["react", "react-dom", "react-i18next", "@radix-ui", "lucide-react", "@opentui"];
+const UI_PACKAGES = ["react", "react-dom", "react-i18next", "@radix-ui", "lucide-react"];
 const WEBUI_VIEWS = ["webui/src/components", "webui/src/hooks", "webui/src/providers"];
-const TUI_VIEWS = ["tui/src/app", "tui/src/views", "tui/src/rendering", "tui/src/composer", "tui/src/menus"];
 const CHANNEL_CONTRACTS = ["webui/src/channel-plugins/types.ts", "webui/src/channel-plugins/catalog.ts"];
 
 function slash(value) {
@@ -22,10 +21,6 @@ function within(value, prefix) {
     prefix = prefix.toLowerCase();
   }
   return value === prefix || value.startsWith(`${prefix}/`);
-}
-
-function channelUi(value) {
-  return /^yoreni\/channels\/[^/]+\/webui\//.test(process.platform === "win32" ? value.toLowerCase() : value);
 }
 
 function sourcePath(root, file) {
@@ -115,11 +110,6 @@ export function findViolations(compiler, root, file, source, options, project) {
         rules.push("shared-client-contracts");
       }
     }
-    if (within(relative, "tui/src/client")) {
-      if (TUI_VIEWS.some((prefix) => targetPath !== null && within(targetPath, prefix)) || uiPackage(specifier)) {
-        rules.push("tui-client");
-      }
-    }
     if (within(relative, "webui/src") && within(specifier, "pele")
       && relative !== "webui/src/components/markdown-diagrams/pele.worker.ts") {
       rules.push("diagram-worker-engine");
@@ -141,14 +131,6 @@ export function findViolations(compiler, root, file, source, options, project) {
     }
     if (CHANNEL_CONTRACTS.includes(relative) && WEBUI_VIEWS.some((prefix) => targetPath !== null && within(targetPath, prefix))) {
       rules.push("channel-ui-contracts");
-    }
-    if (targetPath !== null) {
-      const webuiSource = within(relative, "webui/src") || channelUi(relative);
-      const tuiSource = within(relative, "tui/src");
-      if ((webuiSource && within(targetPath, "tui"))
-        || (tuiSource && (within(targetPath, "webui") || channelUi(targetPath)))) {
-        rules.push("client-app-isolation");
-      }
     }
     const line = tree.getLineAndCharacterOfPosition(node.getStart(tree)).line + 1;
     for (const rule of rules) {
@@ -283,13 +265,11 @@ export function checkRepository(compiler, root, project) {
     ...productionSources(path.join(root, project, "src")),
     ...productionSources(path.join(root, "packages/client-events")),
   ];
-  if (project === "webui") {
-    const channels = path.join(root, "yoreni/channels");
-    for (const entry of readdirSync(channels, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const channelRoot = path.join(channels, entry.name);
-      if (readdirSync(channelRoot).includes("webui")) files.push(...productionSources(path.join(channelRoot, "webui")));
-    }
+  const channels = path.join(root, "yoreni/channels");
+  for (const entry of readdirSync(channels, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const channelRoot = path.join(channels, entry.name);
+    if (readdirSync(channelRoot).includes("webui")) files.push(...productionSources(path.join(channelRoot, "webui")));
   }
   const violations = files.sort().flatMap((file) => findViolations(
     compiler, root, file, readFileSync(file, "utf8"), options, project,
@@ -302,7 +282,7 @@ export function main() {
   const { values } = parseArgs({
     options: { project: { type: "string" }, root: { type: "string", default: REPO_ROOT } },
   });
-  if (!["webui", "tui"].includes(values.project)) throw new Error("--project must be webui or tui");
+  if (values.project !== "webui") throw new Error("--project must be webui");
   const root = path.resolve(values.root);
   const result = checkRepository(loadCompiler(values.project), root, values.project);
   if (result.violations.length) {

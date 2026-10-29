@@ -23,7 +23,6 @@ if sys.platform == "win32":
 # Keep console encoding setup before importing CLI UI/logging libraries.
 import typer  # noqa: E402
 from loguru import logger  # noqa: E402
-from typer.core import TyperGroup  # noqa: E402
 
 from yoreni.utils.log_config import configure_console_logging  # noqa: E402
 
@@ -57,7 +56,6 @@ from yoreni.cli.runtime_config import (  # noqa: E402
     _print_model_setup_steps,
     _provider_setup_error,
 )
-from yoreni.cli.update import update  # noqa: E402
 from yoreni.cli.webui import webui  # noqa: E402
 from yoreni.cli.webui_support import (  # noqa: E402
     _prepare_webui_bundle_for_gateway,
@@ -75,16 +73,7 @@ from yoreni.utils.helpers import (  # noqa: E402
 SafeFileHistory = cli_terminal.SafeFileHistory
 
 
-class _DesktopAwareGroup(TyperGroup):
-    def parse_args(self, ctx: Any, args: list[str]) -> list[str]:
-        # Keep exact arguments: explicitly passing even a default-valued option
-        # must bypass the picker. Also covers older commands:app launchers.
-        ctx.meta["desktop_target_args"] = list(args)
-        return super().parse_args(ctx, args)
-
-
 app = typer.Typer(
-    cls=_DesktopAwareGroup,
     name="yoreni",
     context_settings={"help_option_names": ["-h", "--help"]},
     help=f"{__logo__} yoreni - Personal AI Agent",
@@ -97,7 +86,6 @@ app = typer.Typer(
 )
 
 console = Console()
-app.command()(update)
 
 # Server-console pairing stays outside the agent/gateway lifecycle.
 from yoreni.cli.remote import app as remote_app  # noqa: E402
@@ -133,13 +121,6 @@ def main(
     # role identity correct until that launcher is regenerated.
     command = ctx.invoked_subcommand
     set_cli_process_identity([command] if command else ["agent"])
-    from yoreni.cli.desktop_target import dispatch_bare_desktop_target
-
-    raw_args = ctx.meta.get("desktop_target_args")
-    if isinstance(raw_args, list):
-        desktop_exit = dispatch_bare_desktop_target(cast(list[str], raw_args))
-        if desktop_exit is not None:
-            raise typer.Exit(desktop_exit)
     if command is None:
         from yoreni.cli.entry import _run_agent
 

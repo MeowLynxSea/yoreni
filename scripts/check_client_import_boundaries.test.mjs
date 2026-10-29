@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { findViolations, loadCompiler } from "./check_client_import_boundaries.mjs";
 
-const project = path.basename(process.cwd());
+const project = "webui";
 const compiler = loadCompiler(project);
 const script = fileURLToPath(new URL("./check_client_import_boundaries.mjs", import.meta.url));
 const temporaryPrefix = path.resolve(os.tmpdir(), "yoreni-client-imports-");
@@ -21,16 +21,13 @@ function write(relative, source = "export {};\n") {
 
 beforeEach(() => {
   root = path.resolve(mkdtempSync(temporaryPrefix));
-  for (const name of ["webui", "tui"]) {
-    write(`${name}/tsconfig.json`, JSON.stringify({
-      compilerOptions: { baseUrl: ".", paths: { "@/*": ["src/*"] } },
-      include: ["src"],
-    }));
-  }
+  write("webui/tsconfig.json", JSON.stringify({
+    compilerOptions: { baseUrl: ".", paths: { "@/*": ["src/*"] } },
+    include: ["src"],
+  }));
   for (const file of [
     "webui/src/lib/model.ts", "webui/src/components/View.tsx",
     "webui/src/channel-plugins/types.ts", "webui/src/channel-plugins/registry.ts",
-    "tui/src/client/api.ts", "tui/src/app/app.ts",
     "packages/client-events/notifications.ts", "packages/client-events/delivery.ts",
     "yoreni/channels/example/webui/index.ts",
   ]) write(file);
@@ -44,7 +41,7 @@ afterEach(() => {
 function inspect(relative, source) {
   return findViolations(compiler, root, path.join(root, relative), source, {
     baseUrl: path.join(root, "webui"), paths: { "@/*": ["src/*"] },
-  }, relative.startsWith("tui/") ? "tui" : "webui");
+  }, "webui");
 }
 
 test.each([
@@ -74,11 +71,7 @@ test.skipIf(process.platform !== "win32")("checks Windows imports that differ in
 test.each([
   ["packages/client-events/notifications.ts", 'import "../../webui/src/components/View";', "shared-client-contracts"],
   ["packages/client-events/notifications.ts", 'import type { ReactNode } from "react";', "shared-client-contracts"],
-  ["tui/src/client/api.ts", 'export * from "../app/app";', "tui-client"],
-  ["tui/src/client/api.ts", 'import type { TextRenderable } from "@opentui/core";', "tui-client"],
   ["webui/src/channel-plugins/types.ts", 'import type { View } from "@/components/View";', "channel-ui-contracts"],
-  ["webui/src/lib/model.ts", 'import "../../../tui/src/client/api";', "client-app-isolation"],
-  ["tui/src/client/api.ts", 'import "../../../webui/src/lib/model";', "client-app-isolation"],
   ["webui/src/lib/model.ts", 'import "../i18n";', "webui-lib-bootstrap"],
   ["webui/src/lib/model.ts", 'import "../i18n/index.ts";', "webui-lib-bootstrap"],
   ["webui/src/lib/format.ts", 'import i18n from "i18next";', "pure-format-utils"],
@@ -91,7 +84,6 @@ test.each([
 
 test.each([
   ["packages/client-events/notifications.ts", 'import "./delivery";'],
-  ["tui/src/client/api.ts", 'import "../../../packages/client-events/notifications";'],
   ["webui/src/lib/model.ts", 'import "../../../packages/client-events/notifications";'],
   ["webui/src/channel-plugins/types.ts", 'import type { ComponentType } from "react";'],
   ["webui/src/components/markdown-diagrams/pele.worker.ts", 'import { render } from "pele/lazy";'],
@@ -133,8 +125,8 @@ test("CLI accepts a repository with valid client and shared dependencies", () =>
 });
 
 test("CLI rejects a client violation with its source location", () => {
-  const relative = project === "webui" ? "webui/src/lib/model.ts" : "tui/src/client/api.ts";
-  const target = project === "webui" ? "@/components/View" : "../app/app";
+  const relative = "webui/src/lib/model.ts";
+  const target = "@/components/View";
   write(relative, `export async function load() {\n  return import("${target}");\n}\n`);
   const result = run();
   expect(result.exitCode).toBe(1);
@@ -149,21 +141,21 @@ test("CLI rejects a shared contract that acquires a UI dependency", () => {
 });
 
 test("ignores test modules in production source scans", () => {
-  const relative = project === "webui" ? "webui/src/lib/model.test.ts" : "tui/src/client/api.test.ts";
+  const relative = "webui/src/lib/model.test.ts";
   write(relative, 'import "../../../webui/src/components/View";\n');
   const result = run();
   expect(result.exitCode).toBe(0);
 });
 
 test("checks the actual shared source directory rather than a fixture inventory", () => {
-  write("packages/client-events/new-event.ts", 'export * from "../../tui/src/app/app";\n');
+  write("packages/client-events/new-event.ts", 'export * from "../../webui/src/components/View";\n');
   const result = run();
   expect(result.exitCode).toBe(1);
   expect(new TextDecoder().decode(result.stderr)).toContain("new-event.ts:1: [shared-client-contracts]");
 });
 
 test("CLI detects a runtime cycle through a barrel re-export", () => {
-  const directory = `${project}/src/${project === "webui" ? "components" : "app"}`;
+  const directory = `${project}/src/components`;
   write(`${directory}/a.ts`, 'import { value } from "./barrel"; export const first = () => value;\n');
   write(`${directory}/barrel.ts`, 'export { value } from "./b";\n');
   write(`${directory}/b.ts`, 'import { first } from "./a"; export const value = () => first;\n');
@@ -175,7 +167,7 @@ test("CLI detects a runtime cycle through a barrel re-export", () => {
 });
 
 test("CLI permits erased type imports and deferred dynamic imports", () => {
-  const directory = `${project}/src/${project === "webui" ? "components" : "app"}`;
+  const directory = `${project}/src/components`;
   write(`${directory}/a.ts`, 'import { Item } from "./b"; export const first = (item: Item) => item;\n');
   write(`${directory}/b.ts`, 'import { first } from "./a"; export type Item = string; export const second = first;\n');
   write(`${directory}/lazy.ts`, 'export const load = () => import("./owner");\n');
@@ -185,7 +177,7 @@ test("CLI permits erased type imports and deferred dynamic imports", () => {
 });
 
 test("CLI detects eager literal require cycles and permits function-local require", () => {
-  const directory = `${project}/src/${project === "webui" ? "components" : "app"}`;
+  const directory = `${project}/src/components`;
   write(`${directory}/a.ts`, 'export const first = require("./b");\n');
   write(`${directory}/b.ts`, 'export const second = require("./a");\n');
   const result = run();
@@ -195,7 +187,7 @@ test("CLI detects eager literal require cycles and permits function-local requir
   expect(run().exitCode).toBe(0);
 });
 
-test.skipIf(project !== "webui")("CLI detects an eager Vite registry cycle and permits its lazy form", () => {
+test("CLI detects an eager Vite registry cycle and permits its lazy form", () => {
   write("webui/src/channel-plugins/registry.ts", 'export const plugins = import.meta.glob("../../../yoreni/channels/*/webui/index.ts", { "eager": true });\n');
   write("yoreni/channels/example/webui/index.ts", 'import { plugins } from "../../../../webui/src/channel-plugins/registry"; export default plugins;\n');
   const result = run();

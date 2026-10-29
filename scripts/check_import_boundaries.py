@@ -52,32 +52,6 @@ _TOOL_CONFIG_MODULES = (
 
 IMPORT_RULES = (
     ImportRule(
-        "update-policy-direction",
-        ("yoreni.agent", "yoreni.session", "yoreni.runtime_admission",
-         "yoreni.data_access", "yoreni.installation_lock"),
-        ("yoreni.update_service", "yoreni.update_plan", "yoreni.update_jobs",
-         "yoreni.update_worker", "yoreni.update_stop", "yoreni.update_restart"),
-    ),
-    ImportRule(
-        "update-domain",
-        ("yoreni.update_service", "yoreni.update_plan", "yoreni.update_jobs",
-         "yoreni.update_worker", "yoreni.update_stop",
-         "yoreni.update_profiles", "yoreni.update_handoff", "yoreni.update_guidance"),
-        ("yoreni.agent", "yoreni.session", "yoreni.api", "yoreni.cli",
-         "yoreni.channels", "yoreni.webui"),
-    ),
-    ImportRule(
-        "update-restart-adapter",
-        ("yoreni.update_restart",),
-        (*_ADAPTERS, "yoreni.agent", "yoreni.session"),
-        # This protected-startup entry composes the existing CLI, not a second
-        # agent runtime. Keep its frozen worker entry and launch semantics stable.
-        allowed_targets=("yoreni.gateway.runtime", "yoreni.cli.gateway_runtime._run_gateway",
-                         "yoreni.cli.entry.configure_windows_console",
-                         "yoreni.cli.process_identity.set_cli_process_identity",
-                         "yoreni.cli.runtime_config._load_runtime_config"),
-    ),
-    ImportRule(
         "core-execution",
         ("yoreni.agent.loop", "yoreni.agent.runner", "yoreni.agent.turn_delivery"),
         _ADAPTERS,

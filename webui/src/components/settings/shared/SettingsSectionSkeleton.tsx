@@ -108,7 +108,7 @@ export function SettingsSectionSkeleton({ section, showRestart = false }: { sect
       content = <RuntimeGroups page="advanced" />;
       break;
     case "about":
-      content = <AboutSettingsLayout starLink={null} versionCheck={
+      content = <AboutSettingsLayout starLink={null} version={
         <SettingsGroup><SettingsRow title={<>
           <div className="flex h-5 items-center"><div className={cn(block, "h-3.5 w-20")} /></div>
           <div className="mt-1 flex h-5 items-center"><div className={cn(block, "h-3 w-24")} /></div>

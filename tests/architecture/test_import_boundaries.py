@@ -11,34 +11,6 @@ import pytest
 from scripts.check_import_boundaries import Violation, find_violations
 
 
-@pytest.mark.parametrize("module", [
-    "yoreni.agent.loop", "yoreni.session.state", "yoreni.runtime_admission",
-    "yoreni.data_access", "yoreni.installation_lock",
-])
-def test_runtime_owners_do_not_depend_on_update_policy(module: str) -> None:
-    assert find_violations("from yoreni.update_service import UpdateService", module) == [
-        Violation("update-policy-direction", "yoreni.update_service.UpdateService", 1),
-    ]
-
-
-def test_updater_uses_process_contracts_not_agent_or_client_implementations() -> None:
-    assert find_violations("from yoreni.agent.loop import AgentLoop", "yoreni.update_stop") == [
-        Violation("update-domain", "yoreni.agent.loop.AgentLoop", 1),
-    ]
-    assert find_violations(
-        "from yoreni.gateway.runtime import GatewayRuntime", "yoreni.update_stop",
-    ) == []
-    assert find_violations(
-        "from yoreni.update_stop import watch_gateway_stop", "yoreni.cli.gateway_runtime",
-    ) == []
-    assert find_violations(
-        "from yoreni.cli.gateway_runtime import _run_gateway", "yoreni.update_restart",
-    ) == []
-    assert find_violations(
-        "from yoreni.agent.loop import AgentLoop", "yoreni.update_restart",
-    ) == [Violation("update-restart-adapter", "yoreni.agent.loop.AgentLoop", 1)]
-
-
 @pytest.mark.parametrize(
     ("source", "target", "line"),
     [

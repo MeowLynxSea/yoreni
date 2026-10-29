@@ -2,7 +2,6 @@
 
 import hashlib
 import sys
-from contextlib import ExitStack
 from pathlib import Path
 
 import typer
@@ -10,7 +9,6 @@ from pydantic import ValidationError
 from rich.console import Console
 
 from yoreni.cli import terminal as cli_terminal
-from yoreni.cli.dock import dock_icon, request_gateway_icon
 from yoreni.cli.runtime_config import (
     _print_config_error,
     _print_runtime_config_validation_error,
@@ -88,7 +86,6 @@ def webui(
         help="Run the Vite development server with live frontend updates",
     ),
     no_open: bool = typer.Option(False, "--no-open", help="Do not open a browser"),
-    no_dock: bool = typer.Option(False, "--no-dock", help="Do not show the macOS Dock icon"),
     detach: bool = typer.Option(False, "--detach", help="Keep the gateway running and return to the terminal"),
     yes: bool = typer.Option(
         False,
@@ -246,7 +243,6 @@ def webui(
         status = runtime.status()
         if existing_gateway and not status.running:
             raise typer.BadParameter("The existing gateway has another owner; use its launch command")
-        request_gateway_icon(runtime.paths.state_path, enabled=not no_dock)
         if changed_webui and status.running:
             result = runtime.restart(start_options, timeout_s=20)
             if result.ok:
@@ -266,7 +262,6 @@ def webui(
 
     lease = GatewayClientLease(runtime, kind="webui")
     lease.acquire()
-    desktop = ExitStack()
     try:
         if not existing_gateway:
             console.print("[dim]Starting WebUI…[/dim]")
@@ -285,9 +280,6 @@ def webui(
                     output=lambda message: console.print(message, style="dim", markup=False),
                 ) as dev_server:
                     managed = not existing_gateway or runtime.status().running
-                    desktop.enter_context(dock_icon(
-                        dev_browser_url, instance=runtime.paths.state_path, enabled=not no_dock,
-                    ))
                     announce_ready(dev_browser_url, managed=managed)
                     if managed:
                         _attach_to_background_gateway(
@@ -307,12 +299,8 @@ def webui(
             return
 
         managed = not existing_gateway or runtime.status().running
-        desktop.enter_context(dock_icon(
-            webui_url, instance=runtime.paths.state_path, enabled=managed and not no_dock,
-        ))
         announce_ready(webui_url, managed=managed)
         if managed:
             _attach_to_background_gateway(runtime, log_cursor=log_cursor)
     finally:
-        desktop.close()
         lease.release(wait_for_stop=False)

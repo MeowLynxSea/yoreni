@@ -3,16 +3,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 from yoreni.cli import entry
-from yoreni.cli.entry import _agent_invocation_args, _native_tui_candidate
-from yoreni.installation_lock import InstallationBusyError, installation_access, installation_id
+from yoreni.cli.entry import _agent_invocation_args
 
 
 def test_root_command_routes_to_agent_without_copying_agent_options() -> None:
     assert _agent_invocation_args([]) == []
-    assert _agent_invocation_args(["agent", "--theme", "dark"]) == ["--theme", "dark"]
+    assert _agent_invocation_args(["agent", "--session", "cli:direct"]) == ["--session", "cli:direct"]
     assert _agent_invocation_args(["--workspace", "./project"]) == [
         "--workspace",
         "./project",
@@ -85,99 +82,3 @@ def test_root_alias_dispatches_the_shared_agent_command(monkeypatch) -> None:
         "args": ["-m", "hello"],
         "prog_name": "yoreni",
     }
-
-
-def test_desktop_handled_bare_invocation_does_not_start_python(monkeypatch) -> None:
-    from yoreni.cli import desktop_target
-
-    monkeypatch.setattr(entry.sys, "argv", ["yoreni"])
-    monkeypatch.setattr(entry, "set_cli_process_identity", lambda _args: None)
-    monkeypatch.setattr(entry, "configure_windows_console", lambda: None)
-    monkeypatch.setattr(desktop_target, "dispatch_bare_desktop_target", lambda _args: 0)
-    monkeypatch.setattr(
-        entry,
-        "_run_agent",
-        lambda *_args, **_kwargs: pytest.fail("Python agent must not start"),
-    )
-
-    entry.main()
-
-
-def test_native_agent_invocations_use_the_lightweight_entrypoint() -> None:
-    assert _native_tui_candidate(["agent"])
-    assert _native_tui_candidate(["agent", "--session", "websocket:chat"])
-    assert _native_tui_candidate(["agent", "--theme=light"])
-
-
-def test_classic_and_one_shot_agent_invocations_keep_the_full_cli_entrypoint() -> None:
-    assert not _native_tui_candidate(["agent", "--classic"])
-    assert not _native_tui_candidate(["agent", "-m", "hello"])
-    assert not _native_tui_candidate(["agent", "-mhello"])
-    assert not _native_tui_candidate(["agent", "--message=hello"])
-    assert not _native_tui_candidate(["status"])
-
-
-def test_entry_refuses_dispatch_during_update(tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-    monkeypatch.setattr(sys, "prefix", str(tmp_path / "environment"))
-    monkeypatch.setattr(sys, "argv", ["yoreni", "gateway"])
-    monkeypatch.setattr(entry, "_dispatch", lambda: pytest.fail("Runtime dispatched during update"))
-    with installation_access(updating=True):
-        with pytest.raises(SystemExit) as result:
-            entry.main()
-    assert result.value.code == 1
-    assert "being updated" in capsys.readouterr().err
-
-
-@pytest.mark.parametrize("args", [["update"], ["--home", "/test", "update"], ["--home=/test", "update"]])
-def test_update_command_can_reach_its_own_lease_and_recovery(tmp_path, monkeypatch, args):
-    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-    monkeypatch.setattr(sys, "prefix", str(tmp_path / "environment"))
-    monkeypatch.setattr(sys, "argv", ["yoreni", *args])
-    called = []
-    monkeypatch.setattr(entry, "_dispatch", lambda: called.append(True))
-    with installation_access(updating=True):
-        entry.main()
-    assert called == [True]
-
-
-@pytest.mark.parametrize("args", [["update", "--job", "saved-id"],
-                                 ["--home=/test", "update", "--job=saved-id", "--retry-handoff"]])
-def test_saved_update_recovery_owns_runtime_before_application_imports(tmp_path, monkeypatch, args):
-    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-    monkeypatch.setattr(sys, "prefix", str(tmp_path / "environment"))
-    monkeypatch.setattr(sys, "argv", ["yoreni", *args])
-    entered = []
-
-    def dispatch():
-        with pytest.raises(InstallationBusyError):
-            with installation_access(updating=True):
-                pytest.fail("Recovery imported without a runtime lease")
-        entered.append(True)
-
-    monkeypatch.setattr(entry, "_dispatch", dispatch)
-    entry.main()
-    assert entered == [True]
-    with installation_access(updating=True):
-        with pytest.raises(SystemExit):
-            entry.main()
-    assert entered == [True]
-
-
-@pytest.mark.parametrize("action,allowed", [("stop", True), ("status", True), ("logs", True), ("restart", False)])
-def test_interrupted_installation_keeps_stop_commands_usable(tmp_path, monkeypatch, action, allowed):
-    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-    monkeypatch.setattr(sys, "prefix", str(tmp_path / "environment"))
-    pending = tmp_path / ".yoreni/run" / f"update-{installation_id()[:16]}.pending"
-    pending.parent.mkdir(parents=True)
-    pending.write_text("incomplete")
-    monkeypatch.setattr(sys, "argv", ["yoreni", "--home", str(tmp_path / "profile"), "gateway", action])
-    called = []
-    monkeypatch.setattr(entry, "_dispatch", lambda: called.append(True))
-    if allowed:
-        entry.main()
-        assert called == [True]
-    else:
-        with pytest.raises(SystemExit):
-            entry.main()
-        assert not called

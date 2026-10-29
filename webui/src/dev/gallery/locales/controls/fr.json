@@ -481,15 +481,10 @@
     "hint": "Choisissez un chat cible, puis confirmez ou modifiez les consignes de la tâche."
   },
   "about": {
-    "title": "À propos et version",
-    "description": "Comparez les états de vérification, liens de commit, mises à jour et page À propos ; les boutons affichent des résultats d’exemple.",
-    "options": "AboutSettingsView accepte la composition des liens de version et d’assistance. VersionCheckRowView affiche checking/result et demande une vérification via onCheck. Le point d’entrée gère les vérifications réelles et les liens de diagnostic.",
-    "error": "Impossible d’obtenir la version. Réessayez.",
-    "state": "État de la version",
-    "selectedLink": "Lien GitHub sélectionné",
-    "preferenceSaved": "Préférence d’exemple enregistrée ; rien ne sera installé ni redémarré.",
-    "updateRequested": "Examen de la mise à jour sélectionné ; cet aperçu n’installe ni ne redémarre rien.",
-    "dismissed": "Avis de mise à jour masqué"
+    "title": "Page À propos",
+    "description": "Affiche la page À propos avec la version signalée, le commit et les liens d’assistance.",
+    "options": "AboutSettingsView reçoit une ligne de version déjà composée et les liens d’assistance. Le point d’entrée de la fonctionnalité fournit la version et l’environnement du lien de signalement.",
+    "selectedLink": "Lien GitHub sélectionné"
   },
   "appearance": {
     "title": "Préférences d’apparence",

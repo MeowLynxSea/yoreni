@@ -481,15 +481,10 @@
     "hint": "Pilih obrolan tujuan, lalu konfirmasi atau edit instruksi tugas."
   },
   "about": {
-    "title": "Tentang dan versi",
-    "description": "Bandingkan status pemeriksaan versi, tautan commit, pembaruan, dan halaman Tentang; tombol memperbarui tampilan dengan hasil contoh.",
-    "options": "AboutSettingsView menerima gabungan tautan versi dan dukungan. VersionCheckRowView menampilkan checking/result dan meminta pemeriksaan melalui onCheck. Titik masuk fitur mengelola pemeriksaan sebenarnya serta data tautan diagnostik.",
-    "error": "Tidak dapat mengambil informasi versi. Coba lagi.",
-    "state": "Status versi",
-    "selectedLink": "Tautan GitHub dipilih",
-    "preferenceSaved": "Preferensi contoh disimpan; tidak ada yang akan diinstal atau dimulai ulang.",
-    "updateRequested": "Peninjauan pembaruan dipilih; pratinjau ini tidak menginstal atau memulai ulang apa pun.",
-    "dismissed": "Pemberitahuan pembaruan ditutup"
+    "title": "Halaman Tentang",
+    "description": "Menampilkan halaman Tentang dengan versi yang dilaporkan, commit, dan tautan dukungan.",
+    "options": "AboutSettingsView menerima baris versi yang sudah disusun dan tautan dukungan. Titik masuk fitur menyediakan versi dan lingkungan untuk tautan laporan.",
+    "selectedLink": "Tautan GitHub dipilih"
   },
   "appearance": {
     "title": "Preferensi tampilan",

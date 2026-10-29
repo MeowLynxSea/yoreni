@@ -15,7 +15,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from yoreni.cli import desktop_target, webui_support
+from yoreni.cli import webui_support
 from yoreni.cli import windows_browser as browser
 
 
@@ -114,30 +114,6 @@ def test_startup_timeout_kills_helper_and_drains_pipe_reader(launcher, monkeypat
     assert browser.launch_browser("http://localhost/#/?token=synthetic-only") is False
     process.kill.assert_called_once()
     assert process.stdout.closed
-
-
-@pytest.mark.parametrize("ack, status", [(b"1", 0), (b"", 3)])
-def test_windows_desktop_handoff_retains_revalidation_and_no_fallback(launcher, monkeypatch, capsys, ack, status):
-    process, _ = launcher
-    process.stdout = io.BytesIO(ack)
-    calls = []
-
-    class Target:
-        def request(self, operation):
-            calls.append(operation)
-            return desktop_target.DesktopReply(
-                "ready", frozenset({"webui"}),
-                "http://localhost:8765/#/?bootstrapSecret=synthetic-only",
-            )
-
-    monkeypatch.setattr(desktop_target, "_interactive_shell", lambda: True)
-    monkeypatch.setattr(desktop_target, "discover_desktop_target", Target)
-    monkeypatch.setattr(desktop_target, "_choose_target", lambda _: "desktop")
-    assert desktop_target.dispatch_bare_desktop_target(["webui"]) == status
-    assert calls == ["status", "webui"]
-    output = capsys.readouterr()
-    assert "synthetic-only" not in output.out + output.err
-    assert "Using current Python" not in output.out
 
 
 def test_redirect_escapes_html_without_changing_url():

@@ -1,7 +1,6 @@
 """Foreground gateway runtime and lifecycle helpers."""
 
 import asyncio
-import hashlib
 import os
 import signal
 from collections.abc import Callable, Iterable
@@ -44,7 +43,12 @@ from yoreni.cli.webui_support import (
 )
 from yoreni.config.paths import is_default_workspace
 from yoreni.config.schema import Config
-from yoreni.gateway.runtime import GatewayHealthIdentity, GatewayInstance, GatewayRuntime
+from yoreni.gateway.runtime import (
+    GatewayHealthIdentity,
+    GatewayInstance,
+    GatewayRuntime,
+    instance_id_for,
+)
 from yoreni.security.network import is_loopback_host
 from yoreni.utils.evaluator import evaluate_response, resolve_evaluator_prompt
 from yoreni.utils.helpers import sync_workspace_templates
@@ -356,7 +360,7 @@ def _run_gateway(
     port = port if port is not None else config.gateway.port
     instance = gateway_instance or GatewayInstance.resolve(config_path=get_config_path())
     gateway_runtime = GatewayRuntime(paths=instance.paths)
-    instance_id = hashlib.sha256(os.fsencode(instance.paths.state_path.resolve())).hexdigest()
+    instance_id = instance_id_for(instance.paths)
     with gateway_runtime.foreground_instance(instance.start_options(port=port, verbose=verbose)):
         _run_claimed_gateway(
             config, port=port, gateway_instance=instance, gateway_runtime=gateway_runtime,
@@ -390,7 +394,7 @@ def _run_claimed_gateway(
 ) -> None:
     """Initialize and run only while the caller holds the gateway lifecycle claim."""
     from yoreni.agent.model_presets import load_model_preset_catalog
-    from yoreni.agent.tools.send_message import SendMessageTool
+    from yoreni.agent.tools.chat_delivery import OutboundChatTool
     from yoreni.agent.turn_delivery import TurnDeliveryFactory
     from yoreni.bus.queue import MessageBus
     from yoreni.channels.manager import ChannelManager
@@ -525,9 +529,14 @@ def _run_claimed_gateway(
         agent.schedule_background(agent.agent.resume(run_id, deliver=True))
         return {"accepted": True}
 
-    message_tool = agent.tools.get("send_message")
-    if isinstance(message_tool, SendMessageTool):
-        message_tool.set_send_callback(deliver_to_channel)
+    # Every tool that speaks into a chat needs the channel delivery path, and
+    # the heartbeat suppresses all of them so its output goes through the gate.
+    delivery_tools = [
+        tool for name in ("send_message", "rich_content_message")
+        if isinstance(tool := agent.tools.get(name), OutboundChatTool)
+    ]
+    for delivery_tool in delivery_tools:
+        delivery_tool.set_send_callback(deliver_to_channel)
 
     # Set cron callback (needs agent)
     async def on_cron_job(job: CronJob) -> str | CronRunResult | None:
@@ -612,9 +621,9 @@ def _run_claimed_gateway(
 
             # Internal check: funnel all output through the post-run gate so the
             # turn can't deliver directly via send_message and skip it.
-            suppress_token = None
-            if isinstance(message_tool, SendMessageTool):
-                suppress_token = message_tool.set_suppress_delivery(True)
+            suppress_tokens = [
+                (tool, tool.set_suppress_delivery(True)) for tool in delivery_tools
+            ]
             try:
                 await mcp_provider.connect()
                 from yoreni.agent.state import AgentInput
@@ -627,8 +636,8 @@ def _run_claimed_gateway(
                     on_progress=_silent,
                 )
             finally:
-                if isinstance(message_tool, SendMessageTool) and suppress_token is not None:
-                    message_tool.reset_suppress_delivery(suppress_token)
+                for suppressed_tool, token in suppress_tokens:
+                    suppressed_tool.reset_suppress_delivery(token)
 
             if not resp or not resp.content:
                 return
@@ -750,6 +759,7 @@ def _run_claimed_gateway(
                     if method == "GET" and path == "/health":
                         ready, payload = _gateway_readiness_payload(channels)
                         payload["runtime"] = asdict(health_identity)
+                        payload["pid"] = os.getpid()
                         payload["maintenance"] = bus.admission.paused
                         body = _json.dumps(payload)
                         status = "200 OK" if ready else "503 Service Unavailable"

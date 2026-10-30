@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -55,6 +56,7 @@ class FakeRuntime:
         self.validated_configs: list[Config] = []
         self.runtime_selectors: list[tuple[str | None, str | None]] = []
         self.config_selectors: list[tuple[str | None, str | None]] = []
+        self.untracked_stops: list[tuple[int, int]] = []
 
     def start_background(self, options: GatewayStartOptions) -> RuntimeResult:
         self.started_options = options
@@ -68,6 +70,16 @@ class FakeRuntime:
     def stop(self, *, timeout_s: int) -> RuntimeResult:
         self.stop_timeout = timeout_s
         self.paths.state_path.with_name("gateway.clients.json").unlink(missing_ok=True)
+        return RuntimeResult(True, "gateway_stopped", self.status_value)
+
+    def stop_untracked(self, pid: int, *, timeout_s: int) -> RuntimeResult:
+        self.untracked_stops.append((pid, timeout_s))
+        self.status_value = replace(
+            self.status_value,
+            running=False,
+            pid=None,
+            reason="gateway_stopped",
+        )
         return RuntimeResult(True, "gateway_stopped", self.status_value)
 
     def status(self) -> GatewayStatus:
@@ -552,3 +564,63 @@ def test_gateway_uninstall_service_uses_service_installer(tmp_path):
     assert "Gateway service uninstall dry run" in result.stdout
     assert service.uninstalled_name == "custom-gateway"
     assert service.uninstall_manager == "systemd"
+
+
+def _stub_orphan_probe(monkeypatch, pid: int | None) -> None:
+    monkeypatch.setattr("yoreni.config.loader.load_config", lambda *_args, **_kwargs: Config())
+    monkeypatch.setattr(
+        "yoreni.gateway.runtime.orphan_gateway_pid",
+        lambda *_args, **_kwargs: pid,
+    )
+
+
+def test_gateway_status_reports_an_untracked_listener(tmp_path, monkeypatch):
+    app, fake_runtime, _service, _calls, _prepare_calls = _test_app(tmp_path)
+    fake_runtime.status_value = replace(
+        fake_runtime.status_value,
+        running=False,
+        pid=None,
+        reason="not_started",
+    )
+    _stub_orphan_probe(monkeypatch, 4321)
+
+    result = runner.invoke(app, ["gateway", "status"])
+
+    assert result.exit_code == 0
+    assert "Running: no" in result.stdout
+    assert "untracked gateway (PID 4321)" in result.stdout
+
+
+def test_gateway_stop_terminates_an_untracked_listener(tmp_path, monkeypatch):
+    app, fake_runtime, _service, _calls, _prepare_calls = _test_app(tmp_path)
+
+    def fake_stop(*, timeout_s: int) -> RuntimeResult:
+        fake_runtime.stop_timeout = timeout_s
+        return RuntimeResult(False, "gateway_not_running", fake_runtime.status_value)
+
+    fake_runtime.stop = fake_stop  # type: ignore[method-assign]
+    _stub_orphan_probe(monkeypatch, 4321)
+
+    result = runner.invoke(app, ["gateway", "stop", "--timeout", "3"])
+
+    assert result.exit_code == 0
+    assert fake_runtime.untracked_stops == [(4321, 3)]
+    assert "Stopped an untracked gateway (PID 4321)" in result.stdout
+
+
+def test_gateway_restart_replaces_an_untracked_listener(tmp_path, monkeypatch):
+    app, fake_runtime, _service, _calls, _prepare_calls = _test_app(tmp_path)
+
+    def fake_restart(options: GatewayStartOptions, *, timeout_s: int) -> RuntimeResult:
+        fake_runtime.restarted_options = options
+        return RuntimeResult(False, "gateway_not_running", fake_runtime.status_value)
+
+    fake_runtime.restart = fake_restart  # type: ignore[method-assign]
+    _stub_orphan_probe(monkeypatch, 4321)
+
+    result = runner.invoke(app, ["gateway", "restart"])
+
+    assert result.exit_code == 0
+    assert fake_runtime.untracked_stops == [(4321, 20)]
+    assert fake_runtime.started_options is not None
+    assert "restarted in the background" in result.stdout

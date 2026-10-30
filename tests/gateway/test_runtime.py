@@ -6,6 +6,7 @@ import subprocess
 import sys
 import threading
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -20,7 +21,11 @@ from yoreni.gateway import (
     GatewayStatus,
     RuntimeResult,
 )
-from yoreni.gateway.runtime import monitor_gateway_clients
+from yoreni.gateway.runtime import (
+    instance_id_for,
+    monitor_gateway_clients,
+    orphan_gateway_pid,
+)
 from yoreni.process_runtime import ManagedProcessRuntime, process_is_running
 from yoreni.utils.rotating_output import (
     BACKGROUND_LOG_BACKUP_COUNT_ENV,
@@ -1502,3 +1507,100 @@ def test_terminate_posix_tolerates_process_group_disappearing_before_sigkill(
     monkeypatch.setattr(runtime, "_wait_for_exit", lambda *_args: next(waits))
 
     assert runtime._terminate_posix(1234, timeout_s=1) is True
+
+
+@contextmanager
+def _health_server(payload: dict[str, object]):
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            if self.path != "/health":
+                self.send_error(404)
+                return
+            body = json.dumps(payload).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *_args: object) -> None:
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield server.server_address[1]
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_orphan_gateway_pid_reports_a_listener_serving_the_same_instance(tmp_path):
+    paths = _paths(tmp_path)
+    payload = {
+        "status": "ok",
+        "ready": True,
+        "pid": 4321,
+        "runtime": {
+            "instance_id": instance_id_for(paths),
+            "run_id": "run",
+            "version": "0.0.0",
+        },
+    }
+
+    with _health_server(payload) as port:
+        assert orphan_gateway_pid(paths, "127.0.0.1", port) == 4321
+
+
+def test_orphan_gateway_pid_ignores_another_instance_on_the_port(tmp_path):
+    paths = _paths(tmp_path)
+    payload = {
+        "status": "ok",
+        "ready": True,
+        "pid": 4321,
+        "runtime": {"instance_id": "another-instance", "run_id": "run", "version": "0.0.0"},
+    }
+
+    with _health_server(payload) as port:
+        assert orphan_gateway_pid(paths, "127.0.0.1", port) is None
+
+
+def test_stop_untracked_terminates_a_gateway_that_lost_its_state(tmp_path, monkeypatch):
+    runtime = GatewayRuntime(paths=_paths(tmp_path))
+    terminated: list[int] = []
+    monkeypatch.setattr(
+        runtime,
+        "_terminate",
+        lambda pid, timeout_s: terminated.append(pid) or True,
+    )
+    monkeypatch.setattr(runtime, "process_is_running", lambda _pid: False)
+
+    result = runtime.stop_untracked(9876, timeout_s=5)
+
+    assert result.ok is True
+    assert terminated == [9876]
+    assert result.status.running is False
+
+
+def test_stop_untracked_leaves_a_tracked_gateway_alone(tmp_path, monkeypatch):
+    runtime = GatewayRuntime(paths=_paths(tmp_path))
+    runtime.paths.run_dir.mkdir(parents=True, exist_ok=True)
+    runtime.paths.state_path.write_text(
+        json.dumps({"pid": os.getpid(), "identity": "recorded"}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(runtime, "_is_pid_running", lambda _pid: True)
+    monkeypatch.setattr(runtime, "_process_identity", lambda _pid: "recorded")
+    monkeypatch.setattr(
+        runtime,
+        "_terminate",
+        lambda *_args, **_kwargs: pytest.fail("must not signal a tracked gateway"),
+    )
+
+    result = runtime.stop_untracked(9876)
+
+    assert result.ok is False
+    assert result.message == "gateway_already_running"

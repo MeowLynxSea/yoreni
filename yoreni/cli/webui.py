@@ -224,6 +224,12 @@ def webui(
     gateway_ready = _gateway_health_ready(runtime_config.gateway.host, effective_gateway_port)
     webui_ready = _webui_endpoint_reachable(webui_url)
     existing_gateway = gateway_ready and webui_ready
+    if existing_gateway and not runtime.status().running:
+        console.print(
+            "[yellow]The gateway serving this instance has no state file; it is "
+            "untracked and may be running older code.[/yellow]"
+        )
+        console.print("[dim]Run `yoreni gateway restart` to replace it.[/dim]")
     if not existing_gateway:
         gateway_port_taken = gateway_ready or _tcp_endpoint_reachable(
             _host_for_local_browser(runtime_config.gateway.host),

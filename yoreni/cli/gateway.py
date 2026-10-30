@@ -110,6 +110,18 @@ def create_gateway_app(
             verbose=verbose,
         )
 
+    def orphan_gateway_pid(runtime: GatewayRuntime, config: str | None) -> int | None:
+        """Find a gateway still serving this instance after its state file was lost."""
+        from yoreni.config.errors import ConfigLoadError
+        from yoreni.config.loader import load_config
+        from yoreni.gateway.runtime import orphan_gateway_pid as probe_orphan_gateway
+
+        try:
+            cfg = load_config(_resolved_config_selector(config))
+        except (ConfigLoadError, OSError, ValueError):
+            return None
+        return probe_orphan_gateway(runtime.paths, cfg.gateway.host, cfg.gateway.port)
+
     def print_status(status: GatewayStatus) -> None:
         console.print(f"Running: {'yes' if status.running else 'no'}")
         console.print(f"Reason: {status.reason}")
@@ -257,7 +269,18 @@ def create_gateway_app(
         config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
     ) -> None:
         """Show the background gateway status."""
-        print_status(runtime_for_instance(workspace=workspace, config=config).status())
+        runtime = runtime_for_instance(workspace=workspace, config=config)
+        status = runtime.status()
+        print_status(status)
+        if status.running:
+            return
+        orphan = orphan_gateway_pid(runtime, config)
+        if orphan is not None:
+            console.print(
+                f"[yellow]An untracked gateway (PID {orphan}) still serves this instance; "
+                "its state file is missing.[/yellow]"
+            )
+            console.print("[dim]Run `yoreni gateway stop` to terminate it.[/dim]")
 
     @gateway_app.command("logs")
     def gateway_logs(  # pyright: ignore[reportUnusedFunction]
@@ -286,7 +309,18 @@ def create_gateway_app(
         """Stop the background gateway."""
         runtime = runtime_for_instance(workspace=workspace, config=config)
         result = runtime.stop(timeout_s=timeout)
-        if result.ok:
+        stopped_untracked = False
+        if not result.ok and result.message == "gateway_not_running":
+            orphan = orphan_gateway_pid(runtime, config)
+            if orphan is not None:
+                result = runtime.stop_untracked(orphan, timeout_s=timeout)
+                stopped_untracked = result.ok
+                if result.ok:
+                    console.print(
+                        f"[green]Stopped an untracked gateway (PID {orphan}); "
+                        "its state file was missing.[/green]"
+                    )
+        if result.ok and not stopped_untracked:
             console.print("[green]Gateway stopped.[/green]")
         else:
             console.print(f"[yellow]Gateway was not stopped: {result.message}[/yellow]")
@@ -309,16 +343,29 @@ def create_gateway_app(
         if prepare_webui_bundle is not None:
             prepare_webui_bundle(cfg, interactive_build_mode())
         runtime = runtime_for_instance(workspace=workspace, config=config)
-        result = runtime.restart(
-            start_options(
-                port=port,
-                verbose=verbose,
-                workspace=workspace,
-                config=config,
-                loaded_config=cfg,
-            ),
-            timeout_s=timeout,
+        options = start_options(
+            port=port,
+            verbose=verbose,
+            workspace=workspace,
+            config=config,
+            loaded_config=cfg,
         )
+        result = runtime.restart(options, timeout_s=timeout)
+        if result.message == "gateway_not_running":
+            orphan = orphan_gateway_pid(runtime, config)
+            if orphan is not None:
+                console.print(
+                    f"[yellow]Gateway state is missing but PID {orphan} still serves this "
+                    "instance; stopping it before restart.[/yellow]"
+                )
+                stopped = runtime.stop_untracked(orphan, timeout_s=timeout)
+                if not stopped.ok:
+                    console.print(
+                        f"[red]Untracked gateway was not stopped: {stopped.message}[/red]"
+                    )
+                    print_status(stopped.status)
+                    raise typer.Exit(1)
+                result = runtime.start_background(options)
         if result.ok:
             console.print("[green]Gateway restarted in the background.[/green]")
             print_status(result.status)

@@ -57,10 +57,13 @@ class GatewayHealthIdentity:
     version: str
 
 
-def _gateway_health_ready(host: str, port: int, *, timeout_s: float = 0.4,
-                          expected: GatewayHealthIdentity | None = None,
-                          maintenance: bool | None = None) -> bool:
-    """Read readiness from the management listener without using proxy settings."""
+def _gateway_health_probe(
+    host: str,
+    port: int,
+    *,
+    timeout_s: float = 0.4,
+) -> tuple[int, dict[str, Any] | None] | None:
+    """Read the management listener's /health response without using proxy settings."""
     connect_host = "127.0.0.1" if host in {"", "0.0.0.0"} else "::1" if host == "::" else host
     connection = http.client.HTTPConnection(connect_host, port, timeout=timeout_s)
     try:
@@ -68,18 +71,30 @@ def _gateway_health_ready(host: str, port: int, *, timeout_s: float = 0.4,
         response = connection.getresponse()
         body = response.read(4097)
     except (OSError, http.client.HTTPException, TimeoutError):
-        return False
+        return None
     finally:
         connection.close()
-    if response.status != 200 or len(body) > 4096:
-        return False
+    if len(body) > 4096:
+        return response.status, None
     try:
         raw_payload = cast(object, json.loads(body.decode("utf-8")))
     except (UnicodeDecodeError, json.JSONDecodeError):
+        return response.status, None
+    return response.status, cast(dict[str, Any], raw_payload) if isinstance(
+        raw_payload, dict
+    ) else None
+
+
+def _gateway_health_ready(host: str, port: int, *, timeout_s: float = 0.4,
+                          expected: GatewayHealthIdentity | None = None,
+                          maintenance: bool | None = None) -> bool:
+    """Read readiness from the management listener without using proxy settings."""
+    probe = _gateway_health_probe(host, port, timeout_s=timeout_s)
+    if probe is None:
         return False
-    if not isinstance(raw_payload, dict):
+    status_code, payload = probe
+    if status_code != 200 or payload is None:
         return False
-    payload = cast(dict[str, object], raw_payload)
     if maintenance is not None and payload.get("maintenance") is not maintenance:
         return False
     if expected is not None:
@@ -180,6 +195,37 @@ class GatewayRuntimePaths(ProcessRuntimePaths):
             state_path=run_dir / f"{stem}.json",
             log_path=logs_dir / f"{stem}.log",
         )
+
+
+def instance_id_for(paths: ProcessRuntimePaths) -> str:
+    """Return the opaque identity a gateway publishes for this instance."""
+    return hashlib.sha256(os.fsencode(paths.state_path.resolve())).hexdigest()
+
+
+def orphan_gateway_pid(
+    paths: ProcessRuntimePaths,
+    host: str,
+    port: int,
+    *,
+    timeout_s: float = 0.4,
+) -> int | None:
+    """Return the PID still serving this instance after its state file was lost."""
+    probe = _gateway_health_probe(host, port, timeout_s=timeout_s)
+    if probe is None:
+        return None
+    _, payload = probe
+    if payload is None:
+        return None
+    identity = payload.get("runtime")
+    if (
+        not isinstance(identity, dict)
+        or cast(dict[str, object], identity).get("instance_id") != instance_id_for(paths)
+    ):
+        return None
+    pid = payload.get("pid")
+    if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
+        return None
+    return pid
 
 
 @dataclass(frozen=True)
@@ -315,6 +361,22 @@ class GatewayRuntime(ManagedProcessRuntime[GatewayStartOptions]):
                 }:
                     GatewayClientLease(self, kind="gateway-stop")._clear_locked()
             return self._result(result)
+
+    def stop_untracked(self, pid: int, *, timeout_s: int = 20) -> RuntimeResult:
+        """Stop a gateway that still serves this instance after losing its state file."""
+        with self._transition_lock():
+            tracked = self.status()
+            if tracked.running:
+                return RuntimeResult(False, "gateway_already_running", tracked)
+            stopped = self._terminate(pid, timeout_s=timeout_s)
+            if not stopped and self.process_is_running(pid):
+                return RuntimeResult(
+                    False,
+                    self._message("stop_timeout"),
+                    self.status(reason="stop_timeout"),
+                )
+            GatewayClientLease(self, kind="gateway-stop")._clear_locked()
+            return RuntimeResult(True, self._message("stopped"), self.status())
 
     def status(self, *, reason: str | None = None) -> GatewayStatus:
         """Return process, launch, and client lifetime state in one snapshot."""

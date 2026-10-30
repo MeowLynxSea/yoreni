@@ -123,6 +123,9 @@
       "automations": {
         "title": "自動任務",
         "more": "另有 {{count}} 項"
+      },
+      "dynamic": {
+        "failed": "小工具重新整理失敗。"
       }
     },
     "tabs": {
@@ -511,12 +514,18 @@
     },
     "widgets": {
       "title": "主頁小工具",
-      "help": "小工具顯示在主頁，僅對本機 yoreni 生效。",
       "moveUp": "上移{{name}}",
       "moveDown": "下移{{name}}",
+      "refresh": "重新整理{{name}}",
+      "delete": "刪除{{name}}",
+      "deleteTitle": "刪除{{name}}？",
+      "deleteDescription": "這會從本機 yoreni 移除該小工具及其資料，主頁將不再顯示。",
+      "deleteAction": "刪除小工具",
+      "deleteFailed": "刪除小工具失敗，請再試一次。",
       "descriptions": {
         "goal": "顯示 agent 正在推進的目標。",
-        "automations": "顯示定時任務與下次執行時間。"
+        "automations": "顯示定時任務與下次執行時間。",
+        "dynamic": "在對話中建立，可在此重新整理或刪除。"
       }
     },
     "readingTextSize": {

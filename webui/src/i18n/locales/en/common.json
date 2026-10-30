@@ -123,6 +123,9 @@
       "automations": {
         "title": "Automations",
         "more": "{{count}} more scheduled"
+      },
+      "dynamic": {
+        "failed": "Couldn't refresh this widget."
       }
     },
     "tabs": {
@@ -566,12 +569,18 @@
     },
     "widgets": {
       "title": "Home widgets",
-      "help": "Widgets appear on Home. Changes apply to this yoreni install.",
       "moveUp": "Move {{name}} up",
       "moveDown": "Move {{name}} down",
+      "refresh": "Refresh {{name}}",
+      "delete": "Delete {{name}}",
+      "deleteTitle": "Delete {{name}}?",
+      "deleteDescription": "This removes the widget and its data from this yoreni install. Home stops showing it.",
+      "deleteAction": "Delete widget",
+      "deleteFailed": "Couldn't delete the widget. Try again.",
       "descriptions": {
         "goal": "Shows the goal the agent is working on.",
-        "automations": "Shows scheduled tasks and when they run next."
+        "automations": "Shows scheduled tasks and when they run next.",
+        "dynamic": "Created in chat. Refresh or remove it here."
       }
     },
     "readingTextSize": {

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from typing import Any
+from typing import Any, Literal
 
 from yoreni.bus.events import OutboundMessage
 from yoreni.events import AgentEvent
@@ -82,6 +82,12 @@ class GoalStateSyncEvent(AgentEvent):
     goal_state: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class WidgetChangedEvent(AgentEvent):
+    """A Home widget definition, its data, or its deletion changed."""
+
+    widget_id: str
+    kind: Literal["created", "updated", "deleted", "data"]
 
 
 @dataclass(frozen=True)

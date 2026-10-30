@@ -1,5 +1,5 @@
 
-import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
+import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
 
 const API_READ_TIMEOUT_MS = 20_000;
@@ -346,6 +346,51 @@ export async function saveHomeWidgets(
     order: layout.order,
     widgets: layout.widgets,
   });
+}
+
+export async function fetchWidgets(
+  token: string,
+  base: string = "",
+): Promise<{ widgets: DynamicWidgetSummary[] }> {
+  return request<{ widgets: DynamicWidgetSummary[] }>(
+    `${base}/api/webui/widgets`,
+    token,
+    { cache: "no-store" },
+    API_READ_TIMEOUT_MS,
+  );
+}
+
+export async function fetchWidget(
+  token: string,
+  widgetId: string,
+  base: string = "",
+): Promise<DynamicWidgetSnapshot> {
+  return request<DynamicWidgetSnapshot>(
+    `${base}/api/webui/widgets/${encodeURIComponent(widgetId)}`,
+    token,
+    { cache: "no-store" },
+    API_READ_TIMEOUT_MS,
+  );
+}
+
+export async function deleteWidget(
+  transport: WebUIMutationTransport,
+  widgetId: string,
+): Promise<{ deleted: string }> {
+  return mutation<{ deleted: string }>(transport, "webui.widgets.delete", {
+    widget_id: widgetId,
+  });
+}
+
+export async function refreshWidget(
+  transport: WebUIMutationTransport,
+  widgetId: string,
+): Promise<{ widget_id: string; data: unknown; duration_ms: number }> {
+  return mutation<{ widget_id: string; data: unknown; duration_ms: number }>(
+    transport,
+    "webui.widgets.refresh",
+    { widget_id: widgetId },
+  );
 }
 
 export async function fetchWorkspaces(

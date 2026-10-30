@@ -123,6 +123,9 @@
       "automations": {
         "title": "Automações",
         "more": "Mais {{count}} agendadas"
+      },
+      "dynamic": {
+        "failed": "Não foi possível atualizar este widget."
       }
     },
     "tabs": {
@@ -566,12 +569,18 @@
     },
     "widgets": {
       "title": "Widgets do início",
-      "help": "Os widgets aparecem no início. As alterações valem para esta instalação do yoreni.",
       "moveUp": "Mover {{name}} para cima",
       "moveDown": "Mover {{name}} para baixo",
+      "refresh": "Atualizar {{name}}",
+      "delete": "Excluir {{name}}",
+      "deleteTitle": "Excluir {{name}}?",
+      "deleteDescription": "Isso remove o widget e os dados desta instalação do yoreni. Ele deixa de aparecer no início.",
+      "deleteAction": "Excluir widget",
+      "deleteFailed": "Não foi possível excluir o widget. Tente novamente.",
       "descriptions": {
         "goal": "Mostra o objetivo em que o agente está trabalhando.",
-        "automations": "Mostra as tarefas agendadas e quando serão executadas."
+        "automations": "Mostra as tarefas agendadas e quando serão executadas.",
+        "dynamic": "Criado no chat. Atualize ou remova aqui."
       }
     },
     "readingTextSize": {

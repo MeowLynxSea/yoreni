@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
@@ -67,7 +68,8 @@ export function useTheme(): {
     delete document.documentElement.dataset.themeSnapshot;
   }, []);
 
-  useEffect(() => {
+  // Apply before paint so components reading palette tokens see the current theme.
+  useLayoutEffect(() => {
     applyTheme(theme);
   }, [theme]);
 

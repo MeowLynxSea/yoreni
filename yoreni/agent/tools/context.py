@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from yoreni.providers.factory import ProviderSnapshot
     from yoreni.security.workspace_access import WorkspaceSandboxStatus, WorkspaceScope
     from yoreni.utils.llm_runtime import LLMRuntime
+    from yoreni.widgets.service import WidgetService
 
 _CURRENT_REQUEST_CONTEXT: ContextVar["RequestContext | None"] = ContextVar(
     "yoreni_tool_request_context",
@@ -111,3 +112,4 @@ class ToolContext:
     timezone: str = "UTC"
     workspace_sandbox: WorkspaceSandboxStatus | None = None
     runtime_control: RuntimeControl | None = None
+    widget_service: WidgetService | None = None

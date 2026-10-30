@@ -123,6 +123,9 @@
       "automations": {
         "title": "自動化",
         "more": "他 {{count}} 件"
+      },
+      "dynamic": {
+        "failed": "このウィジェットを更新できませんでした。"
       }
     },
     "tabs": {
@@ -511,12 +514,18 @@
     },
     "widgets": {
       "title": "ホームのウィジェット",
-      "help": "ウィジェットはホームに表示されます。変更はこの yoreni のインストールに適用されます。",
       "moveUp": "{{name}}を上に移動",
       "moveDown": "{{name}}を下に移動",
+      "refresh": "{{name}}を更新",
+      "delete": "{{name}}を削除",
+      "deleteTitle": "{{name}}を削除しますか？",
+      "deleteDescription": "この yoreni のインストールからウィジェットとデータを削除します。ホームには表示されなくなります。",
+      "deleteAction": "ウィジェットを削除",
+      "deleteFailed": "ウィジェットを削除できませんでした。もう一度お試しください。",
       "descriptions": {
         "goal": "エージェントが取り組んでいるゴールを表示します。",
-        "automations": "予定されたタスクと次回の実行時刻を表示します。"
+        "automations": "予定されたタスクと次回の実行時刻を表示します。",
+        "dynamic": "チャットで作成されました。ここで更新または削除できます。"
       }
     },
     "readingTextSize": {

@@ -317,6 +317,26 @@ export interface HomeWidgetsPayload {
   widgets: Record<string, HomeWidgetEntry>;
 }
 
+/** Agent-authored Home widget definition; the body lives in a detail request. */
+export interface DynamicWidgetSummary {
+  id: string;
+  title: string;
+  description: string;
+  view: "stat" | "list" | "table" | "text" | "html";
+  has_command: boolean;
+  every_seconds: number | null;
+  has_data: boolean;
+  updated_at_ms: number | null;
+  next_run_at_ms: number | null;
+  error: string | null;
+}
+
+export interface DynamicWidgetSnapshot {
+  widget: DynamicWidgetSummary;
+  data: unknown;
+  html: string | null;
+}
+
 export interface ToolProgressEvent {
   version?: number;
   phase?: "start" | "end" | "error" | string;

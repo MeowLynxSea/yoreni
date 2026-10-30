@@ -20,3 +20,9 @@
 - Use `cron` for reminders and tasks with a specified time or interval, whether one-time or recurring. "Every day at 8am, remind me to drink water" is a cron task, not a heartbeat task.
 - Use `HEARTBEAT.md` for background checks with flexible timing that should notify only on actionable changes. Heartbeat does not guarantee a requested time or interval. Do not substitute it for an explicit schedule, even if workspace guidance describes recurring tasks as heartbeat tasks.
 - Confirm a task only after its tool call or file update succeeds. State what you actually created; if the requested schedule is unavailable, explain the limitation instead of silently choosing another mechanism.
+
+## Home widgets
+
+- Use `widget` for values the user wants on Home at a glance; a template view covers most cases, and `html` is only for layouts a template cannot express.
+- A widget with `argv` refreshes on its own schedule; otherwise call `set_data` when its value changes. Ask before replacing or deleting a widget the user already sees.
+- The `home-widgets` skill documents data shapes, the script contract, and the HTML sandbox; `yoreni-design` documents the visual language. Read them before creating or changing a widget, and prefer a template view over HTML.

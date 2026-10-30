@@ -123,6 +123,9 @@
       "automations": {
         "title": "Otomasi",
         "more": "{{count}} lainnya terjadwal"
+      },
+      "dynamic": {
+        "failed": "Widget tidak dapat diperbarui."
       }
     },
     "tabs": {
@@ -511,12 +514,18 @@
     },
     "widgets": {
       "title": "Widget beranda",
-      "help": "Widget tampil di beranda. Perubahan berlaku untuk instalasi yoreni ini.",
       "moveUp": "Pindahkan {{name}} ke atas",
       "moveDown": "Pindahkan {{name}} ke bawah",
+      "refresh": "Segarkan {{name}}",
+      "delete": "Hapus {{name}}",
+      "deleteTitle": "Hapus {{name}}?",
+      "deleteDescription": "Ini menghapus widget dan datanya dari instalasi yoreni ini. Widget tidak lagi tampil di beranda.",
+      "deleteAction": "Hapus widget",
+      "deleteFailed": "Widget tidak dapat dihapus. Coba lagi.",
       "descriptions": {
         "goal": "Menampilkan tujuan yang sedang dikerjakan agen.",
-        "automations": "Menampilkan tugas terjadwal dan waktu jalan berikutnya."
+        "automations": "Menampilkan tugas terjadwal dan waktu jalan berikutnya.",
+        "dynamic": "Dibuat di chat. Segarkan atau hapus di sini."
       }
     },
     "readingTextSize": {

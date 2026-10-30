@@ -43,6 +43,8 @@ export interface AgentFrame {
   render_as?: "text";
   created_at_ms?: number;
   goal_state?: import("./types").GoalStateWsPayload;
+  /** Home widget named by a `widget_changed` frame. */
+  widget_id?: string;
 }
 export interface YoreniClientOptions {
   url: string;

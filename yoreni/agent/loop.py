@@ -64,6 +64,7 @@ if TYPE_CHECKING:
     from yoreni.config.schema import ChannelsConfig, Config, ToolsConfig
     from yoreni.cron.service import CronService
     from yoreni.triggers.local_store import LocalTriggerStore
+    from yoreni.widgets.service import WidgetService
 
 
 @dataclasses.dataclass
@@ -145,6 +146,7 @@ class AgentLoop:
         max_tool_result_chars: int | None = None,
         provider_retry_mode: str = "standard",
         cron_service: CronService | None = None,
+        widget_service: WidgetService | None = None,
         restrict_to_workspace: bool = False,
         tool_registry: ToolRegistry | None = None,
         channels_config: ChannelsConfig | None = None,
@@ -217,6 +219,7 @@ class AgentLoop:
         self.web_config = _tc.web
         self.exec_config = _tc.exec
         self.cron_service = cron_service
+        self.widget_service = widget_service
         self.local_trigger_store = local_trigger_store
         self.restrict_to_workspace = restrict_to_workspace
         self.workspace_scopes = WorkspaceScopeResolver(
@@ -391,6 +394,7 @@ class AgentLoop:
             timezone=self.context.timezone or "UTC",
             workspace_sandbox=self.workspace_scopes.sandbox_status,
             runtime_control=runtime_control,
+            widget_service=self.widget_service,
         )
         loader = ToolLoader()
         registered = loader.load(ctx, self.tools)

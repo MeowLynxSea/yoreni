@@ -167,5 +167,23 @@ def update_home_widget_layout(order: object, widgets: object) -> dict[str, Any]:
     })
 
 
+def remove_home_widget_entry(widget_id: str) -> dict[str, Any]:
+    """Drop one widget from the stored layout after its definition is deleted."""
+    valid_id = _valid_widget_id(widget_id)
+    layout = read_home_widget_layout()
+    if valid_id is None:
+        return layout
+    widgets = cast(dict[str, dict[str, bool]], layout["widgets"])
+    if valid_id not in widgets:
+        return layout
+    widgets.pop(valid_id)
+    order = [entry for entry in cast(list[str], layout["order"]) if entry != valid_id]
+    return write_home_widget_layout({
+        "schema_version": HOME_WIDGET_LAYOUT_SCHEMA_VERSION,
+        "widgets": widgets,
+        "order": order,
+    })
+
+
 def home_widget_layout_payload() -> dict[str, Any]:
     return read_home_widget_layout()

@@ -13,6 +13,7 @@ from yoreni.bus.outbound_events import (
     TurnEndEvent,
     TurnModelUpdatedEvent,
     UserInputEvent,
+    WidgetChangedEvent,
     outbound_message_for_event,
 )
 from yoreni.bus.queue import MessageBus
@@ -25,6 +26,18 @@ from yoreni.bus.runtime_events import (
     UserInputAccepted,
 )
 from yoreni.providers.fallback_provider import FallbackModelObserver, FallbackModelSelection
+from yoreni.webui.home_widgets import remove_home_widget_entry
+from yoreni.widgets.types import WidgetChange
+
+
+async def publish_widget_change(bus: MessageBus, change: WidgetChange) -> None:
+    """Push one widget change to the personal WebUI and forget deleted layouts."""
+    if change.kind == "deleted":
+        remove_home_widget_entry(change.widget_id)
+    await bus.publish_outbound(outbound_message_for_event(
+        channel="websocket", chat_id=PERSONAL_CHAT_ID,
+        event=WidgetChangedEvent(change.widget_id, change.kind),
+    ))
 
 
 def build_webui_fallback_model_observer(bus: MessageBus) -> FallbackModelObserver:

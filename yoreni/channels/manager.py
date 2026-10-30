@@ -50,6 +50,7 @@ from yoreni.utils.restart import (
 if TYPE_CHECKING:
     from yoreni.cron.service import CronService
     from yoreni.triggers.local_store import LocalTriggerStore
+    from yoreni.widgets.service import WidgetService
 
 
 def _default_webui_dist() -> Path | None:
@@ -103,6 +104,7 @@ class ChannelManager:
         *,
         cron_service: CronService | None = None,
         local_trigger_store: LocalTriggerStore | None = None,
+        widget_service: WidgetService | None = None,
         webui_accept_input: Callable[[InboundMessage], Awaitable[str | None]] | None = None,
         webui_runtime_model_name: Callable[[], str | None] | None = None,
         webui_refresh_runtime_config: Callable[[], None] | None = None,
@@ -127,6 +129,7 @@ class ChannelManager:
         self.bus = bus
         self._cron_service = cron_service
         self._local_trigger_store = local_trigger_store
+        self._widget_service = widget_service
         self._webui_accept_input = webui_accept_input
         self._webui_runtime_model_name = webui_runtime_model_name
         self._webui_refresh_runtime_config = webui_refresh_runtime_config
@@ -217,6 +220,7 @@ class ChannelManager:
                 runtime_capabilities_overrides=self._webui_runtime_capabilities,
                 cron_service=self._cron_service,
                 local_trigger_store=self._local_trigger_store,
+                widget_service=self._widget_service,
                 channel_feature_action=self.apply_channel_feature_action,
                 channel_runtime_status=self.get_status,
                 mcp_runtime_status=self._webui_mcp_runtime_status,

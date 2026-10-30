@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 import { HOME_WIDGETS } from "./registry";
+import { DynamicWidget } from "./DynamicWidget";
 import { WidgetFrame } from "./WidgetFrame";
 import { useHomeWidgets } from "./widget-layout";
 
@@ -24,18 +25,21 @@ export function HomeFeed({ className }: { className?: string }) {
       <div className={cn("-mt-3 flex flex-col", className)}>
         {visible.map((state) => {
           const definition = HOME_WIDGETS.find((widget) => widget.id === state.id);
-          if (!definition) return null;
-          const { Component, id } = definition;
+          if (!definition && !state.dynamic) return null;
           return (
             <WidgetFrame
-              key={id}
-              id={id}
-              collapsible={definition.collapsible}
+              key={state.id}
+              id={state.id}
+              collapsible={state.collapsible}
               collapsed={state.collapsed}
-              onToggleCollapsed={() => toggleCollapsed(id)}
+              onToggleCollapsed={() => toggleCollapsed(state.id)}
               onPresenceChange={reportPresence}
             >
-              <Component />
+              {definition
+                ? <definition.Component />
+                : state.dynamic
+                  ? <DynamicWidget id={state.id} summary={state.dynamic} />
+                  : null}
             </WidgetFrame>
           );
         })}

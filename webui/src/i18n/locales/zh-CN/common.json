@@ -123,6 +123,9 @@
       "automations": {
         "title": "自动任务",
         "more": "另有 {{count}} 项"
+      },
+      "dynamic": {
+        "failed": "小组件刷新失败。"
       }
     },
     "tabs": {
@@ -566,12 +569,18 @@
     },
     "widgets": {
       "title": "主页小组件",
-      "help": "小组件显示在主页，仅对本机 yoreni 生效。",
       "moveUp": "上移{{name}}",
       "moveDown": "下移{{name}}",
+      "refresh": "刷新{{name}}",
+      "delete": "删除{{name}}",
+      "deleteTitle": "删除{{name}}？",
+      "deleteDescription": "这会从此 yoreni 安装中删除该小组件及其数据，主页将不再显示它。",
+      "deleteAction": "删除小组件",
+      "deleteFailed": "删除小组件失败，请重试。",
       "descriptions": {
         "goal": "显示 agent 正在推进的目标。",
-        "automations": "显示定时任务与下次运行时间。"
+        "automations": "显示定时任务与下次运行时间。",
+        "dynamic": "在对话中创建，可在此刷新或删除。"
       }
     },
     "readingTextSize": {

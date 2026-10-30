@@ -23,4 +23,6 @@ These skills are adapted from [OpenClaw](https://github.com/openclaw/openclaw)'s
 | `summarize` | Summarize URLs, files, and YouTube videos |
 | `tmux` | Remote-control tmux sessions |
 | `clawhub` | Search and install skills from ClawHub registry |
+| `home-widgets` | Create and maintain Home widgets |
 | `skill-creator` | Create new skills |
+| `yoreni-design` | Visual and copy conventions for interfaces and widget HTML |

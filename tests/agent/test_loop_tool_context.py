@@ -18,6 +18,7 @@ from yoreni.agent.tools.registry import ToolRegistry
 from yoreni.bus.queue import MessageBus
 from yoreni.config.schema import Config
 from yoreni.providers.base import LLMResponse, ToolCallRequest
+from yoreni.widgets.service import WidgetService
 
 
 class _ContextRecordingTool:
@@ -273,3 +274,19 @@ async def test_agent_loop_restores_outer_request_context_after_runner_exception(
     assert current_request_context() is None
 
 
+def test_loop_exposes_widget_tool_with_an_injected_service(tmp_path: Path) -> None:
+    provider = MagicMock()
+    provider.get_default_model.return_value = "test-model"
+    registry = ToolRegistry()
+    service = MagicMock(spec=WidgetService)
+
+    loop = AgentLoop(
+        bus=MessageBus(),
+        provider=provider,
+        workspace=tmp_path,
+        tool_registry=registry,
+        widget_service=service,
+    )
+
+    assert loop.widget_service is service
+    assert registry.has("widget")

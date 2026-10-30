@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from yoreni.channels.websocket.runtime import WebSocketConfig
     from yoreni.cron.service import CronService
     from yoreni.triggers.local_store import LocalTriggerStore
+    from yoreni.widgets.service import WidgetService
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,7 @@ class GatewayServices:
     workspaces: WebUIWorkspaceController
     cron_service: CronService | None
     local_trigger_store: LocalTriggerStore | None
+    widget_service: WidgetService | None
     accept_input: Callable[[InboundMessage], Awaitable[str | None]] | None
     agent_store: AgentStore
 
@@ -63,6 +65,7 @@ def build_gateway_services(
     disabled_skills: set[str] | None = None,
     cron_service: CronService | None = None,
     local_trigger_store: LocalTriggerStore | None = None,
+    widget_service: WidgetService | None = None,
     channel_feature_action: Callable[..., Any] | None = None,
     channel_runtime_status: Callable[[], dict[str, Any]] | None = None,
     mcp_runtime_status: Callable[[], Mapping[str, str]] | None = None,
@@ -111,6 +114,7 @@ def build_gateway_services(
         disabled_skills=disabled_skills,
         cron_service=cron_service,
         local_trigger_store=local_trigger_store,
+        widget_service=widget_service,
         channel_feature_action=channel_feature_action,
         channel_runtime_status=channel_runtime_status,
         mcp_runtime_status=mcp_runtime_status,
@@ -132,6 +136,7 @@ def build_gateway_services(
         workspaces=workspaces,
         cron_service=cron_service,
         local_trigger_store=local_trigger_store,
+        widget_service=widget_service,
         accept_input=accept_input,
         agent_store=AgentStore(workspace_path),
     )

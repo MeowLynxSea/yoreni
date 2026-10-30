@@ -22,6 +22,7 @@ from yoreni.bus.outbound_events import (
     TurnEndEvent,
     TurnModelUpdatedEvent,
     UserInputEvent,
+    WidgetChangedEvent,
 )
 from yoreni.bus.queue import MessageBus
 from yoreni.pairing.events import PairingChanged
@@ -81,6 +82,13 @@ class WebUIOutboundDelivery:
         if isinstance(event, PairingChanged):
             await self._send({"event": "pairing_changed"})
             return
+        if isinstance(event, WidgetChangedEvent):
+            await self._send({
+                "event": "widget_changed",
+                "widget_id": event.widget_id,
+                "kind": event.kind,
+            })
+            return
         if isinstance(event, RuntimeModelUpdatedEvent | TurnModelUpdatedEvent):
             await self._send({
                 "event": "runtime_model_updated" if isinstance(event, RuntimeModelUpdatedEvent) else "turn_model_updated",
@@ -97,13 +105,13 @@ class WebUIOutboundDelivery:
             await self._send({"event": "goal_status", "status": event.status, "started_at": event.started_at}, msg.metadata)
             return
         if isinstance(event, UserInputEvent):
-            payload: dict[str, Any] = {
+            user_payload: dict[str, Any] = {
                 "event": "user_message", "text": event.content,
                 "created_at_ms": event.created_at_ms,
             }
             if event.message_id:
-                payload["message_id"] = event.message_id
-            await self._send(payload, msg.metadata)
+                user_payload["message_id"] = event.message_id
+            await self._send(user_payload, msg.metadata)
             return
         if isinstance(event, AgentMessageEvent):
             await self._send(self._message_payload(event, msg), msg.metadata)

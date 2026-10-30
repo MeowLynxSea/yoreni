@@ -41,7 +41,7 @@ from yoreni.cli.webui_support import (
     _webui_display_url,
     _webui_endpoint_reachable,
 )
-from yoreni.config.paths import is_default_workspace
+from yoreni.config.paths import get_runtime_subdir, is_default_workspace
 from yoreni.config.schema import Config
 from yoreni.gateway.runtime import (
     GatewayHealthIdentity,
@@ -414,7 +414,14 @@ def _run_claimed_gateway(
     from yoreni.providers.fallback_provider import FallbackProvider
     from yoreni.triggers.local_runner import run_local_trigger_queue
     from yoreni.triggers.local_store import LocalTriggerStore
-    from yoreni.webui.run_events import build_webui_fallback_model_observer, connect_run_events
+    from yoreni.webui.run_events import (
+        build_webui_fallback_model_observer,
+        connect_run_events,
+        publish_widget_change,
+    )
+    from yoreni.widgets.runner import WidgetRunner
+    from yoreni.widgets.service import WidgetService
+    from yoreni.widgets.store import WidgetStore
 
     webui_url = _webui_browser_url(config)
     gateway_host_for_browser = _host_for_local_browser(config.gateway.host)
@@ -488,6 +495,13 @@ def _run_claimed_gateway(
     cron_store_path = config.workspace_path / "cron" / "jobs.json"
     cron = CronService(cron_store_path, admission=bus.admission)
     trigger_store = LocalTriggerStore(config.workspace_path)
+    widget_service = WidgetService(
+        WidgetStore(get_runtime_subdir("widgets")),
+        runner=WidgetRunner(sandbox=config.tools.exec.sandbox),
+        workspace=config.workspace_path,
+        admission=bus.admission,
+        on_change=partial(publish_widget_change, bus),
+    )
 
     turn_delivery_factory = TurnDeliveryFactory(bus)
 
@@ -502,6 +516,7 @@ def _run_claimed_gateway(
         model=provider_snapshot.model,
         context_window_tokens=provider_snapshot.context_window_tokens,
         cron_service=cron,
+        widget_service=widget_service,
         provider_snapshot_loader=_load_gateway_provider_snapshot,
         preset_catalog_loader=load_model_preset_catalog,
         turn_delivery_factory=turn_delivery_factory,
@@ -703,6 +718,7 @@ def _run_claimed_gateway(
         bus,
         cron_service=cron,
         local_trigger_store=trigger_store,
+        widget_service=widget_service,
         webui_runtime_model_name=_webui_runtime_model_name,
         webui_refresh_runtime_config=_webui_refresh_runtime_config,
         webui_static_dist=webui_static_dist,
@@ -886,6 +902,7 @@ def _run_claimed_gateway(
             # accepting new input.  That makes a new user message reliably
             # supersede an old recoverable turn instead of racing its queue.
             await cron.start()
+            await widget_service.start()
             async def _run_agent() -> None:
                 try:
                     await bus.admission.wait_until_open()
@@ -979,6 +996,7 @@ def _run_claimed_gateway(
                     with suppress(asyncio.CancelledError):
                         await shutdown_task
                 cron.stop()
+                await widget_service.aclose()
                 # A gateway exit interrupts ownership of active turns; it is
                 # not the same as the user stopping a turn.  Keep checkpoints
                 # so the next gateway can offer an explicit Continue action.

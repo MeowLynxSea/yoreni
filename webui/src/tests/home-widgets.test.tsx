@@ -14,18 +14,27 @@ import { ClientProvider } from "@/providers/ClientProvider";
 import type { AgentFrame, YoreniClient } from "@/lib/yoreni-client";
 
 vi.mock("@/lib/api", () => ({
+  deleteWidget: vi.fn(),
   fetchGoal: vi.fn(),
   fetchAutomations: vi.fn(),
   fetchHomeWidgets: vi.fn(),
+  fetchWidget: vi.fn(),
+  fetchWidgets: vi.fn(),
+  refreshWidget: vi.fn(),
   saveHomeWidgets: vi.fn(),
 }));
 
 function fakeClient() {
   const listeners = new Set<(frame: AgentFrame) => void>();
+  const ready = new Set<() => void>();
   const client = {
     onEvent: (callback: (frame: AgentFrame) => void) => {
       listeners.add(callback);
       return () => { listeners.delete(callback); };
+    },
+    onReady: (callback: () => void) => {
+      ready.add(callback);
+      return () => { ready.delete(callback); };
     },
   } as unknown as YoreniClient;
   return { client, emit: (frame: AgentFrame) => { listeners.forEach((callback) => callback(frame)); } };

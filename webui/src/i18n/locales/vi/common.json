@@ -123,6 +123,9 @@
       "automations": {
         "title": "Tự động hóa",
         "more": "{{count}} mục khác theo lịch"
+      },
+      "dynamic": {
+        "failed": "Không thể làm mới tiện ích này."
       }
     },
     "tabs": {
@@ -511,12 +514,18 @@
     },
     "widgets": {
       "title": "Tiện ích trang chính",
-      "help": "Tiện ích hiển thị trên trang chính. Thay đổi áp dụng cho bản cài yoreni này.",
       "moveUp": "Chuyển {{name}} lên",
       "moveDown": "Chuyển {{name}} xuống",
+      "refresh": "Làm mới {{name}}",
+      "delete": "Xóa {{name}}",
+      "deleteTitle": "Xóa {{name}}?",
+      "deleteDescription": "Thao tác này xóa tiện ích và dữ liệu của nó khỏi bản cài yoreni này. Tiện ích sẽ không còn hiển thị trên trang chính.",
+      "deleteAction": "Xóa tiện ích",
+      "deleteFailed": "Không thể xóa tiện ích. Hãy thử lại.",
       "descriptions": {
         "goal": "Hiển thị mục tiêu agent đang thực hiện.",
-        "automations": "Hiển thị tác vụ theo lịch và lần chạy tiếp theo."
+        "automations": "Hiển thị tác vụ theo lịch và lần chạy tiếp theo.",
+        "dynamic": "Được tạo trong chat. Làm mới hoặc xóa tại đây."
       }
     },
     "readingTextSize": {

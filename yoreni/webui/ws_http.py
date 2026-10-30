@@ -106,6 +106,7 @@ from yoreni.webui.skills_marketplace import (
 from yoreni.webui.star_prompt import update_star_prompt
 from yoreni.webui.workspace_browser import browse_workspace_directories
 from yoreni.webui.workspaces import WebUIWorkspaceController
+from yoreni.widgets.types import WidgetError, WidgetNotFoundError
 
 _SLOW_WEBUI_HTTP_LOG_MS = 1_000
 _WEBUI_MUTATION_PAYLOAD_ATTR = "_yoreni_webui_mutation_payload"
@@ -134,6 +135,8 @@ _WEBUI_MUTATION_PATHS = {
     "workspace.favorite": "/api/workspaces/favorite",
     "workspace.resolve_project": "/api/workspaces/resolve-project",
     "webui.home_widgets.update": "/api/webui/home-widgets",
+    "webui.widgets.delete": "/api/webui/widgets/delete",
+    "webui.widgets.refresh": "/api/webui/widgets/refresh",
     "settings.agent.update": "/api/settings/update",
     "settings.model_configuration.create": "/api/settings/model-configurations/create",
     "settings.model_configuration.update": "/api/settings/model-configurations/update",
@@ -213,6 +216,8 @@ if TYPE_CHECKING:
     from yoreni.cron.service import CronService
     from yoreni.triggers.local_store import LocalTriggerStore
     from yoreni.webui.settings_services import WebUISettingsServices
+    from yoreni.widgets.service import WidgetService
+    from yoreni.widgets.types import WidgetSummary
 
 
 
@@ -241,6 +246,23 @@ def _request_query(request: WsRequest) -> dict[str, list[str]]:
             text = str(value)
         query[key] = [text]
     return query
+
+
+def _widget_summary_payload(summary: WidgetSummary) -> dict[str, Any]:
+    """Serialize one widget without exposing its server-side workspace path."""
+    definition = summary.definition
+    return {
+        "id": definition.id,
+        "title": definition.title,
+        "description": definition.description,
+        "view": definition.view,
+        "has_command": bool(definition.command),
+        "every_seconds": definition.every_seconds,
+        "has_data": summary.has_data,
+        "updated_at_ms": summary.updated_at_ms,
+        "next_run_at_ms": summary.next_run_at_ms,
+        "error": summary.error,
+    }
 
 
 def _default_model_name_from_config(config_path: Path | None = None) -> str | None:
@@ -302,6 +324,7 @@ class GatewayHTTPHandler:
         disabled_skills: set[str] | None = None,
         cron_service: CronService | None = None,
         local_trigger_store: LocalTriggerStore | None = None,
+        widget_service: WidgetService | None = None,
         channel_feature_action: Callable[..., Any] | None = None,
         channel_runtime_status: Callable[[], dict[str, Any]] | None = None,
         mcp_runtime_status: Callable[[], Mapping[str, str]] | None = None,
@@ -329,6 +352,7 @@ class GatewayHTTPHandler:
         self._skill_install_lock = asyncio.Lock()
         self.cron_service = cron_service
         self.local_trigger_store = local_trigger_store
+        self.widget_service = widget_service
         self.channel_runtime_status = channel_runtime_status
         self._log = log
         self._runtime_surface = runtime_surface
@@ -440,6 +464,11 @@ class GatewayHTTPHandler:
         if self.settings_routes.is_mutation_path(path):
             return True
         if re.match(r"^/api/webui/automations/(enable|disable|delete|run|update)$", path):
+            return True
+        if path in {
+            "/api/webui/widgets/delete",
+            "/api/webui/widgets/refresh",
+        }:
             return True
         return path in {
             "/api/agent/resume", "/api/agent/cancel",
@@ -958,6 +987,13 @@ class GatewayHTTPHandler:
             return await self._handle_webui_goal(request)
         if got == "/api/webui/home-widgets":
             return self._handle_home_widgets(request)
+        if got == "/api/webui/widgets":
+            return self._handle_widgets(request)
+        if got in {"/api/webui/widgets/delete", "/api/webui/widgets/refresh"}:
+            return await self._handle_widget_mutation(request, got)
+        widget_match = re.match(r"^/api/webui/widgets/([A-Za-z0-9_-]{1,64})$", got)
+        if widget_match:
+            return self._handle_widget_detail(request, widget_match.group(1))
         if got == "/api/workspaces/favorite":
             return self._handle_workspace_favorite(connection, request)
         if got == "/api/workspaces/resolve-project":
@@ -1011,6 +1047,68 @@ class GatewayHTTPHandler:
             self._log.exception("failed to save home widget layout")
             return _http_error(500, "could not save widget layout")
         return _http_json_response(layout)
+
+    def _handle_widgets(self, request: WsRequest) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        service = self.widget_service
+        if service is None:
+            return _http_error(503, "widgets are unavailable")
+        return _http_json_response(
+            {"widgets": [_widget_summary_payload(summary) for summary in service.summaries()]},
+            extra_headers=_NO_STORE_HEADERS,
+        )
+
+    def _handle_widget_detail(self, request: WsRequest, widget_id: str) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        service = self.widget_service
+        if service is None:
+            return _http_error(503, "widgets are unavailable")
+        try:
+            snapshot = service.snapshot(widget_id)
+        except WidgetNotFoundError:
+            return _http_error(404, "widget not found")
+        except WidgetError as exc:
+            return _http_error(400, str(exc))
+        return _http_json_response(
+            {
+                "widget": _widget_summary_payload(snapshot.summary),
+                "data": snapshot.data,
+                "html": snapshot.html,
+            },
+            extra_headers=_NO_STORE_HEADERS,
+        )
+
+    async def _handle_widget_mutation(self, request: WsRequest, got: str) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        service = self.widget_service
+        if service is None:
+            return _http_error(503, "widgets are unavailable")
+        payload = _mutation_payload(request) or {}
+        widget_id = payload.get("widget_id")
+        if not isinstance(widget_id, str) or not widget_id:
+            return _http_error(400, "widget_id is required")
+        try:
+            if got.endswith("/delete"):
+                await service.delete(widget_id)
+                return _http_json_response({"deleted": widget_id})
+            result = await service.refresh(widget_id)
+        except WidgetNotFoundError:
+            return _http_error(404, "widget not found")
+        except WidgetError as exc:
+            return _http_error(400, str(exc))
+        if result.error:
+            return _http_error(500, f"widget refresh failed: {result.error}")
+        return _http_json_response(
+            {
+                "widget_id": widget_id,
+                "data": result.data,
+                "duration_ms": result.duration_ms,
+            },
+            extra_headers=_NO_STORE_HEADERS,
+        )
 
     def _handle_workspaces(self, connection: Any, request: WsRequest) -> Response:
         if not self.check_api_token(request):

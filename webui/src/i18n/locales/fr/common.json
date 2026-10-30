@@ -123,6 +123,9 @@
       "automations": {
         "title": "Automatisations",
         "more": "{{count}} autres planifiées"
+      },
+      "dynamic": {
+        "failed": "Impossible d'actualiser ce widget."
       }
     },
     "tabs": {
@@ -511,12 +514,18 @@
     },
     "widgets": {
       "title": "Widgets de l'accueil",
-      "help": "Les widgets apparaissent sur l'accueil. Les modifications s'appliquent à cette installation de yoreni.",
       "moveUp": "Déplacer {{name}} vers le haut",
       "moveDown": "Déplacer {{name}} vers le bas",
+      "refresh": "Actualiser {{name}}",
+      "delete": "Supprimer {{name}}",
+      "deleteTitle": "Supprimer {{name}} ?",
+      "deleteDescription": "Cela supprime le widget et ses données de cette installation de yoreni. Il n'apparaîtra plus sur l'accueil.",
+      "deleteAction": "Supprimer le widget",
+      "deleteFailed": "Impossible de supprimer le widget. Réessayez.",
       "descriptions": {
         "goal": "Affiche l'objectif sur lequel travaille l'agent.",
-        "automations": "Affiche les tâches planifiées et leur prochaine exécution."
+        "automations": "Affiche les tâches planifiées et leur prochaine exécution.",
+        "dynamic": "Créé dans le chat. Actualisez-le ou supprimez-le ici."
       }
     },
     "readingTextSize": {

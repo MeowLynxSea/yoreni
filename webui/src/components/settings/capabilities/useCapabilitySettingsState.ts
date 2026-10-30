@@ -5,6 +5,10 @@ import {
   imageGenerationFormFromPayload,
 } from "@/components/settings/capabilities/ImageGenerationSettings";
 import {
+  DEFAULT_MEMORY_FORM,
+  memoryFormFromPayload,
+} from "@/components/settings/capabilities/MemorySettings";
+import {
   DEFAULT_NETWORK_SAFETY_FORM,
   networkSafetyFormFromPayload,
 } from "@/components/settings/capabilities/SecuritySettings";
@@ -18,6 +22,7 @@ import {
 } from "@/components/settings/capabilities/WebSettings";
 import type {
   ImageGenerationSettingsUpdate,
+  MemorySettingsUpdate,
   NetworkSafetySettingsUpdate,
   SettingsPayload,
   TranscriptionSettingsUpdate,
@@ -25,10 +30,11 @@ import type {
 } from "@/lib/types";
 
 export function useCapabilitySettingsState(initialSettings: SettingsPayload | null) {
-  const [capabilityErrors, setCapabilityErrors] = useState<Partial<Record<"image" | "voice" | "web" | "safety", string>>>({});
+  const [capabilityErrors, setCapabilityErrors] = useState<Partial<Record<"image" | "voice" | "web" | "memory" | "safety", string>>>({});
   const [webSearchSaving, setWebSearchSaving] = useState(false);
   const [imageGenerationSaving, setImageGenerationSaving] = useState(false);
   const [transcriptionSaving, setTranscriptionSaving] = useState(false);
+  const [memorySaving, setMemorySaving] = useState(false);
   const [networkSafetySaving, setNetworkSafetySaving] = useState(false);
   const [webSearchForm, setWebSearchForm] = useState<WebSearchSettingsUpdate>(() =>
     initialSettings ? webSearchFormFromPayload(initialSettings) : DEFAULT_WEB_SEARCH_FORM,
@@ -41,6 +47,9 @@ export function useCapabilitySettingsState(initialSettings: SettingsPayload | nu
   const [transcriptionForm, setTranscriptionForm] = useState<TranscriptionSettingsUpdate>(
     () => initialSettings ? transcriptionFormFromPayload(initialSettings) : DEFAULT_TRANSCRIPTION_FORM,
   );
+  const [memoryForm, setMemoryForm] = useState<MemorySettingsUpdate>(
+    () => initialSettings ? memoryFormFromPayload(initialSettings) : DEFAULT_MEMORY_FORM,
+  );
   const [networkSafetyForm, setNetworkSafetyForm] = useState<NetworkSafetySettingsUpdate>(() =>
     initialSettings ? networkSafetyFormFromPayload(initialSettings) : DEFAULT_NETWORK_SAFETY_FORM,
   );
@@ -52,10 +61,14 @@ export function useCapabilitySettingsState(initialSettings: SettingsPayload | nu
     setCapabilityErrors,
     imageGenerationForm,
     imageGenerationSaving,
+    memoryForm,
+    memorySaving,
     networkSafetyForm,
     networkSafetySaving,
     setImageGenerationForm,
     setImageGenerationSaving,
+    setMemoryForm,
+    setMemorySaving,
     setNetworkSafetyForm,
     setNetworkSafetySaving,
     setTranscriptionForm,

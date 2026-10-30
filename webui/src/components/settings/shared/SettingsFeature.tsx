@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ToggleButton } from "@/components/ui/toggle-button";
 import { SettingsGroup, SettingsRow } from "@/components/settings/shared/SettingsControls";
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Disclosure } from "@/components/ui/disclosure";
 
 export function SettingsAdvancedOptions({ children }: { children: ReactNode }) {
@@ -22,9 +22,10 @@ export function SettingsAdvancedOptions({ children }: { children: ReactNode }) {
 }
 
 export function SettingsFeature({
-  title, enabled, onChange, disabled, initialOpen = false, error, children, onBeforeClose,
+  title, description, enabled, onChange, disabled, initialOpen = false, error, children, onBeforeClose,
 }: {
   title: string;
+  description?: string;
   enabled: boolean;
   onChange: (enabled: boolean) => void;
   disabled?: boolean;
@@ -68,9 +69,12 @@ export function SettingsFeature({
             onChange={(next) => { setOpen(next); onChange(next); }} />
         </SettingsRow>
       </SettingsGroup>
-      {children ? <DialogContent aria-describedby={undefined} className="settings-grid max-h-[85dvh] w-[min(calc(100vw-2rem),40rem)] max-w-none overflow-y-auto p-0">
-        <DialogTitle className="sr-only">{title}</DialogTitle>
-        <div className="pb-4 pt-8">{children}</div>
+      {children ? <DialogContent aria-describedby={undefined} className="max-h-[85dvh] w-[min(calc(100vw-2rem),40rem)] max-w-none gap-0 overflow-y-auto p-0">
+        <DialogHeader className="px-6 pb-3 pr-12 pt-6 text-left">
+          <DialogTitle>{title}</DialogTitle>
+          {description ? <DialogDescription className="leading-5">{description}</DialogDescription> : null}
+        </DialogHeader>
+        <div className="pb-4">{children}</div>
       </DialogContent> : null}
       </Dialog>
       {error && !open ? <p role="alert" className="settings-list-inset pt-2 text-[13px] leading-5 text-destructive">{error}</p> : null}

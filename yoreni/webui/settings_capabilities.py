@@ -8,6 +8,8 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, TypedDict
 
+from pydantic import ValidationError
+
 from yoreni.agent.tools.web import SEARCH_PROVIDER_OPTIONS
 from yoreni.api.runtime import ApiRuntime, ApiStartOptions
 from yoreni.audio.transcription import resolve_transcription_config
@@ -15,7 +17,7 @@ from yoreni.audio.transcription_registry import (
     resolve_transcription_provider,
     transcription_provider_names,
 )
-from yoreni.config.schema import Config
+from yoreni.config.schema import Config, EmbeddingConfig
 from yoreni.optional_features import (
     OptionalFeatureError,
     extra_installed,
@@ -64,6 +66,7 @@ class CapabilitySettingsOperations:
     update_api: SettingsOperation
     update_image: SettingsOperation
     update_transcription: SettingsOperation
+    update_memory: SettingsOperation
     update_network: SettingsOperation
     yoreni_features_action: SettingsOperation
     api_runtime: Callable[[], ApiRuntime]
@@ -77,6 +80,7 @@ class CapabilitySettingsPayload(TypedDict):
     observability: dict[str, Any]
     image_generation: dict[str, Any]
     transcription: dict[str, Any]
+    memory: dict[str, Any]
 
 
 _WEB_SEARCH_PROVIDER_OPTIONS = SEARCH_PROVIDER_OPTIONS
@@ -151,6 +155,28 @@ def _transcription_provider_rows(config: Config) -> list[dict[str, Any]]:
             }
         )
     return rows
+
+
+def _memory_settings_payload(config: Config) -> dict[str, Any]:
+    memory = config.memory
+    embedding = memory.embedding
+    return {
+        "enabled": memory.enabled,
+        "core_token_budget": memory.core_token_budget,
+        "retrieval_token_budget": memory.retrieval_token_budget,
+        "retrieval_limit": memory.retrieval_limit,
+        "embedding": {
+            "enabled": embedding is not None,
+            "provider": embedding.provider if embedding is not None else None,
+            "model": embedding.model if embedding is not None else "",
+            "api_base": embedding.api_base if embedding is not None else None,
+            "api_key_hint": (
+                mask_secret_hint(embedding.api_key) if embedding is not None else None
+            ),
+            "dimensions": embedding.dimensions if embedding is not None else None,
+            "batch_size": embedding.batch_size if embedding is not None else 32,
+        },
+    }
 
 
 def capability_settings_payload(
@@ -237,6 +263,7 @@ def capability_settings_payload(
             "max_upload_mb": transcription.max_upload_mb,
             "providers": _transcription_provider_rows(config),
         },
+        "memory": _memory_settings_payload(config),
     }
 
 
@@ -594,6 +621,120 @@ def update_transcription_settings(config: Config, query: QueryParams) -> bool:
     return changed
 
 
+def update_memory_settings(config: Config, query: QueryParams) -> bool:
+    """Update memory budgets and the optional embedding endpoint."""
+    memory = config.memory
+    changed = False
+
+    enabled = query_first(query, "enabled")
+    if enabled is not None:
+        parsed_enabled = parse_bool(enabled, "enabled")
+        if memory.enabled != parsed_enabled:
+            memory.enabled = parsed_enabled
+            changed = True
+
+    for attr, key, minimum, maximum in (
+        ("core_token_budget", "core_token_budget", 400, 32_000),
+        ("retrieval_token_budget", "retrieval_token_budget", 200, 32_000),
+        ("retrieval_limit", "retrieval_limit", 1, 50),
+    ):
+        raw = query_first(query, key)
+        if raw is None:
+            continue
+        try:
+            value = int(raw)
+        except ValueError:
+            raise WebUISettingsError(f"{key} must be an integer") from None
+        if not minimum <= value <= maximum:
+            raise WebUISettingsError(f"{key} must be between {minimum} and {maximum}")
+        if getattr(memory, attr) != value:
+            setattr(memory, attr, value)
+            changed = True
+
+    embedding_enabled = query_first(query, "embedding_enabled")
+    if embedding_enabled is None:
+        return changed
+    if not parse_bool(embedding_enabled, "embedding_enabled"):
+        if memory.embedding is not None:
+            memory.embedding = None
+            changed = True
+        return changed
+
+    current = memory.embedding
+    model = query_first(query, "embedding_model")
+    model = (model if model is not None else (current.model if current else "")).strip()
+    if not model:
+        raise WebUISettingsError("embedding_model is required for semantic search")
+
+    provider = query_first(query, "embedding_provider")
+    provider = (provider if provider is not None else (current.provider if current else "") or "").strip() or None
+    api_base = query_first(query, "embedding_api_base")
+    api_base = (api_base if api_base is not None else (current.api_base if current else "") or "").strip() or None
+    if not api_base and not provider:
+        raise WebUISettingsError("enter an embedding API base or choose a provider")
+
+    if provider is not None:
+        provider_config = getattr(config.providers, provider, None)
+        if provider_config is None:
+            raise WebUISettingsError(f"unknown embedding provider {provider!r}")
+        if not api_base and not str(provider_config.api_base or "").strip():
+            raise WebUISettingsError(
+                f"provider {provider!r} has no API base; enter one for embeddings"
+            )
+
+    api_key_raw = query_first(query, "embedding_api_key")
+    if api_key_raw is None:
+        api_key = current.api_key if current is not None else None
+    else:
+        api_key = api_key_raw.strip() or None
+
+    dimensions_raw = query_first(query, "embedding_dimensions")
+    if dimensions_raw is None:
+        dimensions = current.dimensions if current is not None else None
+    else:
+        dimensions = _bounded_optional_int(
+            dimensions_raw, "embedding_dimensions", 1, 8_192,
+        )
+    batch_size_raw = query_first(query, "embedding_batch_size")
+    if batch_size_raw is None:
+        batch_size = current.batch_size if current is not None else 32
+    else:
+        batch_size = (
+            _bounded_optional_int(batch_size_raw, "embedding_batch_size", 1, 64) or 32
+        )
+
+    try:
+        embedding = EmbeddingConfig(
+            provider=provider,
+            model=model,
+            api_base=api_base,
+            api_key=api_key,
+            dimensions=dimensions,
+            batch_size=batch_size,
+        )
+    except ValidationError as exc:
+        message = exc.errors(include_input=False, include_url=False)[0]["msg"]
+        raise WebUISettingsError(f"embedding: {message}") from None
+    if memory.embedding != embedding:
+        memory.embedding = embedding
+        changed = True
+    return changed
+
+
+def _bounded_optional_int(
+    raw: str | None, field: str, minimum: int, maximum: int,
+) -> int | None:
+    if raw is None or not raw.strip():
+        return None
+    try:
+        value = int(raw)
+    except ValueError:
+        raise WebUISettingsError(f"{field} must be an integer") from None
+    if not minimum <= value <= maximum:
+        raise WebUISettingsError(f"{field} must be between {minimum} and {maximum}")
+    return value
+
+
 def network_safety_payload(config: Config) -> dict[str, Any]:
     """Return the network-related fields embedded in the advanced DTO."""
     return {
@@ -685,6 +826,11 @@ class CapabilitySettingsHandler:
             "transcription-update": (
                 operations.update_transcription,
                 None,
+                False,
+            ),
+            "memory-update": (
+                operations.update_memory,
+                "runtime",
                 False,
             ),
             "network-update": (

@@ -3,6 +3,10 @@ import { useTranslation } from "react-i18next";
 
 import { imageGenerationFormFromPayload } from "@/components/settings/capabilities/ImageGenerationSettings";
 import {
+  DEFAULT_MEMORY_SETTINGS,
+  memoryFormFromPayload,
+} from "@/components/settings/capabilities/MemorySettings";
+import {
   networkSafetyFormFromPayload,
   visibleWebuiDefaultAccessMode,
 } from "@/components/settings/capabilities/SecuritySettings";
@@ -107,12 +111,12 @@ export function useSettingsController({
   } = modelState;
   const capabilityState = useCapabilitySettingsState(initialSettings);
   const {
-    imageGenerationForm, networkSafetyForm,
-    setImageGenerationForm, setNetworkSafetyForm, setTranscriptionForm, setWebSearchForm,
+    imageGenerationForm, memoryForm, networkSafetyForm,
+    setImageGenerationForm, setMemoryForm, setNetworkSafetyForm, setTranscriptionForm, setWebSearchForm,
     transcriptionForm, webSearchForm,
   } = capabilityState;
-  const draftsRef = useRef({ form, imageGenerationForm, networkSafetyForm, transcriptionForm, webSearchForm });
-  draftsRef.current = { form, imageGenerationForm, networkSafetyForm, transcriptionForm, webSearchForm };
+  const draftsRef = useRef({ form, imageGenerationForm, memoryForm, networkSafetyForm, transcriptionForm, webSearchForm });
+  draftsRef.current = { form, imageGenerationForm, memoryForm, networkSafetyForm, transcriptionForm, webSearchForm };
   const systemState = useSystemSettingsState();
   const featureCatalog = systemState.yoreniFeatures?.features ?? [];
 
@@ -143,6 +147,7 @@ export function useSettingsController({
       if (!options.preserveCapabilityForms) {
         setWebSearchForm((prev) => webSearchFormFromPayload(payload, prev));
         setImageGenerationForm(imageGenerationFormFromPayload(payload));
+        setMemoryForm(memoryFormFromPayload(payload));
         setTranscriptionForm(transcriptionFormFromPayload(payload));
         setNetworkSafetyForm(networkSafetyFormFromPayload(payload));
       }
@@ -332,6 +337,24 @@ export function useSettingsController({
     );
   }, [settings, transcriptionForm]);
 
+  const memoryDirty = useMemo(() => {
+    if (!settings) return false;
+    const memory = settings.memory ?? DEFAULT_MEMORY_SETTINGS;
+    return (
+      memoryForm.enabled !== memory.enabled ||
+      memoryForm.coreTokenBudget !== memory.core_token_budget ||
+      memoryForm.retrievalTokenBudget !== memory.retrieval_token_budget ||
+      memoryForm.retrievalLimit !== memory.retrieval_limit ||
+      memoryForm.embeddingEnabled !== memory.embedding.enabled ||
+      memoryForm.embeddingProvider !== (memory.embedding.provider ?? "") ||
+      memoryForm.embeddingModel !== memory.embedding.model ||
+      memoryForm.embeddingApiBase !== (memory.embedding.api_base ?? "") ||
+      memoryForm.embeddingDimensions !== memory.embedding.dimensions ||
+      memoryForm.embeddingBatchSize !== memory.embedding.batch_size ||
+      memoryForm.embeddingApiKey !== undefined
+    );
+  }, [memoryForm, settings]);
+
   const networkSafetyDirty = useMemo(() => {
     if (!settings) return false;
     const currentLocalServiceAccess =
@@ -456,6 +479,7 @@ export function useSettingsController({
       (provider) => provider.name === imageGenerationForm.provider,
     )?.configured));
   const transcriptionEdits = useEditCompletion(transcriptionForm, transcriptionDirty, capabilityActions.saveTranscriptionSettings);
+  const memoryEdits = useEditCompletion(memoryForm, memoryDirty, capabilityActions.saveMemorySettings);
   const webDraft = settings ? webSearchDraftState(settings, webSearchForm) : null;
   const webEdits = useEditCompletion(webSearchForm, webDraft?.dirty ?? false, capabilityActions.saveWebSearch,
     !webDraft?.missingCredential && (webSearchForm.provider !== "olostep" ||
@@ -469,6 +493,7 @@ export function useSettingsController({
     modelEdits,
     safetyEdits,
     imageEdits,
+    memoryEdits,
     transcriptionEdits,
     webEdits,
     systemState,
@@ -480,6 +505,7 @@ export function useSettingsController({
     featureCatalog,
     hostEngineApplying,
     imageGenerationDirty,
+    memoryDirty,
     loading,
     localPrefs,
     modelDirty,

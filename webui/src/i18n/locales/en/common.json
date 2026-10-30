@@ -459,7 +459,8 @@
       "apps": "Apps",
       "nativeHost": "Native host",
       "hostSafety": "App safety",
-      "voiceInput": "Transcription"
+      "voiceInput": "Transcription",
+      "memory": "Long-term memory"
     },
     "models": {
       "requestOverridesHint": "Leave fields empty to use provider settings. Changing the provider clears these values.",
@@ -636,7 +637,18 @@
       "transcriptionProviderStatus": "Setup status",
       "transcriptionModel": "Model",
       "transcriptionLanguage": "Language",
-      "voiceLimits": "Limits"
+      "voiceLimits": "Limits",
+      "memory": "Long-term memory",
+      "memoryEmbedding": "Semantic search",
+      "memoryEmbeddingProvider": "Provider",
+      "memoryEmbeddingBase": "API base",
+      "memoryEmbeddingKey": "API key",
+      "memoryEmbeddingModel": "Model",
+      "memoryEmbeddingDimensions": "Dimensions",
+      "memoryEmbeddingBatch": "Embedding batch size",
+      "memoryCoreBudget": "Core memory budget",
+      "memoryRetrievalBudget": "Retrieved memory budget",
+      "memoryRetrievalLimit": "Retrieved facts"
     },
     "help": {
       "theme": "Switch between light and dark appearance.",
@@ -680,7 +692,16 @@
       "transcriptionProvider": "Uses credentials saved in Providers.",
       "transcriptionProviderStatus": "API keys are saved in Providers.\n\nAPI keys stay under providers, not in transcription settings.",
       "transcriptionModel": "Use the default, or enter the required model ID.\n\nKeep the default model unless your provider requires a specific model ID.",
-      "transcriptionLanguage": "Language code, such as zh or en.\n\nOptional language code, such as en for English, zh for Chinese, ja for Japanese, or ko for Korean."
+      "transcriptionLanguage": "Language code, such as zh or en.\n\nOptional language code, such as en for English, zh for Chinese, ja for Japanese, or ko for Korean.",
+      "memory": "Remember durable preferences, decisions and project knowledge across conversations.",
+      "memoryEmbedding": "Use an OpenAI-compatible embedding model to find memories by meaning. Without it, search stays keyword-only.",
+      "memoryEmbeddingProvider": "Reuse a configured provider's API base and key, or enter a custom endpoint below.",
+      "memoryEmbeddingBase": "The OpenAI-compatible /v1 endpoint. Leave empty to reuse the selected provider.",
+      "memoryEmbeddingKey": "Stored in the local config and never shown again. Leave empty to reuse the provider key.",
+      "memoryEmbeddingModel": "The embedding model id, for example text-embedding-3-small or nomic-embed-text.",
+      "memoryEmbeddingDimensions": "Optional. Set it only when the endpoint requires an explicit vector size; changing it starts a new index.",
+      "memoryCoreBudget": "Tokens reserved for SOUL.md, USER.md and memory/MEMORY.md in every conversation.",
+      "memoryRetrievalBudget": "Tokens available for facts retrieved for the current turn."
     },
     "timezone": {
       "select": "Select timezone",
@@ -1512,6 +1533,11 @@
       "selectProvider": "Select provider",
       "configureProvider": "Configure provider",
       "languageAuto": "Auto"
+    },
+    "memory": {
+      "customEndpoint": "Custom endpoint",
+      "clearKey": "Clear",
+      "providerKey": "Uses the provider key"
     }
   },
   "chat": {

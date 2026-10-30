@@ -77,12 +77,16 @@ describe("Settings capabilities", () => {
     const payload = { ...settingsPayload(), runtime_config: {
       "tools.web.enable": true, "agents.defaults.dream.enabled": true,
     } };
-    const memorySaved = { ...payload, runtime_config: { ...payload.runtime_config, "agents.defaults.dream.enabled": false } };
+    const memorySaved = {
+      ...payload,
+      memory: { ...payload.memory!, enabled: false },
+      runtime_config: { ...payload.runtime_config, "agents.defaults.dream.enabled": false },
+    };
     let finishMemory!: (value: SettingsPayload) => void;
     requestMutationMock.mockImplementationOnce(() => new Promise<SettingsPayload>((resolve) => { finishMemory = resolve; }))
       .mockResolvedValueOnce({ ...memorySaved, runtime_config: { ...memorySaved.runtime_config, "tools.web.enable": false } });
     renderSettingsView({ initialSection: "capabilities", initialSettings: payload });
-    const memory = screen.getByRole("switch", { name: "Memory consolidation" });
+    const memory = screen.getByRole("switch", { name: "Long-term memory" });
     const web = screen.getByRole("switch", { name: "Web access" });
     expect(memory).toHaveClass("h-5", "w-9", "bg-foreground");
     expect(web).toHaveClass("h-5", "w-9", "bg-foreground");

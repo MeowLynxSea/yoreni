@@ -152,7 +152,7 @@ export function useRuntimeConfigSettings(
 export type RuntimeConfigController = ReturnType<typeof useRuntimeConfigSettings>;
 
 export function RuntimeConfigSettings({
-  page, settings, state, onRestart, isRestarting, remoteBrowserAccess, children,
+  page, settings, state, onRestart, isRestarting, remoteBrowserAccess, children, embedded = false,
 }: {
   page: RuntimeConfigPage;
   settings: SettingsPayload;
@@ -161,6 +161,7 @@ export function RuntimeConfigSettings({
   isRestarting: boolean;
   remoteBrowserAccess: boolean;
   children?: ReactNode;
+  embedded?: boolean;
 }) {
   const { t } = useTranslation();
   const tr = (key: string) => t(`settings.runtimeConfig.${key}`);
@@ -173,7 +174,7 @@ export function RuntimeConfigSettings({
     || (settings.requires_restart && Object.values(state.saved).some(Boolean));
   return (
     <div className="settings-stack">
-      {restartPending && onRestart ? <RestartRequiredNotice message={t("settings.status.savedRestartApply")}
+      {restartPending && onRestart && !embedded ? <RestartRequiredNotice message={t("settings.status.savedRestartApply")}
         onRestart={onRestart} isRestarting={isRestarting} /> : null}
       {groups.map((group) => {
         if (group.enabledBy && state.value(group.enabledBy) === false) return null;
@@ -185,14 +186,14 @@ export function RuntimeConfigSettings({
         const inlineError = fields.some((field) => field.kind === "duration" && state.invalidField === field.path);
         const section = (
           <section key={group.id} aria-label={title}>
-            <SettingsSectionTitle>{group.id === "proxy"
+            {embedded ? null : <SettingsSectionTitle>{group.id === "proxy"
               ? <SettingsHint description={tr("fields.network_proxy.help")}>{title}</SettingsHint>
-              : title}</SettingsSectionTitle>
+              : title}</SettingsSectionTitle>}
             <form noValidate onSubmit={(event) => { event.preventDefault(); void state.save(group.id); }}>
               <fieldset disabled={state.saving === group.id || isRestarting} className="min-w-0">
                 <legend className="sr-only">{title}</legend>
                 <button type="submit" hidden />
-                <SettingsGroup>
+                <SettingsGroup flat={embedded}>
                   {fields.filter(state.visible).map((field) => {
                     const id = `runtime-${field.path}`;
                     const current = state.value(field.path);
@@ -262,7 +263,7 @@ export function RuntimeConfigSettings({
                     error={Boolean(state.errors[group.id])}
                     disabled={state.saving === group.id || isRestarting}
                     pendingRestart={false}
-                    message={state.saved[group.id] && !dirty ? tr("saved") : undefined}
+                    message={!embedded && state.saved[group.id] && !dirty ? tr("saved") : undefined}
                     onSave={() => void state.save(group.id)} onReset={() => state.discard(group.id)}
                     onRestart={onRestart} isRestarting={isRestarting} />
                 </SettingsGroup>

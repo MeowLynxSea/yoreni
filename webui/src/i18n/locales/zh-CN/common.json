@@ -459,7 +459,8 @@
       "apps": "应用",
       "nativeHost": "桌面应用",
       "hostSafety": "应用安全",
-      "voiceInput": "语音转写"
+      "voiceInput": "语音转写",
+      "memory": "长期记忆"
     },
     "models": {
       "requestOverridesHint": "留空时使用提供商设置。更换提供商会清空这里填写的值。",
@@ -636,7 +637,18 @@
       "transcriptionProviderStatus": "配置状态",
       "transcriptionModel": "模型",
       "transcriptionLanguage": "语言",
-      "voiceLimits": "限制"
+      "voiceLimits": "限制",
+      "memory": "长期记忆",
+      "memoryEmbedding": "语义检索",
+      "memoryEmbeddingProvider": "提供商",
+      "memoryEmbeddingBase": "接口地址",
+      "memoryEmbeddingKey": "API 密钥",
+      "memoryEmbeddingModel": "模型",
+      "memoryEmbeddingDimensions": "向量维度",
+      "memoryEmbeddingBatch": "嵌入批大小",
+      "memoryCoreBudget": "核心记忆预算",
+      "memoryRetrievalBudget": "检索记忆预算",
+      "memoryRetrievalLimit": "检索条数"
     },
     "help": {
       "theme": "切换浅色或深色外观",
@@ -680,7 +692,16 @@
       "transcriptionProvider": "使用提供商页保存的凭据",
       "transcriptionProviderStatus": "API 密钥保存在提供商页\n\nAPI 密钥仍保存在“提供商”配置中，不写入“语音转写”设置。",
       "transcriptionModel": "通常保留默认，可填写模型 ID\n\n通常保留默认模型即可；提供商有特殊要求时，可填写模型 ID。",
-      "transcriptionLanguage": "可填语言代码，如 zh、en\n\n可选填语言代码，例如 en（英语）、zh（中文）、ja（日语）或 ko（韩语）。"
+      "transcriptionLanguage": "可填语言代码，如 zh、en\n\n可选填语言代码，例如 en（英语）、zh（中文）、ja（日语）或 ko（韩语）。",
+      "memory": "跨对话记住稳定的偏好、决定和项目知识。",
+      "memoryEmbedding": "使用兼容 OpenAI 的嵌入模型按语义查找记忆。未启用时只做关键词检索。",
+      "memoryEmbeddingProvider": "复用已配置提供商的接口地址和密钥，或在下方填写自定义接口。",
+      "memoryEmbeddingBase": "兼容 OpenAI 的 /v1 接口地址。留空则复用所选提供商。",
+      "memoryEmbeddingKey": "保存在本地配置中，之后不再显示。留空则复用提供商密钥。",
+      "memoryEmbeddingModel": "嵌入模型 ID，例如 text-embedding-3-small 或 nomic-embed-text。",
+      "memoryEmbeddingDimensions": "可选。仅在接口要求显式向量维度时填写；更改后会启用新的索引。",
+      "memoryCoreBudget": "每次对话为 SOUL.md、USER.md 和 memory/MEMORY.md 预留的 token。",
+      "memoryRetrievalBudget": "当前回合可用于检索事实的 token。"
     },
     "timezone": {
       "select": "选择时区",
@@ -1512,6 +1533,11 @@
       "selectProvider": "选择提供商",
       "configureProvider": "配置提供商",
       "languageAuto": "自动"
+    },
+    "memory": {
+      "customEndpoint": "自定义接口",
+      "clearKey": "清除",
+      "providerKey": "使用提供商密钥"
     }
   },
   "chat": {

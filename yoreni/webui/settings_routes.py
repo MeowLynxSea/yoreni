@@ -47,6 +47,7 @@ from yoreni.webui.settings_api import (
     update_agent_settings,
     update_api_settings,
     update_image_generation_settings,
+    update_memory_settings,
     update_model_call_order,
     update_model_configuration,
     update_network_safety_settings,
@@ -128,6 +129,7 @@ _CAPABILITY_ROUTES = {
     "/api/settings/api-service/stop": "api-stop",
     "/api/settings/image-generation/update": "image-update",
     "/api/settings/transcription/update": "transcription-update",
+    "/api/settings/memory/update": "memory-update",
     "/api/settings/network-safety/update": "network-update",
 }
 
@@ -171,6 +173,7 @@ _SETTINGS_MUTATION_PATHS = frozenset({
     "/api/settings/api-service/stop",
     "/api/settings/image-generation/update",
     "/api/settings/transcription/update",
+    "/api/settings/memory/update",
     "/api/settings/network-safety/update",
     "/api/settings/cli-apps/install",
     "/api/settings/cli-apps/update",
@@ -506,6 +509,7 @@ class WebUISettingsRouter:
             update_api=update_api_settings,
             update_image=update_image_generation_settings,
             update_transcription=update_transcription_settings,
+            update_memory=update_memory_settings,
             update_network=update_network_safety_settings,
             yoreni_features_action=yoreni_features_action,
             api_runtime=self._api_runtime,

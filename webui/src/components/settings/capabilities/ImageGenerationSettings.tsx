@@ -115,7 +115,7 @@ export function ImageGenerationSettings({
     <div className="settings-stack" onChangeCapture={edits.onChangeCapture} onFocusCapture={edits.onFocusCapture} onBlurCapture={edits.onBlurCapture}>
       <section>
         {!embedded ? <SettingsSectionTitle>{tx("settings.sections.imageGeneration", "Image generation")}</SettingsSectionTitle> : null}
-        <SettingsGroup>
+        <SettingsGroup flat={embedded}>
           {!embedded ? (
           <SettingsRow title={tx("settings.rows.imageGeneration", "Image generation")}>
             <ToggleButton
@@ -234,7 +234,7 @@ export function ImageGenerationSettings({
             autoSave
             dirty={dirty}
             saving={saving}
-            pendingRestart={!embedded && requiresRestartPending}
+            pendingRestart={requiresRestartPending}
             disabled={missingCredential}
             message={
               missingCredential

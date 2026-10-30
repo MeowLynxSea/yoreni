@@ -1,5 +1,5 @@
 
-import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
+import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemorySettingsUpdate, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
 
 const API_READ_TIMEOUT_MS = 20_000;
@@ -984,6 +984,30 @@ export async function updateTranscriptionSettings(
       language: update.language,
       max_duration_sec: update.maxDurationSec,
       max_upload_mb: update.maxUploadMb,
+    },
+  );
+}
+
+
+export async function updateMemorySettings(
+  transport: WebUIMutationTransport,
+  update: MemorySettingsUpdate,
+): Promise<SettingsPayload> {
+  return mutation<SettingsPayload>(
+    transport,
+    "settings.memory.update",
+    {
+      enabled: update.enabled,
+      core_token_budget: update.coreTokenBudget,
+      retrieval_token_budget: update.retrievalTokenBudget,
+      retrieval_limit: update.retrievalLimit,
+      embedding_enabled: update.embeddingEnabled,
+      embedding_provider: update.embeddingProvider,
+      embedding_model: update.embeddingModel,
+      embedding_api_base: update.embeddingApiBase,
+      embedding_dimensions: update.embeddingDimensions ?? "",
+      embedding_batch_size: update.embeddingBatchSize,
+      ...(update.embeddingApiKey !== undefined ? { embedding_api_key: update.embeddingApiKey } : {}),
     },
   );
 }

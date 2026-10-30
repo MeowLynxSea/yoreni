@@ -762,6 +762,32 @@ async def test_runtime_config_route_authentication_validation_and_restart(tmp_pa
     assert json.loads(refreshed.body)["restart_required_sections"] == ["runtime"]
 
 
+async def test_memory_settings_route_persists_embedding_and_redacts_the_key(tmp_path):
+    from yoreni.config.loader import load_config
+
+    path = "/api/settings/memory/update"
+    config_path = tmp_path / "config.json"
+    router = _router(config_path=config_path)
+    response = await router.dispatch(None, _mutation_request(path, {
+        "embedding_enabled": True,
+        "embedding_model": "nomic-embed-text",
+        "embedding_api_base": "http://127.0.0.1:11434/v1",
+        "embedding_api_key": "local-secret",
+        "embedding_dimensions": 768,
+    }), path)
+
+    assert response.status_code == 200
+    assert "local-secret" not in response.body.decode()
+    payload = json.loads(response.body)
+    assert payload["memory"]["embedding"]["model"] == "nomic-embed-text"
+    assert payload["memory"]["embedding"]["dimensions"] == 768
+    assert payload["memory"]["embedding"]["api_key_hint"]
+    config = load_config(config_path)
+    assert config.memory.embedding is not None
+    assert config.memory.embedding.api_base == "http://127.0.0.1:11434/v1"
+    assert config.memory.embedding.api_key == "local-secret"
+
+
 async def test_runtime_settings_only_save_without_refreshing_or_rebinding(tmp_path, monkeypatch):
     refresh = MagicMock()
     runtime = MagicMock()

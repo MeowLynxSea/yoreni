@@ -11,6 +11,7 @@ import { SettingsSectionSkeleton } from "@/components/settings/shared/SettingsSe
 
 import { SkillsCatalogSettings } from "@/components/settings/SkillsCatalogSettings";
 import { ImageGenerationSettings } from "@/components/settings/capabilities/ImageGenerationSettings";
+import { MemorySettings } from "@/components/settings/capabilities/MemorySettings";
 import { AdvancedSettings } from "@/components/settings/capabilities/SecuritySettings";
 import { TranscriptionSettings } from "@/components/settings/capabilities/TranscriptionSettings";
 import { WebSettings } from "@/components/settings/capabilities/WebSettings";
@@ -122,6 +123,7 @@ export function SettingsPage({
     imageGenerationDirty,
     loading,
     localPrefs,
+    memoryDirty,
     modelDirty,
     networkSafetyDirty,
     pendingRestartSections: controllerPendingRestartSections,
@@ -200,8 +202,8 @@ export function SettingsPage({
     ? { runtime: false, image: false, browser: false }
     : controllerPendingRestartSections;
 
-  const runtimeConfiguration = (page: RuntimeConfigPage) => settings && (
-    <RuntimeConfigSettings page={page} settings={settings} state={controller.runtimeConfigState}
+  const runtimeConfiguration = (page: RuntimeConfigPage, embedded = false) => settings && (
+    <RuntimeConfigSettings page={page} settings={settings} state={controller.runtimeConfigState} embedded={embedded}
       onRestart={showSidebar ? undefined : restartViaSettingsSurface} isRestarting={restartInProgress}
       remoteBrowserAccess={remoteBrowserAccess}>
       {page === "advanced" ? (
@@ -258,10 +260,16 @@ export function SettingsPage({
               onChange={(enabled) => toggleRuntime("tools.web.enable", enabled)}>
               {renderSection("browser", true)}
             </SettingsFeature>
-            <SettingsFeature title={t("settings.runtimeConfig.fields.agents_defaults_dream_enabled.label")}
-              enabled={state.value("agents.defaults.dream.enabled") === true}
-              disabled={restartInProgress || state.saving === "memory" || !settings.runtime_config} error={state.errors.memory}
-              onChange={(enabled) => toggleRuntime("agents.defaults.dream.enabled", enabled)} />
+            <SettingsFeature
+              onBeforeClose={controller.memoryEdits.needsCompletion() ? controller.memoryEdits.commit : undefined}
+              title={t("settings.rows.memory", { defaultValue: "Long-term memory" })}
+              enabled={capabilityState.memoryForm.enabled}
+              disabled={restartInProgress || capabilityState.memorySaving}
+              initialOpen={activeSection === "memory"}
+              error={capabilityState.capabilityErrors.memory}
+              onChange={(enabled) => capabilityState.setMemoryForm((prev) => ({ ...prev, enabled }))}>
+              {renderSection("memory", true)}
+            </SettingsFeature>
             {!settings.runtime_config ? <p className="settings-list-inset text-[13px] text-muted-foreground">{t("settings.runtimeConfig.unavailable")}</p> : null}
           </section>
         );
@@ -400,7 +408,7 @@ export function SettingsPage({
               isRestarting={restartInProgress}
               requiresRestartPending={pendingRestartSections.image}
             >
-              {capabilityState.imageGenerationForm.enabled ? runtimeConfiguration("image") : null}
+              {capabilityState.imageGenerationForm.enabled ? runtimeConfiguration("image", true) : null}
             </ImageGenerationSettings>
           </div>
         );
@@ -457,7 +465,7 @@ export function SettingsPage({
               olostepInstalling={systemState.yoreniFeatureAction === "enable:olostep"}
               capabilityError={systemState.yoreniFeaturesError}
             >
-              {settings.runtime_config ? runtimeConfiguration("network") : null}
+              {settings.runtime_config ? runtimeConfiguration("network", true) : null}
             </WebSettings>
           </div>
         );
@@ -485,7 +493,26 @@ export function SettingsPage({
           </div>
         );
       case "memory":
-        return runtimeConfiguration("memory");
+        return (
+          <div className="settings-stack">
+            <MemorySettings
+              editCompletion={controller.memoryEdits}
+              error={capabilityState.capabilityErrors.memory}
+              embedded={embedded}
+              settings={settings}
+              form={capabilityState.memoryForm}
+              dirty={memoryDirty}
+              saving={capabilityState.memorySaving}
+              onChangeForm={capabilityState.setMemoryForm}
+              onSave={capabilityActions.saveMemorySettings}
+              onRestart={restartViaSettingsSurface}
+              isRestarting={restartInProgress}
+              requiresRestartPending={pendingRestartSections.runtime}
+            >
+              {runtimeConfiguration("memory", true)}
+            </MemorySettings>
+          </div>
+        );
       case "advanced":
         return runtimeConfiguration("advanced");
       default:

@@ -195,9 +195,15 @@ export function SettingsSectionTitle({ children }: { children: ReactNode }) {
   );
 }
 
-export function SettingsGroup({ children }: { children: ReactNode }) {
+export function SettingsGroup({
+  children,
+  flat = false,
+}: {
+  children: ReactNode;
+  flat?: boolean;
+}) {
   return (
-    <div className="settings-sheet overflow-hidden">
+    <div className={flat ? "settings-grid !px-0" : "settings-sheet overflow-hidden"}>
       {children}
     </div>
   );
@@ -405,12 +411,14 @@ export function NumberInput({
   max,
   onChange,
   suffix,
+  ariaLabel,
 }: {
   value: number;
   min: number;
   max: number;
   onChange: (value: number) => void;
   suffix?: string;
+  ariaLabel?: string;
 }) {
   const [draft, setDraft] = useState<{ text: string; value: number } | null>(null);
   return (
@@ -419,6 +427,7 @@ export function NumberInput({
         type="number"
         min={min}
         max={max}
+        aria-label={ariaLabel}
         aria-invalid={!Number.isFinite(value) || value < min || value > max}
         value={draft && Object.is(draft.value, value) ? draft.text : Number.isFinite(value) ? value : ""}
         onChange={(event) => {

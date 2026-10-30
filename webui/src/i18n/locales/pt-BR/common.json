@@ -459,7 +459,8 @@
       "apps": "Aplicativos",
       "nativeHost": "Aplicativo para desktop",
       "hostSafety": "Segurança do app",
-      "voiceInput": "Transcrição"
+      "voiceInput": "Transcrição",
+      "memory": "Memória de longo prazo"
     },
     "models": {
       "requestOverridesHint": "Deixe os campos vazios para usar os ajustes do provedor. Trocar de provedor apaga estes valores.",
@@ -636,7 +637,18 @@
       "transcriptionProviderStatus": "Status da configuração",
       "transcriptionModel": "Modelo",
       "transcriptionLanguage": "Idioma",
-      "voiceLimits": "Limites"
+      "voiceLimits": "Limites",
+      "memory": "Memória de longo prazo",
+      "memoryEmbedding": "Busca semântica",
+      "memoryEmbeddingProvider": "Provedor",
+      "memoryEmbeddingBase": "URL base da API",
+      "memoryEmbeddingKey": "Chave de API",
+      "memoryEmbeddingModel": "Modelo",
+      "memoryEmbeddingDimensions": "Dimensões",
+      "memoryEmbeddingBatch": "Tamanho do lote de embedding",
+      "memoryCoreBudget": "Orçamento da memória principal",
+      "memoryRetrievalBudget": "Orçamento da memória recuperada",
+      "memoryRetrievalLimit": "Fatos recuperados"
     },
     "help": {
       "theme": "Alterne entre aparência clara e escura.",
@@ -680,7 +692,16 @@
       "transcriptionProvider": "Usa as credenciais salvas em Provedores.",
       "transcriptionProviderStatus": "As chaves API são salvas em Provedores.\n\nAs chaves de API ficam em provedores, não nas configurações de transcrição.",
       "transcriptionModel": "Use o padrão ou informe o ID de modelo necessário.\n\nUse o modelo padrão, a menos que o provedor exija um ID de modelo específico.",
-      "transcriptionLanguage": "Código de idioma, como zh ou en.\n\nCódigo de idioma ISO-639 opcional, como en, zh, ja ou ko. Deixe em branco para detectar o idioma automaticamente."
+      "transcriptionLanguage": "Código de idioma, como zh ou en.\n\nCódigo de idioma ISO-639 opcional, como en, zh, ja ou ko. Deixe em branco para detectar o idioma automaticamente.",
+      "memory": "Lembra preferências duradouras, decisões e conhecimento de projetos entre conversas.",
+      "memoryEmbedding": "Usa um modelo de embedding compatível com OpenAI para encontrar memórias pelo significado. Sem ele, a busca fica apenas por palavras-chave.",
+      "memoryEmbeddingProvider": "Reutiliza a URL base e a chave de um provedor configurado, ou informe um endpoint personalizado abaixo.",
+      "memoryEmbeddingBase": "Endpoint /v1 compatível com OpenAI. Deixe vazio para reutilizar o provedor selecionado.",
+      "memoryEmbeddingKey": "Fica salva na configuração local e nunca é exibida novamente. Deixe vazia para reutilizar a chave do provedor.",
+      "memoryEmbeddingModel": "ID do modelo de embedding, por exemplo text-embedding-3-small ou nomic-embed-text.",
+      "memoryEmbeddingDimensions": "Opcional. Defina apenas quando o endpoint exigir um tamanho de vetor explícito; alterar isso inicia um novo índice.",
+      "memoryCoreBudget": "Tokens reservados para SOUL.md, USER.md e memory/MEMORY.md em cada conversa.",
+      "memoryRetrievalBudget": "Tokens disponíveis para os fatos recuperados no turno atual."
     },
     "timezone": {
       "select": "Selecionar fuso horário",
@@ -1512,6 +1533,11 @@
       "selectProvider": "Selecionar provedor",
       "configureProvider": "Configurar provedor",
       "languageAuto": "Automático"
+    },
+    "memory": {
+      "customEndpoint": "Endpoint personalizado",
+      "clearKey": "Limpar",
+      "providerKey": "Usa a chave do provedor"
     }
   },
   "chat": {

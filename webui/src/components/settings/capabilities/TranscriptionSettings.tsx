@@ -93,7 +93,7 @@ export function TranscriptionSettings({
   return (
     <section onChangeCapture={edits.onChangeCapture} onFocusCapture={edits.onFocusCapture} onBlurCapture={edits.onBlurCapture}>
       {!embedded ? <SettingsSectionTitle>{tx("settings.sections.voiceInput", "Voice input")}</SettingsSectionTitle> : null}
-      <SettingsGroup>
+      <SettingsGroup flat={embedded}>
         {!embedded ? (
         <SettingsRow
           title={tx("settings.rows.transcription", "Transcription")}
@@ -182,7 +182,7 @@ export function TranscriptionSettings({
           autoSave
           dirty={dirty}
           saving={saving}
-          pendingRestart={!embedded && requiresRestartPending}
+          pendingRestart={requiresRestartPending}
           dirtyMessage={tx("settings.status.restartAfterSaving", "Save changes, then restart yoreni to apply them.")}
           pendingMessage={tx("settings.status.savedRestartApply", "Saved. Restart to apply changes.")}
           onSave={onSave}

@@ -156,7 +156,7 @@ export function WebSettings({
           <p className="mb-3 text-[12px] text-destructive">{capabilityError}</p>
         ) : null}
         </div>
-        <SettingsGroup>
+        <SettingsGroup flat={embedded}>
           <div hidden={!embedded && !enabled} className="space-y-1">
           <SettingsRow title={t("settings.byok.webSearch.provider")}>
             <ProviderPicker
@@ -286,7 +286,7 @@ export function WebSettings({
             saveLabel={t("settings.yoreniFeatures.installConfirmAction")}
             dirty={dirty}
             saving={saving}
-            pendingRestart={!embedded && requiresRestartPending}
+            pendingRestart={requiresRestartPending}
             disabled={missingCredential}
             message={
               missingCredential

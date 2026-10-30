@@ -71,20 +71,23 @@ describe("Runtime configuration settings", () => {
     expect(screen.getByRole("switch", { name: "Web access" })).toBeInTheDocument();
   });
 
-  it("offers only the memory consolidation switch and saves only dream.enabled", async () => {
+  it("opens long-term memory settings with the consolidation switch inside", async () => {
     const payload = runtimeSettings();
     requestMutationMock.mockResolvedValue({ ...payload, runtime_config: { ...payload.runtime_config, "agents.defaults.dream.enabled": false } });
     renderSettingsView({ initialSection: "memory", initialSettings: payload });
-    const memory = within(screen.getByRole("region", { name: "Memory consolidation" }));
-    expect(memory.getAllByRole("switch")).toHaveLength(1);
-    fireEvent.click(screen.getByRole("switch", { name: "Memory consolidation" }));
+    const dialog = screen.getByRole("dialog");
+    const memory = within(dialog);
+    expect(memory.getByRole("region", { name: "Memory" })).toBeInTheDocument();
+    expect(memory.getByRole("switch", { name: "Semantic search" })).not.toBeChecked();
+    fireEvent.click(memory.getByRole("switch", { name: "Memory consolidation" }));
     await waitFor(() => expect(requestMutationMock).toHaveBeenCalledWith("settings.runtime_config.update", { values: { "agents.defaults.dream.enabled": false } }, 20_000));
-    await waitFor(() => expect(screen.getByRole("switch", { name: "Memory consolidation" })).not.toBeChecked());
+    await waitFor(() => expect(memory.getByRole("switch", { name: "Memory consolidation" })).not.toBeChecked());
   });
 
-  it("explains unavailable memory settings instead of rendering a blank page", () => {
+  it("explains unavailable memory settings inside the dialog instead of rendering a blank page", () => {
     renderSettingsView({ initialSection: "memory", initialSettings: settingsPayload() });
-    expect(screen.getByText("Update the gateway to edit these settings.")).toBeVisible();
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Update the gateway to edit these settings.")).toBeVisible();
   });
 
   it.each(["bwrap", "seatbelt", ""])("saves the %s sandbox and reveals its path settings", async (backend) => {

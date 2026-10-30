@@ -13,6 +13,7 @@ import type {
 } from "@/components/settings/contracts";
 import {
   updateImageGenerationSettings,
+  updateMemorySettings,
   updateNetworkSafetySettings,
   updateTranscriptionSettings,
   updateWebSearchSettings,
@@ -20,6 +21,7 @@ import {
 import type { YoreniClient } from "@/lib/yoreni-client";
 import type { ImageGenerationSettingsUpdate, SettingsPayload, WebSearchSettingsUpdate } from "@/lib/types";
 import { imageGenerationFormFromPayload } from "@/components/settings/capabilities/ImageGenerationSettings";
+import { memoryFormFromPayload } from "@/components/settings/capabilities/MemorySettings";
 import { transcriptionFormFromPayload } from "@/components/settings/capabilities/TranscriptionSettings";
 import { networkSafetyFormFromPayload } from "@/components/settings/capabilities/SecuritySettings";
 
@@ -46,8 +48,10 @@ export function useCapabilitySettingsActions({
 }: CapabilitySettingsActionsOptions) {
   const {
     imageGenerationForm,
+    memoryForm,
     networkSafetyForm,
     setImageGenerationSaving,
+    setMemorySaving,
     setNetworkSafetySaving,
     setTranscriptionSaving,
     setWebSearchForm,
@@ -60,7 +64,7 @@ export function useCapabilitySettingsActions({
   } = state;
   const latestWebSearchForm = useRef(webSearchForm);
   latestWebSearchForm.current = webSearchForm;
-  const setError = (section: "image" | "voice" | "web" | "safety", message?: string) =>
+  const setError = (section: "image" | "voice" | "web" | "memory" | "safety", message?: string) =>
     state.setCapabilityErrors((prev) => ({ ...prev, [section]: message }));
 
   const persistImageSettings = async (values: ImageGenerationSettingsUpdate) => {
@@ -118,6 +122,32 @@ export function useCapabilitySettingsActions({
       return false;
     } finally {
       setTranscriptionSaving(false);
+    }
+  };
+
+  const saveMemorySettings = async () => {
+    if (!settings) return false;
+    if (!Number.isFinite(memoryForm.coreTokenBudget)
+      || !Number.isFinite(memoryForm.retrievalTokenBudget)
+      || !Number.isFinite(memoryForm.retrievalLimit)
+      || !Number.isFinite(memoryForm.embeddingBatchSize)) return false;
+    setError("memory");
+    setMemorySaving(true);
+    try {
+      const payload = await updateMemorySettings(client, memoryForm);
+      applyPayload(payload, { preserveAgentForm: true, preserveCapabilityForms: true });
+      state.setMemoryForm((current) => current === memoryForm ? memoryFormFromPayload(payload) : current);
+      if (!payload.restart_required_sections && payload.requires_restart) {
+        setPendingRestartSections((prev) => ({ ...prev, runtime: true }));
+      }
+      await maybeRestartHostEngine(payload);
+      setError("memory");
+      return true;
+    } catch (err) {
+      setError("memory", (err as Error).message);
+      return false;
+    } finally {
+      setMemorySaving(false);
     }
   };
 
@@ -233,6 +263,7 @@ export function useCapabilitySettingsActions({
     resetWebSearchDraft,
     saveImageGenerationSettings,
     saveImageRequestSettings,
+    saveMemorySettings,
     saveNetworkSafetySettings,
     saveTranscriptionSettings,
     saveWebSearch,

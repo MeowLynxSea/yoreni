@@ -459,7 +459,8 @@
       "apps": "應用程式",
       "nativeHost": "桌面應用程式",
       "hostSafety": "應用程式安全",
-      "voiceInput": "語音轉寫"
+      "voiceInput": "語音轉寫",
+      "memory": "長期記憶"
     },
     "notifications": {
       "scope": "此瀏覽器",
@@ -581,7 +582,18 @@
       "transcriptionProviderStatus": "配置狀態",
       "transcriptionModel": "模型",
       "transcriptionLanguage": "語言",
-      "voiceLimits": "限制"
+      "voiceLimits": "限制",
+      "memory": "長期記憶",
+      "memoryEmbedding": "語意檢索",
+      "memoryEmbeddingProvider": "供應商",
+      "memoryEmbeddingBase": "介面位址",
+      "memoryEmbeddingKey": "API 金鑰",
+      "memoryEmbeddingModel": "模型",
+      "memoryEmbeddingDimensions": "向量維度",
+      "memoryEmbeddingBatch": "嵌入批次大小",
+      "memoryCoreBudget": "核心記憶預算",
+      "memoryRetrievalBudget": "檢索記憶預算",
+      "memoryRetrievalLimit": "檢索筆數"
     },
     "help": {
       "theme": "切換淺色或深色外觀",
@@ -625,7 +637,16 @@
       "transcriptionProvider": "使用提供商頁儲存的憑據",
       "transcriptionProviderStatus": "API 金鑰儲存在提供商頁\n\nAPI 金鑰仍儲存在“提供商”配置中，不寫入“語音轉寫”設定。",
       "transcriptionModel": "通常保留預設，可填寫模型 ID\n\n通常保留預設模型即可；提供商有特殊要求時，可填寫模型 ID。",
-      "transcriptionLanguage": "可填語言程式碼，如 zh、en\n\n可選填語言程式碼，例如 en（英語）、zh（中文）、ja（日語）或 ko（韓語）。"
+      "transcriptionLanguage": "可填語言程式碼，如 zh、en\n\n可選填語言程式碼，例如 en（英語）、zh（中文）、ja（日語）或 ko（韓語）。",
+      "memory": "跨對話記住穩定的偏好、決定和專案知識。",
+      "memoryEmbedding": "使用相容 OpenAI 的嵌入模型依語意尋找記憶。未啟用時只做關鍵字檢索。",
+      "memoryEmbeddingProvider": "沿用已設定供應商的介面位址和金鑰，或在下方填寫自訂介面。",
+      "memoryEmbeddingBase": "相容 OpenAI 的 /v1 介面位址。留空則沿用所選供應商。",
+      "memoryEmbeddingKey": "儲存在本機設定中，之後不再顯示。留空則沿用供應商金鑰。",
+      "memoryEmbeddingModel": "嵌入模型 ID，例如 text-embedding-3-small 或 nomic-embed-text。",
+      "memoryEmbeddingDimensions": "選填。僅在介面要求明確向量維度時填寫；變更後會啟用新的索引。",
+      "memoryCoreBudget": "每次對話為 SOUL.md、USER.md 和 memory/MEMORY.md 預留的 token。",
+      "memoryRetrievalBudget": "目前回合可用於檢索事實的 token。"
     },
     "values": {
       "light": "淺色",
@@ -1512,6 +1533,11 @@
       "selectProvider": "選擇供應商",
       "configureProvider": "設定供應商",
       "languageAuto": "自動"
+    },
+    "memory": {
+      "customEndpoint": "自訂介面",
+      "clearKey": "清除",
+      "providerKey": "使用供應商金鑰"
     }
   },
   "chat": {

@@ -459,7 +459,8 @@
       "apps": "アプリ",
       "nativeHost": "デスクトップアプリ",
       "hostSafety": "アプリの安全性",
-      "voiceInput": "音声の文字起こし"
+      "voiceInput": "音声の文字起こし",
+      "memory": "長期記憶"
     },
     "notifications": {
       "scope": "このブラウザー",
@@ -581,7 +582,18 @@
       "transcriptionProviderStatus": "設定状況",
       "transcriptionModel": "モデル",
       "transcriptionLanguage": "言語",
-      "voiceLimits": "制限"
+      "voiceLimits": "制限",
+      "memory": "長期記憶",
+      "memoryEmbedding": "セマンティック検索",
+      "memoryEmbeddingProvider": "プロバイダー",
+      "memoryEmbeddingBase": "API ベース URL",
+      "memoryEmbeddingKey": "API キー",
+      "memoryEmbeddingModel": "モデル",
+      "memoryEmbeddingDimensions": "次元数",
+      "memoryEmbeddingBatch": "埋め込みバッチサイズ",
+      "memoryCoreBudget": "コア記憶の予算",
+      "memoryRetrievalBudget": "検索記憶の予算",
+      "memoryRetrievalLimit": "検索件数"
     },
     "help": {
       "theme": "ライトとダークの表示を切り替えます。",
@@ -625,7 +637,16 @@
       "transcriptionProvider": "「プロバイダー」に保存した認証情報を使います。",
       "transcriptionProviderStatus": "API キーは「プロバイダー」に保存されます。\n\nAPIキーは文字起こし設定ではなくプロバイダー側に保存されます。",
       "transcriptionModel": "通常は既定値を使い、必要ならモデル ID を入力します。\n\n通常は既定のモデルを使用します。プロバイダーから別のモデル ID を指定されている場合は変更してください。",
-      "transcriptionLanguage": "zh や en などの言語コードです。\n\nen、zh、ja、ko などの ISO-639 言語コードを指定できます。空欄の場合は自動判定します。"
+      "transcriptionLanguage": "zh や en などの言語コードです。\n\nen、zh、ja、ko などの ISO-639 言語コードを指定できます。空欄の場合は自動判定します。",
+      "memory": "安定した好み、決定、プロジェクト知識を会話をまたいで記憶します。",
+      "memoryEmbedding": "OpenAI 互換の埋め込みモデルで意味から記憶を検索します。無効の場合はキーワード検索のみになります。",
+      "memoryEmbeddingProvider": "設定済みプロバイダーの API ベースとキーを再利用するか、下にカスタムエンドポイントを入力します。",
+      "memoryEmbeddingBase": "OpenAI 互換の /v1 エンドポイント。選択したプロバイダーを再利用する場合は空欄にします。",
+      "memoryEmbeddingKey": "ローカル設定に保存され、再表示されません。プロバイダーのキーを再利用する場合は空欄にします。",
+      "memoryEmbeddingModel": "埋め込みモデル ID（例: text-embedding-3-small、nomic-embed-text）。",
+      "memoryEmbeddingDimensions": "任意。エンドポイントが明示的なベクトルサイズを要求する場合のみ設定します。変更すると新しいインデックスになります。",
+      "memoryCoreBudget": "各会話で SOUL.md、USER.md、memory/MEMORY.md に確保するトークン数。",
+      "memoryRetrievalBudget": "現在のターンで検索した事実に使えるトークン数。"
     },
     "values": {
       "light": "ライト",
@@ -1512,6 +1533,11 @@
       "selectProvider": "プロバイダーを選択",
       "configureProvider": "プロバイダーを設定",
       "languageAuto": "自動"
+    },
+    "memory": {
+      "customEndpoint": "カスタムエンドポイント",
+      "clearKey": "クリア",
+      "providerKey": "プロバイダーのキーを使用"
     }
   },
   "chat": {

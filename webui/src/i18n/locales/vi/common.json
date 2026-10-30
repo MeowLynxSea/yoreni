@@ -459,7 +459,8 @@
       "apps": "Ứng dụng",
       "nativeHost": "Ứng dụng trên máy tính",
       "hostSafety": "An toàn ứng dụng",
-      "voiceInput": "Chép lời"
+      "voiceInput": "Chép lời",
+      "memory": "Bộ nhớ dài hạn"
     },
     "notifications": {
       "scope": "Trình duyệt này",
@@ -581,7 +582,18 @@
       "transcriptionProviderStatus": "Trạng thái thiết lập",
       "transcriptionModel": "Mô hình chuyển giọng nói",
       "transcriptionLanguage": "Ngôn ngữ",
-      "voiceLimits": "Giới hạn"
+      "voiceLimits": "Giới hạn",
+      "memory": "Bộ nhớ dài hạn",
+      "memoryEmbedding": "Tìm kiếm ngữ nghĩa",
+      "memoryEmbeddingProvider": "Nhà cung cấp",
+      "memoryEmbeddingBase": "URL gốc API",
+      "memoryEmbeddingKey": "Khóa API",
+      "memoryEmbeddingModel": "Mô hình",
+      "memoryEmbeddingDimensions": "Số chiều",
+      "memoryEmbeddingBatch": "Kích thước lô embedding",
+      "memoryCoreBudget": "Ngân sách bộ nhớ cốt lõi",
+      "memoryRetrievalBudget": "Ngân sách bộ nhớ truy xuất",
+      "memoryRetrievalLimit": "Số sự kiện truy xuất"
     },
     "help": {
       "theme": "Chuyển giữa giao diện sáng và tối.",
@@ -625,7 +637,16 @@
       "transcriptionProvider": "Dùng thông tin xác thực đã lưu trong Nhà cung cấp.",
       "transcriptionProviderStatus": "Khóa API được lưu trong Nhà cung cấp.\n\nKhóa API nằm trong mục nhà cung cấp, không nằm trong cài đặt chuyển giọng nói.",
       "transcriptionModel": "Dùng mặc định hoặc nhập ID mô hình cần thiết.\n\nDùng mô hình mặc định, trừ khi nhà cung cấp yêu cầu một ID mô hình cụ thể.",
-      "transcriptionLanguage": "Mã ngôn ngữ, như zh hoặc en.\n\nMã ngôn ngữ ISO-639 tùy chọn, như en, zh, ja hoặc ko. Để trống để tự động nhận diện ngôn ngữ."
+      "transcriptionLanguage": "Mã ngôn ngữ, như zh hoặc en.\n\nMã ngôn ngữ ISO-639 tùy chọn, như en, zh, ja hoặc ko. Để trống để tự động nhận diện ngôn ngữ.",
+      "memory": "Ghi nhớ sở thích bền vững, quyết định và kiến thức dự án qua các cuộc trò chuyện.",
+      "memoryEmbedding": "Dùng mô hình embedding tương thích OpenAI để tìm bộ nhớ theo nghĩa. Nếu tắt, chỉ tìm theo từ khóa.",
+      "memoryEmbeddingProvider": "Dùng lại URL gốc và khóa của nhà cung cấp đã cấu hình, hoặc nhập endpoint tùy chỉnh bên dưới.",
+      "memoryEmbeddingBase": "Endpoint /v1 tương thích OpenAI. Để trống để dùng lại nhà cung cấp đã chọn.",
+      "memoryEmbeddingKey": "Được lưu trong cấu hình cục bộ và không hiển thị lại. Để trống để dùng lại khóa của nhà cung cấp.",
+      "memoryEmbeddingModel": "ID mô hình embedding, ví dụ text-embedding-3-small hoặc nomic-embed-text.",
+      "memoryEmbeddingDimensions": "Tùy chọn. Chỉ đặt khi endpoint yêu cầu kích thước vector rõ ràng; thay đổi sẽ tạo chỉ mục mới.",
+      "memoryCoreBudget": "Token dành cho SOUL.md, USER.md và memory/MEMORY.md trong mỗi cuộc trò chuyện.",
+      "memoryRetrievalBudget": "Token dành cho các sự kiện được truy xuất trong lượt hiện tại."
     },
     "values": {
       "light": "Sáng",
@@ -1512,6 +1533,11 @@
       "selectProvider": "Chọn nhà cung cấp",
       "configureProvider": "Cấu hình nhà cung cấp",
       "languageAuto": "Tự động"
+    },
+    "memory": {
+      "customEndpoint": "Endpoint tùy chỉnh",
+      "clearKey": "Xóa",
+      "providerKey": "Dùng khóa của nhà cung cấp"
     }
   },
   "chat": {

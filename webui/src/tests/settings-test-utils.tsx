@@ -86,6 +86,21 @@ export function settingsPayload(): SettingsPayload {
       save_dir: "generated",
       providers: [],
     },
+    memory: {
+      enabled: true,
+      core_token_budget: 3000,
+      retrieval_token_budget: 4000,
+      retrieval_limit: 8,
+      embedding: {
+        enabled: false,
+        provider: null,
+        model: "",
+        api_base: null,
+        api_key_hint: null,
+        dimensions: null,
+        batch_size: 32,
+      },
+    },
     runtime: {
       config_path: "/tmp/config.json",
       workspace_path: "/tmp/workspace",

@@ -758,6 +758,21 @@ export interface SettingsPayload {
       default_api_base?: string | null;
     }>;
   };
+  memory?: {
+    enabled: boolean;
+    core_token_budget: number;
+    retrieval_token_budget: number;
+    retrieval_limit: number;
+    embedding: {
+      enabled: boolean;
+      provider: string | null;
+      model: string;
+      api_base: string | null;
+      api_key_hint?: string | null;
+      dimensions: number | null;
+      batch_size: number;
+    };
+  };
   runtime: {
     config_path: string;
     workspace_path: string;
@@ -1347,6 +1362,20 @@ export interface TranscriptionSettingsUpdate {
   language: string;
   maxDurationSec: number;
   maxUploadMb: number;
+}
+
+export interface MemorySettingsUpdate {
+  enabled: boolean;
+  coreTokenBudget: number;
+  retrievalTokenBudget: number;
+  retrievalLimit: number;
+  embeddingEnabled: boolean;
+  embeddingProvider: string;
+  embeddingModel: string;
+  embeddingApiBase: string;
+  embeddingApiKey?: string;
+  embeddingDimensions: number | null;
+  embeddingBatchSize: number;
 }
 
 export type ConnectionStatus =

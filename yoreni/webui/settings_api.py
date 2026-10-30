@@ -467,6 +467,18 @@ def update_transcription_settings(
     return settings_payload(config_path=config_path)
 
 
+def update_memory_settings(
+    query: QueryParams,
+    *,
+    config_path: Path | None = None,
+) -> dict[str, Any]:
+    config = _load_settings_config(config_path)
+    changed = capabilities.update_memory_settings(config, query)
+    if changed:
+        _save_settings_config(config, config_path)
+    return settings_payload(requires_restart=changed, config_path=config_path)
+
+
 def update_runtime_config_settings(
     values: dict[str, Any], *, local_browser: bool = False, config_path: Path | None = None,
 ) -> dict[str, Any]:

@@ -459,7 +459,8 @@
       "apps": "Aplikasi",
       "nativeHost": "Aplikasi desktop",
       "hostSafety": "Keamanan aplikasi",
-      "voiceInput": "Transkripsi"
+      "voiceInput": "Transkripsi",
+      "memory": "Memori jangka panjang"
     },
     "notifications": {
       "scope": "Browser ini",
@@ -581,7 +582,18 @@
       "transcriptionProviderStatus": "Status konfigurasi",
       "transcriptionModel": "Model",
       "transcriptionLanguage": "Bahasa",
-      "voiceLimits": "Batas"
+      "voiceLimits": "Batas",
+      "memory": "Memori jangka panjang",
+      "memoryEmbedding": "Pencarian semantik",
+      "memoryEmbeddingProvider": "Penyedia",
+      "memoryEmbeddingBase": "URL dasar API",
+      "memoryEmbeddingKey": "Kunci API",
+      "memoryEmbeddingModel": "Model",
+      "memoryEmbeddingDimensions": "Dimensi",
+      "memoryEmbeddingBatch": "Ukuran batch embedding",
+      "memoryCoreBudget": "Anggaran memori inti",
+      "memoryRetrievalBudget": "Anggaran memori yang diambil",
+      "memoryRetrievalLimit": "Fakta yang diambil"
     },
     "help": {
       "theme": "Beralih antara tampilan terang dan gelap.",
@@ -625,7 +637,16 @@
       "transcriptionProvider": "Menggunakan kredensial tersimpan di Penyedia.",
       "transcriptionProviderStatus": "Kunci API disimpan di Penyedia.\n\nKunci API tetap berada di bagian penyedia, bukan di pengaturan transkripsi.",
       "transcriptionModel": "Gunakan default, atau masukkan ID model yang diperlukan.\n\nGunakan model bawaan, kecuali penyedia memerlukan ID model tertentu.",
-      "transcriptionLanguage": "Kode bahasa, seperti zh atau en.\n\nKode bahasa ISO-639 opsional, seperti en, zh, ja, atau ko. Kosongkan untuk mendeteksi bahasa secara otomatis."
+      "transcriptionLanguage": "Kode bahasa, seperti zh atau en.\n\nKode bahasa ISO-639 opsional, seperti en, zh, ja, atau ko. Kosongkan untuk mendeteksi bahasa secara otomatis.",
+      "memory": "Mengingat preferensi yang stabil, keputusan, dan pengetahuan proyek lintas percakapan.",
+      "memoryEmbedding": "Gunakan model embedding yang kompatibel dengan OpenAI untuk menemukan memori berdasarkan makna. Tanpanya, pencarian hanya memakai kata kunci.",
+      "memoryEmbeddingProvider": "Gunakan kembali URL dasar dan kunci penyedia yang sudah dikonfigurasi, atau masukkan endpoint khusus di bawah.",
+      "memoryEmbeddingBase": "Endpoint /v1 yang kompatibel dengan OpenAI. Kosongkan untuk memakai kembali penyedia yang dipilih.",
+      "memoryEmbeddingKey": "Disimpan di konfigurasi lokal dan tidak ditampilkan lagi. Kosongkan untuk memakai kembali kunci penyedia.",
+      "memoryEmbeddingModel": "ID model embedding, misalnya text-embedding-3-small atau nomic-embed-text.",
+      "memoryEmbeddingDimensions": "Opsional. Isi hanya jika endpoint memerlukan ukuran vektor eksplisit; mengubahnya memulai indeks baru.",
+      "memoryCoreBudget": "Token yang disediakan untuk SOUL.md, USER.md, dan memory/MEMORY.md di setiap percakapan.",
+      "memoryRetrievalBudget": "Token yang tersedia untuk fakta yang diambil pada giliran ini."
     },
     "values": {
       "light": "Terang",
@@ -1512,6 +1533,11 @@
       "selectProvider": "Pilih penyedia",
       "configureProvider": "Konfigurasi penyedia",
       "languageAuto": "Otomatis"
+    },
+    "memory": {
+      "customEndpoint": "Endpoint khusus",
+      "clearKey": "Hapus",
+      "providerKey": "Memakai kunci penyedia"
     }
   },
   "chat": {

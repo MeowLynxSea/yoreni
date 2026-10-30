@@ -680,6 +680,7 @@ def provider_models_payload(
                 "description": model.description or None,
                 "owned_by": spec.label,
                 "context_window": model.context_window,
+                "max_output_tokens": model.max_output_tokens,
             }
             for model in spec.builtin_models
         ]
@@ -701,6 +702,7 @@ def provider_models_payload(
                 "description": model.description or None,
                 "owned_by": model.owned_by or spec.label,
                 "context_window": model.context_window,
+                "max_output_tokens": model.max_output_tokens,
                 "reasoning_efforts": list(model.reasoning_efforts),
                 "supports_backend_search": model.supports_backend_search,
                 **({

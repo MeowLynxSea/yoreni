@@ -4,6 +4,7 @@ import {
   RestartIcon,
   CapabilitiesIcon,
   AppearanceIcon,
+  ChannelsIcon,
   SystemIcon,
   AdvancedIcon,
   ModelsIcon,
@@ -35,6 +36,7 @@ const SETTINGS_NAV_ITEMS: Array<{ key: SettingsSectionKey; icon: LucideIcon; fal
   { key: "notifications", icon: Bell, fallback: "Notifications" },
   { key: "models", icon: ModelsIcon, fallback: "Models" },
   { key: "capabilities", icon: CapabilitiesIcon, fallback: "Capabilities" },
+  { key: "channels", icon: ChannelsIcon, fallback: "Channels" },
   { key: "runtime", icon: SystemIcon, fallback: "System" },
   { key: "advanced", icon: AdvancedIcon, fallback: "Advanced" },
   { key: "about", icon: AboutIcon, fallback: "About" },
@@ -44,7 +46,6 @@ export function standaloneSectionTitle(section: SettingsSectionKey): string {
   if (section === "apps") return "Apps";
   if (section === "automations") return "Automations";
   if (section === "skills") return "Skills";
-  if (section === "channels") return "Channels";
   const navSection = isCapabilitySection(section) ? "capabilities" : section;
   return SETTINGS_NAV_ITEMS.find((item) => item.key === navSection)?.fallback ?? "Settings";
 }

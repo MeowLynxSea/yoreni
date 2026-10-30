@@ -7,6 +7,7 @@ import {
   AdvancedIcon,
   AppearanceIcon,
   CapabilitiesIcon,
+  ChannelsIcon,
   ModelsIcon,
   OverviewIcon,
   SystemIcon,
@@ -25,6 +26,7 @@ const SETTINGS_GROUPS: SettingsEntry[][] = [
   ],
   [
     { key: "capabilities", icon: CapabilitiesIcon },
+    { key: "channels", icon: ChannelsIcon },
     { key: "runtime", icon: SystemIcon },
     { key: "advanced", icon: AdvancedIcon },
     { key: "about", icon: AboutIcon },

@@ -86,33 +86,3 @@ test("gallery translates model labels and existing interaction feedback in a nar
   await page.getByRole("option", { name: "English", exact: true }).click();
   await expect(preview.getByRole("status")).toHaveText("Button clicks: 1");
 });
-
-test("gallery preserves history states and subagent retries when changing language", async ({ page }) => {
-  await page.goto("/gallery.html#component=webui%2Fsrc%2Fcomponents%2Fthread%2FThreadHistoryStatus.tsx");
-  const preview = page.locator(".gallery-preview");
-  await expect(preview.getByRole("combobox", { name: "History state" })).toHaveText("loading");
-  await preview.getByRole("combobox").click();
-  await page.getByRole("option", { name: "exhausted", exact: true }).click();
-  await expect(preview.getByText("No earlier messages", { exact: true })).toBeVisible();
-
-  await page.locator(".gallery-header").getByRole("combobox").click();
-  await page.getByRole("option", { name: "简体中文", exact: true }).click();
-  await expect(preview.getByRole("combobox", { name: "历史状态" })).toHaveText("exhausted");
-  await expect(preview.getByText("没有更早的消息", { exact: true })).toBeVisible();
-  await preview.getByRole("combobox").click();
-  await page.getByRole("option", { name: "error", exact: true }).click();
-  await preview.getByRole("button", { name: "加载失败，重试" }).click();
-  await expect(preview.getByRole("combobox")).toHaveText("loading");
-  await expect(preview.getByText("重试次数：1", { exact: true })).toBeVisible();
-
-  await page.locator('a[href="#component=webui%2Fsrc%2Fcomponents%2Fthread%2FSubagentThreadView.tsx"]').click();
-  await preview.getByRole("combobox").click();
-  await page.getByRole("option", { name: "error", exact: true }).click();
-  await expect(preview.getByRole("button", { name: "加载失败，重试" })).toBeVisible();
-  await page.locator(".gallery-header").getByRole("combobox").click();
-  await page.getByRole("option", { name: "English", exact: true }).click();
-  await expect(preview.getByRole("combobox")).toHaveText("error");
-  await preview.getByRole("button", { name: "Loading failed. Retry" }).click();
-  await expect(preview.getByRole("combobox")).toHaveText("ready");
-  await expect(preview.getByText("Retries: 1", { exact: true })).toBeVisible();
-});

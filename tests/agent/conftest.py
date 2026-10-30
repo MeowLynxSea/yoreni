@@ -48,14 +48,8 @@ def make_loop(
     model_presets: dict | None = None,
     hooks: list | None = None,
     provider: MagicMock | None = None,
-    patch_deps: bool = False,
 ) -> AgentLoop:
-    """Create a real AgentLoop for testing.
-
-    Args:
-        patch_deps: If True, patch ContextBuilder/SessionManager/SubagentManager
-                    during construction (needed when workspace has no real files).
-    """
+    """Create a real AgentLoop for testing."""
     bus = MessageBus()
     if provider is None:
         provider = make_provider(default_model=model)

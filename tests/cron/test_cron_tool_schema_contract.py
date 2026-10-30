@@ -46,7 +46,7 @@ def registry() -> Iterator[ToolRegistry]:
     reg = ToolRegistry()
     reg.register(tool)
     with request_context(
-        RequestContext(channel="channel", chat_id="chat-id", session_key="channel:chat-id")
+        RequestContext(channel="channel", chat_id="chat-id", turn_id="channel:chat-id")
     ):
         yield reg
 

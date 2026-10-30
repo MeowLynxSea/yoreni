@@ -19,7 +19,7 @@ async def test_pairing_command_notifies_after_persistence_without_a_file_watcher
     bus.subscribe(lambda _event: approved.append(store.is_approved("telegram", "alice")), PairingChanged)
     loop = MagicMock(bus=bus)
     msg = InboundMessage(channel="cli", sender_id="owner", chat_id="direct", content=f"/pairing approve {code}")
-    ctx = CommandContext(msg=msg, session=None, key=msg.session_key, raw=msg.content, args=f"approve {code}", loop=loop)
+    ctx = CommandContext(msg=msg, raw=msg.content, args=f"approve {code}", loop=loop)
     result = await cmd_pairing(ctx)
     await bus.drain()
     assert "Approved" in result.content and approved == [True]

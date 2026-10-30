@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from inspect import Parameter, signature
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -31,7 +31,6 @@ class TestIsDispatchableCommand:
         return r
 
     def test_exact_commands_match(self, router: CommandRouter) -> None:
-        assert router.is_dispatchable_command("/new")
         assert router.is_dispatchable_command("/help")
         assert router.is_dispatchable_command("/model")
         assert router.is_dispatchable_command("/dream")
@@ -64,12 +63,12 @@ class TestIsDispatchableCommand:
         assert not router.is_dispatchable_command("")
 
     def test_case_insensitive(self, router: CommandRouter) -> None:
-        assert router.is_dispatchable_command("/NEW")
+        assert router.is_dispatchable_command("/HELP")
         assert router.is_dispatchable_command("/Help")
         assert router.is_dispatchable_command("/PAIRING")
 
     def test_strips_whitespace(self, router: CommandRouter) -> None:
-        assert router.is_dispatchable_command("  /new  ")
+        assert router.is_dispatchable_command("  /help  ")
         assert router.is_dispatchable_command("  /pairing list  ")
 
     def test_only_registered_commands_match_for_argument_validation(
@@ -95,126 +94,6 @@ class TestIsDispatchableCommand:
 def test_builtin_command_agent_turn_lifecycle(content: str, expected: bool) -> None:
     assert builtin_command_starts_agent_turn(content) is expected
 
-
-class TestMidTurnCommandDispatchedDirectly:
-    """Verify that commands matching is_dispatchable_command() are dispatched
-    correctly when session=None (the mid-turn path)."""
-
-    @pytest.fixture()
-    def router(self) -> CommandRouter:
-        r = CommandRouter()
-        register_builtin_commands(r)
-        return r
-
-    @pytest.fixture()
-    def fake_loop(self) -> MagicMock:
-        loop = MagicMock()
-        loop.sessions = MagicMock()
-        loop.sessions.state.get = AsyncMock(return_value=MagicMock(
-            key="test:chat1", messages=[], last_archived=0, clear=MagicMock(),
-        ))
-        loop.sessions.save = MagicMock()
-        loop.sessions.invalidate = MagicMock()
-        loop.schedule_background = MagicMock()
-        loop._cancel_active_tasks = AsyncMock(return_value=0)
-        return loop
-
-    @pytest.fixture()
-    def fake_msg(self) -> MagicMock:
-        msg = MagicMock()
-        msg.channel = "test"
-        msg.chat_id = "chat1"
-        msg.content = "/new"
-        msg.metadata = {}
-        return msg
-
-    @pytest.mark.asyncio
-    async def test_new_dispatched_with_session_none(
-        self, router: CommandRouter, fake_loop: MagicMock, fake_msg: MagicMock,
-    ) -> None:
-        """cmd_new works when session=None (mid-turn dispatch path)."""
-        ctx = CommandContext(
-            msg=fake_msg, session=None,
-            key="test:chat1", raw="/new", loop=fake_loop,
-        )
-        fake_loop.sessions.state.reset = AsyncMock()
-        result = await router.dispatch(ctx)
-        assert result is not None
-        assert "New session" in result.content
-        fake_loop.sessions.state.reset.assert_awaited_once_with("test:chat1")
-
-    @pytest.mark.asyncio
-    async def test_help_dispatched_with_session_none(
-        self, router: CommandRouter, fake_loop: MagicMock, fake_msg: MagicMock,
-    ) -> None:
-        ctx = CommandContext(
-            msg=fake_msg, session=None,
-            key="test:chat1", raw="/help", loop=fake_loop,
-        )
-        result = await router.dispatch(ctx)
-        assert result is not None
-        assert result.channel == "test"
-        assert result.chat_id == "chat1"
-        assert result.metadata["render_as"] == "text"
-        assert "/new" in result.content
-        assert "/pairing [list|approve <code>|deny <code>|revoke <user_id>]" in result.content
-
-    @pytest.mark.asyncio
-    async def test_prefix_command_args_populated(self, router: CommandRouter) -> None:
-        """Prefix commands have args populated correctly in mid-turn path."""
-        # Use a custom prefix handler to avoid needing full mock setup.
-        custom = CommandRouter()
-        captured_args = []
-
-        async def fake_handler(ctx: CommandContext) -> None:
-            captured_args.append(ctx.args)
-            return None
-
-        custom.prefix("/test ", fake_handler)
-
-        ctx = CommandContext(
-            msg=MagicMock(channel="test", chat_id="c1", metadata={}),
-            session=None, key="test:c1", raw="/test hello world", loop=MagicMock(),
-        )
-        await custom.dispatch(ctx)
-        assert captured_args == ["hello world"]
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize("content", [
-        "hello world", "/", "/tmp", "/tmp 看看这个目录", "/home/user/project",
-        "/Users/alice/report.md", "/new/file.txt", "/model/preset", "/neaw",
-        "/totally-unknown-command", "/tmp/file@new", "请看看 /home/user/project",
-    ])
-    async def test_non_command_returns_none(
-        self, router: CommandRouter, fake_loop: MagicMock, fake_msg: MagicMock,
-        content: str,
-    ) -> None:
-        """Regular text returns None from dispatch (not a command)."""
-        ctx = CommandContext(
-            msg=fake_msg, session=None,
-            key="test:chat1", raw=content, loop=fake_loop,
-        )
-        result = await router.dispatch(ctx)
-        assert result is None
-        assert not router.is_dispatchable_command(content)
-        assert not router.is_priority(content)
-
-    @pytest.mark.asyncio
-    async def test_exact_command_with_arguments_suggests_valid_form(
-        self, router: CommandRouter, fake_loop: MagicMock, fake_msg: MagicMock,
-    ) -> None:
-        fake_msg.content = "/status now"
-        ctx = CommandContext(
-            msg=fake_msg, session=None,
-            key="test:chat1", raw="/status now", loop=fake_loop,
-        )
-
-        result = await router.dispatch(ctx)
-
-        assert result is not None
-        assert result.content == (
-            'Command "/status" does not accept arguments. Did you mean "/status"?'
-        )
 
 class TestPairingCommandDispatch:
     """Verify /pairing works via CommandRouter."""
@@ -250,8 +129,7 @@ class TestPairingCommandDispatch:
             ],
         )
         ctx = CommandContext(
-            msg=fake_msg, session=None,
-            key="telegram:chat1", raw="/pairing list", args="list", loop=MagicMock(),
+            msg=fake_msg, raw="/pairing list", args="list", loop=MagicMock(),
         )
         result = await router.dispatch(ctx)
         assert result is not None
@@ -268,8 +146,7 @@ class TestPairingCommandDispatch:
         )
         fake_msg.content = "/pairing approve ABCD-EFGH"
         ctx = CommandContext(
-            msg=fake_msg, session=None,
-            key="telegram:chat1", raw="/pairing approve ABCD-EFGH",
+            msg=fake_msg, raw="/pairing approve ABCD-EFGH",
             args="approve ABCD-EFGH", loop=MagicMock(),
         )
         result = await router.dispatch(ctx)
@@ -290,8 +167,7 @@ class TestPairingCommandDispatch:
         )
         fake_msg.content = "/pairing revoke 123"
         ctx = CommandContext(
-            msg=fake_msg, session=None,
-            key="telegram:chat1", raw="/pairing revoke 123",
+            msg=fake_msg, raw="/pairing revoke 123",
             args="revoke 123", loop=MagicMock(),
         )
         result = await router.dispatch(ctx)

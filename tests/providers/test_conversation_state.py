@@ -337,14 +337,14 @@ def test_independent_request_exposes_context_without_capability_check() -> None:
     provider.supports_native_compaction.assert_not_called()
 
 
-def test_independent_request_exposes_session_id_without_token_budget() -> None:
+def test_independent_request_exposes_run_id_without_token_budget() -> None:
     provider = _provider(compact=False)
     messages = [{"role": "user", "content": "hello"}]
     controller = ProviderConversationStateController(
         provider=provider,
         model="gpt-5.6",
         messages=messages,
-        session_id="webui:cache-test",
+        run_id="webui:cache-test",
     )
 
     provider_context = controller.prepare_request(
@@ -353,5 +353,5 @@ def test_independent_request_exposes_session_id_without_token_budget() -> None:
     )
 
     assert provider_context == ProviderCallContext(
-        session_id="webui:cache-test",
+        run_id="webui:cache-test",
     )

@@ -130,7 +130,7 @@ async def test_adapters_replay_tool_results_and_reasoning(responses_peer, monkey
         second = await call(
             messages, tools=tools, **callbacks,
             provider_context=ProviderCallContext(
-                session_id="session-a", conversation_state=first.provider_state.with_pending_messages([tool_result]),
+                run_id="session-a", conversation_state=first.provider_state.with_pending_messages([tool_result]),
             ),
         )
         assert second.content == "report read"

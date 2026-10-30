@@ -6,14 +6,14 @@ import { AutomationRunDialog } from "@/components/settings/system/AutomationRunD
 import { AutomationRunDialogView } from "@/components/settings/system/AutomationRunDialogView";
 import { fetchAutomationRunResult } from "@/lib/api";
 import i18n from "@/i18n";
-import type { SessionAutomationJob } from "@/lib/types";
+import type { AutomationJob } from "@/lib/types";
 
 vi.mock("@/lib/api", () => ({ fetchAutomationRunResult: vi.fn() }));
 const fetchResult = vi.mocked(fetchAutomationRunResult);
-const job: SessionAutomationJob = {
+const job: AutomationJob = {
   id: "reminder", name: "Water reminder", enabled: true,
   schedule: { kind: "every", every_ms: 60000 }, payload: { message: "Current instructions" },
-  state: {}, origin: { channel: "websocket", session_key: "websocket:one" },
+  state: {}, origin: { channel: "websocket" },
 };
 const run = { run_at_ms: 1000, status: "ok", duration_ms: 3000 };
 const props = { token: "test-token", job, run, locale: "en", open: true,

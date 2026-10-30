@@ -24,7 +24,7 @@ def _job(service: CronService):
         name="Daily report",
         schedule=CronSchedule(kind="cron", expr="0 9 * * *", tz="America/Denver"),
         message="Check open pull requests",
-        session_key="websocket:chat-1", origin_channel="websocket", origin_chat_id="chat-1",
+        agent_id="agent-1", origin_channel="websocket", origin_chat_id="chat-1",
     )
 
 

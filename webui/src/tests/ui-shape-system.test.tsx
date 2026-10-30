@@ -45,7 +45,7 @@ describe("UI shape system", () => {
       </>,
     );
 
-    expect(screen.getByRole("button", { name: "Continue" })).toHaveClass("rounded-control");
+    expect(screen.getByRole("button", { name: "Continue" })).toHaveClass("rounded-full");
     expect(screen.getByRole("textbox", { name: "Name" })).toHaveClass("rounded-full");
     expect(screen.getByRole("textbox", { name: "Description" })).toHaveClass(
       "rounded-control",

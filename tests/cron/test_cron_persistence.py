@@ -119,8 +119,9 @@ def test_action_log_survives_failed_store_save(
             name="New reminder",
             schedule=CronSchedule(kind="every", every_ms=60_000),
             message="hello",
-            channel="cli",
-            to="test",
+            agent_id="agent-1",
+            origin_channel="cli",
+            origin_chat_id="test",
         )
     elif operation == "update":
         writer.update_job(job.id, name="Updated reminder")
@@ -161,8 +162,9 @@ def test_saved_actions_can_be_replayed_if_log_cleanup_fails(
         name="New reminder",
         schedule=CronSchedule(kind="every", every_ms=60_000),
         message="hello",
-        channel="cli",
-        to="test",
+        agent_id="agent-1",
+        origin_channel="cli",
+        origin_chat_id="test",
     )
     action_path = store_path.parent / "action.jsonl"
     pending_actions = action_path.read_bytes()
@@ -361,7 +363,7 @@ def test_running_add_job_raises_clear_error_for_unavailable_corrupt_store(
             name="running add",
             schedule=CronSchedule(kind="every", every_ms=60_000),
             message="hello",
-            session_key="websocket:chat-1",
+            agent_id="agent-1",
             origin_channel="websocket",
             origin_chat_id="chat-1",
         )
@@ -381,7 +383,7 @@ def test_stopped_add_job_still_appends_action_without_loading_corrupt_store(
         name="offline add",
         schedule=CronSchedule(kind="every", every_ms=60_000),
         message="hello",
-        session_key="websocket:chat-1",
+        agent_id="agent-1",
         origin_channel="websocket",
         origin_chat_id="chat-1",
     )

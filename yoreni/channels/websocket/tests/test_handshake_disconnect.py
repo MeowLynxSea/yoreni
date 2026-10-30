@@ -40,7 +40,7 @@ async def _listener(tmp_path, monkeypatch, caplog, unix, process_request):
     )
     bus = MessageBus()
     gateway = build_gateway_services(
-        config=config, bus=bus, session_manager=None, static_dist_path=None,
+        config=config, bus=bus, static_dist_path=None,
         workspace_path=tmp_path, default_restrict_to_workspace=False,
         runtime_model_name=None, runtime_surface="browser",
         runtime_capabilities_overrides=None,

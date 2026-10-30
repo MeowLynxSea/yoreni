@@ -25,7 +25,7 @@ def _job(service, *, delete_after_run=False):
     return service.add_job(
         name="Daily report", message="Check open issues",
         schedule=schedule,
-        session_key="websocket:reports", origin_channel="websocket", origin_chat_id="reports",
+        agent_id="agent-1", origin_channel="websocket", origin_chat_id="reports",
         delete_after_run=delete_after_run,
     )
 
@@ -40,7 +40,7 @@ async def test_update_text_keeps_schedule_routing_and_history(tmp_path: Path):
     await service.run_job(job.id, force=True)
     before = service.get_job(job.id)
     identity = (before.id, asdict(before.schedule), before.state.next_run_at_ms, list(before.state.run_history))
-    route = (before.payload.session_key, before.payload.origin_channel, before.payload.origin_chat_id)
+    route = (before.payload.origin_channel, before.payload.origin_chat_id)
     result = await _registry(service).execute("cron", {
         "action": "update", "job_id": job.id, "name": "Issue report", "message": "Check only assigned issues",
     })
@@ -48,7 +48,7 @@ async def test_update_text_keeps_schedule_routing_and_history(tmp_path: Path):
     saved = CronService(path).get_job(job.id)
     assert saved.name == "Issue report" and saved.payload.message == "Check only assigned issues"
     assert (saved.id, asdict(saved.schedule), saved.state.next_run_at_ms, saved.state.run_history) == identity
-    assert (saved.payload.session_key, saved.payload.origin_channel, saved.payload.origin_chat_id) == route
+    assert (saved.payload.origin_channel, saved.payload.origin_chat_id) == route
 
 
 @pytest.mark.parametrize("tz, supplied_tz, expected", [

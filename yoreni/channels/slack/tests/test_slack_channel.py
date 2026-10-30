@@ -549,8 +549,8 @@ async def test_with_thread_context_fetches_replies_in_dm_thread() -> None:
 
 
 @pytest.mark.asyncio
-async def test_dm_root_message_has_no_thread_ts_and_no_thread_session() -> None:
-    """A top-level DM should not synthesize a thread_ts and uses the default session."""
+async def test_dm_root_message_has_no_thread_ts() -> None:
+    """A top-level DM should not synthesize a thread_ts."""
     channel = SlackChannel(SlackConfig(enabled=True), MessageBus())
     channel._bot_user_id = "UBOT"
     channel._web_client = _FakeAsyncWebClient()
@@ -575,13 +575,12 @@ async def test_dm_root_message_has_no_thread_ts_and_no_thread_session() -> None:
 
     channel._handle_message.assert_awaited_once()
     kwargs = channel._handle_message.await_args.kwargs
-    assert kwargs["session_key"] is None
     assert kwargs["metadata"]["slack"]["thread_ts"] is None
 
 
 @pytest.mark.asyncio
-async def test_dm_thread_message_keeps_thread_ts_and_threaded_session() -> None:
-    """A DM message inside a real thread should preserve thread_ts and isolate the session."""
+async def test_dm_thread_message_keeps_thread_ts() -> None:
+    """A DM message inside a real thread should preserve thread_ts."""
     channel = SlackChannel(SlackConfig(enabled=True), MessageBus())
     channel._bot_user_id = "UBOT"
     channel._web_client = _FakeAsyncWebClient()
@@ -608,7 +607,6 @@ async def test_dm_thread_message_keeps_thread_ts_and_threaded_session() -> None:
 
     channel._handle_message.assert_awaited_once()
     kwargs = channel._handle_message.await_args.kwargs
-    assert kwargs["session_key"] == "slack:D123:1700000000.000100"
     assert kwargs["metadata"]["slack"]["thread_ts"] == "1700000000.000100"
 
 
@@ -629,8 +627,8 @@ def _channel_mention_request(envelope_id: str, ts: str) -> SimpleNamespace:
 
 
 @pytest.mark.asyncio
-async def test_channel_root_message_uses_thread_scoped_session() -> None:
-    """A channel mention that opens a thread belongs to that thread's session."""
+async def test_channel_root_message_opens_a_thread() -> None:
+    """A channel mention that opens a thread records that thread's ts."""
     channel = SlackChannel(SlackConfig(enabled=True), MessageBus())
     channel._bot_user_id = "UBOT"
     channel._web_client = _FakeAsyncWebClient()
@@ -643,13 +641,12 @@ async def test_channel_root_message_uses_thread_scoped_session() -> None:
 
     channel._handle_message.assert_awaited_once()
     kwargs = channel._handle_message.await_args.kwargs
-    assert kwargs["session_key"] == "slack:C123:1700000000.000100"
     assert kwargs["metadata"]["slack"]["thread_ts"] == "1700000000.000100"
 
 
 @pytest.mark.asyncio
-async def test_channel_root_messages_do_not_share_one_session() -> None:
-    """Two threads opened in the same channel must not collapse into one session."""
+async def test_channel_root_messages_open_distinct_threads() -> None:
+    """Two threads opened in the same channel must not collapse into one thread."""
     channel = SlackChannel(SlackConfig(enabled=True), MessageBus())
     channel._bot_user_id = "UBOT"
     channel._web_client = _FakeAsyncWebClient()
@@ -662,16 +659,19 @@ async def test_channel_root_messages_do_not_share_one_session() -> None:
     await channel._on_socket_request(client, first)
     await channel._on_socket_request(client, second)
 
-    session_keys = [call.kwargs["session_key"] for call in channel._handle_message.await_args_list]
-    assert session_keys == [
-        "slack:C123:1700000000.000100",
-        "slack:C123:1700000000.000200",
+    thread_ts_values = [
+        call.kwargs["metadata"]["slack"]["thread_ts"]
+        for call in channel._handle_message.await_args_list
+    ]
+    assert thread_ts_values == [
+        "1700000000.000100",
+        "1700000000.000200",
     ]
 
 
 @pytest.mark.asyncio
-async def test_channel_root_message_without_reply_in_thread_uses_channel_session() -> None:
-    """With reply_in_thread disabled no thread is opened, so the channel session is used."""
+async def test_channel_root_message_without_reply_in_thread_has_no_thread() -> None:
+    """With reply_in_thread disabled no thread is opened."""
     channel = SlackChannel(SlackConfig(enabled=True, reply_in_thread=False), MessageBus())
     channel._bot_user_id = "UBOT"
     channel._web_client = _FakeAsyncWebClient()
@@ -684,13 +684,12 @@ async def test_channel_root_message_without_reply_in_thread_uses_channel_session
 
     channel._handle_message.assert_awaited_once()
     kwargs = channel._handle_message.await_args.kwargs
-    assert kwargs["session_key"] is None
     assert kwargs["metadata"]["slack"]["thread_ts"] is None
 
 
 @pytest.mark.asyncio
-async def test_channel_thread_reply_keeps_thread_session() -> None:
-    """A reply inside a channel thread stays in the session opened by the root message."""
+async def test_channel_thread_reply_keeps_thread_ts() -> None:
+    """A reply inside a channel thread keeps that thread's ts."""
     channel = SlackChannel(SlackConfig(enabled=True), MessageBus())
     channel._bot_user_id = "UBOT"
     channel._web_client = _FakeAsyncWebClient()
@@ -716,7 +715,7 @@ async def test_channel_thread_reply_keeps_thread_session() -> None:
 
     channel._handle_message.assert_awaited_once()
     kwargs = channel._handle_message.await_args.kwargs
-    assert kwargs["session_key"] == "slack:C123:1700000000.000100"
+    assert kwargs["metadata"]["slack"]["thread_ts"] == "1700000000.000100"
 
 
 @pytest.mark.asyncio

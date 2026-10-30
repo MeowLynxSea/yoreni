@@ -666,14 +666,14 @@ class TestFallbackOnPrimaryError:
             max_tokens=10_000,
             provider_context=ProviderCallContext(
                 context_window_tokens=50_000,
-                session_id="webui:cache-test",
+                run_id="webui:cache-test",
             ),
         )
 
         primary_context = primary.context_calls[0]
         assert primary_context is not None
         assert primary_context.context_window_tokens == 200_000
-        assert primary_context.session_id == "webui:cache-test"
+        assert primary_context.run_id == "webui:cache-test"
         assert resolve_compact_threshold(
             primary_context.context_window_tokens,
             10_000,

@@ -374,7 +374,7 @@ describe("Settings system domains", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
     await waitFor(() => expect(onStartAutomationChat).toHaveBeenCalledWith(
       "Summarize updates every weekday at 9",
-      undefined,
+      [],
       { intent: "create_automation" },
       "primary",
     ));

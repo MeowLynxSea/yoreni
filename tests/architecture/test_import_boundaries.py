@@ -75,8 +75,6 @@ def test_core_boundary_includes_type_dependencies(source: str) -> None:
 @pytest.mark.parametrize(
     ("module", "rule"),
     [
-        ("yoreni.session.manager", "session-storage"),
-        ("yoreni.session.recovery", "session-storage"),
         ("yoreni.security.workspace_policy", "security-primitives"),
         ("yoreni.agent.turn_delivery", "core-execution"),
         ("yoreni.channels.notification_routes", "channel-routing-contracts"),
@@ -97,8 +95,6 @@ def test_storage_and_security_do_not_depend_on_adapters(module: str, rule: str) 
         "yoreni.bus.outbound_events.ProgressEvent",
         "yoreni.command.router",
         "yoreni.pairing.events.PairingChanged",
-        "yoreni.session.webui_turns.clear_websocket_turn_if_current",
-        "yoreni.webui.transcript.WebUITranscriptRecorder",
         "yoreni.webui.outbound_wire.project_notification",
     ],
 )
@@ -142,9 +138,6 @@ def test_configuration_imports_the_six_tool_owned_config_contracts() -> None:
 @pytest.mark.parametrize(
     ("module", "source"),
     [
-        ("yoreni.agent.loop", "from yoreni.session.recovery import RecoveryAdmission"),
-        ("yoreni.session.manager", "from yoreni.providers.base import ProviderConversationState"),
-        ("yoreni.session.webui_turns", "from yoreni.webui import transcript"),
         ("yoreni.cli.gateway_runtime", "from yoreni.agent.loop import AgentLoop"),
         ("yoreni.channels.websocket.runtime", "from yoreni.webui import inbound_commands"),
         ("yoreni.agent.tools.cli_apps_config", "from yoreni.config_base import Base"),

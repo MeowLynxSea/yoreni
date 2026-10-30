@@ -141,7 +141,7 @@ def _context(result: LLMResponse | None = None, pending=None, session="session-a
         state = result.provider_state.with_pending_messages(
             pending if pending is not None else [{"role": "user", "content": "next"}],
         )
-    return ProviderCallContext(session_id=session, conversation_state=state, **kwargs)
+    return ProviderCallContext(run_id=session, conversation_state=state, **kwargs)
 
 
 @pytest.mark.parametrize("reject_upgrade", [False, True], ids=["websocket", "sse-fallback"])
@@ -203,7 +203,7 @@ async def test_codex_exports_langfuse_usage(codex_peer, reject_upgrade):
                 try:
                     result = await provider.chat(
                         [{"role": "user", "content": "hello"}],
-                        provider_context=ProviderCallContext(session_id="langfuse-test"),
+                        provider_context=ProviderCallContext(run_id="langfuse-test"),
                     )
                     assert result.content == "answer"
                 finally:
@@ -254,11 +254,11 @@ async def test_gateway_continues_image_then_pdf_attachment_turn(codex_peer, tmp_
     )
     try:
         first = await agent.process_direct(
-            "Describe this image.", session_key="websocket:attachments",
+            "Describe this image.",
             channel="websocket", chat_id="attachments", media=[str(image)],
         )
         second = await agent.process_direct(
-            "Summarize this PDF.", session_key="websocket:attachments",
+            "Summarize this PDF.",
             channel="websocket", chat_id="attachments", media=[str(pdf)],
         )
         assert first.content == second.content == "answer"
@@ -299,7 +299,7 @@ async def test_gateway_prepares_image_batch_and_preserves_originals(codex_peer, 
     )
     try:
         result = await agent.process_direct(
-            "Read these screenshots.", session_key="websocket:large-images",
+            "Read these screenshots.",
             channel="websocket", chat_id="large-images", media=[str(path) for path in [*paths, small]],
         )
         assert result.content == "answer"
@@ -314,7 +314,7 @@ async def test_gateway_prepares_image_batch_and_preserves_originals(codex_peer, 
         assert [path.read_bytes() for path in paths] == originals
 
         next_result = await agent.process_direct(
-            "Continue.", session_key="websocket:large-images",
+            "Continue.",
             channel="websocket", chat_id="large-images",
         )
         assert next_result.content == "answer"

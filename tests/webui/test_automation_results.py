@@ -14,14 +14,14 @@ from yoreni.webui.automation_results import cron_run_response, trigger_run_respo
 
 def job_with_run(run: CronRunRecord) -> CronJob:
     job = CronJob(id="job-1", name="Reminder", schedule=CronSchedule(kind="every", every_ms=60000),
-                  payload=CronPayload(message="private prompt", session_key="websocket:one"))
+                  payload=CronPayload(message="private prompt", agent_id="agent-1"))
     job.state.run_history = [run]
     return job
 
 
 def write_result(path: Path, run_id: str, **changes: object) -> None:
     write_run_record(path, run_id, {
-        "job_id": "job-1", "session_key": "websocket:one", "status": "ok",
+        "job_id": "job-1", "agent_id": "agent-1", "status": "ok",
         "response": "The selected response", "rendered_prompt": "private prompt", **changes,
     })
 
@@ -35,7 +35,7 @@ def test_reads_explicit_identity_not_the_latest_run(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("changes", [
-    {"job_id": "other"}, {"session_key": "websocket:other"}, {"status": "error"},
+    {"job_id": "other"}, {"agent_id": "agent-other"}, {"status": "error"},
     {"response": {"secret": "not text"}},
 ])
 def test_validates_result_identity_and_response(tmp_path: Path, changes: dict[str, object]) -> None:
@@ -82,16 +82,16 @@ def test_result_path_cannot_escape_the_runs_directory(tmp_path: Path) -> None:
     assert cron_run_response(runs, job_with_run(run), run) is None
 
 
-def test_local_trigger_uses_exact_delivery_time_and_session(tmp_path: Path) -> None:
-    trigger = LocalTrigger("trg_one", "Reminder", True, "websocket", "one", "websocket:one")
+def test_local_trigger_uses_exact_delivery_time_and_agent(tmp_path: Path) -> None:
+    trigger = LocalTrigger("trg_one", "Reminder", True, "websocket", "one", "agent-1")
     run = TriggerRunRecord(1000, "ok")
     for run_id, created, response in [("delivery-one", 1000, "first"), ("delivery-two", 2000, "latest")]:
         write_run_record(tmp_path, run_id, {
-            "trigger_id": trigger.id, "session_key": trigger.session_key,
+            "trigger_id": trigger.id, "agent_id": trigger.agent_id,
             "created_at_ms": created, "status": "ok", "response": response,
         })
     assert trigger_run_response(tmp_path, trigger, run) == "first"
-    trigger.session_key = "websocket:other"
+    trigger.agent_id = "agent-other"
     assert trigger_run_response(tmp_path, trigger, run) is None
 
 
@@ -107,7 +107,7 @@ async def test_new_cron_run_identity_survives_reload(tmp_path: Path) -> None:
 
     service = CronService(tmp_path / "jobs.json", on_job=execute)
     job = service.add_job(name="Reminder", schedule=CronSchedule(kind="every", every_ms=60000),
-                          message="hi", session_key="websocket:one", origin_channel="websocket",
+                          message="hi", agent_id="agent-1", origin_channel="websocket",
                           origin_chat_id="one")
     assert await service.run_job(job.id, force=True)
     reloaded = CronService(tmp_path / "jobs.json").get_job(job.id)

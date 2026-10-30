@@ -462,7 +462,7 @@ async def test_execution_stop_stops_pipe_inheriting_child_after_root_exits(
         return process
 
     monkeypatch.setattr(ExecTool, "_spawn", staticmethod(spawn_with_exit_order))
-    owner = RequestContext(channel="cli", chat_id="pipe-budget", session_key="cli:pipe-budget")
+    owner = RequestContext(channel="cli", chat_id="pipe-budget", turn_id="cli:pipe-budget")
     manager = ExecSessionManager()
     max_runtime = 12 if stop_reason == "owner_closed" else 2
     tool = ExecTool(
@@ -485,7 +485,7 @@ async def test_execution_stop_stops_pipe_inheriting_child_after_root_exits(
 
         if stop_reason == "owner_closed":
             assert await asyncio.wait_for(
-                manager.terminate_by_owner(owner.session_key), timeout=6,
+                manager.terminate_by_owner(owner.turn_id), timeout=6,
             ) == 1
         await _pid_stopped(child_pid, timeout=5)
         release_child.write_text("perform the delayed write")
@@ -501,7 +501,7 @@ async def test_execution_stop_stops_pipe_inheriting_child_after_root_exits(
         assert "worker launched" in final
         assert _exit_code(final) == 0  # Only the root exited successfully.
         assert not delayed_effect.exists()
-        assert await manager.list(owner_id=owner.session_key) == []
+        assert await manager.list(owner_id=owner.turn_id) == []
     finally:
         try:
             await _cleanup_pidfiles(parent_pidfile, child_pidfile)
@@ -584,8 +584,8 @@ async def test_owner_close_stops_inline_tree_and_preserves_other_owner_work(tmp_
         "print('owner-b-ready', flush=True); line=sys.stdin.readline().strip(); "
         f"Path({str(done)!r}).write_text(line); print('owner-b-completed', flush=True)"
     )
-    owner_a = RequestContext(channel="cli", chat_id="budget-a", session_key="cli:budget-a")
-    owner_b = RequestContext(channel="cli", chat_id="budget-b", session_key="cli:budget-b")
+    owner_a = RequestContext(channel="cli", chat_id="budget-a", turn_id="cli:budget-a")
+    owner_b = RequestContext(channel="cli", chat_id="budget-b", turn_id="cli:budget-b")
     manager = ExecSessionManager()
     tool = ExecTool(
         working_dir=str(tmp_path), max_runtime=12, max_runtime_limit=12,

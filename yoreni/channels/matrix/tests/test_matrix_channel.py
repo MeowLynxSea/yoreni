@@ -1249,11 +1249,10 @@ async def test_on_message_sets_thread_metadata_when_threaded_event() -> None:
     assert metadata["thread_reply_to_event_id"] == "$reply1"
     assert metadata["event_id"] == "$reply1"
     assert metadata["message_id"] == "$reply1"
-    assert handled[0]["session_key"] == "matrix:!room:matrix.org:thread:$root1"
 
 
 @pytest.mark.asyncio
-async def test_on_message_keeps_matrix_thread_sessions_independent() -> None:
+async def test_on_message_keeps_matrix_threads_independent() -> None:
     channel = MatrixChannel(_make_config(), MessageBus())
     client = _FakeAsyncClient("", "", "", None)
     channel.client = client
@@ -1291,16 +1290,16 @@ async def test_on_message_keeps_matrix_thread_sessions_independent() -> None:
         "!room:matrix.org",
         "!room:matrix.org",
     ]
-    assert [message["session_key"] for message in handled] == [
-        "matrix:!room:matrix.org:thread:$root1",
-        "matrix:!room:matrix.org:thread:$root1",
-        "matrix:!room:matrix.org:thread:$root2",
+    assert [message["metadata"]["thread_root_event_id"] for message in handled] == [
+        "$root1",
+        "$root1",
+        "$root2",
     ]
     assert handled[2]["content"] == "/new"
 
 
 @pytest.mark.asyncio
-async def test_on_message_keeps_non_threaded_room_session() -> None:
+async def test_on_message_keeps_non_threaded_room_message() -> None:
     channel = MatrixChannel(_make_config(), MessageBus())
     client = _FakeAsyncClient("", "", "", None)
     channel.client = client
@@ -1323,7 +1322,7 @@ async def test_on_message_keeps_non_threaded_room_session() -> None:
     await channel._on_message(room, event)
 
     assert len(handled) == 1
-    assert handled[0]["session_key"] is None
+    assert "thread_root_event_id" not in handled[0]["metadata"]
 
 
 @pytest.mark.asyncio
@@ -1440,7 +1439,6 @@ async def test_on_media_message_sets_thread_metadata_when_threaded_event(
     assert metadata["thread_root_event_id"] == "$root1"
     assert metadata["thread_reply_to_event_id"] == "$event1"
     assert metadata["event_id"] == "$event1"
-    assert handled[0]["session_key"] == "matrix:!room:matrix.org:thread:$root1"
 
 
 @pytest.mark.asyncio
@@ -3113,43 +3111,6 @@ async def test_listen_control_command_preserves_context_for_next_question(comman
     blocks = question.metadata[RUNTIME_CONTEXT_INPUT_META]
     assert "the picnic is on Sunday" in blocks[0].content
     assert "!room:matrix.org" not in channel._listen_buffers
-
-
-@pytest.mark.asyncio
-async def test_listen_help_round_trip_does_not_consume_discussion(monkeypatch, tmp_path) -> None:
-    from yoreni.agent.loop import AgentLoop
-    from yoreni.providers.base import LLMProvider
-
-    monkeypatch.setattr("yoreni.config.loader._current_config_path", tmp_path / "config.json")
-    bus = MessageBus()
-    channel = MatrixChannel(_make_config(group_policy="listen"), bus)
-    room = SimpleNamespace(room_id="!room:matrix.org", member_count=3)
-    provider = MagicMock(spec=LLMProvider)
-    provider.get_default_model.return_value = "test-model"
-    provider.generation = SimpleNamespace(max_tokens=4096, temperature=0.1, reasoning_effort=None)
-    provider.estimate_prompt_tokens = MagicMock(return_value=(1000, "test"))
-    provider.chat_stream_with_retry = AsyncMock()
-    provider.aclose = AsyncMock()
-    loop = AgentLoop(
-        bus=bus, provider=provider, workspace=tmp_path / "workspace",
-        model="test-model", context_window_tokens=128000, session_ttl_minutes=0,
-    )
-    try:
-        await channel._on_message(room, _listen_event("bring lunch to the picnic"))
-        await channel._on_message(room, _listen_event("/help", mentioned=True))
-        command_input = await bus.consume_inbound()
-        response = await loop._process_message(command_input)
-        assert response is not None and "/help" in response.content
-        provider.chat_stream_with_retry.assert_not_awaited()
-        session = await loop.sessions.state.get(command_input.session_key)
-        assert session.get_history() == []
-
-        await channel._on_message(room, _listen_event("what should I bring?", mentioned=True))
-        question = await bus.consume_inbound()
-        blocks = question.metadata[RUNTIME_CONTEXT_INPUT_META]
-        assert "bring lunch to the picnic" in blocks[0].content
-    finally:
-        await loop.aclose()
 
 
 @pytest.mark.parametrize("content", ["/goal prepare a picnic plan", "/tmp/notes.md"])

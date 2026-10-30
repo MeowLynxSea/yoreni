@@ -159,7 +159,7 @@ def _affinity_provider(name: str) -> OpenAICompatProvider:
 
 
 def test_opencode_affinity_headers_enabled():
-    ctx = ProviderCallContext(session_id="s-1")
+    ctx = ProviderCallContext(run_id="s-1")
     expected = {"x-opencode-session": hashlib.sha256(b"s-1").hexdigest()}
     for name in ("opencode", "opencode_go", "opencode_zen"):
         assert _affinity_provider(name)._opencode_affinity_headers(ctx) == expected
@@ -170,9 +170,9 @@ def test_opencode_affinity_headers_enabled():
 def test_opencode_affinity_headers_disabled():
     assert _affinity_provider("opencode")._opencode_affinity_headers(ProviderCallContext()) is None
     plain = OpenAICompatProvider(api_key=None, default_model="gpt-4o", spec=find_by_name("openai"))
-    assert plain._opencode_affinity_headers(ProviderCallContext(session_id="s-1")) is None
+    assert plain._opencode_affinity_headers(ProviderCallContext(run_id="s-1")) is None
     openai_base = OpenAICompatProvider(api_key=None, default_model="gpt-4o", api_base="https://api.openai.com/v1")
-    assert openai_base._opencode_affinity_headers(ProviderCallContext(session_id="s-1")) is None
+    assert openai_base._opencode_affinity_headers(ProviderCallContext(run_id="s-1")) is None
 
 
 @pytest.mark.parametrize(("base", "enabled"), [
@@ -257,7 +257,7 @@ async def test_opencode_wire_affinity(monkeypatch, api_type, stream, configured_
         call = provider.chat_stream_with_retry if stream else provider.chat_with_retry
 
         async def send(session_id):
-            context = ProviderCallContext(session_id=session_id) if session_id is not None else None
+            context = ProviderCallContext(run_id=session_id) if session_id is not None else None
             result = await call(
                 messages=[{"role": "user", "content": session_id or "no-context"}],
                 provider_context=context,

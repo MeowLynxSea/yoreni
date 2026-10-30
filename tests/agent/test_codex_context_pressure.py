@@ -52,7 +52,7 @@ def _request_state(provider, *, prior_tokens=180_000, repetitions=12_000):
     compaction.raw_messages = raw
     config = ContextGovernanceConfig(
         provider=provider, model=model, tools=ToolRegistry(), workspace=None,
-        session_key="pressure-test", max_tool_result_chars=16_000,
+        run_id="pressure-test", max_tool_result_chars=16_000,
         context_window_tokens=200_000, max_tokens=8192,
     )
     state = ModelRequestState(

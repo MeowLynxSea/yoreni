@@ -43,7 +43,7 @@ def _make_loop(tmp_path: Path) -> AgentLoop:
 
 def _ctx(loop: AgentLoop, raw: str = "/skill") -> CommandContext:
     msg = InboundMessage(channel="cli", sender_id="user", chat_id="direct", content=raw)
-    return CommandContext(msg=msg, session=None, key=msg.session_key, raw=raw, args="", loop=loop)
+    return CommandContext(msg=msg, raw=raw, args="", loop=loop)
 
 
 def _write_skill(base: Path, name: str, *, description: str = "", body: str = "# Skill\n") -> None:

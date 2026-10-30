@@ -689,7 +689,7 @@ async def test_runtime_config_mutation_routes_refresh_live_runtime(
 
 
 @pytest.mark.asyncio
-async def test_model_update_route_forwards_session_rename_dependency(monkeypatch) -> None:
+async def test_model_update_route_forwards_rename_dependency(monkeypatch) -> None:
     rename_model_preset = MagicMock(return_value=2)
     refresh_runtime_config = MagicMock()
     captured: dict[str, object] = {}
@@ -926,7 +926,7 @@ async def test_mcp_proxy_mutation_persists_reloads_and_keeps_oauth_credentials(
 
     reload = AsyncMock(side_effect=reload_mcp)
     gateway = build_gateway_services(
-        config=WebSocketConfig(), bus=MessageBus(), session_manager=None,
+        config=WebSocketConfig(), bus=MessageBus(),
         static_dist_path=None, workspace_path=tmp_path, config_path=config_path,
         default_restrict_to_workspace=True, runtime_model_name=None,
         runtime_surface="browser", runtime_capabilities_overrides=None, mcp_reload=reload,

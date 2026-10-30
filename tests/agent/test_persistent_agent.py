@@ -228,7 +228,7 @@ async def test_goal_tools_store_the_objective_on_the_agent(runtime):
         return LLMResponse(content=None, tool_calls=[call])
 
     provider.chat = goal_chat
-    run_id = await loop.accept_message(InboundMessage(
+    await loop.accept_message(InboundMessage(
         "websocket", "owner-client", "yoreni", "/goal Inspect project",
     ))
     await asyncio.gather(*loop._background_tasks)

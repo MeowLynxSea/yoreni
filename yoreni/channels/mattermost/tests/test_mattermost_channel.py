@@ -447,7 +447,7 @@ async def test_posted_thread_event_uses_thread_policy():
         await channel._handle_ws_message(ws_msg)
 
     mock_handle.assert_awaited_once()
-    assert mock_handle.call_args.kwargs["session_key"] == "mattermost:channel_1:root_1"
+    assert mock_handle.call_args.kwargs["metadata"]["mattermost"]["root_id"] == "root_1"
 
 
 @pytest.mark.asyncio
@@ -893,36 +893,12 @@ async def test_team_filtering_resolves_missing_broadcast_team_and_rejects_wrong_
 
 
 # ---------------------------------------------------------------------------
-# Thread session key
+# Thread metadata
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_thread_session_key():
-    channel, fake = _make_channel()
-    channel._self_id = "bot_id"
-    with patch.object(channel, "_handle_message", AsyncMock()) as mock_handle:
-        with patch.object(channel, "_is_allowed", AsyncMock(return_value=True)):
-            with patch.object(channel, "_should_respond_in_channel", return_value=True):
-                ws_msg = {
-                    "event": "posted",
-                    "data": {
-                        "channel_type": "O",
-                        "post": json.dumps({
-                            "id": "post_1", "user_id": "u1",
-                            "channel_id": "c1", "message": "in thread",
-                            "root_id": "root_99",
-                        }),
-                    },
-                    "broadcast": {},
-                }
-                await channel._handle_ws_message(ws_msg)
-                kwargs = mock_handle.call_args[1]
-                assert kwargs["session_key"] == "mattermost:c1:root_99"
-
-
-@pytest.mark.asyncio
-async def test_top_level_mention_uses_thread_session_key():
+async def test_top_level_mention_opens_a_thread():
     channel, fake = _make_channel({"replyInThread": True})
     channel._self_id = "bot_id"
     channel._self_username = "yoreni"
@@ -942,7 +918,6 @@ async def test_top_level_mention_uses_thread_session_key():
             }
             await channel._handle_ws_message(ws_msg)
             kwargs = mock_handle.call_args[1]
-            assert kwargs["session_key"] == "mattermost:c1:post_1"
             assert kwargs["metadata"]["mattermost"]["thread_ts"] == "post_1"
 
 

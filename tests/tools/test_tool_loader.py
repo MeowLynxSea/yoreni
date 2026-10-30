@@ -57,7 +57,7 @@ def test_tool_plugin_discoverable_default_is_true():
 def test_tool_context_has_required_fields():
     field_names = {f.name for f in fields(ToolContext)}
     required = {
-        "config", "workspace", "bus", "subagent_manager",
+        "config", "workspace", "bus",
         "cron_service", "exec_session_manager", "file_state_store",
         "provider_snapshot_loader", "providers_config", "timezone",
         "runtime_control",
@@ -68,7 +68,6 @@ def test_tool_context_has_required_fields():
 def test_tool_context_defaults():
     ctx = ToolContext(config=None, workspace="/tmp")
     assert ctx.bus is None
-    assert ctx.subagent_manager is None
     assert ctx.cron_service is None
     assert ctx.exec_session_manager is None
     assert ctx.provider_snapshot_loader is None
@@ -95,7 +94,6 @@ def test_discover_finds_concrete_tools():
     assert "CliAppsTool" in class_names
     assert "MessageTool" in class_names
     assert "MyTool" in class_names
-    assert "SubagentTool" in class_names
     assert "ExecSessionTool" in class_names
 
 
@@ -119,8 +117,6 @@ def test_discover_skips_private_classes():
 
 def test_loader_registers_exec_with_real_tools_config(tmp_path):
     """Real config objects catch bad ctx.config attribute paths that mocks hide."""
-    from types import SimpleNamespace
-
     from yoreni.agent.tools.registry import ToolRegistry
     from yoreni.config.schema import ToolsConfig
 
@@ -128,10 +124,6 @@ def test_loader_registers_exec_with_real_tools_config(tmp_path):
         config=ToolsConfig(),
         workspace=str(tmp_path),
         bus=None,
-        subagent_manager=SimpleNamespace(
-            get_running_count=lambda: 0,
-            max_concurrent_subagents=4,
-        ),
         cron_service=None,
         timezone="UTC",
     )
@@ -143,8 +135,6 @@ def test_loader_registers_exec_with_real_tools_config(tmp_path):
 
 
 def test_loader_wires_shared_exec_session_manager(tmp_path):
-    from types import SimpleNamespace
-
     from yoreni.agent.tools.exec_session import ExecSessionManager
     from yoreni.agent.tools.registry import ToolRegistry
     from yoreni.config.schema import ToolsConfig
@@ -153,10 +143,6 @@ def test_loader_wires_shared_exec_session_manager(tmp_path):
     ctx = ToolContext(
         config=ToolsConfig(),
         workspace=str(tmp_path),
-        subagent_manager=SimpleNamespace(
-            get_running_count=lambda: 0,
-            max_concurrent_subagents=4,
-        ),
         exec_session_manager=manager,
         timezone="UTC",
     )
@@ -226,7 +212,7 @@ def test_fs_tool_create_respects_sandbox():
     assert tool._allowed_dir == Path("/tmp/test")
 
 
-# --- Message, subagent, and cron tool factories ---
+# --- Message and cron tool factories ---
 
 
 async def test_message_tool_create():
@@ -236,15 +222,6 @@ async def test_message_tool_create():
     ctx = ToolContext(config=mock_config, workspace="/tmp", bus=mock_bus)
     tool = MessageTool.create(ctx)
     assert isinstance(tool, MessageTool)
-
-
-def test_subagent_tool_create():
-    from yoreni.agent.tools.subagent import SubagentTool
-    mock_mgr = MagicMock()
-    mock_config = MagicMock()
-    ctx = ToolContext(config=mock_config, workspace="/tmp", subagent_manager=mock_mgr)
-    tool = SubagentTool.create(ctx)
-    assert isinstance(tool, SubagentTool)
 
 
 def test_cron_tool_enabled_without_service():
@@ -452,7 +429,6 @@ def test_loader_registers_builtin_tools():
         config=mock_config,
         workspace="/tmp",
         bus=MagicMock(),
-        subagent_manager=MagicMock(),
         cron_service=MagicMock(),
         timezone="UTC",
         runtime_control=MagicMock(),
@@ -465,7 +441,7 @@ def test_loader_registers_builtin_tools():
         "read_file", "write_file", "edit_file", "list_dir",
         "exec", "exec_session", "list_exec_sessions",
         "web_search", "web_fetch",
-        "message", "subagent", "cron",
+        "message", "cron",
         "my",
     }
     actual = set(registered)

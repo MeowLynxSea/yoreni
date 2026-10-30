@@ -52,20 +52,19 @@ def test_reject_missing_directory_outside_empty_and_unreadable(tmp_path, monkeyp
         inspect_local_attachment(str(video), scope=scope, limits=AttachmentIngressLimits())
 
 
-def test_local_media_ranges_latest_contents_and_current_scope_without_staging(tmp_path):
+def test_local_media_ranges_latest_contents_without_staging(tmp_path):
     project = tmp_path / "project"
     project.mkdir()
     source = tmp_path / "original.mp4"
     source.write_bytes(b"first video")
     media = tmp_path / "media"
     gateway = WebUIMediaGateway(workspace_path=project, logger=Mock(), media_dir=lambda _: media)
-    attachments = gateway.augment_transcript_user_media([str(source)], [str(source)], session_key="websocket:local")
+    attachments = gateway.augment_transcript_media([str(source)])
     sig, payload = attachments[0]["url"].split("/")[-2:]
-    scope = default_workspace_scope(project, False)
 
     def fetch(range_header=None):
         return gateway.serve_signed_media(
-            sig, payload, scope_for_session=lambda _: scope,
+            sig, payload,
             request=Request("/", Headers({"Range": range_header} if range_header else {})),
         )
 
@@ -76,12 +75,9 @@ def test_local_media_ranges_latest_contents_and_current_scope_without_staging(tm
     assert bytes(response.body) == b"latest"
     assert response.headers["Cache-Control"] == "no-store"
     assert not media.exists()
-    scope = default_workspace_scope(project, True)
-    assert fetch().status_code == 403
-    scope = default_workspace_scope(project, False)
     source.unlink()
     assert fetch().status_code == 404
-    assert gateway.augment_transcript_user_media([str(source)], [str(source)], session_key="websocket:local")[0]["url"] == ""
+    assert gateway.augment_transcript_media([str(source)])[0]["url"] == ""
 
 
 def test_referenced_file_in_media_storage_is_not_treated_as_immutable_upload(tmp_path):
@@ -90,12 +86,10 @@ def test_referenced_file_in_media_storage_is_not_treated_as_immutable_upload(tmp
     source = media / "original.mp4"
     source.write_bytes(b"before")
     gateway = WebUIMediaGateway(workspace_path=tmp_path, logger=Mock(), media_dir=lambda _: media)
-    attachment = gateway.augment_transcript_user_media([str(source)], [str(source)], session_key="websocket:local")[0]
+    attachment = gateway.augment_transcript_media([str(source)])[0]
     sig, payload = attachment["url"].split("/")[-2:]
     source.write_bytes(b"updated")
-    response = gateway.serve_signed_media(
-        sig, payload, scope_for_session=lambda _: default_workspace_scope(tmp_path, True),
-    )
+    response = gateway.serve_signed_media(sig, payload)
     assert bytes(response.body) == b"updated"
     assert response.headers["Cache-Control"] == "no-store"
     assert list(media.iterdir()) == [source]
@@ -111,48 +105,7 @@ def test_legacy_media_filename_starting_with_bracket_keeps_working(tmp_path):
     assert bytes(response.body) == b"uploaded video"
 
 
-@pytest.mark.parametrize("canonical", [False, True])
-async def test_mixed_media_replay_keeps_uploaded_cache_and_borrowed_freshness(tmp_path, history, canonical):
-    from yoreni.session.manager import Session
-    from yoreni.webui.transcript import (
-        WebUITranscriptRecorder,
-        build_session_thread_response,
-    )
-    media = tmp_path / "media"
-    media.mkdir()
-    uploaded = media / "upload.png"
-    borrowed = media / "borrowed.png"
-    uploaded.write_bytes(b"upload")
-    borrowed.write_bytes(b"original")
-    paths = [str(uploaded), str(borrowed)]
-    metadata = {"local_media_paths": [str(borrowed)]}
-    gateway = WebUIMediaGateway(workspace_path=tmp_path, logger=Mock(), media_dir=lambda _: media)
-
-    def augment(paths, local):
-        return gateway.augment_transcript_user_media(paths, local, session_key="websocket:cache")
-
-    if canonical:
-        session = Session(key="websocket:cache")
-        session.add_message("user", "look", media=paths, **metadata)
-        response = build_session_thread_response(session, augment_user_media=augment)
-    else:
-        assert await WebUITranscriptRecorder(history.sessions).append_user_message(
-            "cache", "look", media_paths=paths, metadata=await history.metadata("cache", metadata),
-        )
-        response = history.build("websocket:cache", session_messages=[], augment_user_media=augment)
-    urls = response["events"][0]["media_urls"]
-    scope = default_workspace_scope(tmp_path, True)
-    borrowed.write_bytes(b"updated")
-    for attachment, expected, cache in zip(urls, [b"upload", b"updated"], ["private, max-age=31536000, immutable", "no-store"], strict=True):
-        sig, payload = attachment["url"].split("/")[-2:]
-        served = gateway.serve_signed_media(sig, payload, scope_for_session=lambda _: scope)
-        assert bytes(served.body) == expected
-        assert served.headers["Cache-Control"] == cache
-    assert sorted(path.name for path in media.iterdir()) == ["borrowed.png", "upload.png"]
-
-
-@pytest.mark.parametrize("role", ["assistant", "user"])
-def test_replayed_media_keeps_missing_files_in_order_without_download_urls(tmp_path, monkeypatch, role):
+def test_replayed_media_keeps_missing_files_in_order_without_download_urls(tmp_path, monkeypatch):
     media = tmp_path / "media"
     media.mkdir()
     first = media / "first.json"
@@ -164,9 +117,7 @@ def test_replayed_media_keeps_missing_files_in_order_without_download_urls(tmp_p
     gateway = WebUIMediaGateway(workspace_path=tmp_path, logger=Mock(), media_dir=lambda _: media)
 
     def project():
-        if role == "assistant":
-            return gateway.augment_transcript_media(paths)
-        return gateway.augment_transcript_user_media(paths, [], session_key="websocket:files")
+        return gateway.augment_transcript_media(paths)
 
     with monkeypatch.context() as patch:
         patch.setattr(type(first), "read_bytes", lambda *_: pytest.fail("projection read file contents"))

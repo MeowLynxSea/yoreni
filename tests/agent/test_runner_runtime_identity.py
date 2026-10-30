@@ -24,7 +24,7 @@ async def test_active_run_keeps_provider_captured_at_admission() -> None:
     first_calls = 0
     second_calls = 0
     request_temperatures: list[float] = []
-    request_session_ids: list[str | None] = []
+    request_run_ids: list[str | None] = []
     selected_runtime = LLMRuntime.capture(
         first_provider,
         "captured-model",
@@ -38,7 +38,7 @@ async def test_active_run_keeps_provider_captured_at_admission() -> None:
         request_temperatures.append(kwargs["temperature"])
         provider_context = kwargs["provider_context"]
         assert isinstance(provider_context, ProviderCallContext)
-        request_session_ids.append(provider_context.session_id)
+        request_run_ids.append(provider_context.run_id)
         selected_runtime = LLMRuntime.capture(
             second_provider,
             "future-model",
@@ -70,11 +70,11 @@ async def test_active_run_keeps_provider_captured_at_admission() -> None:
         max_iterations=2,
         max_tool_result_chars=AgentDefaults().max_tool_result_chars,
         consolidate_history=failed_test_consolidator,
-        session_key="webui:cache-test",
+        run_id="webui:cache-test",
     ))
 
     assert first_calls == 2
     assert second_calls == 0
     assert request_temperatures == [0.2, 0.2]
-    assert request_session_ids == ["webui:cache-test", "webui:cache-test"]
+    assert request_run_ids == ["webui:cache-test", "webui:cache-test"]
     assert selected_runtime.provider is second_provider

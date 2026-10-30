@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import ast
 import asyncio
-from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
@@ -16,9 +14,6 @@ from yoreni.bus.queue import MessageBus
 from yoreni.channels.websocket import runtime
 from yoreni.webui.gateway_services import build_gateway_services
 
-_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-_SESSION_IDENTITY_PATH = _REPOSITORY_ROOT / "yoreni" / "webui" / "session_identity.py"
-
 
 @pytest.fixture
 async def channel(tmp_path, monkeypatch):
@@ -28,7 +23,6 @@ async def channel(tmp_path, monkeypatch):
     gateway = build_gateway_services(
         config=config,
         bus=bus,
-        session_manager=None,
         static_dist_path=None,
         workspace_path=tmp_path,
         default_restrict_to_workspace=True,
@@ -51,9 +45,7 @@ async def channel(tmp_path, monkeypatch):
 
 async def test_send_delegates_the_outbound_message_to_delivery(channel, monkeypatch):
     send = AsyncMock()
-    hydrate = AsyncMock()
     monkeypatch.setattr(channel._outbound, "send", send)
-    monkeypatch.setattr(channel._outbound, "hydrate", hydrate)
     msg = OutboundMessage(
         channel="websocket", chat_id="chat-1", content="hello", reply_to="m1",
         media=["/example/image.png"], metadata={"turn_id": "turn-1"},
@@ -62,21 +54,6 @@ async def test_send_delegates_the_outbound_message_to_delivery(channel, monkeypa
     await channel.send(msg)
 
     send.assert_awaited_once_with(msg)
-    hydrate.assert_not_awaited()
-
-
-async def test_subscribe_hydration_delegates_the_requested_chat(channel, monkeypatch):
-    hydrate = AsyncMock()
-    send = AsyncMock()
-    monkeypatch.setattr(channel._outbound, "hydrate", hydrate)
-    monkeypatch.setattr(channel._outbound, "send", send)
-
-    await channel._dispatch_envelope(
-        AsyncMock(), "client-1", {"type": "attach", "chat_id": "chat-2"},
-    )
-
-    hydrate.assert_awaited_once_with("chat-2")
-    send.assert_not_awaited()
 
 
 @pytest.mark.parametrize(
@@ -129,44 +106,6 @@ async def test_http_delegates_authorization_and_preserves_endpoint_result(
     authorize = process_request.await_args.kwargs["is_allowed"]
     assert authorize("client-1") is True
     assert authorize("other-client") is False
-
-
-def _session_namespace_literal_lines(source: str) -> list[int]:
-    """Locate executable namespace literals, not prose or type annotations."""
-    tree = ast.parse(source)
-    ignored = set()
-    for node in ast.walk(tree):
-        annotation = None
-        if isinstance(node, ast.AnnAssign | ast.arg):
-            annotation = node.annotation
-        elif isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-            annotation = node.returns
-        if annotation is not None:
-            ignored.update(ast.walk(annotation))
-        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
-            # A standalone string (including a docstring) does not define runtime policy.
-            ignored.add(node.value)
-    return [
-        node.lineno
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Constant)
-        and isinstance(node.value, str)
-        and node.value.startswith("websocket:")
-        and node not in ignored
-    ]
-
-
-def test_persisted_webui_session_prefix_has_one_production_owner() -> None:
-    # Consumers import session_identity; independent literal keys/prefixes fork its policy.
-    # Exact persisted values and mapping round trips live in test_session_identity.py.
-    owners = {}
-    for path in (_REPOSITORY_ROOT / "yoreni").rglob("*.py"):
-        if "tests" in path.parts:
-            continue
-        lines = _session_namespace_literal_lines(path.read_text(encoding="utf-8"))
-        if lines:
-            owners[path.relative_to(_REPOSITORY_ROOT).as_posix()] = lines
-    assert set(owners) == {_SESSION_IDENTITY_PATH.relative_to(_REPOSITORY_ROOT).as_posix()}, owners
 
 
 def test_runtime_exports_compatibility_protocol_helpers() -> None:

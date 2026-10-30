@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from pathlib import Path
 from types import MappingProxyType
 from unittest.mock import MagicMock, patch
@@ -15,7 +14,6 @@ from yoreni.agent.tools.self import MyTool
 from yoreni.agent.tools.shell import ExecToolConfig
 from yoreni.agent.tools.web import WebSearchConfig, WebToolsConfig
 from yoreni.config.schema import ModelPresetConfig
-from yoreni.providers.base import LLMUsage
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -36,8 +34,6 @@ def _make_mock_loop(**overrides):
     loop.max_tool_result_chars = 16000
     loop.model_preset = None
     loop.model_presets = {}
-    loop._concurrency_gate = None
-    loop._unified_session = False
     loop._extra_hooks = []
     loop.set_runtime_model.side_effect = lambda value: setattr(loop, "model", value)
     loop.set_runtime_max_iterations.side_effect = lambda value: setattr(loop, "max_iterations", value)
@@ -57,9 +53,6 @@ def _make_mock_loop(**overrides):
     loop.tools.has.side_effect = lambda n: n in loop.tools.tool_names
     loop.tools.get.return_value = None
     loop.tool_names = loop.tools.tool_names
-
-    # SubagentManager mock
-    loop.subagents = MagicMock()
 
     for k, v in overrides.items():
         setattr(loop, k, v)
@@ -399,27 +392,11 @@ class TestProtectedRuntimeState:
         assert "protected" in result
 
     @pytest.mark.asyncio
-    async def test_modify_subagents_blocked(self):
-        """Subagent control is outside the self-inspection capability."""
-        tool = _make_tool()
-        new_subagents = MagicMock()
-        result = await tool.execute(action="set", key="subagents", value=new_subagents)
-        assert "protected" in result
-
-    @pytest.mark.asyncio
     async def test_modify_runner_blocked(self):
         """runner is BLOCKED — cannot be replaced."""
         tool = _make_tool()
         new_runner = MagicMock()
         result = await tool.execute(action="set", key="runner", value=new_runner)
-        assert "protected" in result
-
-    @pytest.mark.asyncio
-    async def test_modify_sessions_blocked(self):
-        """sessions is BLOCKED — cannot be replaced."""
-        tool = _make_tool()
-        new_sessions = MagicMock()
-        result = await tool.execute(action="set", key="sessions", value=new_sessions)
         assert "protected" in result
 
     @pytest.mark.asyncio
@@ -474,8 +451,6 @@ class TestProtectedRuntimeState:
     @pytest.mark.parametrize(
         "key",
         [
-            pytest.param("_pending_queues", id="pending_queues_blocked"),
-            pytest.param("_session_locks", id="session_locks_blocked"),
             pytest.param("_active_tasks", id="active_tasks_blocked"),
         ],
     )
@@ -570,65 +545,6 @@ class TestDeniedAttrs:
         for attr in ("func_globals", "func_code"):
             result = await tool.execute(action="set", key=attr, value="evil")
             assert "protected" in result, f"{attr} should be blocked"
-
-
-# ---------------------------------------------------------------------------
-# _SubagentHook after_iteration updates status
-# ---------------------------------------------------------------------------
-
-class TestSubagentHookStatus:
-
-    @pytest.mark.asyncio
-    async def test_after_iteration_updates_status(self):
-        """after_iteration should copy iteration, tool_events, usage to status."""
-        from yoreni.agent.subagent import SubagentStatus, _SubagentHook
-
-        from yoreni.agent.hook import AgentHookContext
-
-        status = SubagentStatus(
-            task_id="test",
-            label="test",
-            task_description="test",
-            started_at=time.monotonic(),
-        )
-        hook = _SubagentHook(status)
-
-        context = AgentHookContext(
-            iteration=5,
-            messages=[],
-            tool_events=[{"name": "read_file", "status": "ok", "detail": "ok"}],
-            usage=LLMUsage.reported(input_tokens=100, output_tokens=50),
-        )
-        await hook.after_iteration(context)
-
-        assert status.iteration == 5
-        assert len(status.tool_events) == 1
-        assert status.tool_events[0]["name"] == "read_file"
-        assert status.usage == LLMUsage.reported(input_tokens=100, output_tokens=50)
-
-    @pytest.mark.asyncio
-    async def test_after_iteration_with_error(self):
-        """after_iteration should set status.error when context has an error."""
-        from yoreni.agent.subagent import SubagentStatus, _SubagentHook
-
-        from yoreni.agent.hook import AgentHookContext
-
-        status = SubagentStatus(
-            task_id="test",
-            label="test",
-            task_description="test",
-            started_at=time.monotonic(),
-        )
-        hook = _SubagentHook(status)
-
-        context = AgentHookContext(
-            iteration=1,
-            messages=[],
-            error="something went wrong",
-        )
-        await hook.after_iteration(context)
-
-        assert status.error == "something went wrong"
 
 
 # ---------------------------------------------------------------------------
@@ -898,7 +814,7 @@ class TestRequestContext:
         ctx = RequestContext(
             channel="feishu",
             chat_id="oc_abc123",
-            session_key="feishu:oc_abc123",
+            turn_id="feishu:oc_abc123",
         )
 
         with patch("yoreni.agent.tools.self.logger.info") as info:

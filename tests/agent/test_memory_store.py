@@ -59,11 +59,11 @@ class TestHistoryWithCursor:
         data = json.loads(content)
         assert data["cursor"] == 1
 
-    def test_append_history_includes_session_key_when_provided(self, store):
-        store.append_history("event 1", session_key="telegram:chat-1")
+    def test_append_history_includes_run_id_when_provided(self, store):
+        store.append_history("event 1", run_id="telegram:chat-1")
         content = store.read_file(store.history_file)
         data = json.loads(content)
-        assert data["session_key"] == "telegram:chat-1"
+        assert data["run_id"] == "telegram:chat-1"
 
     def test_cursor_persists_across_appends(self, store):
         store.append_history("event 1")
@@ -518,7 +518,7 @@ def test_history_skips_non_dict_jsonl_lines(tmp_path: Path) -> None:
         "content": "kept",
         "session_key": "cli:t",
     }]
-    next_cursor = memory.append_history("next", session_key="cli:t")
+    next_cursor = memory.append_history("next", run_id="cli:t")
     assert next_cursor == 2
 
 def test_raw_archive_handles_none_timestamp_and_missing_role(tmp_path: Path) -> None:
@@ -533,7 +533,7 @@ def test_raw_archive_handles_none_timestamp_and_missing_role(tmp_path: Path) -> 
         {"content": "message with int timestamp", "timestamp": 1720000000, "role": "assistant"},
         {"content": "message with missing role", "timestamp": "2026-07-28T12:00:00"},
     ]
-    memory.raw_archive(messages, session_key="cli:test")
+    memory.raw_archive(messages, run_id="cli:test")
     raw_history = memory.history_file.read_text(encoding="utf-8")
     assert "[?] USER: message with none timestamp" in raw_history
     assert "[1720000000] ASSISTANT: message with int timestamp" in raw_history

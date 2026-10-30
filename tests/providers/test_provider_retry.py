@@ -583,7 +583,7 @@ async def test_image_retry_discards_provider_state_with_images(
         messages=messages,
         provider_context=ProviderCallContext(
             conversation_state=state,
-            session_id="webui:cache-test",
+            run_id="webui:cache-test",
             response_preset="saved fallback",
             response_is_fallback=True,
         ),
@@ -593,7 +593,7 @@ async def test_image_retry_discards_provider_state_with_images(
     retry_context = provider.contexts[-1]
     assert isinstance(retry_context, ProviderCallContext)
     assert retry_context.conversation_state is None
-    assert retry_context.session_id == "webui:cache-test"
+    assert retry_context.run_id == "webui:cache-test"
     assert retry_context.response_preset == "saved fallback"
     assert retry_context.response_is_fallback is True
     public_content = messages[0]["content"]

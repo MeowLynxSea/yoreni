@@ -10,7 +10,6 @@ import { ModelPresetBadge, type ModelPresetOption } from "@/components/thread/Mo
 import { ThreadComposer } from "@/components/thread/ThreadComposer";
 import { ThreadMessages } from "@/components/thread/ThreadMessages";
 import { WorkspaceAccessMenu, WorkspaceProjectPicker } from "@/components/thread/WorkspaceControls";
-import { WebSearchRun } from "@/components/thread/activity/WebSearchRun";
 import { Button } from "@/components/ui/button";
 import { formatToolCallTrace } from "@/lib/tool-traces";
 import type { ToolProgressEvent, UIContextCompaction, UIMessage, WorkspaceScopePayload, WorkspacesPayload } from "@/lib/types";
@@ -164,15 +163,6 @@ function ClusterPreview() {
       startedAtMs={startedAt} turnLatencyMs={4_800} expanded={expanded} onExpandedChange={setExpanded} /></>;
 }
 
-function SearchActivityPreview() {
-  const { t } = useGalleryTranslation();
-  const [status, setStatus] = useState<"running" | "done" | "error">("done");
-  const [target, setTarget] = useState<"web" | "x">("web");
-  return <><StatePicker label={t("previews.search.state")} value={status} options={["running", "done", "error"]} onChange={setStatus} />
-    <StatePicker label={t("previews.search.source")} value={target} options={["web", "x"]} onChange={setTarget} />
-    <WebSearchRun turnActive={status === "running"} run={{ key: "gallery-search", query: "React component composition", target, status,
-      sources: status === "done" && target === "web" ? [{ title: "React · Passing props to a component", href: "https://react.dev/learn/passing-props-to-a-component", host: "react.dev", displayUrl: "react.dev/learn/passing-props-to-a-component" }] : [] }} /></>;
-}
 
 function ResponseSourcesPreview() {
   const { t } = useGalleryTranslation();
@@ -193,6 +183,5 @@ export const conversationExamples: ComponentExample[] = [
 { title: "previews.fallback.title", description: "previews.fallback.description", options: "previews.fallback.options", files: ["webui/src/components/thread/ModelFallbackNotice.tsx"], Preview: FallbackPreview, code: "<ModelFallbackNotice />" },
 { title: "previews.compaction.title", description: "previews.compaction.description", options: "previews.compaction.options", files: ["webui/src/components/thread/ContextCompactionNotice.tsx"], Preview: CompactionPreview, code: "<ContextCompactionNotice />" },
 { title: "previews.cluster.title", description: "previews.cluster.description", options: "previews.cluster.options", files: ["webui/src/components/thread/AgentActivityCluster.tsx"], Preview: ClusterPreview, code: "<AgentActivityCluster />" },
-{ title: "previews.searchActivity.title", description: "previews.searchActivity.description", options: "previews.searchActivity.options", files: ["webui/src/components/thread/activity.tsx"], Preview: SearchActivityPreview, code: "<activity />" },
 { title: "previews.responseSources.title", description: "previews.responseSources.description", options: "previews.responseSources.options", files: ["webui/src/components/ResponseSourceBadge.tsx"], Preview: ResponseSourcesPreview, code: "<ResponseSourceBadge />" }
 ];

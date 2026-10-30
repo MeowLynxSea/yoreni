@@ -1834,37 +1834,6 @@ async def test_send_delta_initial_send_keeps_message_in_thread() -> None:
     assert channel._app.bot.sent_messages[0]["message_thread_id"] == 42
 
 
-def test_derive_topic_session_key_uses_thread_id() -> None:
-    message = SimpleNamespace(
-        chat=SimpleNamespace(type="supergroup"),
-        chat_id=-100123,
-        message_thread_id=42,
-    )
-
-    assert TelegramChannel._derive_topic_session_key(message) == "telegram:-100123:topic:42"
-
-
-def test_derive_topic_session_key_private_dm_thread() -> None:
-    """Private DM threads (Telegram Threaded Mode) must get their own session key."""
-    message = SimpleNamespace(
-        chat=SimpleNamespace(type="private"),
-        chat_id=999,
-        message_thread_id=7,
-    )
-    assert TelegramChannel._derive_topic_session_key(message) == "telegram:999:topic:7"
-
-
-def test_derive_topic_session_key_none_without_thread() -> None:
-    """No thread id → no topic session key, regardless of chat type."""
-    for chat_type in ("private", "supergroup", "group"):
-        message = SimpleNamespace(
-            chat=SimpleNamespace(type=chat_type),
-            chat_id=123,
-            message_thread_id=None,
-        )
-        assert TelegramChannel._derive_topic_session_key(message) is None
-
-
 def test_get_extension_falls_back_to_original_filename() -> None:
     channel = TelegramChannel(TelegramConfig(), MessageBus())
 
@@ -2629,7 +2598,6 @@ async def test_on_help_includes_restart_command() -> None:
     assert "/dream_log" in help_text
     assert "/dream_prompt" in help_text
     assert "/evaluator_prompt" in help_text
-    assert "/compact" in help_text
     assert "/goal" in help_text
     assert "/trigger" in help_text
     assert "/pairing" in help_text

@@ -25,14 +25,14 @@ async def test_owner_cancellation_during_startup_preserves_other_execution(tmp_p
         return await spawn(command, cwd, env, shell_program, login, stdin=stdin)
 
     monkeypatch.setattr(manager, "_spawn", gated_spawn)
-    token = bind_request_context(RequestContext(channel="cli", chat_id="a", session_key="cli:a"))
+    token = bind_request_context(RequestContext(channel="cli", chat_id="a", turn_id="cli:a"))
     try:
         blocked = asyncio.create_task(tool.execute(command=blocked_command, yield_time_ms=0))
     finally:
         reset_request_context(token)
     try:
         await asyncio.wait_for(entered.wait(), timeout=5)
-        token = bind_request_context(RequestContext(channel="cli", chat_id="b", session_key="cli:b"))
+        token = bind_request_context(RequestContext(channel="cli", chat_id="b", turn_id="cli:b"))
         try:
             other = await asyncio.wait_for(
                 tool.execute(command=[sys.executable, "-u", "-c", "print('other completed')"]),

@@ -381,7 +381,7 @@ class TestEphemeralDirect:
     @pytest.fixture
     def _make_loop(self, tmp_path):
         """Factory fixture that builds a minimal AgentLoop with mocked deps."""
-        from unittest.mock import AsyncMock, MagicMock, patch
+        from unittest.mock import AsyncMock, MagicMock
 
         from yoreni.agent.loop import AgentLoop
         from yoreni.agent.memory import MemoryStore
@@ -401,11 +401,7 @@ class TestEphemeralDirect:
             return_value=LLMResponse(content="done", tool_calls=[], finish_reason="stop", usage=None)
         )
 
-        with (
-            patch("yoreni.agent.loop.SubagentManager") as mock_sub,
-        ):
-            mock_sub.return_value.cancel_by_session = AsyncMock(return_value=0)
-            loop = AgentLoop(
+        loop = AgentLoop(
                 bus=bus,
                 provider=provider,
                 workspace=tmp_path,
@@ -437,14 +433,14 @@ class TestEphemeralDirect:
 
         with patch.object(loop.context.memory, "raw_archive") as mock_archive:
             await loop.process_direct(
-                "test", session_key="dream:test", ephemeral=True,
+                "test", ephemeral=True,
             )
             mock_archive.assert_not_called()
 
     async def test_non_ephemeral_runs_normally(self, tmp_path, _make_loop):
         """Without ephemeral, the normal path returns the model response."""
         loop, store = _make_loop
-        response = await loop.process_direct("test", session_key="cli:normal")
+        response = await loop.process_direct("test")
 
         assert response is not None
         assert response.content == "done"
@@ -480,7 +476,7 @@ class TestEphemeralDirect:
 
         with patch("yoreni.agent.runner.deepcopy", wraps=deepcopy) as copy_state:
             response = await loop.process_direct(
-                prompt, session_key=MemoryStore.dream_session_key(), ephemeral=True,
+                prompt, ephemeral=True,
                 tools=store.build_dream_tools(), on_progress=_silent,
             )
 
@@ -494,46 +490,6 @@ class TestEphemeralDirect:
         ]
         assert len(transcript_copies) == 0
 
-    async def test_ephemeral_sets_ctx_flag(self, tmp_path, _make_loop):
-        """Verify that ephemeral=True is forwarded to TurnContext."""
-        from unittest.mock import patch
-
-        loop, store = _make_loop
-
-        captured = {}
-
-        original_save = loop._persist_turn
-
-        async def patched_save(ctx):
-            captured["ephemeral"] = ctx.ephemeral
-            return await original_save(ctx)
-
-        with patch.object(loop, "_persist_turn", side_effect=patched_save):
-            await loop.process_direct(
-                "test", session_key="dream:check", ephemeral=True,
-            )
-
-        assert captured.get("ephemeral") is True
-
-    async def test_default_ephemeral_is_false(self, tmp_path, _make_loop):
-        """By default ephemeral is False in TurnContext."""
-        from unittest.mock import patch
-
-        loop, store = _make_loop
-
-        captured = {}
-
-        original_save = loop._persist_turn
-
-        async def patched_save(ctx):
-            captured["ephemeral"] = ctx.ephemeral
-            return await original_save(ctx)
-
-        with patch.object(loop, "_persist_turn", side_effect=patched_save):
-            await loop.process_direct("test", session_key="cli:normal")
-
-        assert captured.get("ephemeral") is False
-
     async def test_ephemeral_response_reports_stop_reason(self, tmp_path, _make_loop):
         loop, store = _make_loop
         loop.provider.chat_stream_with_retry.return_value = LLMResponse(
@@ -542,7 +498,7 @@ class TestEphemeralDirect:
         )
 
         resp = await loop.process_direct(
-            "test", session_key="dream:error", ephemeral=True,
+            "test", ephemeral=True,
         )
 
         assert resp is not None
@@ -576,7 +532,6 @@ class TestEphemeralDirect:
 
         resp = await loop.process_direct(
             "test",
-            session_key="dream:handled-tool-error",
             ephemeral=True,
             tools=store.build_dream_tools(),
         )
@@ -624,7 +579,6 @@ class TestEphemeralDirect:
 
         await loop.process_direct(
             prompt,
-            session_key="dream:test",
             ephemeral=True,
             tools=store.build_dream_tools(),
         )
@@ -638,63 +592,6 @@ class TestEphemeralDirect:
         assert "entry-21" not in request_text
         assert "entry-60" not in request_text
 
-    async def test_dream_turn_injects_memory_files_once_and_persists_session(self, tmp_path):
-        """Dream gets durable files from system context without losing its session record."""
-        from unittest.mock import MagicMock
-
-        from yoreni.agent.loop import AgentLoop
-        from yoreni.bus.queue import MessageBus
-
-        markers = {
-            "SOUL.md": "DREAM_SOUL_MARKER",
-            "USER.md": "DREAM_USER_MARKER",
-            "memory/MEMORY.md": "DREAM_MEMORY_MARKER",
-        }
-        store = MemoryStore(tmp_path)
-        store.write_soul(markers["SOUL.md"])
-        store.write_user(markers["USER.md"])
-        store.write_memory(markers["memory/MEMORY.md"])
-        store.append_history("history-marker")
-        (tmp_path / "AGENTS.md").write_text("DREAM_AGENTS_MARKER", encoding="utf-8")
-
-        result = store.build_dream_prompt()
-        assert result is not None
-        prompt, _ = result
-
-        captured: dict[str, list[dict]] = {}
-        provider = MagicMock()
-        provider.get_default_model.return_value = "test-model"
-        provider.supports_tools = True
-        provider.generation = MagicMock(max_tokens=4096)
-
-        async def chat_stream_with_retry(**kwargs):
-            captured["messages"] = kwargs["messages"]
-            return LLMResponse(content="done", finish_reason="stop")
-
-        provider.chat_stream_with_retry = chat_stream_with_retry
-        loop = AgentLoop(
-            bus=MessageBus(),
-            provider=provider,
-            workspace=tmp_path,
-            context_window_tokens=32_000,
-        )
-        session_key = "dream:single-memory-copy"
-
-        await loop.process_direct(
-            prompt,
-            session_key=session_key,
-            ephemeral=True,
-            tools=store.build_dream_tools(),
-        )
-
-        messages = captured["messages"]
-        system_prompt = str(messages[0]["content"])
-        request_text = "\n".join(str(message.get("content", "")) for message in messages)
-        for marker in [*markers.values(), "DREAM_AGENTS_MARKER"]:
-            assert marker in system_prompt
-            assert request_text.count(marker) == 1
-        assert loop.sessions.read_session_snapshot(session_key) is not None
-
 
 class TestEphemeralHooks:
     """When ephemeral=True, extra hooks must not fire."""
@@ -702,7 +599,7 @@ class TestEphemeralHooks:
     @pytest.fixture
     def _make_loop_with_spy(self, tmp_path):
         """Build an AgentLoop with a spy hook to verify hook firing behavior."""
-        from unittest.mock import AsyncMock, MagicMock, patch
+        from unittest.mock import AsyncMock, MagicMock
 
         from yoreni.agent.hook import AgentHook
         from yoreni.agent.loop import AgentLoop
@@ -727,11 +624,7 @@ class TestEphemeralHooks:
         spy.before_iteration = AsyncMock(return_value=None)
         spy.after_iteration = AsyncMock(return_value=None)
 
-        with (
-            patch("yoreni.agent.loop.SubagentManager") as mock_sub,
-        ):
-            mock_sub.return_value.cancel_by_session = AsyncMock(return_value=0)
-            loop = AgentLoop(
+        loop = AgentLoop(
                 bus=bus,
                 provider=provider,
                 workspace=tmp_path,
@@ -746,7 +639,7 @@ class TestEphemeralHooks:
         loop, spy = _make_loop_with_spy
 
         await loop.process_direct(
-            "test", session_key="dream:hook-test", ephemeral=True,
+            "test", ephemeral=True,
         )
         spy.before_iteration.assert_not_called()
         spy.after_iteration.assert_not_called()
@@ -755,7 +648,7 @@ class TestEphemeralHooks:
         """Without ephemeral, extra hooks should fire normally."""
         loop, spy = _make_loop_with_spy
 
-        await loop.process_direct("test", session_key="cli:normal")
+        await loop.process_direct("test")
         spy.before_iteration.assert_called()
 
 class TestDreamCommitMessage:

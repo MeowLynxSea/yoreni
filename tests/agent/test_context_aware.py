@@ -24,7 +24,7 @@ async def test_registry_injects_request_context_into_legacy_tool():
     tool = _ContextTool()
     registry = ToolRegistry()
     registry.register(tool)
-    ctx = RequestContext(channel="test", chat_id="123", session_key="test:123")
+    ctx = RequestContext(channel="test", chat_id="123", turn_id="test:123")
 
     with request_context(ctx):
         result = await registry.execute(tool.name, {})

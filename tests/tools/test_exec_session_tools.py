@@ -88,7 +88,7 @@ async def test_agent_runs_share_process_access_but_cancel_only_their_own_process
             second = _session_id(await tool.execute(_waiting_shell_command("second"), yield_time_ms=10))
             owned = await listing.execute()
             assert first in owned and second in owned
-        with request_context(RequestContext("telegram", "group", session_key="telegram:group")):
+        with request_context(RequestContext("telegram", "group", turn_id="telegram:group")):
             denied = await observer.execute(session_id=first, timeout_ms=1)
             assert is_tool_error_result(denied)
         assert first_owner is not None
@@ -837,7 +837,7 @@ def test_list_exec_sessions_reports_running_commands(tmp_path):
     assert "Session terminated." in cleanup
 
 
-def test_exec_sessions_are_scoped_to_request_session_key(tmp_path):
+def test_exec_sessions_are_scoped_to_the_request_owner(tmp_path):
     async def run() -> tuple[str, str, str, str, str, str]:
         manager = ExecSessionManager()
         exec_tool = ExecTool(working_dir=str(tmp_path), timeout=5, session_manager=manager)
@@ -848,7 +848,7 @@ def test_exec_sessions_are_scoped_to_request_session_key(tmp_path):
         )
 
         token_a = bind_request_context(
-            RequestContext(channel="cli", chat_id="a", session_key="cli:a")
+            RequestContext(channel="cli", chat_id="a", turn_id="cli:a")
         )
         try:
             initial = await exec_tool.execute(command=command, yield_time_ms=100)
@@ -860,7 +860,7 @@ def test_exec_sessions_are_scoped_to_request_session_key(tmp_path):
         unbound_listing = await list_tool.execute()
 
         token_b = bind_request_context(
-            RequestContext(channel="cli", chat_id="b", session_key="cli:b")
+            RequestContext(channel="cli", chat_id="b", turn_id="cli:b")
         )
         try:
             other_listing = await list_tool.execute()
@@ -869,7 +869,7 @@ def test_exec_sessions_are_scoped_to_request_session_key(tmp_path):
             reset_request_context(token_b)
 
         token_a = bind_request_context(
-            RequestContext(channel="cli", chat_id="a", session_key="cli:a")
+            RequestContext(channel="cli", chat_id="a", turn_id="cli:a")
         )
         try:
             cleanup = await stdin_tool.execute(session_id=sid, terminate=True)
@@ -1025,18 +1025,17 @@ def test_agent_loop_shutdown_closes_exec_sessions(tmp_path):
         process = manager._sessions[sid].process
 
         loop = object.__new__(AgentLoop)
-        loop.sessions = SimpleNamespace(state=SimpleNamespace(aclose=AsyncMock()))
+        loop._close_lock = asyncio.Lock()
+        loop._active_tasks = {}
         loop._background_tasks = set()
         loop._exec_session_manager = manager
         loop.runtime_resolver = SimpleNamespace(aclose=AsyncMock())
-        loop.subagents = SimpleNamespace(close=AsyncMock())
 
         await loop.aclose()
         await loop.aclose()
 
         assert process.returncode is not None
         assert manager._sessions == {}
-        assert loop.subagents.close.await_count == 2
 
     asyncio.run(run())
 
@@ -1044,11 +1043,11 @@ def test_agent_loop_shutdown_closes_exec_sessions(tmp_path):
 def test_agent_loop_shutdown_attempts_all_cleanup_after_errors():
     async def run() -> None:
         loop = object.__new__(AgentLoop)
-        loop.sessions = SimpleNamespace(state=SimpleNamespace(aclose=AsyncMock()))
+        loop._close_lock = asyncio.Lock()
+        loop._active_tasks = {}
         loop._background_tasks = set()
-        loop.runtime_resolver = SimpleNamespace(aclose=AsyncMock())
-        loop.subagents = SimpleNamespace(
-            close=AsyncMock(side_effect=RuntimeError("subagent cleanup failed")),
+        loop.runtime_resolver = SimpleNamespace(
+            aclose=AsyncMock(side_effect=RuntimeError("runtime cleanup failed")),
         )
         loop._exec_session_manager = SimpleNamespace(
             close_all=AsyncMock(side_effect=OSError("exec cleanup failed")),
@@ -1057,8 +1056,8 @@ def test_agent_loop_shutdown_attempts_all_cleanup_after_errors():
             await loop.aclose()
 
         assert len(exc_info.value.exceptions) == 2
-        loop.subagents.close.assert_awaited_once()
         loop._exec_session_manager.close_all.assert_awaited_once()
+        loop.runtime_resolver.aclose.assert_awaited_once()
 
     asyncio.run(run())
 
@@ -1069,7 +1068,7 @@ def test_terminate_by_owner_kills_matching_sessions(tmp_path):
         tool = ExecTool(working_dir=str(tmp_path), timeout=30, session_manager=manager)
 
         token_a = bind_request_context(
-            RequestContext(channel="cli", chat_id="a", session_key="cli:a")
+            RequestContext(channel="cli", chat_id="a", turn_id="cli:a")
         )
         try:
             initial_a = await tool.execute(
@@ -1081,7 +1080,7 @@ def test_terminate_by_owner_kills_matching_sessions(tmp_path):
         sid_a = _session_id(initial_a)
 
         token_b = bind_request_context(
-            RequestContext(channel="cli", chat_id="b", session_key="cli:b")
+            RequestContext(channel="cli", chat_id="b", turn_id="cli:b")
         )
         try:
             initial_b = await tool.execute(
@@ -1217,16 +1216,18 @@ def test_terminate_by_owner_skips_sessions_without_owner_key(tmp_path):
 def test_agent_loop_shutdown_preserves_single_cleanup_error():
     async def run() -> None:
         loop = object.__new__(AgentLoop)
-        loop.sessions = SimpleNamespace(state=SimpleNamespace(aclose=AsyncMock()))
+        loop._close_lock = asyncio.Lock()
+        loop._active_tasks = {}
         loop._background_tasks = set()
-        loop.runtime_resolver = SimpleNamespace(aclose=AsyncMock())
-        loop.subagents = SimpleNamespace(
-            close=AsyncMock(side_effect=RuntimeError("subagent cleanup failed")),
+        loop.runtime_resolver = SimpleNamespace(
+            aclose=AsyncMock(side_effect=RuntimeError("runtime cleanup failed")),
         )
         loop._exec_session_manager = SimpleNamespace(close_all=AsyncMock())
-        with pytest.raises(RuntimeError, match="subagent cleanup failed"):
+        with pytest.raises(BaseExceptionGroup) as exc_info:
             await loop.aclose()
 
+        assert len(exc_info.value.exceptions) == 1
+        assert str(exc_info.value.exceptions[0]) == "runtime cleanup failed"
         loop._exec_session_manager.close_all.assert_awaited_once()
 
     asyncio.run(run())

@@ -51,15 +51,15 @@ async def test_finished_results_do_not_block_other_owner_tools(tmp_path, tool_na
     manager = ExecSessionManager(max_sessions=2)
     tool = ExecTool(working_dir=str(tmp_path), session_manager=manager)
     session_tool = ExecSessionTool(manager=manager)
-    owner_a = RequestContext(channel="cli", chat_id="a", session_key="cli:a")
-    owner_b = RequestContext(channel="cli", chat_id="b", session_key="cli:b")
+    owner_a = RequestContext(channel="cli", chat_id="a", turn_id="cli:a")
+    owner_b = RequestContext(channel="cli", chat_id="b", turn_id="cli:b")
     try:
         with request_context(owner_a):
             oldest = await _start_gated(tool, tmp_path / "first")
             newest = await _start_gated(tool, tmp_path / "second")
         for gate, sid in [("first", oldest), ("second", newest)]:
             (tmp_path / gate).touch()
-            await _wait_finished(manager, owner_a.session_key, sid)
+            await _wait_finished(manager, owner_a.turn_id, sid)
 
         with request_context(owner_b):
             assert await ListExecSessionsTool(manager=manager).execute() == "No active exec sessions."
@@ -76,7 +76,7 @@ async def test_finished_results_do_not_block_other_owner_tools(tmp_path, tool_na
             assert "Exit code: 0" in result
 
         with request_context(owner_a):
-            remaining = await manager.list(owner_id=owner_a.session_key)
+            remaining = await manager.list(owner_id=owner_a.turn_id)
             assert [info.session_id for info in remaining] == [newest]
             result = await session_tool.execute(session_id=newest, timeout_ms=0)
             assert "retained result" in result

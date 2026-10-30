@@ -238,7 +238,7 @@ async def test_responses_image_rejection_discards_replay_and_retries_once(
         reject.update(images=True, text=reject_text)
         call = provider.chat_stream_with_retry if streaming else provider.chat_with_retry
         result = await call(messages, provider_context=ProviderCallContext(
-            session_id="image-rejection", conversation_state=first.provider_state.with_pending_messages([pending]),
+            run_id="image-rejection", conversation_state=first.provider_state.with_pending_messages([pending]),
         ))
         assert result.finish_reason == ("error" if reject_text else "stop")
         assert len(requests) == 3

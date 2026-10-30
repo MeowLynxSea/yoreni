@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AutomationRunAtPicker, parseAutomationRunAt } from "@/components/settings/system/AutomationRunAtPicker";
 import { AutomationEditDialog } from "@/components/settings/system/AutomationsSettings";
 import i18n from "@/i18n";
-import type { SessionAutomationJob } from "@/lib/types";
+import type { AutomationJob } from "@/lib/types";
 
 afterEach(cleanup);
 
@@ -83,7 +83,7 @@ describe("Automation run time picker", () => {
     const user = userEvent.setup();
     const save = vi.fn();
     const onOpenChange = vi.fn();
-    const job: SessionAutomationJob = {
+    const job: AutomationJob = {
       id: "once", name: "One-time report", enabled: true,
       schedule: { kind: "at", at_ms: new Date(2099, 8, 12, 9, 37).getTime() },
       payload: { message: "Summarize project updates" }, state: {},

@@ -297,7 +297,6 @@ async def test_enabled_member_can_run_without_pairing_and_disable_blocks_even_st
     await channel._process_webhook("enabled", _agent_webhook())
     inbound = await channel.bus.consume_inbound()
     assert inbound.sender_id == "user-1"
-    assert inbound.session_key == "linear:org-1:session-1"
     channel._state.set_member_access("client-id", "org-1", "user-1", allowed=False)
     channel.config.allow_from = ["*"]
     approve_code(generate_code("linear", "user-1"))

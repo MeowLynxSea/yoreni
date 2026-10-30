@@ -53,7 +53,7 @@ describe("FilePreviewPanel", () => {
       kind: "image", path: "/workspace/chart.png", display_path: "chart.png",
       project_path: "/workspace", size: 42, mime_type: "image/png", data_url: dataUrl,
     });
-    render(<FilePreviewPanel sessionKey="websocket:a" path="chart.png" token="test" />);
+    render(<FilePreviewPanel path="chart.png" token="test" />);
     const img = await screen.findByRole("img", { name: "chart.png" });
     expect(img).toHaveAttribute("src", dataUrl);
     expect(screen.queryByTestId("mock-code-block")).not.toBeInTheDocument();
@@ -61,7 +61,7 @@ describe("FilePreviewPanel", () => {
     expect(await screen.findByText("Could not preview this file.")).toBeInTheDocument();
   });
 
-  it("ignores a late response after changing session", async () => {
+  it("ignores a late response after switching files", async () => {
     const resolvePath = vi.fn();
     let resolveFirst!: (payload: import("@/lib/types").FilePreviewPayload) => void;
     vi.mocked(fetchFilePreview).mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }));
@@ -70,7 +70,7 @@ describe("FilePreviewPanel", () => {
       language: "text", content: "session B", truncated: false, size: 9,
     };
     vi.mocked(fetchFilePreview).mockResolvedValueOnce(payload);
-    const view = (key: string) => <FilePreviewPanel key={key} sessionKey={key} path="notes.txt" token="test" onResolvePath={resolvePath} />;
+    const view = (key: string) => <FilePreviewPanel key={key} path="notes.txt" token="test" onResolvePath={resolvePath} />;
     const { rerender } = render(view("a"));
     rerender(view("b"));
     await screen.findByText("session B");
@@ -82,7 +82,7 @@ describe("FilePreviewPanel", () => {
 
   it("opens, follows a relative link and returns to one report tab with working source controls", async () => {
     const report = "# Report\n\n[Details](./details.md)\n";
-    vi.mocked(fetchFilePreview).mockImplementation(async (_token, _session, path) => {
+    vi.mocked(fetchFilePreview).mockImplementation(async (_token, path) => {
       const details = path.endsWith("details.md");
       const name = details ? "details.md" : "REPORT.md";
       const content = details ? "# Details\n\n[Return](./REPORT.md)\n" : report;
@@ -91,14 +91,14 @@ describe("FilePreviewPanel", () => {
         language: "markdown", content, truncated: false };
     });
     const store = new FilePreviewStore();
-    const resource = createFilePreviewResource(path => fetchFilePreview("test", "a", path));
+    const resource = createFilePreviewResource(path => fetchFilePreview("test", path));
     store.open("a", "reports/REPORT.md");
     function View() {
       const { state, openFile, resolveFile, selectTab, closeTab, close } = useFilePreviewState("a", store);
       const active = state.tabs.find(tab => tab.id === state.activeId)!;
       return <PreviewPane tabs={state.tabs} activeId={active.id} width={544} isClosing={false}
         onSelect={selectTab} onCloseTab={closeTab} onClose={close} onResizeStart={() => {}}>
-        <FilePreviewPanel key={active.id} sessionKey="a" path={active.value} token="test"
+        <FilePreviewPanel key={active.id} path={active.value} token="test"
           loadPreview={resource.load} initialPreview={resource.peek(active.value)}
           onOpenFilePreview={openFile} onResolvePath={resolveFile} />
       </PreviewPane>;
@@ -125,7 +125,7 @@ describe("FilePreviewPanel", () => {
       kind: "image", path: "/workspace/chart.png", display_path: "chart.png",
       project_path: "/workspace", size: 42, mime_type: "image/png", data_url: "data:image/png;base64,example",
     });
-    render(<FilePreviewPanel sessionKey="websocket:a" path="chart.png" token="test" />);
+    render(<FilePreviewPanel path="chart.png" token="test" />);
     const trigger = await screen.findByRole("button", { name: "View image: chart.png" });
     trigger.focus();
     fireEvent.click(trigger);
@@ -153,7 +153,6 @@ describe("FilePreviewPanel", () => {
 
     render(
       <FilePreviewPanel
-        sessionKey="websocket:chat-1"
         path="quicksort.py"
         token="tok"
       />,
@@ -171,7 +170,7 @@ describe("FilePreviewPanel", () => {
     const cached = { path: "notes.txt", display_path: "notes.txt", project_path: "/workspace", size: 6, language: "text", content: "Cached", truncated: false };
     let resolve!: (payload: typeof cached) => void;
     const loadPreview = vi.fn(() => new Promise<typeof cached>(r => { resolve = r; }));
-    const view = (initialPreview?: typeof cached) => <FilePreviewPanel sessionKey="a" path="notes.txt"
+    const view = (initialPreview?: typeof cached) => <FilePreviewPanel path="notes.txt"
       token="test" loadPreview={loadPreview} initialPreview={initialPreview} />;
     const { rerender } = render(view(cached));
     expect(screen.getByTestId("mock-code-block")).toHaveTextContent("Cached");
@@ -185,7 +184,7 @@ describe("FilePreviewPanel", () => {
 
   it("reports a failed revalidation rather than leaving stale cached content looking current", async () => {
     const cached = { path: "notes.txt", display_path: "notes.txt", project_path: "/workspace", size: 6, language: "text", content: "Cached", truncated: false };
-    render(<FilePreviewPanel sessionKey="a" path="notes.txt" token="test" initialPreview={cached}
+    render(<FilePreviewPanel path="notes.txt" token="test" initialPreview={cached}
       loadPreview={vi.fn().mockRejectedValue(new Error("Forbidden"))} />);
     await screen.findByText("Could not preview this file.");
     expect(screen.queryByText("Cached")).not.toBeInTheDocument();
@@ -194,7 +193,7 @@ describe("FilePreviewPanel", () => {
   it("does not repaint a cache hit twice after its initial synchronous paint", async () => {
     const cached = { path: "notes.txt", display_path: "notes.txt", project_path: "/workspace", size: 6, language: "text", content: "Cached", truncated: false };
     const loadPreview = vi.fn().mockResolvedValue(cached);
-    render(<FilePreviewPanel sessionKey="a" path="notes.txt" token="test"
+    render(<FilePreviewPanel path="notes.txt" token="test"
       initialPreview={cached} loadPreview={loadPreview} />);
     await act(async () => { await Promise.resolve(); });
     expect(loadPreview).toHaveBeenCalledOnce();
@@ -214,7 +213,6 @@ describe("FilePreviewPanel", () => {
 
     render(
       <FilePreviewPanel
-        sessionKey="websocket:chat-1"
         path="notes.md"
         token="tok"
       />,
@@ -237,7 +235,7 @@ describe("FilePreviewPanel", () => {
     vi.mocked(fetchFilePreview).mockResolvedValue({ path: "/workspace/REPORT.md", display_path: "REPORT.md",
       project_path: "/workspace", size: new TextEncoder().encode(content).byteLength,
       language: "markdown", content, truncated: true });
-    render(<FilePreviewPanel sessionKey="a" path="REPORT.md" token="test" />);
+    render(<FilePreviewPanel path="REPORT.md" token="test" />);
     await screen.findByRole("heading", { name: "Report" });
     expect(screen.getByRole("table")).toHaveTextContent("CopyOK");
     const notice = "Preview is truncated because this file is large.";
@@ -257,27 +255,7 @@ describe("FilePreviewPanel", () => {
     expect(fetchFilePreview).toHaveBeenCalledTimes(1);
   });
 
-  it("resets the display for another file or session but keeps source on credential renewal", async () => {
-    const payload = { path: "/workspace/notes.md", display_path: "notes.md", language: "markdown",
-      project_path: "/workspace", size: 7, content: "# Notes", truncated: false };
-    vi.mocked(fetchFilePreview).mockResolvedValue(payload);
-    const view = (path: string, sessionKey = "a", token = "old") =>
-      <FilePreviewPanel sessionKey={sessionKey} path={path} token={token} />;
-    const { rerender } = render(view("notes.md"));
-    await screen.findByRole("heading", { name: "Notes" });
-    fireEvent.click(screen.getByRole("button", { name: "Source" }));
-    rerender(view("notes.md", "a", "new"));
-    expect(screen.getByRole("button", { name: "Source" })).toHaveAttribute("aria-pressed", "true");
-    expect(fetchFilePreview).toHaveBeenCalledTimes(1);
-    rerender(view("other.md"));
-    await screen.findByRole("heading", { name: "Notes" });
-    fireEvent.click(screen.getByRole("button", { name: "Source" }));
-    rerender(view("other.md", "b"));
-    await screen.findByRole("heading", { name: "Notes" });
-    expect(fetchFilePreview).toHaveBeenCalledTimes(3);
-  });
-
-  it("keeps document resources inert and opens relative links through the session preview callback", async () => {
+  it("keeps document resources inert and opens relative links through the preview callback", async () => {
     const open = vi.fn();
     const content = [
         "# Report", "[Local](../notes%20one.md)", "![Chart](https://example.com/chart.png)",
@@ -289,7 +267,7 @@ describe("FilePreviewPanel", () => {
     vi.mocked(fetchFilePreview).mockResolvedValue({ path: "/workspace/reports/REPORT.mdx", display_path: "reports/REPORT.mdx",
       project_path: "/workspace", size: new TextEncoder().encode(content).byteLength,
       language: "markdown", truncated: false, content });
-    const { container } = render(<FilePreviewPanel sessionKey="a" path="reports/REPORT.mdx" token="test" onOpenFilePreview={open} />);
+    const { container } = render(<FilePreviewPanel path="reports/REPORT.mdx" token="test" onOpenFilePreview={open} />);
     await screen.findByRole("heading", { name: "Report" });
     expect(container.querySelector("img, iframe, script, video, audio")).toBeNull();
     expect(screen.getByRole("link", { name: "Chart" })).toHaveAttribute("href", "https://example.com/chart.png");
@@ -302,22 +280,4 @@ describe("FilePreviewPanel", () => {
     expect(fetchFilePreview).toHaveBeenCalledTimes(1);
   });
 
-  it("preserves the open image and zoom on token renewal, using the current token for the next file", async () => {
-    vi.mocked(fetchFilePreview).mockResolvedValue({
-      kind: "image", path: "/workspace/chart.png", display_path: "chart.png",
-      project_path: "/workspace", size: 42, mime_type: "image/png", data_url: "data:image/png;base64,example",
-    });
-    const view = (token: string, path = "chart.png") =>
-      <FilePreviewPanel sessionKey="websocket:a" path={path} token={token} />;
-    const { rerender } = render(view("old"));
-    fireEvent.click(await screen.findByRole("button", { name: "View image: chart.png" }));
-    const dialog = screen.getByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Zoom in" }));
-    rerender(view("renewed"));
-    expect(fetchFilePreview).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("dialog")).toBe(dialog);
-    expect(within(dialog).getByRole("button", { name: "Fit image" })).toHaveTextContent("150%");
-    rerender(view("renewed", "second.png"));
-    await waitFor(() => expect(fetchFilePreview).toHaveBeenLastCalledWith("renewed", "websocket:a", "second.png"));
-  });
 });

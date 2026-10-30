@@ -74,31 +74,3 @@ def test_corruption_and_write_failure_never_grant_display(state_path, monkeypatc
     monkeypatch.setattr(star_prompt, "_write_text_atomic", fail)
     with pytest.raises(OSError):
         star_prompt.update_star_prompt("claim")
-
-
-async def test_only_successful_webui_turns_record_usage(state_path, tmp_path, monkeypatch):
-    from unittest.mock import AsyncMock, Mock
-
-    from yoreni.session.manager import SessionManager
-    from yoreni.session.webui_turns import WebuiTurnCoordinator
-
-    from yoreni.bus.queue import MessageBus
-    from yoreni.bus.runtime_events import RuntimeEventContext, TurnCompleted
-    from yoreni.webui.metadata import WEBUI_TURN_METADATA_KEY
-
-    bus = MessageBus()
-    coordinator = WebuiTurnCoordinator(bus, SessionManager(tmp_path), Mock())
-    monkeypatch.setattr(coordinator, "handle_turn_end", AsyncMock())
-    monkeypatch.setattr(coordinator, "_schedule_title_update_from_event", Mock())
-    with coordinator.connected():
-        for channel, outcome in [("websocket", "completed"), ("websocket", "failed"),
-                                 ("websocket", "cancelled"), ("telegram", "completed")]:
-            await bus.publish(TurnCompleted(
-                context=RuntimeEventContext(
-                    channel=channel, chat_id="test", session_key=f"{channel}:test",
-                    metadata={WEBUI_TURN_METADATA_KEY: f"{channel}-{outcome}"},
-                ),
-                outcome=outcome,
-            ))
-    state = star_prompt.StarPromptState.model_validate_json(state_path.read_text())
-    assert state.completed_replies == 1

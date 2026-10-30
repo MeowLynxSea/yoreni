@@ -99,7 +99,7 @@ async def test_turn_hook_builder_runs_factories_with_matching_registration_order
         channel="websocket",
         chat_id="chat-1",
         message_id="msg-1",
-        session_key="websocket:chat-1",
+        run_id="run-1",
         workspace=tmp_path,
         metadata={"source": "test"},
         attributes={"tenant": "acme"},
@@ -121,9 +121,9 @@ async def test_turn_hook_builder_runs_factories_with_matching_registration_order
     assert [context.channel for context in captured] == ["websocket", "websocket"]
     assert [context.chat_id for context in captured] == ["chat-1", "chat-1"]
     assert [context.message_id for context in captured] == ["msg-1", "msg-1"]
-    assert [context.session_key for context in captured] == [
-        "websocket:chat-1",
-        "websocket:chat-1",
+    assert [context.run_id for context in captured] == [
+        "run-1",
+        "run-1",
     ]
     assert [context.metadata for context in captured] == [
         {"source": "test"},

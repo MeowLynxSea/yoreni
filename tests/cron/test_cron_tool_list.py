@@ -25,7 +25,7 @@ def _make_tool_with_tz(tmp_path, tz: str) -> CronTool:
 
 def _bound_chat(chat_id: str = "chat-1") -> dict[str, str]:
     return {
-        "session_key": f"websocket:{chat_id}",
+        "agent_id": "agent-1",
         "origin_channel": "websocket",
         "origin_chat_id": chat_id,
     }
@@ -273,7 +273,7 @@ def test_remove_protected_dream_job_returns_clear_feedback(tmp_path) -> None:
 def test_add_cron_job_defaults_to_tool_timezone(tmp_path) -> None:
     tool = _make_tool_with_tz(tmp_path, "Asia/Shanghai")
     with request_context(
-        RequestContext(channel="telegram", chat_id="chat-1", session_key="telegram:chat-1")
+        RequestContext(channel="telegram", chat_id="chat-1", turn_id="telegram:chat-1")
     ):
         result = tool._add_job(None, "Morning standup", None, "0 8 * * *", None, None)
 
@@ -286,7 +286,7 @@ def test_add_at_job_uses_default_timezone_for_naive_datetime(tmp_path) -> None:
     tool = _make_tool_with_tz(tmp_path, "Asia/Shanghai")
     naive = (datetime.now(timezone.utc) + timedelta(days=1)).replace(tzinfo=None)
     with request_context(
-        RequestContext(channel="telegram", chat_id="chat-1", session_key="telegram:chat-1")
+        RequestContext(channel="telegram", chat_id="chat-1", turn_id="telegram:chat-1")
     ):
         result = tool._add_job(None, "Morning reminder", None, None, None, naive.isoformat())
 
@@ -298,7 +298,7 @@ def test_add_at_job_uses_default_timezone_for_naive_datetime(tmp_path) -> None:
 def test_add_at_job_rejects_past_datetime(tmp_path) -> None:
     tool = _make_tool_with_tz(tmp_path, "Asia/Shanghai")
     with request_context(
-        RequestContext(channel="telegram", chat_id="chat-1", session_key="telegram:chat-1")
+        RequestContext(channel="telegram", chat_id="chat-1", turn_id="telegram:chat-1")
     ):
         result = tool._add_job(None, "Old reminder", None, None, None, "2020-01-01T09:00:00")
 
@@ -312,7 +312,7 @@ def test_add_at_job_rejects_datetime_equal_to_now(tmp_path, monkeypatch) -> None
     monkeypatch.setattr("yoreni.agent.tools.cron.time", SimpleNamespace(time=lambda: fixed_now))
     at = datetime.fromtimestamp(fixed_now, tz=timezone.utc).isoformat()
     with request_context(
-        RequestContext(channel="telegram", chat_id="chat-1", session_key="telegram:chat-1")
+        RequestContext(channel="telegram", chat_id="chat-1", turn_id="telegram:chat-1")
     ):
         result = tool._add_job(None, "Deadline reminder", None, None, None, at)
 
@@ -323,7 +323,7 @@ def test_add_at_job_accepts_future_datetime(tmp_path) -> None:
     tool = _make_tool(tmp_path)
     future = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
     with request_context(
-        RequestContext(channel="telegram", chat_id="chat-1", session_key="telegram:chat-1")
+        RequestContext(channel="telegram", chat_id="chat-1", turn_id="telegram:chat-1")
     ):
         result = tool._add_job(None, "Future reminder", None, None, None, future)
 
@@ -336,7 +336,7 @@ def test_add_at_job_accepts_future_datetime(tmp_path) -> None:
 def test_add_job_rejects_multiple_schedule_fields(tmp_path) -> None:
     tool = _make_tool(tmp_path)
     with request_context(
-        RequestContext(channel="telegram", chat_id="chat-1", session_key="telegram:chat-1")
+        RequestContext(channel="telegram", chat_id="chat-1", turn_id="telegram:chat-1")
     ):
         result = tool._add_job(None, "Morning standup", 60, "0 8 * * *", None, None)
 
@@ -348,7 +348,7 @@ def test_add_job_rejects_multiple_schedule_fields(tmp_path) -> None:
 def test_add_job_rejects_non_positive_interval(tmp_path, every_seconds: int) -> None:
     tool = _make_tool(tmp_path)
     with request_context(
-        RequestContext(channel="telegram", chat_id="chat-1", session_key="telegram:chat-1")
+        RequestContext(channel="telegram", chat_id="chat-1", turn_id="telegram:chat-1")
     ):
         result = tool._add_job(None, "Morning standup", every_seconds, None, None, None)
 
@@ -397,35 +397,36 @@ async def test_legacy_zero_interval_job_can_be_listed_repaired_and_removed(tmp_p
     reloaded = _make_tool(tmp_path)
     assert "Repair me" in await reloaded.execute(action="list")
     with request_context(RequestContext(
-        channel="websocket", chat_id="chat-1", session_key="websocket:chat-1",
+        channel="websocket", chat_id="chat-1", turn_id="websocket:chat-1",
     )):
         await reloaded.execute(action="remove", job_id="legacy-zero")
     assert _make_tool(tmp_path)._cron.list_jobs(include_disabled=True) == []
 
 
-def test_add_job_binds_current_session_key(tmp_path) -> None:
+def test_add_job_binds_current_route(tmp_path) -> None:
     tool = _make_tool(tmp_path)
     with request_context(
-        RequestContext(channel="telegram", chat_id="chat-1", session_key="telegram:chat-1")
+        RequestContext(
+            channel="telegram", chat_id="chat-1", turn_id="telegram:chat-1",
+            agent_id="agent-1",
+        )
     ):
         result = tool._add_job(None, "Morning standup", 60, None, None, None)
 
     assert result.startswith("Created job")
     job = tool._cron.list_jobs()[0]
-    assert job.payload.session_key == "telegram:chat-1"
+    assert job.payload.agent_id == "agent-1"
     assert job.payload.origin_channel == "telegram"
     assert job.payload.origin_chat_id == "chat-1"
     assert job.payload.origin_metadata == {}
-    assert job.payload.channel is None
-    assert job.payload.to is None
 
 
-def test_add_job_requires_session_key(tmp_path) -> None:
+def test_add_job_requires_agent_route(tmp_path) -> None:
     tool = _make_tool(tmp_path)
     with request_context(RequestContext(channel="telegram", chat_id="chat-1")):
         result = tool._add_job(None, "Background refresh", 60, None, None, None)
 
-    assert result == "Error: scheduled cron jobs must be created from a chat session"
+    assert result == "Error: scheduled cron jobs must be created by the Agent with an output address"
     assert tool._cron.list_jobs() == []
 
 
@@ -459,7 +460,7 @@ def test_validate_params_requires_message_only_for_add(tmp_path) -> None:
 def test_add_job_empty_message_returns_actionable_error(tmp_path) -> None:
     tool = _make_tool(tmp_path)
     with request_context(
-        RequestContext(channel="telegram", chat_id="chat-1", session_key="telegram:chat-1")
+        RequestContext(channel="telegram", chat_id="chat-1", turn_id="telegram:chat-1")
     ):
         result = tool._add_job(None, "", 60, None, None, None)
 
@@ -476,7 +477,8 @@ def test_add_job_captures_owner_and_origin_without_legacy_delivery_fields(tmp_pa
             channel="slack",
             chat_id="C99",
             metadata=meta,
-            session_key="slack:C99:111.222",
+            turn_id="slack:C99:111.222",
+            agent_id="agent-1",
         )
     ):
         result = tool._add_job("test", "say hi", 60, None, None, None)
@@ -484,13 +486,9 @@ def test_add_job_captures_owner_and_origin_without_legacy_delivery_fields(tmp_pa
 
     jobs = tool._cron.list_jobs()
     assert len(jobs) == 1
-    assert jobs[0].payload.session_key == "slack:C99:111.222"
     assert jobs[0].payload.origin_channel == "slack"
     assert jobs[0].payload.origin_chat_id == "C99"
     assert jobs[0].payload.origin_metadata == meta
-    assert jobs[0].payload.channel is None
-    assert jobs[0].payload.to is None
-    assert jobs[0].payload.channel_meta == {}
 
 
 def test_list_excludes_disabled_jobs(tmp_path) -> None:

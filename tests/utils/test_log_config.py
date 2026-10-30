@@ -12,14 +12,13 @@ def test_console_log_sink_includes_context_and_escapes_message_newlines() -> Non
         with logger.contextualize(
             request_id="request-1",
             turn_id="turn-1",
-            session_key="channel:chat",
         ):
             logger.bind(channel="test").info("first line\nsecond line")
     finally:
         logger.remove(sink)
 
     rendered = output.getvalue()
-    assert "request=request-1 turn=turn-1 session=channel:chat" in rendered
+    assert "request=request-1 turn=turn-1" in rendered
     assert "first line\\nsecond line" in rendered
     assert "first line\nsecond line" not in rendered
 

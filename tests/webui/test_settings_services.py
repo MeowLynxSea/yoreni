@@ -39,7 +39,6 @@ def _gateway(config_path: Path, workspace: Path):
     return build_gateway_services(
         config=WebSocketConfig(),
         bus=MagicMock(),
-        session_manager=None,
         static_dist_path=None,
         workspace_path=workspace,
         default_restrict_to_workspace=False,

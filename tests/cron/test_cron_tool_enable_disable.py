@@ -28,7 +28,7 @@ async def test_pause_resume_preserves_job_and_history(tmp_path: Path) -> None:
         name="Morning report",
         schedule=CronSchedule(kind="every", every_ms=60_000),
         message="Summarize open pull requests",
-        session_key="websocket:chat-1",
+        agent_id="agent-1",
         origin_channel="websocket",
         origin_chat_id="chat-1",
     )
@@ -53,32 +53,6 @@ async def test_pause_resume_preserves_job_and_history(tmp_path: Path) -> None:
     assert (resumed.id, asdict(resumed.schedule), asdict(resumed.payload), resumed.state.run_history) == original
 
 
-async def test_legacy_delivery_job_can_pause_and_resume_after_reload(tmp_path: Path) -> None:
-    path = tmp_path / "jobs.json"
-    path.write_text(json.dumps({"version": 1, "jobs": [{
-        "id": "legacy-1", "name": "Legacy reminder", "enabled": True,
-        "schedule": {"kind": "every", "everyMs": 60_000},
-        "payload": {"kind": "agent_turn", "message": "check status", "deliver": True,
-                    "channel": "telegram", "to": "user-1", "channelMeta": {"message_thread_id": 42},
-                    "sessionKey": "telegram:user-1:topic:42"},
-        "state": {}, "createdAtMs": 1, "updatedAtMs": 1,
-    }]}), encoding="utf-8")
-    for action, enabled in (("disable", False), ("enable", True)):
-        registry = _registry(CronService(path))
-        schema = json.dumps(registry.get_definitions(), sort_keys=True)
-        result = await registry.execute("cron", {"action": action, "job_id": "legacy-1"})
-        assert result.startswith("Enabled" if enabled else "Disabled")
-        assert json.dumps(registry.get_definitions(), sort_keys=True) == schema
-        listing = await registry.execute("cron", {"action": "list", "include_disabled": True})
-        assert "legacy-1" in listing
-        saved = CronService(path).get_job("legacy-1")
-        assert saved is not None and saved.enabled is enabled
-        assert saved.payload.session_key == "telegram:user-1:topic:42"
-        assert saved.payload.origin_channel == "telegram"
-        assert saved.payload.origin_chat_id == "user-1"
-        assert saved.payload.origin_metadata == {"message_thread_id": 42}
-
-
 @pytest.mark.parametrize("action", ["enable", "disable"])
 async def test_tool_cannot_toggle_system_job(tmp_path: Path, action: str) -> None:
     service = CronService(tmp_path / "jobs.json")
@@ -93,13 +67,13 @@ async def test_tool_cannot_toggle_system_job(tmp_path: Path, action: str) -> Non
     assert job.enabled
 
 
-async def test_tool_cannot_enable_job_without_linked_chat(tmp_path: Path) -> None:
+async def test_tool_cannot_enable_job_without_output_destination(tmp_path: Path) -> None:
     service = CronService(tmp_path / "jobs.json")
     job = service.add_job(
         name="Legacy job", schedule=CronSchedule(kind="every", every_ms=60_000), message="report",
     )
     result = await _registry(service).execute("cron", {"action": "enable", "job_id": job.id})
-    assert "linked chat" in result
+    assert "no output destination" in result
     assert not job.enabled
 
 

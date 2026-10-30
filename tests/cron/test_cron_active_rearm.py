@@ -36,7 +36,7 @@ async def test_edit_during_timer_execution_preserves_turn(
             name=name,
             schedule=CronSchedule(kind="every", every_ms=3_600_000),
             message=name,
-            session_key=f"websocket:{name}",
+            agent_id="agent-1",
             origin_channel="websocket",
             origin_chat_id=name,
         )
@@ -119,7 +119,7 @@ async def test_due_job_edited_while_waiting_is_skipped(tmp_path: Path, action: s
                 name=name,
                 schedule=CronSchedule(kind="every", every_ms=3_600_000),
                 message=name,
-                session_key=f"websocket:{name}",
+                agent_id="agent-1",
                 origin_channel="websocket",
                 origin_chat_id=name,
             )

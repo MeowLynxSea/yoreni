@@ -21,35 +21,6 @@ describe("MarkdownTextRenderer", () => {
     expect(link).toHaveClass("text-content-link");
   });
 
-  it.each(["#session/", "#/chat/"])("renders %s session references as same-tab links", (prefix) => {
-    render(
-      <MarkdownTextRenderer>
-        {`We discussed this in [收费设计](${prefix}websocket%3Apricing).`}
-      </MarkdownTextRenderer>,
-    );
-
-    const link = screen.getByRole("link", { name: "收费设计" });
-    expect(link).toHaveAttribute("href", "#/chat/websocket%3Apricing");
-    expect(link).not.toHaveAttribute("target");
-    expect(link.getAttribute("style")).toContain(
-      "text-decoration-color: var(--inline-reference-highlight)",
-    );
-    expect(link.firstElementChild?.getAttribute("style")).toContain(
-      "color: var(--inline-reference-highlight)",
-    );
-  });
-
-  it("does not link non-WebUI session references", () => {
-    const { container } = render(
-      <MarkdownTextRenderer>
-        {"[private channel](#session/telegram%3Aprivate)"}
-      </MarkdownTextRenderer>,
-    );
-
-    expect(container).toHaveTextContent("private channel");
-    expect(container.querySelector("a")).toBeNull();
-  });
-
   it("does not render active URL protocols from untrusted markdown", () => {
     const { container } = render(
       <MarkdownTextRenderer>
@@ -84,7 +55,7 @@ describe("MarkdownTextRenderer", () => {
     expect(container).toHaveTextContent("data:text/html,alert");
   });
 
-  it("keeps safe external, mail, relative, and fragment links", () => {
+  it("keeps safe external, mail, and relative links while rendering fragments as text", () => {
     render(
       <MarkdownTextRenderer>
         {[
@@ -108,10 +79,8 @@ describe("MarkdownTextRenderer", () => {
       "href",
       "/docs/getting-started",
     );
-    expect(screen.getByRole("link", { name: "Fragment" })).toHaveAttribute(
-      "href",
-      "#install",
-    );
+    expect(screen.queryByRole("link", { name: "Fragment" })).not.toBeInTheDocument();
+    expect(screen.getByText("Fragment")).toBeInTheDocument();
   });
 
   it("renders local file links as previewable file references", () => {

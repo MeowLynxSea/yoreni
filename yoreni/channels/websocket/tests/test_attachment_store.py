@@ -192,28 +192,6 @@ async def test_filename_collision_never_unlinks_existing_file(tmp_path, monkeypa
     assert existing.read_bytes() == b"keep"
 
 
-async def test_committed_paths_persist_and_replay_without_reference_format(tmp_path):
-    from yoreni.session.manager import SessionManager
-
-    store = AttachmentStore(tmp_path / "media")
-    reference = await upload(store)
-    paths = store.commit([reference], owner="owner")
-    manager = SessionManager(tmp_path / "workspace")
-    session = manager.get_or_create("websocket:binary-upload")
-    session.add_message("user", "look", media=paths)
-    manager.save(session)
-
-    replay_manager = SessionManager(tmp_path / "workspace")
-    replay = replay_manager.get_or_create("websocket:binary-upload")
-    assert replay.messages[0]["media"] == paths
-    assert reference not in str(replay.messages)
-    assert replay.get_history()[0] == {
-        "role": "user", "content": f"look\n[image: {paths[0]}]",
-    }
-    store.clear()
-    assert Path(paths[0]).exists()
-
-
 async def test_restart_prunes_crash_remnants_but_not_committed_media(tmp_path, monkeypatch):
     import os
     import time

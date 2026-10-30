@@ -176,15 +176,13 @@ async def test_archive_preserves_raw_history_after_truncated_stream_retries(
     calls = []
     provider.set_llm_call_observer(calls.append)
     store = MemoryStore(tmp_path)
-    archiver = MemoryArchiver(
-        store=store, build_messages=lambda **kwargs: [], get_tool_definitions=lambda: [],
-    )
+    archiver = MemoryArchiver(store=store)
     messages = [{"role": "user", "content": "Mandatory constraint: PRESERVE_AUDIT_LOGS."}]
 
     summary = await archiver.archive(
         messages,
         runtime=LLMRuntime.capture(provider, "gpt-5.2", context_window_tokens=128_000),
-        session_key="cli:archive",
+        run_id="cli:archive",
         history=messages,
         request_tools=[],
     )

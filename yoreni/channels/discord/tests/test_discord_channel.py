@@ -689,7 +689,6 @@ async def test_on_message_accepts_thread_when_parent_channel_in_allow_channels()
     assert handled[0]["chat_id"] == "777"
     assert handled[0]["metadata"]["context_chat_id"] == "456"
     assert handled[0]["metadata"]["thread_id"] == "777"
-    assert handled[0]["session_key"] == "discord:456:thread:777"
 
 
 @pytest.mark.asyncio
@@ -726,7 +725,6 @@ async def test_on_message_accepts_thread_reply_to_bot_under_allowed_parent() -> 
     assert handled[0]["chat_id"] == "777"
     assert handled[0]["metadata"]["reply_to"] == "111"
     assert handled[0]["metadata"]["context_chat_id"] == "456"
-    assert handled[0]["session_key"] == "discord:456:thread:777"
 
 
 @pytest.mark.asyncio
@@ -1145,7 +1143,6 @@ async def test_slash_new_accepts_thread_when_parent_channel_in_allow_channels() 
     assert handled[0]["chat_id"] == "777"
     assert handled[0]["metadata"]["context_chat_id"] == "456"
     assert handled[0]["metadata"]["thread_id"] == "777"
-    assert handled[0]["session_key"] == "discord:456:thread:777"
     assert channel._known_channels["777"] is thread
 
 

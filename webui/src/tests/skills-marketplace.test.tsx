@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SkillsMarketplace } from "@/components/settings/SkillsMarketplace";
 import { SkillsCatalogSettings } from "@/components/settings/SkillsCatalogSettings";
-import { ThreadComposer } from "@/components/thread/ThreadComposer";
 import {
   fetchSkills,
   fetchTrendingMarketplaceSkills,
@@ -83,47 +82,6 @@ describe("useSkills", () => {
     });
     expect(screen.getByRole("button", { name: "Open details for weather" })).toBeInTheDocument();
     expect(fetchSkills).toHaveBeenCalledTimes(3);
-  });
-
-  it("discovers skills added after page load when opening the $ menu, not on each keystroke", async () => {
-    const installed = {
-      name: "simple-pr-review",
-      description: "Review pull requests.",
-      source: "workspace",
-      enabled: true,
-      available: true,
-    };
-    vi.mocked(fetchSkills).mockReset().mockResolvedValueOnce({ skills: [] })
-      .mockResolvedValue({ skills: [installed] });
-    const getToken = () => "tok";
-    function Composer() {
-      const { skills } = useSkills(getToken);
-      return <ThreadComposer onSend={vi.fn()} skills={skills} />;
-    }
-    render(<Composer />);
-    await act(async () => {});
-    expect(fetchSkills).toHaveBeenCalledTimes(1);
-
-    const input = screen.getByLabelText("Message input");
-    fireEvent.change(input, { target: { value: "/", selectionStart: 1 } });
-    fireEvent.change(input, { target: { value: "@", selectionStart: 1 } });
-    expect(fetchSkills).toHaveBeenCalledTimes(1);
-    fireEvent.change(input, { target: { value: "$", selectionStart: 1 } });
-    expect(await screen.findByRole("option", { name: /simple-pr-review/ })).toBeInTheDocument();
-    expect(fetchSkills).toHaveBeenCalledTimes(2);
-
-    fireEvent.change(input, { target: { value: "$simple", selectionStart: 7 } });
-    await act(async () => {});
-    expect(fetchSkills).toHaveBeenCalledTimes(2);
-    fireEvent.keyDown(input, { key: "Tab" });
-    expect(input).toHaveValue("$simple-pr-review ");
-
-    // A later open must also refresh removals without remounting the page.
-    vi.mocked(fetchSkills).mockResolvedValue({ skills: [] });
-    fireEvent.change(input, { target: { value: "$", selectionStart: 1 } });
-    await act(async () => {});
-    expect(fetchSkills).toHaveBeenCalledTimes(3);
-    expect(screen.queryByRole("listbox", { name: "Slash commands" })).not.toBeInTheDocument();
   });
 
   it("coalesces opens during an older fetch into one trailing refresh", async () => {

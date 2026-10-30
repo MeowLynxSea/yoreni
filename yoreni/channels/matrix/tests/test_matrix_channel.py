@@ -2664,7 +2664,7 @@ async def test_send_delta_room_reply_edits_the_bot_event(monkeypatch, reply_to_m
 @pytest.mark.asyncio
 @pytest.mark.parametrize("target", ["!source:example.org", "!other:example.org"])
 @pytest.mark.parametrize("use_request_context", [False, True])
-async def test_message_tool_scopes_reply_to_source_room(tmp_path, target, use_request_context) -> None:
+async def test_message_tool_scopes_reply_to_source_room(target, use_request_context) -> None:
     from contextlib import nullcontext
 
     from yoreni.agent.tools.context import RequestContext, request_context
@@ -2675,7 +2675,7 @@ async def test_message_tool_scopes_reply_to_source_room(tmp_path, target, use_re
     channel.client = client
     tool = SendMessageTool(
         channel.send, default_channel="matrix", default_chat_id="!source:example.org",
-        default_message_id="$user", workspace=tmp_path,
+        default_message_id="$user",
     )
     tool._fallback_metadata = {"message_id": "$user", "event_id": "$user"}
 

@@ -94,6 +94,8 @@ def encode_history_entries(
                 frame["reply_to"] = str(payload["reply_to"])
             if payload.get("quote"):
                 frame["quote"] = str(payload["quote"])
+            if payload.get("rich"):
+                frame["rich"] = True
             frames.append(frame)
         elif kind == "reaction":
             frames.append({
@@ -171,6 +173,7 @@ class MessageWirePayload(_ChatWirePayload):
     media_urls: NotRequired[list[dict[str, str]]]
     reply_to: NotRequired[str]
     quote: NotRequired[str]
+    rich: NotRequired[bool]
     buttons: NotRequired[list[list[str]]]
     latency_ms: NotRequired[int]
     tool_events: NotRequired[list[dict[str, _JSONValue]]]

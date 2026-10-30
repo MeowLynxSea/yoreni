@@ -216,12 +216,14 @@ def test_fs_tool_create_respects_sandbox():
 
 
 async def test_message_tool_create():
+    from yoreni.agent.tools.rich_content_message import RichContentMessageTool
     from yoreni.agent.tools.send_message import SendMessageTool
     mock_bus = MagicMock()
     mock_config = MagicMock()
+    mock_config.restrict_to_workspace = False
     ctx = ToolContext(config=mock_config, workspace="/tmp", bus=mock_bus)
-    tool = SendMessageTool.create(ctx)
-    assert isinstance(tool, SendMessageTool)
+    assert isinstance(SendMessageTool.create(ctx), SendMessageTool)
+    assert isinstance(RichContentMessageTool.create(ctx), RichContentMessageTool)
 
 
 def test_cron_tool_enabled_without_service():
@@ -441,7 +443,7 @@ def test_loader_registers_builtin_tools():
         "read_file", "write_file", "edit_file", "list_dir",
         "exec", "exec_session", "list_exec_sessions",
         "web_search", "web_fetch",
-        "send_message", "react", "cron",
+        "send_message", "rich_content_message", "react", "cron",
         "my",
     }
     actual = set(registered)

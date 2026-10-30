@@ -33,7 +33,7 @@ from yoreni.agent.state import (
 from yoreni.agent.tools.base import Tool, ToolResult
 from yoreni.agent.tools.context import ContextAware, RequestContext
 from yoreni.agent.tools.file_state import FileStates
-from yoreni.agent.tools.send_message import capture_message_deliveries
+from yoreni.agent.tools.chat_delivery import capture_message_deliveries
 from yoreni.agent.tools.registry import ToolRegistry
 from yoreni.bus.events import INBOUND_META_TURN_ID, InboundMessage, OutboundMessage
 from yoreni.bus.outbound_events import StreamDeltaEvent, StreamEndEvent

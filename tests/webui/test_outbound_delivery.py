@@ -87,6 +87,25 @@ async def test_delivered_message_signs_each_attachment_once() -> None:
 
 
 @pytest.mark.asyncio
+async def test_a_rich_message_is_marked_as_a_card() -> None:
+    delivery, transport = _delivery()
+    event = AgentMessageEvent(
+        message_id="m2",
+        content="",
+        created_at_ms=1,
+        media=("/tmp/a.png",),
+        rich=True,
+    )
+
+    await delivery.send(_message(event, media=["/tmp/a.png"]))
+
+    assert transport.frames[0]["rich"] is True
+    assert transport.frames[0]["media_urls"] == [
+        {"url": "/api/media/a.png", "name": "a.png"},
+    ]
+
+
+@pytest.mark.asyncio
 async def test_reaction_frame_targets_the_reacted_row() -> None:
     delivery, transport = _delivery()
 

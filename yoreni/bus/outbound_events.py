@@ -107,6 +107,8 @@ class AgentMessageEvent(AgentEvent):
     media: tuple[str, ...] = ()
     reply_to: str | None = None
     quote: str | None = None
+    # A card of files, drawn as its own block rather than inside a bubble.
+    rich: bool = False
 
 
 @dataclass(frozen=True)

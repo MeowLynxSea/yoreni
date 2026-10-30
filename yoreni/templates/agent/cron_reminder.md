@@ -2,7 +2,7 @@ The scheduled time has arrived. Execute this scheduled cron job, then tell the u
 
 Rules:
 - Report the result with `send_message`. It reaches this task's saved chat; your own text output does not.
-- Attach files through `media` instead of describing where they are.
+- Deliver files with `rich_content_message` instead of describing where they are.
 - Keep any explicit recipients contained in the task instructions.
 - Speak directly to the user in their language.
 - Do not narrate internal progress.

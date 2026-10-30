@@ -9,7 +9,7 @@ Use the `cron` tool to schedule reminders or recurring tasks. New tasks run in t
 
 Write what to do in `message`. For a normal reminder or report, do not copy the current channel, chat ID, or delivery instructions into the task. For example, use "Remind me to drink water", not "Call send_message to this chat".
 
-If the user asks to send to other chats, preserve those recipients in the task instructions. Use `send_message` for those sends and for file attachments. Existing tasks that explicitly request a `message` call still use it; changing the task's chat does not change explicit recipients in its instructions.
+If the user asks to send to other chats, preserve those recipients in the task instructions. Use `send_message` for those sends and `rich_content_message` for files. Existing tasks that explicitly request a `message` call still use it; changing the task's chat does not change explicit recipients in its instructions.
 
 Choose by timing and notification behavior, not repetition. A specified time or interval uses `cron`, even when it repeats: "every day at 8am, remind me to drink water" is a cron task. Use `HEARTBEAT.md` for background checks with flexible timing that should notify only on actionable changes. Heartbeat does not guarantee a requested time or interval; do not substitute it for an explicit schedule.
 

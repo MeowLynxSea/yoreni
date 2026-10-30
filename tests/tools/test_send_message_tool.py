@@ -1,16 +1,10 @@
-import os
-
 import pytest
 
 from yoreni.agent.state import AgentInput, AgentStore
+from yoreni.agent.tools.chat_delivery import capture_message_deliveries
 from yoreni.agent.tools.context import RequestContext, request_context
-from yoreni.agent.tools.send_message import (
-    LONG_MESSAGE_CHARS,
-    SendMessageTool,
-    capture_message_deliveries,
-)
+from yoreni.agent.tools.send_message import LONG_MESSAGE_CHARS, SendMessageTool
 from yoreni.bus.events import OutboundMessage
-from yoreni.config.paths import get_workspace_path
 
 
 def _collector():
@@ -33,7 +27,7 @@ async def test_send_message_returns_error_when_no_target_context() -> None:
 async def test_send_message_requires_some_payload() -> None:
     tool = SendMessageTool()
     result = await tool.execute(text="   ", channel="telegram", chat_id="1")
-    assert result == "Error: provide text, media, or buttons"
+    assert result == "Error: provide text or buttons"
 
 
 @pytest.mark.asyncio
@@ -75,21 +69,6 @@ async def test_send_message_suppresses_delivery_when_active() -> None:
     await tool.execute(text="real", channel="telegram", chat_id="1")
     assert len(sent) == 1
     assert sent[0].content == "real"
-
-
-@pytest.mark.asyncio
-async def test_send_message_records_media_deliveries() -> None:
-    sent, deliver = _collector()
-    tool = SendMessageTool(send_callback=deliver)
-
-    await tool.execute(
-        text="image",
-        channel="websocket",
-        chat_id="chat-1",
-        media=["/tmp/generated.png"],
-    )
-
-    assert sent[0].metadata == {"_record_channel_delivery": True}
 
 
 @pytest.mark.asyncio
@@ -140,181 +119,39 @@ async def test_send_message_does_not_inherit_metadata_for_cross_target() -> None
 
 
 @pytest.mark.asyncio
-async def test_send_message_resolves_relative_media_paths() -> None:
-    sent, deliver = _collector()
-    tool = SendMessageTool(send_callback=deliver)
-
-    await tool.execute(
-        text="see attached",
-        channel="telegram",
-        chat_id="1",
-        media=["output/image.png"],
-    )
-
-    expected = str(get_workspace_path() / "output/image.png")
-    assert sent[0].media == [expected]
-
-
-@pytest.mark.asyncio
-async def test_send_message_resolves_relative_media_paths_from_active_workspace(tmp_path) -> None:
-    sent, deliver = _collector()
-    workspace = tmp_path / "workspace"
-    tool = SendMessageTool(send_callback=deliver, workspace=workspace)
-
-    await tool.execute(
-        text="see attached",
-        channel="telegram",
-        chat_id="1",
-        media=["output/image.png"],
-    )
-
-    assert sent[0].media == [str(workspace / "output/image.png")]
-
-
-@pytest.mark.asyncio
-async def test_send_message_rejects_outside_workspace_absolute_media_when_restricted(
-    tmp_path,
-) -> None:
-    sent, deliver = _collector()
-    workspace = tmp_path / "workspace"
-    workspace.mkdir()
-    outside = tmp_path / "secret.txt"
-    outside.write_text("secret", encoding="utf-8")
-    tool = SendMessageTool(send_callback=deliver, workspace=workspace, restrict_to_workspace=True)
-
-    result = await tool.execute(
-        text="see attached",
-        channel="telegram",
-        chat_id="1",
-        media=[str(outside)],
-    )
-
-    assert result.startswith("Error: media path is not allowed:")
-    assert "outside allowed directory" in result
-    assert sent == []
-
-
-@pytest.mark.asyncio
-async def test_send_message_allows_workspace_absolute_media_when_restricted(tmp_path) -> None:
-    sent, deliver = _collector()
-    workspace = tmp_path / "workspace"
-    workspace.mkdir()
-    image = workspace / "image.png"
-    image.write_text("image", encoding="utf-8")
-    tool = SendMessageTool(send_callback=deliver, workspace=workspace, restrict_to_workspace=True)
-
-    result = await tool.execute(
-        text="see attached",
-        channel="telegram",
-        chat_id="1",
-        media=[str(image)],
-    )
-
-    assert result.startswith("Message sent to telegram:1")
-    assert "1 attachment(s) delivered." in result
-    assert sent[0].media == [str(image.resolve())]
-
-
-@pytest.mark.asyncio
-async def test_send_message_passes_through_absolute_media_paths() -> None:
-    sent, deliver = _collector()
-    tool = SendMessageTool(send_callback=deliver)
-    abs_path = os.path.abspath(os.path.join(os.sep, "tmp", "abs_image.png"))
-
-    await tool.execute(text="see attached", channel="telegram", chat_id="1", media=[abs_path])
-
-    assert sent[0].media == [abs_path]
-
-
-@pytest.mark.asyncio
-async def test_send_message_passes_through_url_media_paths() -> None:
-    sent, deliver = _collector()
-    tool = SendMessageTool(send_callback=deliver)
-    url = "https://example.com/image.png"
-
-    await tool.execute(text="see attached", channel="telegram", chat_id="1", media=[url])
-
-    assert sent[0].media == [url]
-
-
-@pytest.mark.asyncio
-async def test_send_message_resolves_mixed_media_paths() -> None:
-    sent, deliver = _collector()
-    tool = SendMessageTool(send_callback=deliver)
-    abs_path = os.path.abspath(os.path.join(os.sep, "tmp", "absolute.png"))
-
-    await tool.execute(
-        text="see attached",
-        channel="telegram",
-        chat_id="1",
-        media=[
-            "output/relative.png",
-            abs_path,
-            "https://example.com/url.png",
-            "http://example.com/http.png",
-        ],
-    )
-
-    expected_relative = str(get_workspace_path() / "output/relative.png")
-    assert sent[0].media == [
-        expected_relative,
-        abs_path,
-        "https://example.com/url.png",
-        "http://example.com/http.png",
-    ]
-
-
-@pytest.mark.asyncio
-async def test_send_message_rejects_wrong_explicit_ws_chat_id(tmp_path) -> None:
+async def test_send_message_rejects_wrong_explicit_ws_chat_id() -> None:
     sent, deliver = _collector()
     tool = SendMessageTool(send_callback=deliver)
     conv = "550e8400-e29b-41d4-a716-446655440000"
-    f = tmp_path / "doc.md"
-    f.write_text("hello", encoding="utf-8")
     with request_context(RequestContext(channel="websocket", chat_id=conv, metadata={})):
         result = await tool.execute(
-            text="see file",
+            text="hello",
             channel="websocket",
             chat_id="anon-deadbeefcafe",
-            media=[str(f)],
         )
     assert result.startswith("Error: chat_id does not match")
     assert sent == []
 
 
 @pytest.mark.asyncio
-async def test_send_message_allows_ws_explicit_when_matches_context(tmp_path) -> None:
+async def test_send_message_allows_ws_explicit_when_matches_context() -> None:
     sent, deliver = _collector()
     tool = SendMessageTool(send_callback=deliver)
     conv = "550e8400-e29b-41d4-a716-446655440000"
-    f = tmp_path / "doc.md"
-    f.write_text("hello", encoding="utf-8")
     with request_context(RequestContext(channel="websocket", chat_id=conv, metadata={})):
-        result = await tool.execute(
-            text="see file",
-            channel="websocket",
-            chat_id=conv,
-            media=[str(f)],
-        )
+        result = await tool.execute(text="hello", channel="websocket", chat_id=conv)
     assert result.startswith("Message sent")
     assert sent[0].chat_id == conv
 
 
 @pytest.mark.asyncio
-async def test_send_message_cli_context_may_target_other_ws_chat(tmp_path) -> None:
+async def test_send_message_cli_context_may_target_other_ws_chat() -> None:
     """Cron / CLI handlers keep non-websocket defaults; an explicit websocket uuid remains valid."""
     sent, deliver = _collector()
     tool = SendMessageTool(send_callback=deliver)
     target = "550e8400-e29b-41d4-a716-446655440000"
-    f = tmp_path / "doc.md"
-    f.write_text("hello", encoding="utf-8")
     with request_context(RequestContext(channel="cli", chat_id="direct", metadata={})):
-        result = await tool.execute(
-            text="ping",
-            channel="websocket",
-            chat_id=target,
-            media=[str(f)],
-        )
+        result = await tool.execute(text="ping", channel="websocket", chat_id=target)
     assert result.startswith("Message sent")
     assert sent[0].channel == "websocket"
     assert sent[0].chat_id == target
@@ -373,6 +210,7 @@ async def test_send_message_persists_one_durable_row_per_message(tmp_path) -> No
     entries = store.webui_history()[-1]["entries"]
     assert [entry["kind"] for entry in entries] == ["message", "message"]
     assert [entry["payload"]["content"] for entry in entries] == ["one", "two"]
+    assert "rich" not in entries[0]["payload"]
     assert entries[0]["payload"]["id"] in first
     assert entries[1]["payload"]["id"] in second
 

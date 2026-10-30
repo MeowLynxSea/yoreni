@@ -53,6 +53,25 @@ def test_message_rows_keep_the_live_frame_shape() -> None:
     ]
 
 
+def test_rich_rows_replay_as_cards() -> None:
+    frames = encode_history_entries(
+        [{
+            "seq": 1, "kind": "message",
+            "payload": {
+                "id": "c-1", "content": "", "media": ["chart.png"],
+                "created_at_ms": 1, "rich": True,
+            },
+        }],
+        sign_media=_sign,
+    )
+
+    assert frames == [{
+        "event": "message", "id": "c-1", "text": "", "created_at_ms": 1,
+        "media_urls": [{"url": "/api/media/sig/chart.png", "name": "chart.png"}],
+        "rich": True,
+    }]
+
+
 def test_unknown_rows_do_not_reach_the_client() -> None:
     assert encode_history_entries(
         [{"seq": 1, "kind": "trace", "payload": {"id": "x"}}],

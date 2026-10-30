@@ -153,6 +153,8 @@ class WebUIOutboundDelivery:
             payload["reply_to"] = event.reply_to
         if event.quote:
             payload["quote"] = event.quote
+        if event.rich:
+            payload["rich"] = True
         if msg.buttons:
             payload["buttons"] = msg.buttons
         return payload

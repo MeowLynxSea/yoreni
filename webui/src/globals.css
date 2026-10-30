@@ -2128,6 +2128,16 @@
   40% { opacity: 0.85; transform: translateY(-0.15rem); }
 }
 
+/* A new step description settles in without re-animating the whole indicator. */
+.agent-activity-enter {
+  animation: agent-activity-in 260ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes agent-activity-in {
+  from { opacity: 0; transform: translateX(-0.2rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 /* The caret rides the last rendered block while tokens are still arriving. */
 .assistant-caret .markdown-content > :last-child::after {
   content: "";
@@ -2150,6 +2160,7 @@
 @media (prefers-reduced-motion: reduce) {
   .message-enter,
   .agent-run-dot,
+  .agent-activity-enter,
   .assistant-caret .markdown-content > :last-child::after {
     animation: none;
   }

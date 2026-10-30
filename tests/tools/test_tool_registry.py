@@ -61,6 +61,27 @@ def test_get_definitions_orders_builtins_then_mcp_tools() -> None:
     ]
 
 
+def test_schema_exposes_call_reason_and_execution_strips_it() -> None:
+    registry = ToolRegistry()
+    tool = _FakeTool("read_file", {
+        "type": "object",
+        "properties": {"path": {"type": "string"}},
+        "required": ["path"],
+        "additionalProperties": False,
+    })
+    registry.register(tool)
+
+    parameters = registry.get_definitions()[0]["function"]["parameters"]
+    assert parameters["properties"]["reason"]["maxLength"] == 160
+    assert parameters["required"] == ["path", "reason"]
+
+    _, params, error = registry.prepare_call(
+        "read_file", {"path": "foo.txt", "reason": "Checking the plan before editing."},
+    )
+    assert error is None
+    assert params == {"path": "foo.txt"}
+
+
 def test_prepare_call_rejects_near_miss_tool_name_with_suggestion() -> None:
     registry = ToolRegistry()
     registry.register(_FakeTool("read_file"))

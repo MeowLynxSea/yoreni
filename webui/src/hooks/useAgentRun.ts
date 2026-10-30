@@ -1,11 +1,34 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AgentFrame } from "@/lib/yoreni-client";
-import type { UIMessage } from "@/lib/types";
+import type { ToolProgressEvent, UIMessage } from "@/lib/types";
 import { fetchPersonalAgent, type AgentHistoryRun } from "@/lib/api";
 import { useClient } from "@/providers/ClientProvider";
 import type { DraftAttachment } from "../../../packages/client-events/attachments";
 
 const TERMINAL_RUNS = new Set(["completed", "failed", "cancelled"]);
+
+/** The latest user-facing reason from a batch of tool-start events. */
+function latestToolReason(events: ToolProgressEvent[] | undefined): string | null {
+  let reason: string | null = null;
+  for (const event of events ?? []) {
+    if (event.phase !== "start") continue;
+    const explicit = typeof event.reason === "string" ? event.reason.trim() : "";
+    if (explicit) {
+      reason = explicit;
+      continue;
+    }
+    const argumentsValue = event.arguments;
+    if (argumentsValue && typeof argumentsValue === "object" && !Array.isArray(argumentsValue)) {
+      const nested = (argumentsValue as { reason?: unknown }).reason;
+      if (typeof nested === "string" && nested.trim()) reason = nested.trim();
+    }
+  }
+  return reason;
+}
+
+function runKey(frame: AgentFrame): string {
+  return frame.run_id ?? frame.turn_id ?? "notification";
+}
 
 function historyMessages(runs: AgentHistoryRun[]): UIMessage[] {
   return runs.flatMap((run) => {
@@ -111,6 +134,7 @@ export function useAgentRun() {
   const { client, getToken } = useClient();
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [activeRuns, setActiveRuns] = useState<Map<string, string>>(new Map());
+  const [activityByRun, setActivityByRun] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const refreshHistory = useCallback(async () => {
@@ -126,17 +150,50 @@ export function useAgentRun() {
         }
         return next;
       });
+      setActivityByRun((current) => {
+        const next = new Map(current);
+        for (const run of runs) {
+          if (run.status !== "queued" && run.status !== "running") {
+            next.delete(run.id);
+            continue;
+          }
+          // A live reason arriving during this request is newer than the checkpoint.
+          const restored = run.activity?.at(-1)?.reason;
+          if (!next.has(run.id) && restored) next.set(run.id, restored);
+        }
+        return next;
+      });
     } finally {
       setHistoryLoaded(true);
     }
   }, [getToken]);
   useEffect(() => client.onEvent((frame) => {
     setMessages((current) => projectAgentFrame(current, frame));
+    const run = runKey(frame);
+    if (frame.event === "message") {
+      const reason = latestToolReason(frame.tool_events);
+      if (reason) setActivityByRun((current) => new Map(current).set(run, reason));
+    }
+    if (frame.event === "delta") {
+      // Answer text means the described tool step is over; keep only the dots.
+      setActivityByRun((current) => {
+        if (!current.has(run)) return current;
+        const next = new Map(current);
+        next.delete(run);
+        return next;
+      });
+    }
     if (frame.event === "accepted" && frame.run_id && frame.event_id) {
       setActiveRuns((current) => new Map(current).set(frame.event_id!, frame.run_id!));
     }
     if (frame.event === "turn_end" || (frame.event === "goal_status" && frame.status === "idle")) {
       setActiveRuns((current) => new Map([...current].filter(([event, run]) => run !== frame.run_id && event !== frame.turn_id)));
+      setActivityByRun((current) => {
+        if (!current.has(run)) return current;
+        const next = new Map(current);
+        next.delete(run);
+        return next;
+      });
     }
     if (frame.event === "error") setError(frame.message ?? (typeof frame.error === "string" ? frame.error : frame.error?.message) ?? "Request failed");
     if (frame.event === "turn_end") void refreshHistory().catch(() => {});
@@ -164,5 +221,8 @@ export function useAgentRun() {
   // point of view; the indicator must not blink between the optimistic send and
   // the run recorded in history.
   const sending = messages.some((message) => message.deliveryStatus === "sending");
-  return { messages, send, stop, active: activeRuns.size > 0, sending, error, historyLoaded };
+  const activity = [...activityByRun.entries()]
+    .filter(([runId]) => [...activeRuns.values()].includes(runId))
+    .at(-1)?.[1] ?? null;
+  return { messages, send, stop, active: activeRuns.size > 0, sending, activity, error, historyLoaded };
 }

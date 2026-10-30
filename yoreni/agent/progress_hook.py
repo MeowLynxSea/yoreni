@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 from loguru import logger
 
@@ -14,6 +14,7 @@ from yoreni.utils.helpers import IncrementalThinkExtractor, strip_think
 from yoreni.utils.progress_events import (
     build_tool_event_finish_payloads,
     build_tool_event_start_payload,
+    tool_event_reason,
 )
 
 
@@ -98,6 +99,7 @@ class AgentProgressHook(AgentHook):
         arguments = event.get("arguments")
         if not isinstance(arguments, dict):
             arguments = {}
+        arguments = cast(dict[str, Any], arguments)
         payload: dict[str, Any] = {
             "version": 1,
             "phase": phase,
@@ -109,6 +111,9 @@ class AgentProgressHook(AgentHook):
             "files": [],
             "embeds": [],
         }
+        reason = tool_event_reason(arguments)
+        if reason:
+            payload["reason"] = reason
         if phase == "start":
             await self.on_stream_end(context, resuming=True)
             await self._publish(ProgressEvent(tool_hint=True, tool_events=[payload]))

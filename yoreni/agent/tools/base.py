@@ -17,6 +17,20 @@ if typing.TYPE_CHECKING:
 
 _ToolT = TypeVar("_ToolT", bound="Tool")
 
+# Every exposed tool accepts one user-facing reason so interactive clients can
+# describe the work in progress. It is a transport-only field: execution strips
+# it before the tool receives its arguments.
+TOOL_REASON_PARAM = "reason"
+TOOL_REASON_MAX_LENGTH = 160
+_TOOL_REASON_SCHEMA: dict[str, Any] = {
+    "type": "string",
+    "maxLength": TOOL_REASON_MAX_LENGTH,
+    "description": (
+        "One short sentence, in the user's language, explaining what you are doing "
+        "right now and why. Shown to the user while this tool runs."
+    ),
+}
+
 # Matches :meth:`Tool._cast_value` / :meth:`Schema.validate_json_schema_value` behavior
 _JSON_TYPE_MAP: dict[str, type | tuple[type, ...]] = {
     "string": str,
@@ -413,12 +427,29 @@ class Tool(ABC):
 
     def to_schema(self) -> dict[str, Any]:
         """OpenAI function schema."""
+        parameters = deepcopy(self.parameters or {})
+        if parameters.get("type", "object") == "object":
+            raw_properties = parameters.get("properties")
+            properties = (
+                cast(dict[str, Any], raw_properties)
+                if isinstance(raw_properties, dict) else {}
+            )
+            properties.setdefault(TOOL_REASON_PARAM, deepcopy(_TOOL_REASON_SCHEMA))
+            parameters["properties"] = properties
+            raw_required = parameters.get("required")
+            required = (
+                cast(list[Any], raw_required)
+                if isinstance(raw_required, list) else []
+            )
+            if TOOL_REASON_PARAM not in required:
+                required.append(TOOL_REASON_PARAM)
+            parameters["required"] = required
         return {
             "type": "function",
             "function": {
                 "name": self.name,
                 "description": self.description,
-                "parameters": self.parameters,
+                "parameters": parameters,
             },
         }
 

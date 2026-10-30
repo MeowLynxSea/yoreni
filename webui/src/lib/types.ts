@@ -297,6 +297,7 @@ export interface ToolProgressEvent {
   call_id?: string;
   name?: string;
   arguments?: unknown;
+  reason?: string | null;
   result?: unknown;
   error?: unknown;
   files?: unknown[];

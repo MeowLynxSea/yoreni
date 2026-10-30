@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from copy import deepcopy
 
 import pytest
@@ -12,6 +13,7 @@ from yoreni.agent.loop import AgentLoop
 from yoreni.agent.state import (
     AgentStateConflictError,
     AgentStore,
+    pending_run_activity,
 )
 from yoreni.agent.tools.base import Tool
 from yoreni.agent.tools.context import current_request_context
@@ -340,6 +342,27 @@ async def test_external_channel_cannot_use_the_personal_transcript_as_an_overrid
         await loop.accept_message(message)
     assert not provider.calls
     assert not loop.agent.store.pending()
+
+
+def test_pending_run_activity_reads_only_waiting_tool_calls():
+    call = {
+        "id": "call-1",
+        "type": "function",
+        "function": {"name": "read_file", "arguments": json.dumps({
+            "path": "plan.md", "reason": "Reading the plan before edits.",
+        })},
+    }
+    checkpoint = json.dumps({
+        "phase": "awaiting_tools", "pending_tool_calls": [call],
+    })
+
+    assert pending_run_activity("running", checkpoint) == [
+        {"name": "read_file", "reason": "Reading the plan before edits."},
+    ]
+    assert pending_run_activity("completed", checkpoint) == []
+    assert pending_run_activity("running", json.dumps({
+        "phase": "tools_completed", "pending_tool_calls": [call],
+    })) == []
 
 
 async def test_shutdown_tracks_event_runs_and_reopens_interrupted_execution(runtime):

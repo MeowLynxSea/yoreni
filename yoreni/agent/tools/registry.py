@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING, Any, cast
 
-from yoreni.agent.tools.base import Tool, ToolResult
+from yoreni.agent.tools.base import TOOL_REASON_PARAM, Tool, ToolResult
 from yoreni.agent.tools.context import ContextAware, current_request_context
 
 if TYPE_CHECKING:
@@ -151,6 +151,12 @@ class ToolRegistry:
             )
 
         cast_params = tool.cast_params(cast(dict[str, Any], params))
+        if TOOL_REASON_PARAM in cast_params:
+            # The reason describes the call to the user; it is not a tool argument.
+            cast_params = {
+                key: value for key, value in cast_params.items()
+                if key != TOOL_REASON_PARAM
+            }
         errors = tool.validate_params(cast_params)
         if errors:
             return tool, cast_params, (

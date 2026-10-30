@@ -324,7 +324,7 @@ function ChatView({ greeting, run, model, onOpenSettings }: {
           >
             <div data-testid="thread-message-region" className="mx-auto flex min-h-full w-full max-w-[44rem] flex-col justify-end gap-6 px-5 pb-10 pt-10 sm:px-6 sm:pb-12">
               {run.messages.map((message) => <MessageBubble key={message.id} message={message} />)}
-              {running ? <AgentRunIndicator key="agent-run" className="-mt-3" /> : null}
+              {running ? <AgentRunIndicator key="agent-run" activity={run.activity} className="-mt-3" /> : null}
             </div>
           </div>
         )}

@@ -975,6 +975,8 @@ export interface AgentHistoryRun {
   kind: string;
   content: string;
   result: { content: string; stop_reason: string } | null;
+  /** In-flight tool calls described for the working indicator. */
+  activity?: { name: string; reason: string }[];
 }
 
 export function fetchPersonalAgent(token: string): Promise<PersonalAgentInfo> {

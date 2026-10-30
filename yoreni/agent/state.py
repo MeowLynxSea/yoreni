@@ -50,10 +50,62 @@ class WebUIRun(TypedDict):
     kind: str
     content: str
     result: RunOutcome | None
+    activity: list[RunActivity]
+
+
+class RunActivity(TypedDict):
+    """One in-flight tool call described for the personal UI."""
+
+    name: str
+    reason: str
 
 
 class AgentStateConflictError(RuntimeError):
     """A caller tried to replace a state version it has not read."""
+
+
+def pending_run_activity(status: str, raw_checkpoint: str | None) -> list[RunActivity]:
+    """Describe tool calls an in-flight Run is waiting on.
+
+    The checkpoint is the only durable snapshot of a Run between model calls,
+    so a reloaded client can restore the working indicator's description
+    without replaying provider state.
+    """
+    if status not in {"queued", "running"} or not raw_checkpoint:
+        return []
+    try:
+        checkpoint = json.loads(raw_checkpoint)
+    except (TypeError, ValueError):
+        return []
+    if not isinstance(checkpoint, dict):
+        return []
+    checkpoint_data = cast(dict[str, Any], checkpoint)
+    if checkpoint_data.get("phase") != "awaiting_tools":
+        return []
+    pending_calls = checkpoint_data.get("pending_tool_calls")
+    if not isinstance(pending_calls, list):
+        return []
+    activity: list[RunActivity] = []
+    for call in cast(list[Any], pending_calls):
+        if not isinstance(call, dict):
+            continue
+        function = cast(dict[str, Any], call).get("function")
+        if not isinstance(function, dict):
+            continue
+        function_data = cast(dict[str, Any], function)
+        name = function_data.get("name")
+        raw_arguments = function_data.get("arguments")
+        if isinstance(raw_arguments, str):
+            try:
+                raw_arguments = json.loads(raw_arguments)
+            except ValueError:
+                raw_arguments = None
+        arguments = cast(dict[str, Any], raw_arguments) if isinstance(raw_arguments, dict) else {}
+        reason = arguments.get("reason")
+        if not isinstance(name, str) or not name or not isinstance(reason, str) or not reason.strip():
+            continue
+        activity.append(RunActivity(name=name, reason=reason.strip()))
+    return activity
 
 
 @dataclass(frozen=True)
@@ -270,6 +322,8 @@ class AgentStore:
         with self.connection() as db:
             rows = db.execute(
                 """SELECT runs.id,runs.status,runs.error,runs.result,
+                          CASE WHEN runs.status IN ('queued','running')
+                               THEN runs.checkpoint ELSE NULL END AS checkpoint,
                           events.seq,events.event_id,events.source,events.payload
                    FROM runs JOIN events ON events.seq=runs.event_seq
                    WHERE json_extract(events.payload,'$.principal')='owner'
@@ -284,6 +338,7 @@ class AgentStore:
                 event_seq=row["seq"], event_id=row["event_id"], source=row["source"],
                 kind=str(payload.get("kind", "user")), content=str(payload.get("content", "")),
                 result=cast(RunOutcome | None, raw_result),
+                activity=pending_run_activity(row["status"], row["checkpoint"]),
             ))
         return result
 

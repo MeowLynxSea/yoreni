@@ -90,10 +90,17 @@ def _get_args(tc: ToolCallRequest) -> dict[str, object]:
     if isinstance(arguments, list):
         argument_list = cast(list[object], arguments)
         first_argument = argument_list[0] if argument_list else None
-        return cast(dict[str, object], first_argument) if isinstance(first_argument, dict) else {}
+        return _without_reason(
+            cast(dict[str, object], first_argument) if isinstance(first_argument, dict) else {}
+        )
     if isinstance(arguments, dict):
-        return cast(dict[str, object], arguments)
+        return _without_reason(cast(dict[str, object], arguments))
     return {}
+
+
+def _without_reason(arguments: dict[str, object]) -> dict[str, object]:
+    """Plain-text channel hints describe the call, not the WebUI reason field."""
+    return {key: value for key, value in arguments.items() if key != "reason"}
 
 
 def _extract_arg(tc: ToolCallRequest, key_args: list[str]) -> str | None:

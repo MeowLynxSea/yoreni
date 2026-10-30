@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import inspect
+import json
 from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
 from yoreni.agent.hook import AgentHookContext
+from yoreni.agent.tools.base import TOOL_REASON_MAX_LENGTH
 from yoreni.bus.outbound_events import (
     FileEditEvent,
     ProgressEvent,
@@ -85,21 +87,43 @@ def output_events(
 
 def _tool_event_arguments(tool_call: Any) -> dict[str, Any]:
     arguments = getattr(tool_call, "arguments", {}) or {}
+    if isinstance(arguments, str):
+        try:
+            arguments = json.loads(arguments)
+        except ValueError:
+            return {}
     return cast(dict[str, Any], arguments) if isinstance(arguments, dict) else {}
 
 
+def tool_event_reason(arguments: dict[str, Any]) -> str | None:
+    """Return the user-facing call reason when the model supplied one."""
+    value = arguments.get("reason")
+    if not isinstance(value, str):
+        return None
+    reason = " ".join(value.split())
+    if not reason:
+        return None
+    # The schema asks for 160 characters; clamp in case a provider ignores it.
+    return reason[:TOOL_REASON_MAX_LENGTH].rstrip()
+
+
 def build_tool_event_start_payload(tool_call: Any) -> dict[str, Any]:
-    return {
+    arguments = _tool_event_arguments(tool_call)
+    payload: dict[str, Any] = {
         "version": 1,
         "phase": "start",
         "call_id": str(getattr(tool_call, "id", "") or ""),
         "name": getattr(tool_call, "name", ""),
-        "arguments": _tool_event_arguments(tool_call),
+        "arguments": arguments,
         "result": None,
         "error": None,
         "files": [],
         "embeds": [],
     }
+    reason = tool_event_reason(arguments)
+    if reason:
+        payload["reason"] = reason
+    return payload
 
 
 def tool_event_result_extras(result: Any) -> tuple[list[Any], list[Any]]:
@@ -123,17 +147,21 @@ def build_tool_event_finish_payloads(context: AgentHookContext) -> list[dict[str
         status = event.get("status")
         phase = "end" if status == "ok" else "error"
         files, embeds = tool_event_result_extras(result)
+        arguments = _tool_event_arguments(tool_call)
         payload = {
             "version": 1,
             "phase": phase,
             "call_id": str(getattr(tool_call, "id", "") or ""),
             "name": getattr(tool_call, "name", ""),
-            "arguments": _tool_event_arguments(tool_call),
+            "arguments": arguments,
             "result": result if phase == "end" else None,
             "error": None,
             "files": files,
             "embeds": embeds,
         }
+        reason = tool_event_reason(arguments)
+        if reason:
+            payload["reason"] = reason
         if phase == "error":
             if isinstance(result, str) and result.strip():
                 payload["error"] = result.strip()

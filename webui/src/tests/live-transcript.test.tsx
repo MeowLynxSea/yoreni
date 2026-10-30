@@ -45,8 +45,8 @@ function setup() {
 function agentHistory(
   status: "running" | "completed",
   result: { content: string; stop_reason: string } | null = null,
-  { id = "run-1", content = "review the plan", eventId = "event-1" }: {
-    id?: string; content?: string; eventId?: string;
+  { id = "run-1", content = "review the plan", eventId = "event-1", activity }: {
+    id?: string; content?: string; eventId?: string; activity?: { name: string; reason: string }[];
   } = {},
 ): PersonalAgentInfo {
   return {
@@ -63,6 +63,7 @@ function agentHistory(
       kind: "user",
       content,
       result,
+      activity,
     }],
   };
 }
@@ -113,6 +114,39 @@ describe("live transcript", () => {
   it("labels the working indicator for assistive technology", () => {
     render(<AgentRunIndicator />);
     expect(screen.getByRole("status", { name: "Agent is working" })).toBeInTheDocument();
+  });
+
+  it("shows the agent's current step beside the working indicator", () => {
+    render(<AgentRunIndicator activity="Reading the plan before editing." />);
+    const status = screen.getByRole("status", { name: "Reading the plan before editing." });
+    expect(status).toBeInTheDocument();
+    expect(screen.getByText("Reading the plan before editing.")).toBeVisible();
+  });
+
+  it("streams step descriptions and restores the active one from history", async () => {
+    vi.mocked(fetchPersonalAgent).mockResolvedValue(agentHistory("running", null, {
+      activity: [{ name: "read_file", reason: "Reviewing the plan." }],
+    }));
+    const { client, socket, wrapper } = setup();
+    const { result, unmount } = renderHook(() => useAgentRun(), { wrapper });
+
+    await waitFor(() => expect(result.current.historyLoaded).toBe(true));
+    expect(result.current.activity).toBe("Reviewing the plan.");
+
+    act(() => socket.receive({
+      event: "message", run_id: "run-1", kind: "tool_hint",
+      tool_events: [{
+        phase: "start", call_id: "call-1", name: "read_file",
+        arguments: { path: "plan.md" }, reason: "Checking the plan.",
+      }],
+    }));
+    expect(result.current.activity).toBe("Checking the plan.");
+
+    act(() => socket.receive({ event: "turn_end", run_id: "run-1" }));
+    expect(result.current.activity).toBeNull();
+
+    unmount();
+    client.close();
   });
 
   it("restores the working state from history after a reload", async () => {

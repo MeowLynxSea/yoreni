@@ -25,8 +25,9 @@ import { ThemeControlProvider, useTheme, useThemeControl } from "@/hooks/useThem
 import { useAppViewport } from "@/hooks/useAppViewport";
 import { useReadingTypography } from "@/hooks/useReadingTypography";
 import { BootstrapAuthRequiredError, clearSavedSecret, consumeUrlBootstrapSecret, deriveWsUrl, fetchBootstrap, loadSavedSecret, saveSecret } from "@/lib/bootstrap";
+import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import type { SendAttachment } from "@/lib/agent-input";
-import { fetchChatSearch, fetchChatSearchSemantic } from "@/lib/api";
+import { fetchChatSearch, fetchChatSearchSemantic, fetchOnboarding } from "@/lib/api";
 import {
   parseChatSearchResult,
   parseChatSemanticResult,
@@ -39,7 +40,7 @@ import { messageCopyText } from "@/lib/message-text";
 import { createRuntimeHost } from "@/lib/runtime";
 import { formatQuotedUserMessage } from "@/lib/user-message-quote";
 import { YoreniClient } from "@/lib/yoreni-client";
-import type { BootstrapResponse } from "@/lib/types";
+import type { BootstrapResponse, OnboardingSnapshot } from "@/lib/types";
 import { ClientProvider, useClient } from "@/providers/ClientProvider";
 
 const SettingsView = lazy(() => import("@/components/settings/SettingsView").then((module) => ({ default: module.SettingsView })));
@@ -224,6 +225,9 @@ export default function App() {
   const [auth, setAuth] = useState(false);
   const [failed, setFailed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [onboarding, setOnboarding] = useState<OnboardingSnapshot | null>(null);
+  const [onboardingError, setOnboardingError] = useState<string | null>(null);
+  const [onboardingAttempt, setOnboardingAttempt] = useState(0);
   const secret = useRef("");
   const clientRef = useRef<YoreniClient | null>(null);
   const generation = useRef(0);
@@ -236,7 +240,7 @@ export default function App() {
   const start = useCallback(async (value: string) => {
     const attempt = ++generation.current;
     clientRef.current?.close(); clientRef.current = null;
-    secret.current = value; setAuth(false); setError(null); setReady(null);
+    secret.current = value; setAuth(false); setError(null); setReady(null); setOnboarding(null);
     try {
       const boot = await refresh();
       if (attempt !== generation.current) return;
@@ -273,9 +277,39 @@ export default function App() {
     }).catch(() => {}); }, Math.max(5000, ready.boot.expires_in * 1000 - 30000));
     return () => clearTimeout(timer);
   }, [ready, refresh]);
+  useEffect(() => {
+    if (!ready) return;
+    let live = true;
+    setOnboardingError(null);
+    fetchOnboarding(ready.boot.api_token ?? "").then(
+      (snapshot) => { if (live) setOnboarding(snapshot); },
+      (reason: unknown) => {
+        if (!live) return;
+        setOnboardingError(reason instanceof Error ? reason.message : String(reason));
+      },
+    );
+    return () => { live = false; };
+  }, [ready, onboardingAttempt]);
   if (auth) return <AuthScreen failed={failed} onSecret={(value) => { void start(value); }} />;
   if (error) return <BootError error={error} onRetry={() => { void start(secret.current); }} />;
+  if (onboardingError) return <BootError error={onboardingError} onRetry={() => setOnboardingAttempt((attempt) => attempt + 1)} />;
   if (!ready) return <StartupShell />;
+  if (!onboarding) return <StartupShell />;
+  if (onboarding.status !== "completed") {
+    return <OnboardingFlow
+      client={ready.client}
+      apiToken={ready.boot.api_token ?? ""}
+      initial={onboarding}
+      onTokenSet={(value) => { secret.current = value; saveSecret(value); }}
+      onComplete={() => {
+        setOnboarding({ ...onboarding, status: "completed" });
+        void refresh().then((boot) => {
+          if (clientRef.current !== ready.client) return;
+          setReady({ client: ready.client, boot });
+        }).catch(() => {});
+      }}
+    />;
+  }
   return <ClientProvider client={ready.client} token={ready.boot.api_token ?? ""} modelName={ready.boot.model_name ?? null} ingressLimits={ready.boot.limits ?? null} webuiCapabilities={ready.boot.terminal?.webui?.capabilities ?? []}>
     <HashRouter>
       <AgentShell onLogout={() => { ++generation.current; ready.client.close(); clearSavedSecret(); window.history.replaceState(null, "", window.location.pathname + window.location.search); setReady(null); setAuth(true); }} />
@@ -500,6 +534,16 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
     return t(`thread.empty.greetings.${key}`);
   }, [t]);
   useEffect(() => client.onRuntimeModelUpdate(setModel), [client]);
+  // Bootstrap data can arrive after this shell mounts (for example when setup
+  // just configured the first model), so follow the new default unless the
+  // user already picked something else in this window.
+  const previousModelName = useRef(modelName);
+  useEffect(() => {
+    if (modelName === previousModelName.current) return;
+    const previous = previousModelName.current;
+    previousModelName.current = modelName;
+    setModel((current) => (current === null || current === previous ? modelName : current));
+  }, [modelName]);
   const location = useLocation();
   const homeOpen = location.pathname === "/" && homeView === "home";
   const clearFocusMessage = useCallback(() => setFocusMessageId(null), []);

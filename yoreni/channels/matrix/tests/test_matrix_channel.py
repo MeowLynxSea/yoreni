@@ -2668,12 +2668,12 @@ async def test_message_tool_scopes_reply_to_source_room(tmp_path, target, use_re
     from contextlib import nullcontext
 
     from yoreni.agent.tools.context import RequestContext, request_context
-    from yoreni.agent.tools.message import MessageTool
+    from yoreni.agent.tools.send_message import SendMessageTool
 
     channel = MatrixChannel(_make_config(), MessageBus())
     client = _FakeAsyncClient("", "", "", None)
     channel.client = client
-    tool = MessageTool(
+    tool = SendMessageTool(
         channel.send, default_channel="matrix", default_chat_id="!source:example.org",
         default_message_id="$user", workspace=tmp_path,
     )

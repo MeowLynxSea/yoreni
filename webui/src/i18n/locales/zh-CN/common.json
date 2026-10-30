@@ -2078,7 +2078,13 @@
       "context": "当前上下文：{{tokens}}{{capacity}}",
       "requests": "本轮 {{count}} 次模型调用",
       "estimated": "包含估算用量"
-    }
+    },
+    "readFullMessage": "阅读完整消息",
+    "fullMessageTitle": "消息",
+    "replyingTo": "回复的消息",
+    "reactionFromAgent": "助手对此消息的回应",
+    "htmlPreview": "预览 HTML 页面",
+    "openHtmlInTab": "在新标签页打开 {{name}}"
   },
   "recovery": {
     "actionFailed": "恢复操作失败，请重试。",

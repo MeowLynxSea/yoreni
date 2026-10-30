@@ -2078,7 +2078,13 @@
       "context": "Contexto atual: {{tokens}}{{capacity}}",
       "requests": "{{count}} chamadas nesta rodada",
       "estimated": "Inclui uso estimado"
-    }
+    },
+    "readFullMessage": "Ler a mensagem completa",
+    "fullMessageTitle": "Mensagem",
+    "replyingTo": "Em resposta a",
+    "reactionFromAgent": "O agente reagiu com este emoji",
+    "htmlPreview": "Pré-visualizar página HTML",
+    "openHtmlInTab": "Abrir {{name}} em uma nova aba"
   },
   "recovery": {
     "actionFailed": "A recuperação falhou. Tente novamente.",

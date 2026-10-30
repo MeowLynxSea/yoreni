@@ -41,6 +41,9 @@ class BaseChannel(ABC):
     tool_hint_max_length: int = 40
     show_reasoning: bool = True
     show_compaction_notices: bool = False
+    # Adapters that can render an emoji reaction; others drop it instead of
+    # sending the empty message a reaction carries.
+    supports_reactions: bool = False
 
     def __init__(
         self, config: Any, bus: MessageBus, *, network: NetworkConfig | None = None,

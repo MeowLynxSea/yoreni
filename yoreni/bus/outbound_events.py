@@ -90,6 +90,33 @@ class UserInputEvent(AgentEvent):
     content: str
     created_at_ms: int
     provenance: dict[str, Any]
+    message_id: str | None = None
+
+
+@dataclass(frozen=True)
+class AgentMessageEvent(AgentEvent):
+    """One conversational message the agent chose to send.
+
+    Delivery is explicit: the runtime never turns a model's free text into a
+    user-visible message on its own.
+    """
+
+    message_id: str
+    content: str
+    created_at_ms: int
+    media: tuple[str, ...] = ()
+    reply_to: str | None = None
+    quote: str | None = None
+
+
+@dataclass(frozen=True)
+class ReactionEvent(AgentEvent):
+    """A reaction the agent attached to one conversation row."""
+
+    message_id: str
+    emoji: str
+    created_at_ms: int
+    target: str
 
 
 @dataclass(frozen=True)
@@ -146,7 +173,8 @@ def replace_outbound_event(
 def _event_content(event: AgentEvent) -> str:
     if isinstance(
         event,
-        ProgressEvent | RetryWaitEvent | StreamDeltaEvent | StreamEndEvent | UserInputEvent,
+        ProgressEvent | RetryWaitEvent | StreamDeltaEvent | StreamEndEvent
+        | UserInputEvent | AgentMessageEvent,
     ):
         return event.content
     if isinstance(event, ContextCompactionEvent):

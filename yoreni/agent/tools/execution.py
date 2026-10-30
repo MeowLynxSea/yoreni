@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
-from contextlib import nullcontext
+from contextlib import nullcontext, suppress
 from functools import cache
 from typing import Any, cast
 
@@ -46,6 +46,39 @@ _WORKSPACE_VIOLATION_MARKERS: tuple[str, ...] = (
 )
 
 
+# A tool abandoned because the owner spoke again must not look like a failure,
+# and must not be retried: the model has a newer instruction to follow.
+_INTERRUPTED_TOOL_RESULT = (
+    "Interrupted: the user sent a new message while this call was running. "
+    "The call was abandoned. Do not retry it; handle the new message first."
+)
+_INTERRUPTED = object()
+
+
+async def _run_interruptibly(call: Callable[[], Any], interrupt: asyncio.Event) -> Any:
+    """Run one tool call until it finishes or the owner sends a new message."""
+    task = asyncio.ensure_future(call())
+    waiter = asyncio.ensure_future(interrupt.wait())
+    try:
+        done, _pending = await asyncio.wait({task, waiter}, return_when=asyncio.FIRST_COMPLETED)
+        if task not in done:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+            return _INTERRUPTED
+        return task.result()
+    except asyncio.CancelledError:
+        # The Run itself is stopping; the call must stop with it.
+        task.cancel()
+        with suppress(asyncio.CancelledError, Exception):
+            await task
+        raise
+    finally:
+        waiter.cancel()
+        with suppress(asyncio.CancelledError):
+            await waiter
+
+
 async def execute_tool_calls(
     tools: ToolRegistry,
     tool_calls: list[ToolCallRequest],
@@ -57,6 +90,7 @@ async def execute_tool_calls(
     context: AgentHookContext,
     model_messages: list[dict[str, Any]] | None = None,
     compacted_tool_results: set[str] | None = None,
+    interrupt: asyncio.Event | None = None,
 ) -> tuple[list[Any], list[dict[str, str]]]:
     """Execute one model response's tool calls in stable result order."""
     @cache
@@ -82,6 +116,7 @@ async def execute_tool_calls(
                     hook,
                     context,
                     read_results,
+                    interrupt,
                 )
                 for tool_call in batch
             ))
@@ -96,6 +131,7 @@ async def execute_tool_calls(
                     hook,
                     context,
                     read_results,
+                    interrupt,
                 )
                 tool_results.append(result)
 
@@ -112,6 +148,7 @@ async def _execute_tool_call(
     hook: AgentHook,
     context: AgentHookContext,
     read_results: Callable[[], dict[str, str]],
+    interrupt: asyncio.Event | None = None,
 ) -> tuple[Any, dict[str, str]]:
     lookup_error = repeated_external_lookup_error(
         tool_call.name,
@@ -161,10 +198,12 @@ async def _execute_tool_call(
             file_read_context(tool_call.id, read_results)
             if tool_call.name == "read_file" else nullcontext()
         ):
-            if tool is not None:
-                result = await tool.execute(**params)
-            else:
+            if tool is None:
                 result = await tools.execute(tool_call.name, params)
+            elif interrupt is not None and getattr(tool, "interruptible", False):
+                result = await _run_interruptibly(lambda: tool.execute(**params), interrupt)
+            else:
+                result = await tool.execute(**params)
     except asyncio.CancelledError:
         raise
     except Exception as exc:
@@ -204,6 +243,15 @@ async def _execute_tool_call(
         if handled is not None:
             return handled
         return payload, event
+
+    if result is _INTERRUPTED:
+        event = {
+            "name": tool_call.name,
+            "status": "interrupted",
+            "detail": "user sent a new message",
+        }
+        logger.info("Abandoned tool {} after a new user message", tool_call.name)
+        return _INTERRUPTED_TOOL_RESULT, event
 
     await hook.after_execute_tool(context, tool_call, tool, params, result)
 

@@ -271,6 +271,9 @@ class Tool(ABC):
         """Whether this tool should run alone even if concurrency is enabled."""
         return False
 
+    # A message that arrives mid-call may abandon this call.
+    interruptible: bool = False
+
     # --- Plugin metadata ---
 
     config_key: str = ""

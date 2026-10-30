@@ -189,6 +189,18 @@ function projectOrderedTurn(
       absorbDisplayNoop();
       continue;
     }
+    if (message.delivered) {
+      // A delivered message is one chat bubble, not a slice of a streamed
+      // answer; it never merges with its neighbours.
+      flushActivity();
+      flushAnswers();
+      units.push({
+        type: "message",
+        message,
+        sourceMessageCount: 1 + claimLeadingNoops(),
+      });
+      continue;
+    }
     if (isRawActivity(message)) {
       appendActivity(message, 1);
       continue;

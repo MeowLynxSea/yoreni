@@ -38,6 +38,7 @@ class AgentTurnHookSpec:
     run_extra_hooks_for_ephemeral: bool = False
     attributes: dict[str, Any] | None = None
     log_content: bool = True
+    stream_answers: bool = True
 
 
 def build_agent_turn_hook(spec: AgentTurnHookSpec) -> AgentHook:
@@ -46,6 +47,7 @@ def build_agent_turn_hook(spec: AgentTurnHookSpec) -> AgentHook:
     progress_hook = AgentProgressHook(
         events=spec.events,
         streaming=spec.streaming,
+        stream_answers=spec.stream_answers,
         run_id=spec.run_id,
         log_content=log_content,
     )

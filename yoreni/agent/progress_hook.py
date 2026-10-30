@@ -26,12 +26,16 @@ class AgentProgressHook(AgentHook):
         events: EventSink = NO_EVENTS,
         *,
         streaming: bool = False,
+        stream_answers: bool = True,
         run_id: str | None = None,
         log_content: bool = True,
     ) -> None:
         super().__init__(reraise=True)
         self._publish = events.publish
         self._streaming = streaming
+        # Conversational answers arrive as whole messages; only reasoning and
+        # tool activity may stream while the model is still working.
+        self._stream_answers = stream_answers
         self._run_id = run_id
         self._log_content = log_content
         self._stream_buf = ""
@@ -60,7 +64,7 @@ class AgentProgressHook(AgentHook):
             # Answer text has started; close the reasoning segment so the UI can
             # lock the bubble before the answer renders below it.
             await self.emit_reasoning_end()
-            if self._publish and self._streaming:
+            if self._publish and self._streaming and self._stream_answers:
                 await self._publish(StreamDeltaEvent(content=incremental))
 
     async def on_stream_end(self, context: AgentHookContext, *, resuming: bool) -> None:

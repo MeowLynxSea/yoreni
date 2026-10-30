@@ -9,13 +9,14 @@ from collections.abc import Coroutine, Mapping
 from contextlib import AbstractContextManager, ExitStack, suppress
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, cast
+from typing import TYPE_CHECKING, Any, Callable, Literal, cast
 from uuid import uuid4
 
 from loguru import logger
 
 from yoreni.agent import model_presets as preset_helpers
 from yoreni.agent.context import ContextBuilder, TranscriptInput
+from yoreni.agent.injection import TurnInjections
 from yoreni.agent.goal_permission import GoalInputScope
 from yoreni.agent.hook import AgentHook, AgentTurnHookFactory
 from yoreni.agent.memory import Consolidator
@@ -26,6 +27,7 @@ from yoreni.agent.runner import (
     AgentRunSpec,
     CheckpointCallback,
     ContinuationCallback,
+    RequiredToolRound,
 )
 from yoreni.agent.state import AgentInput
 from yoreni.agent.tools.context import RequestContext, bind_request_context, reset_request_context
@@ -62,6 +64,16 @@ if TYPE_CHECKING:
     from yoreni.config.schema import ChannelsConfig, Config, ToolsConfig
     from yoreni.cron.service import CronService
     from yoreni.triggers.local_store import LocalTriggerStore
+
+
+@dataclasses.dataclass
+class _Interaction:
+    """The user turn currently consuming new messages from one conversation."""
+
+    run_id: str
+    channel: str
+    chat_id: str
+    injections: TurnInjections
 
 
 class AgentLoop:
@@ -226,6 +238,8 @@ class AgentLoop:
         self._running = False
         self._runtime_context_providers: list[RuntimeContextProvider] = []
         self._active_tasks: dict[str, set[asyncio.Task[Any]]] = {}
+        # One live inbox per conversation; other chats keep their own turn.
+        self._interactions: dict[tuple[str, str], _Interaction] = {}
         self._background_tasks: set[asyncio.Task[Any]] = set()
         self._accepted_runs: set[str] = set()
         self._close_lock = asyncio.Lock()
@@ -451,6 +465,10 @@ class AgentLoop:
         checkpoint_callback: CheckpointCallback | None = None,
         file_states: FileStates | None = None,
         continuation_callback: ContinuationCallback | None = None,
+        required_tool_round: RequiredToolRound | None = None,
+        interrupt: asyncio.Event | None = None,
+        injections: TurnInjections | None = None,
+        stream_answers: bool = True,
     ) -> AgentRunResult:
         request = request_context
         scope = request.workspace_scope or self.workspace_scopes.for_turn(
@@ -475,7 +493,7 @@ class AgentLoop:
                     turn_hook_factories=list(hook_factories or []),
                     registered_hooks=self._extra_hooks, turn_hooks=list(hooks or []),
                     ephemeral=ephemeral, run_extra_hooks_for_ephemeral=run_extra_hooks_for_ephemeral,
-                    log_content=request.log_content,
+                    log_content=request.log_content, stream_answers=stream_answers,
                 ))
                 result = await self.runner.run(AgentRunSpec(
                     initial_messages=None,
@@ -502,6 +520,12 @@ class AgentLoop:
                         run_id=request.turn_id, tools=tools.get_definitions(), persist=False,
                     ),
                     continuation_callback=continuation_callback,
+                    required_tool_round=required_tool_round,
+                    interrupt=interrupt,
+                    injection_callback=injections.drain if injections is not None else None,
+                    terminal_injection_callback=(
+                        injections.drain if injections is not None else None
+                    ),
                     provider_state=provider_state,
                     llm_usage_source=source_from_request(
                         channel=request.channel, metadata=request.metadata,
@@ -557,25 +581,88 @@ class AgentLoop:
         ), **options)
 
     async def accept_message(self, msg: InboundMessage) -> str | None:
-        """Validate owner input, durably admit its Event, then schedule its Run."""
+        """Validate owner input, then either break into the live turn or start one."""
         if msg.channel not in {"cli", "websocket"} and msg.principal != "owner":
             raise PermissionError("External input requires explicit owner authorization.")
         with self.bus.admission.activity():
             event = self.agent.input_from_message(msg)
-            run_id = await asyncio.to_thread(self.agent.store.admit, event)
-            record = await asyncio.to_thread(self.agent.store.read_run, run_id)
-            if record["status"] == "queued" and run_id not in self._accepted_runs:
-                self._accepted_runs.add(run_id)
-                await self.runtime_event_publisher.user_input_accepted(
-                    dataclasses.replace(msg, metadata={**msg.metadata, "run_id": run_id}), run_id,
-                )
-                async def execute() -> None:
-                    try:
-                        await self.agent.submit_message(event, msg)
-                    finally:
-                        self._accepted_runs.discard(run_id)
-                self.schedule_background(execute())
+            if event.kind == "user":
+                run_id = await self._insert_message(event, msg)
+                if run_id is not None:
+                    return run_id
+            return await self._start_run(event, msg)
+
+    async def _insert_message(self, event: AgentInput, msg: InboundMessage) -> str | None:
+        """Deliver a message into the turn that is already running."""
+        active = self._interactions.get((msg.channel, msg.chat_id))
+        if active is None:
+            return None
+        payload = {
+            "id": event.event_id,
+            "content": event.content,
+            "media": list(event.media),
+            "created_at_ms": int(time.time() * 1000),
+            "metadata": dict(event.metadata),
+        }
+        await asyncio.to_thread(self.agent.store.append_entry, active.run_id, "user", payload)
+        if not active.injections.try_push(event):
+            # The turn finished while this message was being recorded; it
+            # becomes an ordinary Run and owns its own conversation row.
+            await asyncio.to_thread(self.agent.store.remove_entry, active.run_id, event.event_id)
+            return None
+        await self.runtime_event_publisher.user_input_accepted(
+            dataclasses.replace(msg, metadata={**msg.metadata, "run_id": active.run_id}),
+            active.run_id,
+            message_id=event.event_id,
+        )
+        return active.run_id
+
+    async def _start_run(self, event: AgentInput, msg: InboundMessage) -> str | None:
+        """Admit one Event and schedule its Run, with an inbox while it runs."""
+        run_id = await asyncio.to_thread(self.agent.store.admit, event)
+        record = await asyncio.to_thread(self.agent.store.read_run, run_id)
+        if record["status"] != "queued" or run_id in self._accepted_runs:
             return run_id
+        self._accepted_runs.add(run_id)
+        await self.runtime_event_publisher.user_input_accepted(
+            dataclasses.replace(msg, metadata={**msg.metadata, "run_id": run_id}), run_id,
+            message_id=event.event_id if event.kind == "user" else None,
+        )
+        injections = TurnInjections() if event.kind == "user" else None
+
+        async def execute() -> None:
+            interaction = None
+            if injections is not None:
+                interaction = _Interaction(run_id, msg.channel, msg.chat_id, injections)
+                self._interactions[(msg.channel, msg.chat_id)] = interaction
+            try:
+                await self.agent.submit_message(event, msg, injections=injections)
+            finally:
+                self._accepted_runs.discard(run_id)
+                if interaction is None:
+                    return
+                key = (msg.channel, msg.chat_id)
+                if self._interactions.get(key) is interaction:
+                    del self._interactions[key]
+                for leftover in injections.close():
+                    await self._resume_leftover(run_id, leftover)
+
+        self.schedule_background(execute())
+        return run_id
+
+    async def _resume_leftover(self, run_id: str, event: AgentInput) -> None:
+        """Turn a message that missed the live turn into its own Run."""
+        await asyncio.to_thread(self.agent.store.remove_entry, run_id, event.event_id)
+        await self._start_run(event, InboundMessage(
+            channel=event.channel,
+            sender_id=event.principal,
+            chat_id=event.chat_id,
+            content=event.content,
+            media=list(event.media),
+            metadata=event.metadata,
+            principal=cast(Literal["owner", "untrusted"], event.principal),
+            input_role="user" if event.kind == "user" else "system",
+        ))
 
     async def _dispatch_inbound(self, msg: InboundMessage) -> None:
         await self.accept_message(msg)

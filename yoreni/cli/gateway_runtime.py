@@ -390,7 +390,7 @@ def _run_claimed_gateway(
 ) -> None:
     """Initialize and run only while the caller holds the gateway lifecycle claim."""
     from yoreni.agent.model_presets import load_model_preset_catalog
-    from yoreni.agent.tools.message import MessageTool
+    from yoreni.agent.tools.send_message import SendMessageTool
     from yoreni.agent.turn_delivery import TurnDeliveryFactory
     from yoreni.bus.queue import MessageBus
     from yoreni.channels.manager import ChannelManager
@@ -525,8 +525,8 @@ def _run_claimed_gateway(
         agent.schedule_background(agent.agent.resume(run_id, deliver=True))
         return {"accepted": True}
 
-    message_tool = agent.tools.get("message")
-    if isinstance(message_tool, MessageTool):
+    message_tool = agent.tools.get("send_message")
+    if isinstance(message_tool, SendMessageTool):
         message_tool.set_send_callback(deliver_to_channel)
 
     # Set cron callback (needs agent)
@@ -611,9 +611,9 @@ def _run_claimed_gateway(
             )
 
             # Internal check: funnel all output through the post-run gate so the
-            # turn can't deliver directly via the message tool and skip it.
+            # turn can't deliver directly via send_message and skip it.
             suppress_token = None
-            if isinstance(message_tool, MessageTool):
+            if isinstance(message_tool, SendMessageTool):
                 suppress_token = message_tool.set_suppress_delivery(True)
             try:
                 await mcp_provider.connect()
@@ -627,7 +627,7 @@ def _run_claimed_gateway(
                     on_progress=_silent,
                 )
             finally:
-                if isinstance(message_tool, MessageTool) and suppress_token is not None:
+                if isinstance(message_tool, SendMessageTool) and suppress_token is not None:
                     message_tool.reset_suppress_delivery(suppress_token)
 
             if not resp or not resp.content:

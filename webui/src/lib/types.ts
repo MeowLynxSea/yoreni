@@ -37,7 +37,7 @@ export interface UIImage {
   name?: string;
 }
 
-export type UIMediaKind = "image" | "video" | "file";
+export type UIMediaKind = "image" | "video" | "html" | "file";
 
 export interface UIMediaAttachment {
   kind: UIMediaKind;
@@ -147,6 +147,16 @@ export interface UIMessage {
   /** Phase-qualified stream ownership survives memory-cache restoration. */
   streamId?: string;
   reasoningStreamId?: string;
+  /** A message the Agent delivered as a discrete chat message. It owns its own
+   * bubble instead of merging with neighbouring answer slices, and its `id` is
+   * the durable conversation row other messages can reply to or react to. */
+  delivered?: boolean;
+  /** ID of the conversation row this delivered message answers. */
+  replyTo?: string;
+  /** Exact excerpt of the replied message, chosen by the Agent. */
+  quote?: string;
+  /** Emoji the Agent stamped on this message, in arrival order. */
+  reactions?: string[];
   /** Ephemeral delivery lifecycle for optimistic user messages. */
   deliveryStatus?: MessageDeliveryStatus;
   /** Structured rejection reason shown with a failed optimistic message. */

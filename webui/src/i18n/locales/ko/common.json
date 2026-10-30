@@ -2078,7 +2078,13 @@
     "cliRunRan": "사용함",
     "cliRunFailed": "실패",
     "automationSourceFallback": "자동화",
-    "automationTriggered": "자동 실행됨"
+    "automationTriggered": "자동 실행됨",
+    "readFullMessage": "전체 메시지 읽기",
+    "fullMessageTitle": "메시지",
+    "replyingTo": "답장 대상",
+    "reactionFromAgent": "에이전트가 남긴 반응",
+    "htmlPreview": "HTML 페이지 미리보기",
+    "openHtmlInTab": "새 탭에서 {{name}} 열기"
   },
   "recovery": {
     "actionFailed": "복구 작업에 실패했습니다. 다시 시도하세요.",

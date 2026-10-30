@@ -20,7 +20,9 @@ from yoreni.agent.agent_state_tool import AgentStateTool
 from yoreni.agent.context import TranscriptInput
 from yoreni.agent.goal_permission import GoalInputScope
 from yoreni.agent.goal_state import goal_state_runtime_lines
+from yoreni.agent.injection import TurnInjections
 from yoreni.agent.recovery import checkpoint_history
+from yoreni.agent.runner import RequiredToolRound
 from yoreni.agent.state import (
     AgentInput,
     AgentStore,
@@ -31,7 +33,7 @@ from yoreni.agent.state import (
 from yoreni.agent.tools.base import Tool, ToolResult
 from yoreni.agent.tools.context import ContextAware, RequestContext
 from yoreni.agent.tools.file_state import FileStates
-from yoreni.agent.tools.message import capture_message_deliveries
+from yoreni.agent.tools.send_message import capture_message_deliveries
 from yoreni.agent.tools.registry import ToolRegistry
 from yoreni.bus.events import INBOUND_META_TURN_ID, InboundMessage, OutboundMessage
 from yoreni.bus.outbound_events import StreamDeltaEvent, StreamEndEvent
@@ -47,6 +49,15 @@ from yoreni.runtime_context import (
 from yoreni.triggers.events import local_trigger_delivery_id
 from yoreni.utils.document import reference_non_image_attachments
 from yoreni.utils.progress_events import output_events
+
+_REACTION_ROUND = RequiredToolRound(
+    tool_name="react",
+    instruction=(
+        "React to the message the user just sent with the react tool before "
+        "answering. One emoji that shows your first reaction."
+    ),
+)
+
 
 if TYPE_CHECKING:
     from yoreni.agent.hook import AgentHook
@@ -131,6 +142,10 @@ class _CoordinatedTool(Tool):
     @property
     def concurrency_safe(self) -> bool:
         return self.tool.concurrency_safe
+
+    @property
+    def interruptible(self) -> bool:
+        return self.tool.interruptible
 
     def cast_params(self, params: dict[str, Any]) -> dict[str, Any]:
         return self.tool.cast_params(params)
@@ -242,6 +257,8 @@ class PersistentAgent:
         on_runtime_admitted: Callable[[LLMRuntime], Awaitable[None]] | None = None,
         attributes: dict[str, Any] | None = None,
         delivery: TurnDelivery | None = None,
+        injections: TurnInjections | None = None,
+        stream_answers: bool = True,
     ) -> OutboundMessage:
         if event.principal != "owner":
             raise PermissionError("This event has no access to the personal agent.")
@@ -259,6 +276,7 @@ class PersistentAgent:
                     on_progress=on_progress, on_stream=on_stream,
                     on_stream_end=on_stream_end, delivery=delivery,
                     on_runtime_admitted=on_runtime_admitted, attributes=attributes,
+                    injections=injections, stream_answers=stream_answers,
                 )
             except asyncio.CancelledError:
                 identity = await asyncio.to_thread(self.store.identity)
@@ -284,6 +302,7 @@ class PersistentAgent:
                         on_progress=on_progress, on_stream=on_stream,
                         on_stream_end=on_stream_end, delivery=delivery,
                         on_runtime_admitted=on_runtime_admitted, attributes=attributes,
+                        injections=injections, stream_answers=stream_answers,
                     )
                     await self.archive_pending()
                     return response
@@ -309,6 +328,8 @@ class PersistentAgent:
         delivery: TurnDelivery | None,
         on_runtime_admitted: Callable[[LLMRuntime], Awaitable[None]] | None,
         attributes: dict[str, Any] | None,
+        injections: TurnInjections | None,
+        stream_answers: bool,
     ) -> OutboundMessage:
         loop = self.loop
         identity = await asyncio.to_thread(self.store.identity)
@@ -336,6 +357,8 @@ class PersistentAgent:
                 "Use agent_state to maintain preferences and task progress across runs.",
             ]),
         )]
+        if event.kind == "user" and not event.ephemeral:
+            blocks.append(await self._conversation_block())
         current_message: str | None = content
         if checkpoint:
             history = public_history_messages(checkpoint["messages"][1:])
@@ -362,6 +385,7 @@ class PersistentAgent:
         )
         request = RequestContext(
             channel=event.channel, chat_id=event.chat_id, sender_id=event.principal,
+            message_id=event.event_id if event.kind == "user" else None,
             turn_id=run_id, runtime=runtime, workspace=scope.project_path, workspace_scope=scope,
             original_user_text=event.content if event.kind == "user" else None,
             metadata={**event.metadata, "_agent_event_source": event.source},
@@ -449,6 +473,10 @@ class PersistentAgent:
             events=events, streaming=on_stream is not None or (delivery is not None and delivery.streaming),
             checkpoint_callback=None if event.ephemeral else save_checkpoint, file_states=FileStates(),
             continuation_callback=goal_continuation,
+            required_tool_round=_REACTION_ROUND if injections is not None and event.kind == "user" else None,
+            interrupt=injections.interrupt if injections is not None else None,
+            injections=injections,
+            stream_answers=stream_answers,
             turn_scopes=[GoalInputScope(InboundMessage(
                 event.channel, event.principal, event.chat_id, event.content,
                 input_role="user" if event.kind == "user" else "system", metadata=event.metadata,
@@ -473,6 +501,22 @@ class PersistentAgent:
             return assembled
         return response
 
+    async def _conversation_block(self) -> RuntimeContextBlock:
+        """Expose message IDs so replies can target one earlier message."""
+        recent = await asyncio.to_thread(self.store.recent_user_messages, limit=6)
+        rows = [
+            {"id": str(row["id"]), "text": str(row["text"])[:200]}
+            for row in recent
+        ]
+        return RuntimeContextBlock(
+            source="conversation",
+            content=wrap_runtime_context_lines([
+                "Recent messages from the user, newest first. Pass one of these IDs as "
+                "send_message.reply_to when a message answers that specific message.",
+                json.dumps(rows, ensure_ascii=False),
+            ]),
+        )
+
     @staticmethod
     def _outbound(event: AgentInput, run_id: str, result: RunOutcome) -> OutboundMessage:
         return OutboundMessage(
@@ -480,15 +524,28 @@ class PersistentAgent:
             metadata={"_stop_reason": result["stop_reason"], "agent_run_id": run_id},
         )
 
-    async def submit_message(self, event: AgentInput, msg: InboundMessage, *, resume: bool = False) -> OutboundMessage | None:
+    async def submit_message(
+        self,
+        event: AgentInput,
+        msg: InboundMessage,
+        *,
+        resume: bool = False,
+        injections: TurnInjections | None = None,
+    ) -> OutboundMessage | None:
         """Deliver a transport Event's Run without creating a conversation owner."""
         run_id = await asyncio.to_thread(self.store.admit, event)
         delivery = self.loop.turn_delivery_factory.create(msg, run_id, enable_stream=True)
         await delivery.started()
         try:
-            with capture_message_deliveries() as message_sends:
-                response = await self.loop.process_event(event, delivery=delivery, resume=resume)
-            if (msg.channel, msg.chat_id) in message_sends:
+            with capture_message_deliveries() as sent:
+                response = await self.loop.process_event(
+                    event, delivery=delivery, resume=resume, injections=injections,
+                    stream_answers=False,
+                )
+            # The agent speaks through send_message. The model's own text is a
+            # fallback only when the turn produced no message at all, so a
+            # legacy prompt or a failure never leaves the user with silence.
+            if sent.count and (response is None or response.metadata.get("_stop_reason") != "error"):
                 response = None
             await delivery.complete(response, publish_completion=True)
             return response

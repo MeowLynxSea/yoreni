@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
@@ -138,6 +138,22 @@ export function ImageLightbox({
               </div>
             </>
           ) : null}
+
+          <a
+            href={current.url}
+            download={current.name || undefined}
+            aria-label={t("message.downloadAttachment", {
+              name: current.name ?? t("lightbox.title"),
+            })}
+            className={cn(
+              "touch-target absolute right-16 top-4 grid h-9 w-9 place-items-center rounded-full",
+              "bg-black/55 text-white/90 hover:text-white",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+              "transition-colors motion-reduce:transition-none",
+            )}
+          >
+            <Download className="h-4 w-4" aria-hidden />
+          </a>
 
           <DialogPrimitive.Close
             aria-label={t("lightbox.close")}

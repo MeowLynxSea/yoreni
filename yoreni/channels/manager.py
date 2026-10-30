@@ -19,6 +19,7 @@ from yoreni.bus.delivery import ChannelNotReadyError, DeliveryRejectedError
 from yoreni.bus.events import InboundMessage, OutboundMessage
 from yoreni.bus.outbound_events import (
     ProgressEvent,
+    ReactionEvent,
     RetryWaitEvent,
     RuntimeModelUpdatedEvent,
     StreamDeltaEvent,
@@ -787,6 +788,8 @@ class ChannelManager:
         Saturation pauses dispatch rather than creating unbounded tasks or dropping messages.
         """
         if msg.delivery_id in self._scheduled_deliveries:
+            return
+        if isinstance(msg.event, ReactionEvent) and not channel.supports_reactions:
             return
         if isinstance(msg.event, ProgressEvent) and msg.event.tool_events:
             msg = channel.prepare_tool_events(msg)

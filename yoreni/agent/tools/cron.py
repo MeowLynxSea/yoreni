@@ -27,8 +27,8 @@ _CRON_PARAMETERS = tool_parameters_schema(
     name=StringSchema("Job label; generated from message for add if omitted."),
     message=StringSchema(
         "REQUIRED when action='add': non-empty instruction to execute when the job triggers. "
-        "The final reply goes to the task's saved chat automatically. "
-        "Do not copy the current channel/chat ID or require a message tool call for that reply. "
+        "When the job runs, its session reports to the task's saved chat through send_message. "
+        "Do not copy the current channel/chat ID or require a delivery call for that reply. "
         "Include other recipients only when the user requests separate sends."
     ),
     every_seconds=IntegerSchema(

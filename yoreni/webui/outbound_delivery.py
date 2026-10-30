@@ -11,9 +11,11 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias
 from yoreni.agent.state import PERSONAL_CHAT_ID
 from yoreni.bus.events import OUTBOUND_META_AGENT_UI, OutboundMessage
 from yoreni.bus.outbound_events import (
+    AgentMessageEvent,
     GoalStateSyncEvent,
     GoalStatusEvent,
     ProgressEvent,
+    ReactionEvent,
     RetryWaitEvent,
     RuntimeModelUpdatedEvent,
     StreamedResponseEvent,
@@ -89,7 +91,25 @@ class WebUIOutboundDelivery:
             await self._send({"event": "goal_status", "status": event.status, "started_at": event.started_at}, msg.metadata)
             return
         if isinstance(event, UserInputEvent):
-            await self._send({"event": "user_message", "text": event.content, "created_at_ms": event.created_at_ms}, msg.metadata)
+            payload: dict[str, Any] = {
+                "event": "user_message", "text": event.content,
+                "created_at_ms": event.created_at_ms,
+            }
+            if event.message_id:
+                payload["message_id"] = event.message_id
+            await self._send(payload, msg.metadata)
+            return
+        if isinstance(event, AgentMessageEvent):
+            await self._send(self._message_payload(event, msg), msg.metadata)
+            return
+        if isinstance(event, ReactionEvent):
+            await self._send({
+                "event": "reaction",
+                "id": event.message_id,
+                "target": event.target,
+                "emoji": event.emoji,
+                "created_at_ms": event.created_at_ms,
+            }, msg.metadata)
             return
         notification = project_notification(PERSONAL_CHAT_ID, event, msg.metadata)
         if notification is not None:
@@ -111,6 +131,31 @@ class WebUIOutboundDelivery:
         if OUTBOUND_META_AGENT_UI in msg.metadata:
             payload["agent_ui"] = msg.metadata[OUTBOUND_META_AGENT_UI]
         await self._send(payload, msg.metadata)
+
+    def _message_payload(self, event: AgentMessageEvent, msg: OutboundMessage) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "event": "message",
+            "chat_id": PERSONAL_CHAT_ID,
+            "id": event.message_id,
+            "text": self._media.rewrite_local_markdown_images(event.content),
+        }
+        # The tool puts the same files on the Event and the OutboundMessage.
+        media = list(dict.fromkeys((*event.media, *msg.media)))
+        if media:
+            attachments = [
+                attachment
+                for entry in media
+                if (attachment := self._media.sign_or_stage_media_path(Path(entry))) is not None
+            ]
+            if attachments:
+                payload["media_urls"] = attachments
+        if event.reply_to:
+            payload["reply_to"] = event.reply_to
+        if event.quote:
+            payload["quote"] = event.quote
+        if msg.buttons:
+            payload["buttons"] = msg.buttons
+        return payload
 
     async def send_reasoning_delta(self, chat_id: str, delta: str, metadata: dict[str, Any] | None = None, *, stream_id: str | None = None) -> None:
         await self._send({"event": "reasoning_delta", "text": delta, "stream_id": stream_id}, metadata)

@@ -2078,7 +2078,13 @@
     "cliRunRan": "Đã dùng",
     "cliRunFailed": "Thất bại",
     "automationSourceFallback": "Tự động hóa",
-    "automationTriggered": "Tự động kích hoạt"
+    "automationTriggered": "Tự động kích hoạt",
+    "readFullMessage": "Đọc toàn bộ tin nhắn",
+    "fullMessageTitle": "Tin nhắn",
+    "replyingTo": "Trả lời",
+    "reactionFromAgent": "Tác nhân đã bày tỏ cảm xúc này",
+    "htmlPreview": "Xem trước trang HTML",
+    "openHtmlInTab": "Mở {{name}} trong tab mới"
   },
   "recovery": {
     "actionFailed": "Khôi phục thất bại. Hãy thử lại.",

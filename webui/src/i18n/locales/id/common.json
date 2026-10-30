@@ -2078,7 +2078,13 @@
     "cliRunRan": "Digunakan",
     "cliRunFailed": "Gagal",
     "automationSourceFallback": "Otomatisasi",
-    "automationTriggered": "Dipicu otomatis"
+    "automationTriggered": "Dipicu otomatis",
+    "readFullMessage": "Baca pesan lengkap",
+    "fullMessageTitle": "Pesan",
+    "replyingTo": "Membalas",
+    "reactionFromAgent": "Agen memberi reaksi ini",
+    "htmlPreview": "Pratinjau halaman HTML",
+    "openHtmlInTab": "Buka {{name}} di tab baru"
   },
   "recovery": {
     "actionFailed": "Pemulihan gagal. Coba lagi.",

@@ -204,10 +204,12 @@ def _matches_query(rel_path: str, query: str | None) -> bool:
 
 
 class _SearchTool(_FsTool):
+    interruptible = True
     _IGNORE_DIRS = ListDirTool._IGNORE_DIRS | {".worktrees", ".worktree", ".yoreni"}
     _MAX_SCAN_PATHS = 500_000
     _MAX_SCAN_SECONDS = 30.0
     _MAX_RESULT_CHARS = 12_000
+
 
     @classmethod
     def _ignore_directory(cls, name: str) -> bool:

@@ -965,6 +965,20 @@ export interface PersonalAgentInfo {
   history?: AgentHistoryRun[];
 }
 
+/** One durable conversation row replayed in the same shapes the socket streams. */
+export interface AgentHistoryEntry {
+  event: "message" | "reaction" | "user_message";
+  id?: string;
+  text?: string;
+  media_urls?: { url: string; name: string; kind?: string }[];
+  reply_to?: string;
+  quote?: string;
+  target?: string;
+  emoji?: string;
+  message_id?: string;
+  created_at_ms?: number;
+}
+
 export interface AgentHistoryRun {
   id: string;
   status: string;
@@ -977,6 +991,12 @@ export interface AgentHistoryRun {
   result: { content: string; stop_reason: string } | null;
   /** In-flight tool calls described for the working indicator. */
   activity?: { name: string; reason: string }[];
+  /** Wall-clock admission time; ordering key for rows from different Runs. */
+  created_at_ms?: number;
+  /** Conversation projection version; 0 means the Run predates durable rows. */
+  projection?: number;
+  /** Durable rows in causal order, including inserted messages and reactions. */
+  entries?: AgentHistoryEntry[];
 }
 
 export function fetchPersonalAgent(token: string): Promise<PersonalAgentInfo> {

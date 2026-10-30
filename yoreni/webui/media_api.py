@@ -62,11 +62,21 @@ _MEDIA_ALLOWED_MIMES: frozenset[str] = frozenset({
     "video/mp4",
     "video/webm",
     "video/quicktime",
+    "text/html",
 })
 _SVG_MEDIA_HEADERS: tuple[tuple[str, str], ...] = (
     (
         "Content-Security-Policy",
         "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
+    ),
+)
+# Generated HTML is served in an opaque origin so its scripts can never reach
+# the app's cookies, storage, or message channel.
+_HTML_MEDIA_HEADERS: tuple[tuple[str, str], ...] = (
+    (
+        "Content-Security-Policy",
+        "sandbox allow-scripts; default-src 'none'; img-src data: blob:; "
+        "style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src data:",
     ),
 )
 
@@ -164,6 +174,8 @@ def sign_or_stage_media_path(
 def media_attachment_kind(name: str) -> str:
     """Infer the WebUI media attachment kind from a filename."""
     mime, _ = mimetypes.guess_type(name)
+    if mime == "text/html":
+        return "html"
     if mime and mime.startswith("video/"):
         return "video"
     if mime and mime.startswith("image/"):
@@ -233,6 +245,8 @@ def _serve_media_file(candidate: Path, *, request: WsRequest | None) -> Response
     ]
     if mime == "image/svg+xml":
         common_headers.extend(_SVG_MEDIA_HEADERS)
+    elif mime == "text/html":
+        common_headers.extend(_HTML_MEDIA_HEADERS)
     try:
         size = candidate.stat().st_size
     except OSError:

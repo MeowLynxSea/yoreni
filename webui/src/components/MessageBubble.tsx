@@ -6,16 +6,27 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Activity, Check, CircleAlert, Clock3, Copy, Quote } from "lucide-react";
+import {
+  Activity,
+  Check,
+  ChevronDown,
+  CircleAlert,
+  Clock3,
+  Copy,
+  CornerUpLeft,
+  Quote,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { AttachmentTile } from "@/components/AttachmentTile";
 import { CodeBlock } from "@/components/CodeBlock";
 import { FallbackResponseSources } from "@/components/ResponseSourceBadge";
+import { HtmlAttachment } from "@/components/HtmlAttachment";
 import { ImageGallery } from "@/components/ImageGallery";
 import { InlineImageProvider, useInlineImages } from "@/components/InlineImageContext";
 import { MarkdownText } from "@/components/MarkdownText";
 import { ContextCompactionNotice } from "@/components/thread/ContextCompactionNotice";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { UserMessageText } from "@/components/UserMessageText";
 import { HoverHint } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -360,6 +371,177 @@ function UserDeliveryStatus({
   );
 }
 
+/** Answers longer than this read as walls of text, so the bubble trims them. */
+const LONG_MESSAGE_CHARS = 1_200;
+
+/** Cut a long answer at a natural boundary so the bubble ends on a whole thought. */
+function trimmedMessage(content: string): string {
+  const window = content.slice(0, LONG_MESSAGE_CHARS);
+  const boundary = Math.max(
+    window.lastIndexOf("\n\n"),
+    window.lastIndexOf("\n"),
+    window.lastIndexOf("。"),
+    window.lastIndexOf("！"),
+    window.lastIndexOf("？"),
+    window.lastIndexOf(". "),
+  );
+  const end = boundary > LONG_MESSAGE_CHARS * 0.6 ? boundary + 1 : LONG_MESSAGE_CHARS;
+  return content.slice(0, end).trimEnd();
+}
+
+/** Scroll the replied-to row into view; both message roles share this anchor. */
+function revealMessage(messageId: string): void {
+  if (typeof document === "undefined") return;
+  const node = document.querySelector(`[data-message-id="${messageId}"]`);
+  node?.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+function MessageReactions({
+  reactions,
+  align,
+}: {
+  reactions: string[] | undefined;
+  align: "left" | "right";
+}) {
+  const { t } = useTranslation();
+  if (!reactions?.length) return null;
+  return (
+    <div
+      data-message-reactions
+      className={cn(
+        "flex max-w-full flex-wrap items-center gap-1",
+        align === "right" ? "justify-end" : "justify-start",
+      )}
+    >
+      {reactions.map((emoji) => (
+        <span
+          key={emoji}
+          role="img"
+          aria-label={t("message.reactionFromAgent")}
+          className={cn(
+            "inline-flex select-none items-center rounded-full border border-border/60 bg-muted/45 px-2 py-0.5",
+            "text-[13px] leading-5 shadow-sm",
+          )}
+        >
+          {emoji}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ReplyContext({
+  quote,
+  replyTo,
+  align,
+}: {
+  quote: string;
+  replyTo?: string;
+  align: "left" | "right";
+}) {
+  const { t } = useTranslation();
+  const label = t("message.replyingTo");
+  const content = (
+    <>
+      <CornerUpLeft className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+      <span className="line-clamp-2 min-w-0 whitespace-pre-wrap text-reading-small [overflow-wrap:anywhere]">
+        {quote}
+      </span>
+    </>
+  );
+  const className = cn(
+    "flex w-fit max-w-full min-w-0 items-start gap-2 rounded-control",
+    "border border-border/60 bg-muted/30 px-3 py-2 text-left text-muted-foreground",
+    align === "right" && "ml-auto",
+  );
+  if (!replyTo) {
+    return <blockquote className={className} aria-label={label}>{content}</blockquote>;
+  }
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={() => revealMessage(replyTo)}
+      className={cn(
+        className,
+        "transition-colors hover:bg-muted/50 hover:text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      )}
+    >
+      {content}
+    </button>
+  );
+}
+
+function DeliveredMessageBody({
+  content,
+  streaming,
+  onOpenFilePreview,
+}: {
+  content: string;
+  streaming: boolean;
+  onOpenFilePreview?: (path: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const long = !streaming && content.length > LONG_MESSAGE_CHARS;
+  if (!long) {
+    return (
+      <MarkdownText
+        streaming={streaming}
+        preserveStreamingLayout
+        onOpenFilePreview={onOpenFilePreview}
+      >
+        {content}
+      </MarkdownText>
+    );
+  }
+  const label = t("message.readFullMessage");
+  return (
+    <>
+      <div
+        data-message-trimmed
+        className={cn(
+          "relative max-h-[26rem] overflow-hidden",
+          "[mask-image:linear-gradient(to_bottom,black_72%,transparent)]",
+        )}
+      >
+        <MarkdownText onOpenFilePreview={onOpenFilePreview}>{trimmedMessage(content)}</MarkdownText>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          tabIndex={-1}
+          aria-hidden
+          className="absolute inset-0 cursor-pointer"
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "mt-2 inline-flex items-center gap-1 rounded-control text-[13px] font-medium",
+          "text-muted-foreground transition-colors hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+      >
+        {label}
+        <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+      </button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          aria-describedby={undefined}
+          className="max-h-[85dvh] w-[min(92vw,46rem)] overflow-y-auto overscroll-contain"
+        >
+          <DialogTitle>{t("message.fullMessageTitle")}</DialogTitle>
+          <div data-assistant-selectable="true" className="text-reading">
+            <MarkdownText onOpenFilePreview={onOpenFilePreview}>{content}</MarkdownText>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 /** Render user turns as compact bubbles and assistant turns as document-like prose. */
 export function MessageBubble({
   message,
@@ -407,6 +589,7 @@ export function MessageBubble({
     );
     return (
       <div
+        data-message-id={message.id}
         className="message-enter group relative ml-auto flex w-fit max-w-[min(85%,36rem)] flex-col items-end gap-1.5"
       >
         {!hasText ? contextMenu : null}
@@ -438,6 +621,7 @@ export function MessageBubble({
             </p>
           </div>
         ) : null}
+        <MessageReactions reactions={message.reactions} align="right" />
         {showDeliveryStatus ? (
             <div className="flex min-h-8 items-center justify-end gap-1.5 text-muted-foreground">
               <UserDeliveryStatus
@@ -460,6 +644,7 @@ export function MessageBubble({
   return (
     <div
       data-assistant-message
+      data-message-id={message.id}
       className={cn(
         "message-enter group/assistant relative w-full text-reading",
         message.isStreaming && "assistant-caret",
@@ -468,9 +653,20 @@ export function MessageBubble({
       {contextMenu}
       <div className="app-surface-glass rounded-[1.6rem] px-5 py-4 sm:px-6 sm:py-5">
         <InlineImageProvider>
+          {message.quote ? (
+            <div className="mb-3">
+              <ReplyContext quote={message.quote} replyTo={message.replyTo} align="left" />
+            </div>
+          ) : null}
           <div data-assistant-selectable={message.isStreaming ? undefined : "true"}>
             {message.renderAs === "text" ? (
               <CodeBlock language="text" code={assistantContent} highlight={false} ansi={false} />
+            ) : message.delivered ? (
+              <DeliveredMessageBody
+                content={assistantContent}
+                streaming={!!message.isStreaming}
+                onOpenFilePreview={onOpenFilePreview}
+              />
             ) : (
               /* A mode switch rebuilds Streamdown's subtree and moves the scroll anchor. */
               <MarkdownText
@@ -485,6 +681,11 @@ export function MessageBubble({
           {media.length > 0 ? <MessageMedia media={media} align="left" /> : null}
         </InlineImageProvider>
       </div>
+      {message.reactions?.length ? (
+        <div className="mt-1.5 pl-1">
+          <MessageReactions reactions={message.reactions} align="left" />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -585,6 +786,7 @@ function MessageMedia({
   const images: UIImage[] = [];
   const seen = new Set<string>();
   const videos: UIMediaAttachment[] = [];
+  const pages: UIMediaAttachment[] = [];
   const files: UIMediaAttachment[] = [];
   for (const item of media) {
     const normalized = toMediaAttachment(item);
@@ -594,11 +796,15 @@ function MessageMedia({
       images.push({ url: normalized.url, name: normalized.name });
     } else if (normalized.kind === "video") {
       videos.push(normalized);
+    } else if (normalized.kind === "html") {
+      pages.push(normalized);
     } else {
       files.push(normalized);
     }
   }
-  if (images.length === 0 && videos.length === 0 && files.length === 0) return null;
+  if (images.length === 0 && videos.length === 0 && pages.length === 0 && files.length === 0) {
+    return null;
+  }
 
   return (
     <div
@@ -610,6 +816,9 @@ function MessageMedia({
       {images.length > 0 ? (
         <ImageGallery images={images} align={align} size={align === "left" ? "large" : "compact"} />
       ) : null}
+      {pages.map((item, i) => (
+        <HtmlAttachment key={`html-${i}`} attachment={item} className="my-0 w-[min(100%,32rem)]" />
+      ))}
       {videos.map((item, i) => (
         <AttachmentTile key={`video-${i}`} attachment={item} pending={pending} className="my-0" />
       ))}

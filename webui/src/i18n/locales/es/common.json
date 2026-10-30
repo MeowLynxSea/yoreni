@@ -2078,7 +2078,13 @@
     "cliRunRan": "Usado",
     "cliRunFailed": "Falló",
     "automationSourceFallback": "Automatización",
-    "automationTriggered": "Activada automáticamente"
+    "automationTriggered": "Activada automáticamente",
+    "readFullMessage": "Leer el mensaje completo",
+    "fullMessageTitle": "Mensaje",
+    "replyingTo": "En respuesta a",
+    "reactionFromAgent": "El agente reaccionó con este emoji",
+    "htmlPreview": "Vista previa de la página HTML",
+    "openHtmlInTab": "Abrir {{name}} en una pestaña nueva"
   },
   "recovery": {
     "actionFailed": "La recuperación falló. Inténtalo de nuevo.",

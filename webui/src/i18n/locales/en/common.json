@@ -2078,7 +2078,13 @@
       "context": "Context now: {{tokens}}{{capacity}}",
       "requests": "{{count}} calls this turn",
       "estimated": "Includes estimated usage"
-    }
+    },
+    "readFullMessage": "Read full message",
+    "fullMessageTitle": "Message",
+    "replyingTo": "In reply to",
+    "reactionFromAgent": "Agent reacted with this emoji",
+    "htmlPreview": "Preview HTML page",
+    "openHtmlInTab": "Open {{name}} in a new tab"
   },
   "recovery": {
     "actionFailed": "Recovery action failed. Try again.",

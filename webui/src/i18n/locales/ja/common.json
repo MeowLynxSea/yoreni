@@ -2078,7 +2078,13 @@
     "cliRunRan": "使用済み",
     "cliRunFailed": "失敗",
     "automationSourceFallback": "自動化",
-    "automationTriggered": "自動実行"
+    "automationTriggered": "自動実行",
+    "readFullMessage": "メッセージ全文を読む",
+    "fullMessageTitle": "メッセージ",
+    "replyingTo": "返信先",
+    "reactionFromAgent": "エージェントが付けたリアクション",
+    "htmlPreview": "HTML ページをプレビュー",
+    "openHtmlInTab": "{{name}} を新しいタブで開く"
   },
   "recovery": {
     "actionFailed": "復元操作に失敗しました。もう一度お試しください。",

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,6 +15,10 @@ from typing import Any, Generator, Literal, TypedDict, cast
 from uuid import uuid4
 
 from yoreni.utils.helpers import find_legal_message_start
+
+# Bumped when the UI projection of a Run changes shape. Rows written before
+# message-level persistence expose only their legacy single answer.
+PROJECTION_ENTRIES = 1
 
 PERSONAL_CHAT_ID = "yoreni"
 
@@ -40,17 +45,28 @@ class StoredRun(PendingRun):
     payload: dict[str, Any]
 
 
+class RunEntry(TypedDict):
+    """One durable, user-visible row in a Run's conversation projection."""
+
+    seq: int
+    kind: Literal["message", "user", "reaction"]
+    payload: dict[str, Any]
+
+
 class WebUIRun(TypedDict):
     id: str
     status: RunStatus
     error: str | None
     event_seq: int
     event_id: str
+    created_at_ms: int
     source: str
     kind: str
     content: str
     result: RunOutcome | None
     activity: list[RunActivity]
+    projection: int
+    entries: list[RunEntry]
 
 
 class RunActivity(TypedDict):
@@ -161,9 +177,32 @@ class AgentStore:
                     checkpoint TEXT,
                     result TEXT,
                     error TEXT,
-                    journaled INTEGER NOT NULL DEFAULT 0
+                    journaled INTEGER NOT NULL DEFAULT 0,
+                    projection INTEGER NOT NULL DEFAULT 0,
+                    created_at_ms INTEGER NOT NULL DEFAULT 0
                 );
+                CREATE TABLE IF NOT EXISTS run_entries (
+                    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+                    run_id TEXT NOT NULL REFERENCES runs(id),
+                    kind TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    created_at_ms INTEGER NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS run_entries_run
+                    ON run_entries(run_id, seq);
             """)
+            columns = {
+                str(row["name"])
+                for row in db.execute("PRAGMA table_info(runs)").fetchall()
+            }
+            if "projection" not in columns:
+                db.execute(
+                    "ALTER TABLE runs ADD COLUMN projection INTEGER NOT NULL DEFAULT 0"
+                )
+            if "created_at_ms" not in columns:
+                db.execute(
+                    "ALTER TABLE runs ADD COLUMN created_at_ms INTEGER NOT NULL DEFAULT 0"
+                )
             db.execute("INSERT OR IGNORE INTO agent(singleton,id) VALUES(1,?)", (uuid4().hex,))
 
     @contextmanager
@@ -220,7 +259,8 @@ class AgentStore:
             if row["payload"] != payload:
                 raise AgentStateConflictError("Event ID was already used for different input.")
             db.execute(
-                "INSERT OR IGNORE INTO runs(id,event_seq) VALUES(?,?)", (uuid4().hex, row["seq"]),
+                "INSERT OR IGNORE INTO runs(id,event_seq,created_at_ms) VALUES(?,?,?)",
+                (uuid4().hex, row["seq"], int(time.time() * 1000)),
             )
             run = db.execute("SELECT id FROM runs WHERE event_seq=?", (row["seq"],)).fetchone()
             assert run is not None
@@ -245,20 +285,174 @@ class AgentStore:
             )
 
     def find_event(self, source: str, event_id: str) -> StoredRun | None:
-        """Find a durable receipt without admitting or executing the Event again."""
+        """Find a durable receipt without admitting or executing the Event again.
+
+        A message inserted into a running turn never becomes its own Run, so its
+        receipt is the owning Run plus the stored conversation row.
+        """
         with self.connection() as db:
             row = db.execute(
                 """SELECT runs.id FROM runs JOIN events ON events.seq=runs.event_seq
                    WHERE events.source=? AND events.event_id=?""", (source, event_id),
             ).fetchone()
-        return self.read_run(row["id"]) if row else None
+            if row is not None:
+                return self.read_run(row["id"])
+            inserted = db.execute(
+                """SELECT run_entries.run_id,run_entries.payload,runs.status,runs.result
+                   FROM run_entries JOIN runs ON runs.id=run_entries.run_id
+                   WHERE run_entries.kind='user'
+                     AND json_extract(run_entries.payload,'$.id')=?
+                   ORDER BY run_entries.seq DESC LIMIT 1""",
+                (event_id,),
+            ).fetchone()
+        if inserted is None:
+            return None
+        return StoredRun(
+            id=str(inserted["run_id"]), event_seq=0, status=cast(RunStatus, inserted["status"]),
+            transcript=[], checkpoint=None,
+            result=json.loads(inserted["result"]) if inserted["result"] is not None else None,
+            error=None, journaled=1,
+            payload=cast(dict[str, Any], json.loads(inserted["payload"])),
+        )
 
     def start(self, run_id: str, transcript: list[dict[str, Any]]) -> None:
         with self.connection() as db:
             db.execute(
-                "UPDATE runs SET status='running',transcript=?,error=NULL WHERE id=?",
-                (json.dumps(transcript, ensure_ascii=False), run_id),
+                "UPDATE runs SET status='running',transcript=?,error=NULL,projection=? WHERE id=?",
+                (json.dumps(transcript, ensure_ascii=False), PROJECTION_ENTRIES, run_id),
             )
+
+    def append_entry(
+        self,
+        run_id: str,
+        kind: Literal["message", "user", "reaction"],
+        payload: dict[str, Any],
+    ) -> int:
+        """Append one durable conversation row without rewriting the transcript.
+
+        Ephemeral Runs have no row to attach to; their rows stay in memory and
+        the zero result tells the caller that nothing was persisted.
+        """
+        encoded = json.dumps(payload, ensure_ascii=False, allow_nan=False)
+        raw_created_at = payload.get("created_at_ms")
+        created_at_ms = (
+            raw_created_at
+            if isinstance(raw_created_at, int) and not isinstance(raw_created_at, bool)
+            else int(time.time() * 1000)
+        )
+        with self.connection() as db:
+            if db.execute("SELECT 1 FROM runs WHERE id=?", (run_id,)).fetchone() is None:
+                return 0
+            cursor = db.execute(
+                "INSERT INTO run_entries(run_id,kind,payload,created_at_ms) VALUES(?,?,?,?)",
+                (run_id, kind, encoded, created_at_ms),
+            )
+            return int(cursor.lastrowid or 0)
+
+    def remove_entry(self, run_id: str, entry_id: str) -> None:
+        """Drop one conversation row that never reached the model."""
+        with self.connection() as db:
+            db.execute(
+                """DELETE FROM run_entries
+                   WHERE run_id=? AND json_extract(payload,'$.id')=?""",
+                (run_id, entry_id),
+            )
+
+    def _entries_for(self, db: sqlite3.Connection, run_ids: list[str]) -> dict[str, list[RunEntry]]:
+        entries: dict[str, list[RunEntry]] = {run_id: [] for run_id in run_ids}
+        if not run_ids:
+            return entries
+        placeholders = ",".join("?" for _ in run_ids)
+        rows = db.execute(
+            f"""SELECT seq,run_id,kind,payload FROM run_entries
+                WHERE run_id IN ({placeholders}) ORDER BY seq""",
+            run_ids,
+        ).fetchall()
+        for row in rows:
+            payload = cast(dict[str, Any], json.loads(row["payload"]))
+            entries[str(row["run_id"])].append(RunEntry(
+                seq=int(row["seq"]),
+                kind=cast(Literal["message", "user", "reaction"], row["kind"]),
+                payload=payload,
+            ))
+        return entries
+
+    def recent_user_messages(self, *, limit: int = 6) -> list[dict[str, Any]]:
+        """Return recent owner messages, newest first, for reply targeting.
+
+        Prompt Events and messages inserted into a running turn live in different
+        tables; both carry a wall-clock timestamp, which is the only ordering
+        that survives the split.
+        """
+        with self.connection() as db:
+            prompts = db.execute(
+                """SELECT events.event_id AS id,
+                          json_extract(events.payload,'$.content') AS content,
+                          runs.created_at_ms AS created_at_ms
+                   FROM events JOIN runs ON runs.event_seq=events.seq
+                   WHERE json_extract(events.payload,'$.kind')='user'
+                     AND json_extract(events.payload,'$.principal')='owner'
+                   ORDER BY events.seq DESC LIMIT ?""",
+                (limit,),
+            ).fetchall()
+            inserted = db.execute(
+                """SELECT json_extract(payload,'$.id') AS id,
+                          json_extract(payload,'$.content') AS content,
+                          created_at_ms
+                   FROM run_entries WHERE kind='user'
+                   ORDER BY seq DESC LIMIT ?""",
+                (limit,),
+            ).fetchall()
+        rows = [
+            {"id": str(row["id"]), "text": str(row["content"] or ""), "created_at_ms": int(row["created_at_ms"] or 0)}
+            for row in (*prompts, *inserted)
+        ]
+        rows.sort(key=lambda row: row["created_at_ms"], reverse=True)
+        return rows[:limit]
+
+    def last_user_chat(self, channel: str) -> str | None:
+        """Return the chat the owner most recently used on one channel."""
+        with self.connection() as db:
+            row = db.execute(
+                """SELECT events.payload FROM events
+                   WHERE json_extract(events.payload,'$.kind')='user'
+                     AND json_extract(events.payload,'$.principal')='owner'
+                     AND json_extract(events.payload,'$.channel')=?
+                   ORDER BY events.seq DESC LIMIT 1""",
+                (channel,),
+            ).fetchone()
+        if row is None:
+            return None
+        chat_id = cast(dict[str, Any], json.loads(row["payload"])).get("chat_id")
+        return chat_id if isinstance(chat_id, str) and chat_id else None
+
+    def resolve_message_reference(self, message_id: str) -> dict[str, str] | None:
+        """Resolve a conversation row to its author and bounded text."""
+        with self.connection() as db:
+            event = db.execute(
+                """SELECT payload FROM events
+                   WHERE event_id=? AND json_extract(payload,'$.principal')='owner' LIMIT 1""",
+                (message_id,),
+            ).fetchone()
+            if event is not None:
+                payload = cast(dict[str, Any], json.loads(event["payload"]))
+                return {
+                    "role": "user",
+                    "content": str(payload.get("content", ""))[:400],
+                }
+            entry = db.execute(
+                """SELECT kind,payload FROM run_entries
+                   WHERE json_extract(payload,'$.id')=? AND kind IN ('message','user')
+                   ORDER BY seq DESC LIMIT 1""",
+                (message_id,),
+            ).fetchone()
+        if entry is None:
+            return None
+        payload = cast(dict[str, Any], json.loads(entry["payload"]))
+        return {
+            "role": "user" if entry["kind"] == "user" else "assistant",
+            "content": str(payload.get("content", ""))[:400],
+        }
 
     def checkpoint(self, run_id: str, payload: dict[str, Any]) -> None:
         with self.connection() as db:
@@ -321,7 +515,8 @@ class AgentStore:
         """
         with self.connection() as db:
             rows = db.execute(
-                """SELECT runs.id,runs.status,runs.error,runs.result,
+                """SELECT runs.id,runs.status,runs.error,runs.result,runs.projection,
+                          runs.created_at_ms,
                           CASE WHEN runs.status IN ('queued','running')
                                THEN runs.checkpoint ELSE NULL END AS checkpoint,
                           events.seq,events.event_id,events.source,events.payload
@@ -329,6 +524,7 @@ class AgentStore:
                    WHERE json_extract(events.payload,'$.principal')='owner'
                    ORDER BY events.seq DESC LIMIT ?""", (limit,),
             ).fetchall()
+            entries = self._entries_for(db, [str(row["id"]) for row in rows])
         result: list[WebUIRun] = []
         for row in reversed(rows):
             payload = cast(dict[str, Any], json.loads(row["payload"]))
@@ -336,9 +532,12 @@ class AgentStore:
             result.append(WebUIRun(
                 id=row["id"], status=row["status"], error=row["error"],
                 event_seq=row["seq"], event_id=row["event_id"], source=row["source"],
+                created_at_ms=int(row["created_at_ms"] or 0),
                 kind=str(payload.get("kind", "user")), content=str(payload.get("content", "")),
                 result=cast(RunOutcome | None, raw_result),
                 activity=pending_run_activity(row["status"], row["checkpoint"]),
+                projection=int(row["projection"] or 0),
+                entries=entries.get(str(row["id"]), []),
             ))
         return result
 

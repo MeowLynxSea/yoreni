@@ -1455,7 +1455,7 @@ class MatrixChannel(BaseChannel):
         """Build common metadata for text and media handlers.
 
         ``message_id`` mirrors the Matrix event id so the agent loop and
-        message tool can round-trip a reply target the same way Telegram and
+        send_message can round-trip a reply target the same way Telegram and
         Discord do. ``event_id`` is kept for Matrix-specific callers.
         """
         meta: dict[str, Any] = {"room": getattr(room, "display_name", room.room_id)}

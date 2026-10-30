@@ -158,6 +158,8 @@ def _exec_parameters(config: ExecToolConfig) -> dict[str, Any]:
 class ExecTool(Tool):
     """Tool to execute shell commands."""
     _scopes = {"core", "subagent"}
+    interruptible = True
+
 
     config_key = "exec"
 

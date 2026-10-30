@@ -92,7 +92,7 @@ def test_discover_finds_concrete_tools():
     assert "ApplyPatchTool" in class_names
     assert "ExecTool" in class_names
     assert "CliAppsTool" in class_names
-    assert "MessageTool" in class_names
+    assert "SendMessageTool" in class_names
     assert "MyTool" in class_names
     assert "ExecSessionTool" in class_names
 
@@ -216,12 +216,12 @@ def test_fs_tool_create_respects_sandbox():
 
 
 async def test_message_tool_create():
-    from yoreni.agent.tools.message import MessageTool
+    from yoreni.agent.tools.send_message import SendMessageTool
     mock_bus = MagicMock()
     mock_config = MagicMock()
     ctx = ToolContext(config=mock_config, workspace="/tmp", bus=mock_bus)
-    tool = MessageTool.create(ctx)
-    assert isinstance(tool, MessageTool)
+    tool = SendMessageTool.create(ctx)
+    assert isinstance(tool, SendMessageTool)
 
 
 def test_cron_tool_enabled_without_service():
@@ -441,7 +441,7 @@ def test_loader_registers_builtin_tools():
         "read_file", "write_file", "edit_file", "list_dir",
         "exec", "exec_session", "list_exec_sessions",
         "web_search", "web_fetch",
-        "message", "cron",
+        "send_message", "react", "cron",
         "my",
     }
     actual = set(registered)

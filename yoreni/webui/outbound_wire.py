@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, NotRequired, TypeAlias, TypedDict, cast
 
@@ -60,6 +60,59 @@ def project_tool_events(events: list[dict[str, Any]]) -> list[dict[str, _JSONVal
     return projected_events
 
 
+def encode_history_entries(
+    entries: Sequence[Mapping[str, Any]],
+    *,
+    sign_media: Callable[[str], dict[str, str] | None],
+) -> list[dict[str, Any]]:
+    """Frame durable conversation rows as the live wire shapes they replay.
+
+    A reload must rebuild the same conversation the socket streamed, so stored
+    rows keep one frame vocabulary instead of inventing a second schema.
+    """
+    frames: list[dict[str, Any]] = []
+    for entry in entries:
+        payload = cast(Mapping[str, object], entry.get("payload") or {})
+        kind = entry.get("kind")
+        created_at_ms = payload.get("created_at_ms")
+        created = int(created_at_ms) if isinstance(created_at_ms, int) else 0
+        if kind == "message":
+            frame: dict[str, Any] = {
+                "event": "message",
+                "id": str(payload.get("id") or ""),
+                "text": str(payload.get("content") or ""),
+                "created_at_ms": created,
+            }
+            media_paths = [str(item) for item in cast(list[object], payload.get("media") or [])]
+            attachments = [
+                signed for path in media_paths
+                if (signed := sign_media(path)) is not None
+            ]
+            if attachments:
+                frame["media_urls"] = attachments
+            if payload.get("reply_to"):
+                frame["reply_to"] = str(payload["reply_to"])
+            if payload.get("quote"):
+                frame["quote"] = str(payload["quote"])
+            frames.append(frame)
+        elif kind == "reaction":
+            frames.append({
+                "event": "reaction",
+                "id": str(payload.get("id") or ""),
+                "target": str(payload.get("target") or ""),
+                "emoji": str(payload.get("emoji") or ""),
+                "created_at_ms": created,
+            })
+        elif kind == "user":
+            frames.append({
+                "event": "user_message",
+                "message_id": str(payload.get("id") or ""),
+                "text": str(payload.get("content") or ""),
+                "created_at_ms": created,
+            })
+    return frames
+
+
 class _ChatWirePayload(TypedDict):
     chat_id: str
     turn_id: NotRequired[str]
@@ -111,14 +164,26 @@ class ContextCompactionWirePayload(_ChatWirePayload):
 class MessageWirePayload(_ChatWirePayload):
     event: Literal["message"]
     text: str
+    """Stable conversation row ID; absent on legacy Run answers."""
+    id: NotRequired[str]
     render_as: NotRequired[Literal["text"]]
     media: NotRequired[list[str]]
     media_urls: NotRequired[list[dict[str, str]]]
     reply_to: NotRequired[str]
+    quote: NotRequired[str]
+    buttons: NotRequired[list[list[str]]]
     latency_ms: NotRequired[int]
     tool_events: NotRequired[list[dict[str, _JSONValue]]]
     agent_ui: NotRequired[object]
     kind: NotRequired[Literal["tool_hint", "progress"]]
+
+
+class ReactionWirePayload(_ChatWirePayload):
+    event: Literal["reaction"]
+    id: str
+    target: str
+    emoji: str
+    created_at_ms: int
 
 
 class StreamWirePayload(_ChatWirePayload):
@@ -152,6 +217,7 @@ class UserInputWirePayload(_ChatWirePayload):
     text: str
     created_at_ms: int
     starts_turn: bool
+    message_id: NotRequired[str]
     provenance: NotRequired[dict[str, Any]]
 
 
@@ -176,7 +242,7 @@ class TurnModelWirePayload(_ChatWirePayload):
 
 WebUIWirePayload: TypeAlias = (
     RetryStatusWirePayload | ContextCompactionWirePayload | RecoveryStateWirePayload | TurnEndWirePayload
-    | MessageWirePayload | StreamWirePayload | FileEditWirePayload
+    | MessageWirePayload | ReactionWirePayload | StreamWirePayload | FileEditWirePayload
     | GoalStateWirePayload | GoalStatusWirePayload | UserInputWirePayload
     | PairingChangedWirePayload | RuntimeModelWirePayload | TurnModelWirePayload
 )

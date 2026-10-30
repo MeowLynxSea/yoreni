@@ -47,17 +47,31 @@ export function AttachmentTile({ attachment, className, inline = false, variant 
         inline={inline}
         variant={variant}
       >
-        <video
-          src={videoUrl}
-          controls
-          preload="metadata"
-          onError={() => setFailedUrl(videoUrl)}
-          className={cn(
-            "block w-full bg-black",
-            variant === "compact" ? "max-h-40" : "max-h-[26rem]",
-          )}
-          aria-label={attachment.name ? `${t("message.videoAttachment", { defaultValue: "Video attachment" })}: ${attachment.name}` : t("message.videoAttachment", { defaultValue: "Video attachment" })}
-        />
+        <span className="relative block">
+          <video
+            src={videoUrl}
+            controls
+            preload="metadata"
+            onError={() => setFailedUrl(videoUrl)}
+            className={cn(
+              "block w-full bg-black",
+              variant === "compact" ? "max-h-40" : "max-h-[26rem]",
+            )}
+            aria-label={attachment.name ? `${t("message.videoAttachment", { defaultValue: "Video attachment" })}: ${attachment.name}` : t("message.videoAttachment", { defaultValue: "Video attachment" })}
+          />
+          <a
+            href={videoUrl}
+            download={attachment.name || undefined}
+            aria-label={t("message.downloadAttachment", { name: attachment.name || label })}
+            className={cn(
+              "absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full",
+              "bg-black/55 text-white/90 transition-colors hover:text-white",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+            )}
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden />
+          </a>
+        </span>
       </AttachmentFrame>
     );
   }

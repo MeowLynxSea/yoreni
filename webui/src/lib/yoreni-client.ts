@@ -18,6 +18,16 @@ export interface AgentFrame {
   detail?: string;
   error?: { status?: number; message?: string } | string;
   media_urls?: { url: string; name: string; kind?: string }[];
+  /** Durable conversation row ID of a delivered Agent message. */
+  id?: string;
+  /** Conversation row a delivered Agent message answers. */
+  reply_to?: string;
+  quote?: string;
+  /** Emoji reaction target and value. */
+  target?: string;
+  emoji?: string;
+  /** ID of the user message a `user_message` frame records. */
+  message_id?: string;
   tool_events?: import("./types").ToolProgressEvent[];
   edits?: import("./types").UIFileEdit[];
   latency_ms?: number;

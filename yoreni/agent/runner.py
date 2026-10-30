@@ -79,6 +79,7 @@ _ARREARAGE_ERROR_MESSAGE = (
 _PERSISTED_MODEL_ERROR_PLACEHOLDER = "[Assistant reply unavailable due to model error.]"
 _MAX_EMPTY_RETRIES = 2
 _MAX_LENGTH_RECOVERIES = 3
+_MAX_REQUIRED_TOOL_NUDGES = 2
 _PromptArgs = ParamSpec("_PromptArgs")
 _PromptResult = TypeVar("_PromptResult")
 
@@ -92,6 +93,14 @@ def _restore_outer_whitespace(content: str, original: str | None) -> str:
     leading = original[:leading_size]
     trailing = original[-trailing_size:] if trailing_size else ""
     return f"{leading}{content}{trailing}"
+
+
+@dataclass(frozen=True)
+class RequiredToolRound:
+    """One round after an interruption where speaking starts with a tool call."""
+
+    tool_name: str
+    instruction: str
 
 
 @dataclass(slots=True)
@@ -119,6 +128,10 @@ class AgentRunSpec:
     injection_callback: InjectionCallback | None = None
     terminal_injection_callback: InjectionCallback | None = None
     continuation_callback: ContinuationCallback | None = None
+    # A message that breaks into the turn first gets a reaction, then an answer.
+    required_tool_round: RequiredToolRound | None = None
+    # Set by the runtime when the owner speaks while a tool call is running.
+    interrupt: asyncio.Event | None = None
     finalize_on_max_iterations: bool = True
     provider_state: ProviderConversationState | None = None
     llm_usage_source: LLMUsageSource | None = None
@@ -434,6 +447,11 @@ class AgentRunner:
         pending_length_segment: tuple[AgentHookContext, str] | None = None
         had_injections = False
         injection_cycles = 0
+        # A message that broke into the turn is acknowledged with an emoji
+        # before the model is allowed to answer it.
+        required_tool_pending = False
+        required_tool_nudges = 0
+        armed_injection_cycle = 0
         pending_stream_content: str | None = None
         conversation_state = ProviderConversationStateController(
             provider=spec.runtime.provider,
@@ -489,6 +507,12 @@ class AgentRunner:
             )
             if drained_before_request:
                 had_injections = True
+            # Any injection, wherever it was drained, starts one acknowledgement
+            # round before the model may answer.
+            if injection_cycles > armed_injection_cycle:
+                armed_injection_cycle = injection_cycles
+                required_tool_pending = spec.required_tool_round is not None
+                required_tool_nudges = 0
             await end_length_segment(interrupted=drained_before_request)
             context = AgentHookContext(
                 iteration=iteration,
@@ -500,6 +524,14 @@ class AgentRunner:
             request_messages = await self.prepare_prompt(
                 request_state.compaction.request_messages, messages,
             )
+            round_tools = None
+            if required_tool_pending and spec.required_tool_round is not None:
+                required_definitions = [
+                    definition for definition in spec.tools.get_definitions()
+                    if definition.get("function", {}).get("name") == spec.required_tool_round.tool_name
+                ]
+                # An unregistered tool cannot be required; keep the normal set.
+                round_tools = required_definitions or None
             response, raw_usage = await self._request_model(
                 spec,
                 request_messages,
@@ -507,6 +539,7 @@ class AgentRunner:
                 context,
                 request_state=request_state,
                 transcript=messages,
+                tool_definitions=round_tools,
             )
             assert request_state.messages is not None
             messages_for_model = request_state.messages
@@ -532,6 +565,46 @@ class AgentRunner:
                 await hook.emit_reasoning(reasoning_text)
                 await hook.emit_reasoning_end()
                 context.streamed_reasoning = True
+
+            if required_tool_pending and spec.required_tool_round is not None:
+                if any(
+                    tool_call.name == spec.required_tool_round.tool_name
+                    for tool_call in response.tool_calls
+                ):
+                    required_tool_pending = False
+                elif (
+                    not response.should_execute_tools
+                    and response.finish_reason not in {"error", "length", "refusal", "content_filter"}
+                    and required_tool_nudges < _MAX_REQUIRED_TOOL_NUDGES
+                ):
+                    # The model answered in prose instead of reacting first.
+                    required_tool_nudges += 1
+                    if hook.wants_streaming():
+                        await hook.on_stream_end(context, resuming=False)
+                    if response.content:
+                        messages.append(
+                            conversation_state.project_response_message(
+                                build_assistant_message(
+                                    response.content,
+                                    reasoning_content=response.reasoning_content,
+                                    thinking_blocks=response.thinking_blocks,
+                                ),
+                                response,
+                            )
+                        )
+                    messages.append({
+                        "role": "user",
+                        "content": spec.required_tool_round.instruction,
+                    })
+                    logger.info(
+                        "Required tool {} round nudged for {}",
+                        spec.required_tool_round.tool_name,
+                        spec.run_id or "default",
+                    )
+                    await hook.after_iteration(context)
+                    continue
+                else:
+                    required_tool_pending = False
 
             if response.should_execute_tools:
                 context.tool_calls = list(response.tool_calls)
@@ -574,6 +647,7 @@ class AgentRunner:
                     context=context,
                     model_messages=messages_for_model,
                     compacted_tool_results=request_state.compacted_tool_results,
+                    interrupt=spec.interrupt,
                 )
                 tool_events.extend(new_events)
                 tools_used.extend(
@@ -939,12 +1013,13 @@ class AgentRunner:
         request_state: ModelRequestState,
         malformed_retry: bool = False,
         transcript: list[dict[str, Any]] | None,
+        tool_definitions: list[dict[str, Any]] | None = None,
     ) -> tuple[LLMResponse, LLMUsage]:
         _raise_if_cancelling()
         messages, kwargs = await self._prepare_model_request(
             spec,
             messages,
-            tools=spec.tools.get_definitions(),
+            tools=tool_definitions if tool_definitions is not None else spec.tools.get_definitions(),
             request_state=request_state,
             transcript=transcript,
         )

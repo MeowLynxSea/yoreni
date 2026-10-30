@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AgentFrame } from "@/lib/yoreni-client";
+import { toMediaAttachment } from "@/lib/media";
 import type { ToolProgressEvent, UIMessage } from "@/lib/types";
 import { fetchPersonalAgent, type AgentHistoryRun } from "@/lib/api";
 import { useClient } from "@/providers/ClientProvider";
@@ -30,9 +31,29 @@ function runKey(frame: AgentFrame): string {
   return frame.run_id ?? frame.turn_id ?? "notification";
 }
 
+const QUOTE_PREVIEW_CHARS = 160;
+
+/** One-line excerpt of a message, used when the Agent replies without quoting it. */
+function quotePreview(text: string): string | undefined {
+  const trimmed = text.trim();
+  if (!trimmed) return undefined;
+  return trimmed.length > QUOTE_PREVIEW_CHARS ? `${trimmed.slice(0, QUOTE_PREVIEW_CHARS)}…` : trimmed;
+}
+
+function historyMedia(media: { url: string; name: string }[] | undefined) {
+  return (media ?? []).map((item) => toMediaAttachment({ url: item.url, name: item.name }));
+}
+
+/** Replay durable conversation rows in arrival order.
+ *
+ * Runs recorded before the message projection have no rows: their answer is
+ * still the Run result, so both layouts have to coexist in one timeline.
+ */
 function historyMessages(runs: AgentHistoryRun[]): UIMessage[] {
   return runs.flatMap((run) => {
-    const createdAt = run.event_seq * 2;
+    const admittedAt = typeof run.created_at_ms === "number" && run.created_at_ms > 0
+      ? run.created_at_ms
+      : run.event_seq * 2;
     const messages: UIMessage[] = [];
     if (run.kind === "user") {
       messages.push({
@@ -40,18 +61,69 @@ function historyMessages(runs: AgentHistoryRun[]): UIMessage[] {
         turnId: run.id,
         role: "user",
         content: run.content,
-        createdAt,
+        createdAt: admittedAt,
         deliveryStatus: "accepted",
       });
     }
+    for (const entry of run.projection ? run.entries ?? [] : []) {
+      const createdAt = typeof entry.created_at_ms === "number" && entry.created_at_ms > 0
+        ? entry.created_at_ms
+        : admittedAt + messages.length + 1;
+      if (entry.event === "user_message") {
+        const id = entry.message_id;
+        if (!id || messages.some((message) => message.id === id)) continue;
+        messages.push({
+          id,
+          turnId: run.id,
+          role: "user",
+          content: entry.text ?? "",
+          createdAt,
+          deliveryStatus: "accepted",
+        });
+        continue;
+      }
+      if (entry.event === "message") {
+        if (!entry.id) continue;
+        const media = historyMedia(entry.media_urls);
+        const replied = entry.reply_to
+          ? messages.find((message) => message.id === entry.reply_to)
+          : undefined;
+        messages.push({
+          id: entry.id,
+          turnId: run.id,
+          role: "assistant",
+          content: entry.text ?? "",
+          createdAt,
+          source: run.kind === "user" ? undefined : { kind: run.kind, label: run.source },
+          turnPhase: "complete",
+          delivered: true,
+          ...(entry.reply_to ? { replyTo: entry.reply_to } : {}),
+          ...(entry.quote || quotePreview(replied?.content ?? "")
+            ? { quote: entry.quote || quotePreview(replied?.content ?? "") }
+            : {}),
+          ...(media.length ? { media } : {}),
+        });
+        continue;
+      }
+      if (entry.event === "reaction" && entry.target && entry.emoji) {
+        const index = messages.findIndex((message) => message.id === entry.target);
+        if (index < 0) continue;
+        const target = messages[index];
+        const reactions = target.reactions ?? [];
+        if (!reactions.includes(entry.emoji)) {
+          messages[index] = { ...target, reactions: [...reactions, entry.emoji] };
+        }
+      }
+    }
     const content = run.result?.content;
-    if (typeof content === "string" && content.length > 0) {
+    const answered = messages.some((message) => message.delivered);
+    if (!answered && typeof content === "string" && content.length > 0) {
       messages.push({
         id: `${run.id}:answer`,
         turnId: run.id,
         role: "assistant",
         content,
-        createdAt: createdAt + 1,
+        createdAt: admittedAt + messages.length + 1,
         source: run.kind === "user" ? undefined : { kind: run.kind, label: run.source },
         turnPhase: "complete",
       });
@@ -72,13 +144,17 @@ function mergeHistory(current: UIMessage[], runs: AgentHistoryRun[]): UIMessage[
     if (message.role !== "assistant") return false;
     const settled = durable.some((entry) => entry.role === "assistant"
       && entry.turnId === message.turnId
-      && entry.content === message.content);
+      && (entry.id === message.id || entry.content === message.content));
     if (!settled) return false;
     survived.add(message.turnId);
     return true;
   });
   for (const message of durable) {
-    if (message.role === "assistant" && message.turnId && survived.has(message.turnId)) continue;
+    // Delivered messages carry globally unique IDs, so they always merge by ID.
+    // A legacy answer only has its Run as identity and must not duplicate the
+    // live bubble that already survived the comparison above.
+    if (!message.delivered && message.role === "assistant" && message.turnId
+      && survived.has(message.turnId)) continue;
     const index = merged.findIndex((entry) => entry.id === message.id);
     if (index >= 0) {
       const old = merged[index];
@@ -106,10 +182,56 @@ export function projectAgentFrame(messages: UIMessage[], frame: AgentFrame): UIM
   if (frame.event === "accepted") return messages.map((message) => message.id === frame.event_id
     ? { ...message, deliveryStatus: "accepted", turnId: frame.run_id ?? message.turnId } : message);
   if (frame.event === "user_message") {
-    if (messages.some((message) => message.id === frame.turn_id)) return messages;
-    return [...messages, { id: frame.turn_id ?? crypto.randomUUID(), turnId: run, role: "user", content: frame.text ?? "", createdAt: Date.now() }];
+    const id = frame.message_id ?? frame.turn_id;
+    if (!id || messages.some((message) => message.id === id)) return messages;
+    return [...messages, {
+      id,
+      turnId: run,
+      role: "user",
+      content: frame.text ?? "",
+      createdAt: frame.created_at_ms ?? Date.now(),
+      deliveryStatus: "accepted",
+    }];
   }
-  if (frame.event === "turn_end") return messages.map((message) => message.turnId === run
+  if (frame.event === "reaction") {
+    if (!frame.target || !frame.emoji) return messages;
+    return messages.map((message) => {
+      if (message.id !== frame.target) return message;
+      const reactions = message.reactions ?? [];
+      return reactions.includes(frame.emoji!)
+        ? message
+        : { ...message, reactions: [...reactions, frame.emoji!] };
+    });
+  }
+  if (frame.event === "message" && frame.id && frame.kind === undefined) {
+    // A delivered message is a durable conversation row that owns its bubble;
+    // the same ID may already be present from history replay.
+    const media = historyMedia(frame.media_urls);
+    const replied = frame.reply_to
+      ? messages.find((message) => message.id === frame.reply_to)
+      : undefined;
+    const quote = frame.quote || quotePreview(replied?.content ?? "");
+    const delivered: UIMessage = {
+      id: frame.id,
+      turnId: run,
+      role: "assistant",
+      content: frame.text ?? "",
+      createdAt: frame.created_at_ms ?? Date.now(),
+      isStreaming: false,
+      turnPhase: "complete",
+      delivered: true,
+      ...(frame.reply_to ? { replyTo: frame.reply_to } : {}),
+      ...(quote ? { quote } : {}),
+      ...(media.length ? { media } : {}),
+    };
+    const index = messages.findIndex((message) => message.id === frame.id);
+    if (index < 0) return [...messages, delivered];
+    const existing = messages[index];
+    return messages.map((message, position) => position === index
+      ? { ...delivered, reactions: existing.reactions ?? delivered.reactions }
+      : message);
+  }
+  if (frame.event === "turn_end") return messages.map((message) => message.turnId === run && !message.delivered
     ? { ...message, isStreaming: false, reasoningStreaming: false, completedAt: Date.now(), latencyMs: frame.latency_ms, usage: frame.usage, roundUsages: frame.round_usages } : message);
   if (["goal_status", "runtime_model_updated", "turn_model_updated", "ready", "goal_state", "pairing_changed", "webui_response"].includes(frame.event)) return messages;
   const reasoning = frame.event.startsWith("reasoning_");

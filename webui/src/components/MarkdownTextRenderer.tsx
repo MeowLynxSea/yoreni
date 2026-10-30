@@ -18,6 +18,7 @@ import remend from "remend";
 import type { ListItem, Nodes, Root } from "mdast";
 
 import { parseMathAwareMarkdownBlocks } from "@/lib/markdown-streaming-blocks";
+import type { UIMediaKind } from "@/lib/types";
 
 import { DisplayMath } from "@/components/DisplayMath";
 import { AttachmentTile } from "@/components/AttachmentTile";
@@ -129,7 +130,7 @@ function extensionOf(value: string): string {
   return dot > 0 ? name.slice(dot).toLowerCase() : "";
 }
 
-function markdownAttachmentKind(source: string, label: string): "image" | "video" | "file" {
+function markdownAttachmentKind(source: string, label: string): UIMediaKind {
   const inferredKind = inferMediaKind({ url: source, name: label });
   if (inferredKind !== "file") return inferredKind;
   return extensionOf(label) || extensionOf(source) ? "file" : "image";

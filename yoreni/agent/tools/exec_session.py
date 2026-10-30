@@ -789,6 +789,9 @@ def format_session_poll(session_id: str, poll: _SessionPoll) -> str:
 class ExecSessionTool(Tool):
     """Interact with or wait for a running exec session."""
 
+    interruptible = True
+
+
     _scopes = {"core", "subagent"}
     config_key = "exec"
 

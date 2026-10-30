@@ -47,7 +47,12 @@ def connect_run_events(bus: MessageBus):
         if event.context.channel == "websocket":
             await bus.publish_outbound(outbound_message_for_event(
                 channel="websocket", chat_id=PERSONAL_CHAT_ID,
-                event=UserInputEvent(event.content, int(time.time() * 1000), {}),
+                event=UserInputEvent(
+                    event.content,
+                    int(time.time() * 1000),
+                    {},
+                    message_id=event.message_id,
+                ),
                 metadata=event.context.metadata,
             ))
 

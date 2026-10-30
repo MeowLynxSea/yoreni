@@ -88,6 +88,7 @@ from yoreni.webui.http_utils import (
 )
 from yoreni.webui.ingress_policy import WebUIIngressPolicy
 from yoreni.webui.media_gateway import WebUIMediaGateway
+from yoreni.webui.outbound_wire import encode_history_entries as _encode_history_entries
 from yoreni.webui.skills_api import (
     SkillManagementError,
     delete_webui_skill,
@@ -506,10 +507,22 @@ class GatewayHTTPHandler:
                 except (RuntimeError, ValueError) as exc:
                     return _http_error(409, str(exc))
             identity = await asyncio.to_thread(store.identity)
+            history = await asyncio.to_thread(store.webui_history)
             return _http_json_response({
                 "id": identity.id, "revision": identity.revision, "state": identity.state,
                 "pending_runs": await asyncio.to_thread(recoverable_runs, store),
-                "history": await asyncio.to_thread(store.webui_history),
+                "history": [
+                    {
+                        **run,
+                        "entries": _encode_history_entries(
+                            run["entries"],
+                            sign_media=lambda media_path: self.media.sign_or_stage_media_path(
+                                Path(media_path),
+                            ),
+                        ),
+                    }
+                    for run in history
+                ],
             }, extra_headers=_NO_STORE_HEADERS)
 
         # Settings routes (delegated)

@@ -346,6 +346,7 @@ class WebSocketChannel(BaseChannel):
 
     name = "websocket"
     display_name = "WebSocket"
+    supports_reactions = True
 
     def __init__(
         self,

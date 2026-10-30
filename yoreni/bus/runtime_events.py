@@ -38,6 +38,7 @@ class UserInputAccepted(AgentEvent):
 
     context: RuntimeEventContext
     content: str
+    message_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -173,6 +174,8 @@ class RuntimeEventPublisher:
         self,
         msg: InboundMessage,
         run_id: str,
+        *,
+        message_id: str | None = None,
     ) -> None:
         await self.bus.publish(
             UserInputAccepted(
@@ -183,6 +186,7 @@ class RuntimeEventPublisher:
                     metadata=msg.metadata,
                 ),
                 content=msg.content,
+                message_id=message_id,
             )
         )
 

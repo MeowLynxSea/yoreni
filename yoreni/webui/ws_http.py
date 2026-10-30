@@ -34,6 +34,12 @@ from yoreni.security.workspace_access import WorkspaceScopeError
 from yoreni.triggers.local_types import LocalTrigger
 from yoreni.webui.automation_results import cron_run_response, trigger_run_response
 from yoreni.webui.automations import all_automations_payload
+from yoreni.webui.chat_search import (
+    normalize_search_query,
+    search_conversation,
+    semantic_candidates,
+    semantic_hit_payloads,
+)
 from yoreni.webui.file_preview import (
     WebUIFilePreviewError,
     file_preview_payload,
@@ -332,6 +338,7 @@ class GatewayHTTPHandler:
         image_generation_reload: Callable[[], Awaitable[dict[str, Any]]] | None = None,
         skill_state_action: Callable[[set[str]], None] | None = None,
         agent_action: Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
+        chat_search_action: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
         log: Any = logger,
     ) -> None:
         self.config = config
@@ -349,6 +356,7 @@ class GatewayHTTPHandler:
         )
         self.skill_state_action = skill_state_action
         self.agent_action = agent_action
+        self.chat_search_action = chat_search_action
         self._skill_install_lock = asyncio.Lock()
         self.cron_service = cron_service
         self.local_trigger_store = local_trigger_store
@@ -536,7 +544,16 @@ class GatewayHTTPHandler:
                 except (RuntimeError, ValueError) as exc:
                     return _http_error(409, str(exc))
             identity = await asyncio.to_thread(store.identity)
-            history = await asyncio.to_thread(store.webui_history)
+            raw_before = _query_first(_request_query(request), "before_seq")
+            before_seq: int | None = None
+            if raw_before:
+                try:
+                    before_seq = int(raw_before)
+                except ValueError:
+                    return _http_error(400, "invalid before_seq")
+                if before_seq <= 0:
+                    return _http_error(400, "invalid before_seq")
+            history = await asyncio.to_thread(store.webui_history, before_seq=before_seq)
             return _http_json_response({
                 "id": identity.id, "revision": identity.revision, "state": identity.state,
                 "pending_runs": await asyncio.to_thread(recoverable_runs, store),
@@ -987,6 +1004,10 @@ class GatewayHTTPHandler:
             return await self._handle_webui_goal(request)
         if got == "/api/webui/home-widgets":
             return self._handle_home_widgets(request)
+        if got == "/api/webui/chat-search":
+            return await self._handle_chat_search(request)
+        if got == "/api/webui/chat-search/semantic":
+            return await self._handle_chat_search(request, semantic=True)
         if got == "/api/webui/widgets":
             return self._handle_widgets(request)
         if got in {"/api/webui/widgets/delete", "/api/webui/widgets/refresh"}:
@@ -1029,6 +1050,47 @@ class GatewayHTTPHandler:
                 return _http_error(500, "failed to save reminder preference")
             return _http_json_response({"show": show})
         return None
+
+    async def _handle_chat_search(self, request: WsRequest, *, semantic: bool = False) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        try:
+            query = normalize_search_query(_query_first(_request_query(request), "q"))
+        except ValueError as exc:
+            return _http_error(400, str(exc) or "invalid search request")
+        store = await asyncio.to_thread(AgentStore, self.skills_workspace_path)
+        rows = await asyncio.to_thread(store.conversation_rows)
+        exact, fuzzy = await asyncio.to_thread(search_conversation, rows, query)
+        if not semantic:
+            return _http_json_response(
+                {"exact": exact, "fuzzy": fuzzy}, extra_headers=_NO_STORE_HEADERS,
+            )
+        action = self.chat_search_action
+        if action is None:
+            return _http_error(503, "chat search is unavailable")
+        matched = {hit["id"] for hit in (*exact, *fuzzy)}
+        candidates = semantic_candidates(rows, matched)
+        if not candidates:
+            return _http_json_response({"hits": []}, extra_headers=_NO_STORE_HEADERS)
+        try:
+            result = await action({"query": query, "messages": candidates})
+        except TimeoutError:
+            return _http_error(504, "semantic search timed out")
+        except RuntimeError as exc:
+            return _http_error(502, str(exc) or "semantic search failed")
+        except ValueError as exc:
+            return _http_error(400, str(exc) or "invalid search request")
+        except Exception:
+            self._log.exception("semantic chat search failed")
+            return _http_error(500, "semantic chat search failed")
+        raw_ids = result.get("ids")
+        ids = [
+            value for value in cast(list[object], raw_ids) if isinstance(value, str)
+        ] if isinstance(raw_ids, list) else []
+        return _http_json_response(
+            {"hits": semantic_hit_payloads(rows, ids, matched)},
+            extra_headers=_NO_STORE_HEADERS,
+        )
 
     def _handle_home_widgets(self, request: WsRequest) -> Response:
         if not self.check_api_token(request):

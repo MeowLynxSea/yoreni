@@ -118,6 +118,9 @@ class ChannelManager:
         webui_agent_action: (
             Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]] | None
         ) = None,
+        webui_chat_search_action: (
+            Callable[[dict[str, Any]], Awaitable[dict[str, Any]]] | None
+        ) = None,
         config_path: Path | None = None,
     ):
         if config_path is None:
@@ -141,6 +144,7 @@ class ChannelManager:
         self._webui_image_generation_reload = webui_image_generation_reload
         self._webui_skill_state_action = webui_skill_state_action
         self._webui_agent_action = webui_agent_action
+        self._webui_chat_search_action = webui_chat_search_action
         self.channels: dict[str, BaseChannel] = {}
         self._channel_owners: dict[str, str] = {}
         self._channel_runtime_specs: dict[str, tuple[str, str]] = {}
@@ -228,6 +232,7 @@ class ChannelManager:
                 image_generation_reload=self._webui_image_generation_reload,
                 skill_state_action=self._webui_skill_state_action,
                 agent_action=self._webui_agent_action,
+                chat_search_action=self._webui_chat_search_action,
                 logger=logger,
             )
             kwargs["gateway"] = gateway

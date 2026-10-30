@@ -1556,6 +1556,22 @@
       "archived": "Diarsipkan"
     }
   },
+  "search": {
+    "open": "Cari riwayat obrolan",
+    "title": "Cari riwayat obrolan",
+    "placeholder": "Cari",
+    "clear": "Hapus pencarian",
+    "searching": "Mencari…",
+    "exact": "Cocok persis",
+    "fuzzy": "Cocok samar",
+    "semantic": "Cocok semantik",
+    "semanticLoading": "Mencari pesan terkait…",
+    "semanticFailed": "Pencarian semantik tidak tersedia.",
+    "empty": "Tidak ada pesan yang cocok.",
+    "failed": "Pencarian tidak tersedia saat ini.",
+    "you": "Anda",
+    "assistant": "yoreni"
+  },
   "archiveConfirm": {
     "title": "Arsipkan topik ini?",
     "titleMany": "Arsipkan {{count}} topik?",

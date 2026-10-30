@@ -1556,6 +1556,22 @@
       "archived": "已归档"
     }
   },
+  "search": {
+    "open": "搜索聊天记录",
+    "title": "搜索聊天记录",
+    "placeholder": "搜索",
+    "clear": "清除搜索",
+    "searching": "正在搜索…",
+    "exact": "精确匹配",
+    "fuzzy": "模糊匹配",
+    "semantic": "语义匹配",
+    "semanticLoading": "正在寻找相关记录…",
+    "semanticFailed": "语义搜索暂不可用。",
+    "empty": "没有找到相关记录。",
+    "failed": "搜索暂不可用。",
+    "you": "你",
+    "assistant": "yoreni"
+  },
   "archiveConfirm": {
     "title": "归档此话题？",
     "titleMany": "归档 {{count}} 个话题？",

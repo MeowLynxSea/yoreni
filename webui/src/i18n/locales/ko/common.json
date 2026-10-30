@@ -1556,6 +1556,22 @@
       "archived": "보관됨"
     }
   },
+  "search": {
+    "open": "채팅 기록 검색",
+    "title": "채팅 기록 검색",
+    "placeholder": "검색",
+    "clear": "검색 지우기",
+    "searching": "검색 중…",
+    "exact": "정확히 일치",
+    "fuzzy": "유사 일치",
+    "semantic": "의미 일치",
+    "semanticLoading": "관련 메시지를 찾는 중…",
+    "semanticFailed": "의미 검색을 사용할 수 없습니다.",
+    "empty": "일치하는 메시지가 없습니다.",
+    "failed": "지금은 검색을 사용할 수 없습니다.",
+    "you": "나",
+    "assistant": "yoreni"
+  },
   "archiveConfirm": {
     "title": "이 주제를 보관할까요?",
     "titleMany": "주제 {{count}}개를 보관할까요?",

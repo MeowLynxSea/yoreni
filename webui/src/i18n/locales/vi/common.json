@@ -1556,6 +1556,22 @@
       "archived": "Đã lưu trữ"
     }
   },
+  "search": {
+    "open": "Tìm trong lịch sử trò chuyện",
+    "title": "Tìm trong lịch sử trò chuyện",
+    "placeholder": "Tìm kiếm",
+    "clear": "Xóa tìm kiếm",
+    "searching": "Đang tìm kiếm…",
+    "exact": "Khớp chính xác",
+    "fuzzy": "Khớp gần đúng",
+    "semantic": "Khớp theo nghĩa",
+    "semanticLoading": "Đang tìm tin nhắn liên quan…",
+    "semanticFailed": "Tìm kiếm theo nghĩa hiện không khả dụng.",
+    "empty": "Không tìm thấy tin nhắn phù hợp.",
+    "failed": "Tìm kiếm hiện không khả dụng.",
+    "you": "Bạn",
+    "assistant": "yoreni"
+  },
   "archiveConfirm": {
     "title": "Lưu trữ chủ đề này?",
     "titleMany": "Lưu trữ {{count}} chủ đề?",

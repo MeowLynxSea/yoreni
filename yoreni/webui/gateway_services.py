@@ -74,6 +74,7 @@ def build_gateway_services(
     skill_state_action: Callable[[set[str]], None] | None = None,
     accept_input: Callable[[InboundMessage], Awaitable[str | None]] | None = None,
     agent_action: Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
+    chat_search_action: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
     logger: Any = default_logger,
 ) -> GatewayServices:
     settings = WebUISettingsServices.create(config_path or get_config_path(), refresh_runtime_config=refresh_runtime_config)
@@ -122,6 +123,7 @@ def build_gateway_services(
         image_generation_reload=image_generation_reload,
         skill_state_action=skill_state_action,
         agent_action=agent_action,
+        chat_search_action=chat_search_action,
         log=logger,
     )
     endpoint = WebUIGatewayEndpoint(config=config, http=http, tokens=tokens)

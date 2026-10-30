@@ -414,6 +414,7 @@ def _run_claimed_gateway(
     from yoreni.providers.fallback_provider import FallbackProvider
     from yoreni.triggers.local_runner import run_local_trigger_queue
     from yoreni.triggers.local_store import LocalTriggerStore
+    from yoreni.webui.chat_search import semantic_chat_search
     from yoreni.webui.run_events import (
         build_webui_fallback_model_observer,
         connect_run_events,
@@ -543,6 +544,15 @@ def _run_claimed_gateway(
             raise RuntimeError("Run is already active")
         agent.schedule_background(agent.agent.resume(run_id, deliver=True))
         return {"accepted": True}
+
+    async def chat_search_action(payload: dict[str, Any]) -> dict[str, Any]:
+        ids = await semantic_chat_search(
+            payload.get("query"),
+            payload.get("messages"),
+            provider=agent.provider,
+            model=agent.model,
+        )
+        return {"ids": ids}
 
     # Every tool that speaks into a chat needs the channel delivery path, and
     # the heartbeat suppresses all of them so its output goes through the gate.
@@ -729,6 +739,7 @@ def _run_claimed_gateway(
         webui_image_generation_reload=_webui_image_generation_reload,
         webui_skill_state_action=_webui_skill_state_action,
         webui_agent_action=agent_action,
+        webui_chat_search_action=chat_search_action,
         webui_accept_input=agent.accept_message,
         config_path=Path(config_path),
     )

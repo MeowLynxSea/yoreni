@@ -1556,6 +1556,22 @@
       "archived": "Arquivadas"
     }
   },
+  "search": {
+    "open": "Buscar no histórico",
+    "title": "Buscar no histórico",
+    "placeholder": "Buscar",
+    "clear": "Limpar busca",
+    "searching": "Pesquisando…",
+    "exact": "Correspondência exata",
+    "fuzzy": "Correspondência aproximada",
+    "semantic": "Correspondência semântica",
+    "semanticLoading": "Procurando mensagens relacionadas…",
+    "semanticFailed": "A busca semântica não está disponível.",
+    "empty": "Nenhuma mensagem encontrada.",
+    "failed": "A busca não está disponível no momento.",
+    "you": "Você",
+    "assistant": "yoreni"
+  },
   "archiveConfirm": {
     "title": "Arquivar este tópico?",
     "titleMany": "Arquivar {{count}} tópicos?",

@@ -76,6 +76,16 @@ class RunActivity(TypedDict):
     reason: str
 
 
+class ConversationRow(TypedDict):
+    """One searchable message, keyed by the ID the WebUI renders."""
+
+    id: str
+    role: Literal["user", "assistant"]
+    text: str
+    created_at_ms: int
+    event_seq: int
+
+
 class AgentStateConflictError(RuntimeError):
     """A caller tried to replace a state version it has not read."""
 
@@ -506,23 +516,108 @@ class AgentStore:
         window = messages[-200:]
         return window[find_legal_message_start(window):]
 
-    def webui_history(self, *, limit: int = 80) -> list[WebUIRun]:
+    def conversation_rows(self) -> list[ConversationRow]:
+        """Every user-visible message, with the ID the WebUI renders for it.
+
+        Search must reach the whole history rather than the recent window a
+        client has loaded, so this projection walks both tables that hold
+        conversation rows and adds the answer a pre-projection Run still owns.
+        """
+        with self.connection() as db:
+            prompts = db.execute(
+                """SELECT events.event_id AS id,
+                          json_extract(events.payload,'$.content') AS content,
+                          runs.event_seq,runs.created_at_ms
+                   FROM events JOIN runs ON runs.event_seq=events.seq
+                   WHERE json_extract(events.payload,'$.kind')='user'
+                     AND json_extract(events.payload,'$.principal')='owner'
+                   ORDER BY events.seq""",
+            ).fetchall()
+            entries = db.execute(
+                """SELECT json_extract(run_entries.payload,'$.id') AS id,
+                          run_entries.kind AS kind,
+                          json_extract(run_entries.payload,'$.content') AS content,
+                          COALESCE(json_extract(run_entries.payload,'$.created_at_ms'),
+                                   run_entries.created_at_ms) AS created_at_ms,
+                          runs.event_seq
+                   FROM run_entries JOIN runs ON runs.id=run_entries.run_id
+                   WHERE run_entries.kind IN ('user','message')
+                   ORDER BY run_entries.seq""",
+            ).fetchall()
+            legacy = db.execute(
+                """SELECT id,result,event_seq,created_at_ms FROM runs
+                   WHERE projection=0 AND result IS NOT NULL ORDER BY event_seq""",
+            ).fetchall()
+        rows: list[ConversationRow] = []
+        seen: set[str] = set()
+
+        def integer(value: object) -> int:
+            return value if isinstance(value, int) and not isinstance(value, bool) else 0
+
+        def append(message_id: object, role: Literal["user", "assistant"], content: object,
+                   created_at_ms: object, event_seq: object) -> None:
+            if not isinstance(message_id, str) or not message_id or message_id in seen:
+                return
+            if not isinstance(content, str):
+                return
+            seen.add(message_id)
+            rows.append(ConversationRow(
+                id=message_id, role=role, text=content,
+                created_at_ms=integer(created_at_ms),
+                event_seq=integer(event_seq),
+            ))
+
+        for row in prompts:
+            append(row["id"], "user", row["content"], row["created_at_ms"], row["event_seq"])
+        for row in entries:
+            append(
+                row["id"], "user" if row["kind"] == "user" else "assistant",
+                row["content"], row["created_at_ms"], row["event_seq"],
+            )
+        for row in legacy:
+            raw_result = row["result"]
+            if raw_result is None:
+                continue
+            try:
+                result = json.loads(raw_result)
+            except (TypeError, ValueError):
+                continue
+            if not isinstance(result, dict):
+                continue
+            content = cast(dict[str, Any], result).get("content")
+            if not isinstance(content, str) or not content.strip():
+                continue
+            append(
+                f"{row['id']}:answer", "assistant", content,
+                row["created_at_ms"], row["event_seq"],
+            )
+        rows.sort(key=lambda row: (row["created_at_ms"] or row["event_seq"] * 2, row["event_seq"]))
+        return rows
+
+    def webui_history(self, *, limit: int = 80, before_seq: int | None = None) -> list[WebUIRun]:
         """Return the durable Event/Run projection used by the personal UI.
 
         The UI needs the original Event separately from the model transcript:
         the latter is model-facing context and may contain runtime annotations
-        or tool calls that are not conversational messages.
+        or tool calls that are not conversational messages. ``before_seq`` pages
+        backwards from a loaded run when a search result lies further back.
         """
+        conditions = ["json_extract(events.payload,'$.principal')='owner'"]
+        params: list[Any] = []
+        if before_seq is not None:
+            conditions.append("events.seq < ?")
+            params.append(before_seq)
+        params.append(limit)
         with self.connection() as db:
             rows = db.execute(
-                """SELECT runs.id,runs.status,runs.error,runs.result,runs.projection,
+                f"""SELECT runs.id,runs.status,runs.error,runs.result,runs.projection,
                           runs.created_at_ms,
                           CASE WHEN runs.status IN ('queued','running')
                                THEN runs.checkpoint ELSE NULL END AS checkpoint,
                           events.seq,events.event_id,events.source,events.payload
                    FROM runs JOIN events ON events.seq=runs.event_seq
-                   WHERE json_extract(events.payload,'$.principal')='owner'
-                   ORDER BY events.seq DESC LIMIT ?""", (limit,),
+                   WHERE {" AND ".join(conditions)}
+                   ORDER BY events.seq DESC LIMIT ?""", params,
             ).fetchall()
             entries = self._entries_for(db, [str(row["id"]) for row in rows])
         result: list[WebUIRun] = []

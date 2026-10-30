@@ -1556,6 +1556,22 @@
       "archived": "Archivés"
     }
   },
+  "search": {
+    "open": "Rechercher dans la conversation",
+    "title": "Rechercher dans la conversation",
+    "placeholder": "Rechercher",
+    "clear": "Effacer la recherche",
+    "searching": "Recherche en cours…",
+    "exact": "Correspondance exacte",
+    "fuzzy": "Correspondance approximative",
+    "semantic": "Correspondance sémantique",
+    "semanticLoading": "Recherche de messages liés…",
+    "semanticFailed": "La recherche sémantique est indisponible.",
+    "empty": "Aucun message correspondant.",
+    "failed": "La recherche est indisponible pour le moment.",
+    "you": "Vous",
+    "assistant": "yoreni"
+  },
   "archiveConfirm": {
     "title": "Archiver ce sujet ?",
     "titleMany": "Archiver {{count}} sujets ?",

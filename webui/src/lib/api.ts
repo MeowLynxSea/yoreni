@@ -1045,6 +1045,24 @@ export interface AgentHistoryRun {
   entries?: AgentHistoryEntry[];
 }
 
-export function fetchPersonalAgent(token: string): Promise<PersonalAgentInfo> {
-  return request<PersonalAgentInfo>("/api/agent", token, undefined, API_READ_TIMEOUT_MS);
+export function fetchPersonalAgent(token: string, beforeSeq?: number): Promise<PersonalAgentInfo> {
+  const query = beforeSeq === undefined ? "" : `?before_seq=${beforeSeq}`;
+  return request<PersonalAgentInfo>(`/api/agent${query}`, token, undefined, API_READ_TIMEOUT_MS);
+}
+
+/** Search the whole durable transcript; the gateway owns the ranking. */
+export function fetchChatSearch(token: string, query: string): Promise<unknown> {
+  const params = new URLSearchParams({ q: query });
+  return request<unknown>(`/api/webui/chat-search?${params}`, token, undefined, API_READ_TIMEOUT_MS);
+}
+
+/** The model-ranked tier may outlive an ordinary read, so it gets its own deadline. */
+export function fetchChatSearchSemantic(token: string, query: string): Promise<unknown> {
+  const params = new URLSearchParams({ q: query });
+  return request<unknown>(
+    `/api/webui/chat-search/semantic?${params}`,
+    token,
+    undefined,
+    25_000,
+  );
 }

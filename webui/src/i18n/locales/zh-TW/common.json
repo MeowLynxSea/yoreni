@@ -1556,6 +1556,22 @@
       "archived": "已封存"
     }
   },
+  "search": {
+    "open": "搜尋聊天記錄",
+    "title": "搜尋聊天記錄",
+    "placeholder": "搜尋",
+    "clear": "清除搜尋",
+    "searching": "正在搜尋…",
+    "exact": "精確符合",
+    "fuzzy": "模糊比對",
+    "semantic": "語意比對",
+    "semanticLoading": "正在尋找相關記錄…",
+    "semanticFailed": "語意搜尋暫時無法使用。",
+    "empty": "沒有找到相關記錄。",
+    "failed": "搜尋暫時無法使用。",
+    "you": "你",
+    "assistant": "yoreni"
+  },
   "archiveConfirm": {
     "title": "封存此話題？",
     "titleMany": "封存 {{count}} 個話題？",

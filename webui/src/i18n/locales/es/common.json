@@ -1556,6 +1556,22 @@
       "archived": "Archivados"
     }
   },
+  "search": {
+    "open": "Buscar en el historial",
+    "title": "Buscar en el historial",
+    "placeholder": "Buscar",
+    "clear": "Borrar búsqueda",
+    "searching": "Buscando…",
+    "exact": "Coincidencia exacta",
+    "fuzzy": "Coincidencia aproximada",
+    "semantic": "Coincidencia semántica",
+    "semanticLoading": "Buscando mensajes relacionados…",
+    "semanticFailed": "La búsqueda semántica no está disponible.",
+    "empty": "No hay mensajes coincidentes.",
+    "failed": "La búsqueda no está disponible en este momento.",
+    "you": "Tú",
+    "assistant": "yoreni"
+  },
   "archiveConfirm": {
     "title": "¿Archivar este tema?",
     "titleMany": "¿Archivar {{count}} temas?",

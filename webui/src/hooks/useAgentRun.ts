@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentFrame } from "@/lib/yoreni-client";
 import { toMediaAttachment } from "@/lib/media";
 import type { ToolProgressEvent, UIMessage, UIMediaWireAttachment } from "@/lib/types";
@@ -245,10 +245,17 @@ export function useAgentRun() {
   const [activityByRun, setActivityByRun] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  // The oldest event sequence the client holds; older pages load from here.
+  const oldestSeq = useRef<number | null>(null);
+  const olderExhausted = useRef(false);
   const refreshHistory = useCallback(async () => {
     try {
       const info = await fetchPersonalAgent(getToken());
       const runs = info.history ?? [];
+      if (runs.length > 0) {
+        const oldest = Math.min(...runs.map((run) => run.event_seq));
+        oldestSeq.current = oldestSeq.current === null ? oldest : Math.min(oldestSeq.current, oldest);
+      }
       setMessages((current) => mergeHistory(current, runs));
       setActiveRuns((current) => {
         const next = new Map(current);
@@ -311,6 +318,23 @@ export function useAgentRun() {
     void refreshHistory().catch(() => {});
     return offReady;
   }, [client, refreshHistory]);
+  // Search reaches the whole transcript, so a hit can sit before the window the
+  // client loaded; page backwards until the caller has the run it needs.
+  const loadOlder = useCallback(async (): Promise<UIMessage[] | null> => {
+    const before = oldestSeq.current;
+    if (before === null || olderExhausted.current) return null;
+    const info = await fetchPersonalAgent(getToken(), before);
+    const runs = info.history ?? [];
+    if (runs.length === 0) {
+      olderExhausted.current = true;
+      return [];
+    }
+    setMessages((current) => mergeHistory(current, runs));
+    const nextOldest = Math.min(...runs.map((run) => run.event_seq));
+    if (nextOldest >= before) olderExhausted.current = true;
+    oldestSeq.current = nextOldest;
+    return historyMessages(runs);
+  }, [getToken]);
   const send = useCallback(async (content: string, media: DraftAttachment[] = []) => {
     const eventId = crypto.randomUUID();
     setError(null);
@@ -332,5 +356,5 @@ export function useAgentRun() {
   const activity = [...activityByRun.entries()]
     .filter(([runId]) => [...activeRuns.values()].includes(runId))
     .at(-1)?.[1] ?? null;
-  return { messages, send, stop, active: activeRuns.size > 0, sending, activity, error, historyLoaded };
+  return { messages, send, stop, loadOlder, active: activeRuns.size > 0, sending, activity, error, historyLoaded };
 }

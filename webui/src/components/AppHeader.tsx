@@ -1,4 +1,4 @@
-import { House } from "lucide-react";
+import { House, Search } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -10,11 +10,18 @@ import { cn } from "@/lib/utils";
 type AppHeaderProps = {
   theme: "light" | "dark";
   onToggleTheme: () => void;
+  onOpenSearch: () => void;
   homeView?: HomeView;
   onHomeViewChange?: (view: HomeView) => void;
 };
 
-export function AppHeader({ theme, onToggleTheme, homeView, onHomeViewChange }: AppHeaderProps) {
+export function AppHeader({
+  theme,
+  onToggleTheme,
+  onOpenSearch,
+  homeView,
+  onHomeViewChange,
+}: AppHeaderProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -82,6 +89,15 @@ export function AppHeader({ theme, onToggleTheme, homeView, onHomeViewChange }: 
       </div>
 
       <div className="ml-auto flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onOpenSearch}
+          aria-label={t("search.open")}
+          title={t("search.open")}
+          className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 max-md:absolute max-md:left-4 max-md:top-1/2 max-md:-translate-y-1/2 md:static md:translate-y-0 dark:hover:bg-white/[0.06]"
+        >
+          <Search className="h-5 w-5" strokeWidth={1.7} aria-hidden />
+        </button>
         <button
           type="button"
           onClick={onToggleTheme}

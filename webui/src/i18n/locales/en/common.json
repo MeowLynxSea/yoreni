@@ -1556,6 +1556,22 @@
       "archived": "Archived"
     }
   },
+  "search": {
+    "open": "Search chat history",
+    "title": "Search chat history",
+    "placeholder": "Search",
+    "clear": "Clear search",
+    "searching": "Searching…",
+    "exact": "Exact match",
+    "fuzzy": "Fuzzy match",
+    "semantic": "Semantic match",
+    "semanticLoading": "Looking for related messages…",
+    "semanticFailed": "Semantic search is unavailable right now.",
+    "empty": "No matching messages.",
+    "failed": "Search is unavailable right now.",
+    "you": "You",
+    "assistant": "yoreni"
+  },
   "archiveConfirm": {
     "title": "Archive this topic?",
     "titleMany": "Archive {{count}} topics?",

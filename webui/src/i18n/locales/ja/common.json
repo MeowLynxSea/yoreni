@@ -1556,6 +1556,22 @@
       "archived": "アーカイブ済み"
     }
   },
+  "search": {
+    "open": "チャット履歴を検索",
+    "title": "チャット履歴を検索",
+    "placeholder": "検索",
+    "clear": "検索をクリア",
+    "searching": "検索中…",
+    "exact": "完全一致",
+    "fuzzy": "あいまい一致",
+    "semantic": "意味が一致",
+    "semanticLoading": "関連するメッセージを検索中…",
+    "semanticFailed": "意味検索は利用できません。",
+    "empty": "一致するメッセージはありません。",
+    "failed": "現在、検索を利用できません。",
+    "you": "あなた",
+    "assistant": "yoreni"
+  },
   "archiveConfirm": {
     "title": "このトピックをアーカイブしますか？",
     "titleMany": "{{count}} 件のトピックをアーカイブしますか？",

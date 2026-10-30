@@ -8,6 +8,7 @@ import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useParam
 import { AmbientBackground } from "@/components/AmbientBackground";
 import { AgentRunIndicator } from "@/components/AgentRunIndicator";
 import { AppHeader } from "@/components/AppHeader";
+import { ChatSearch, type ChatSearchProps } from "@/components/ChatSearch";
 import { HomePanel } from "@/components/home/HomePanel";
 import { StartupShell } from "@/components/StartupShell";
 import { AgentRecovery } from "@/components/AgentRecovery";
@@ -25,6 +26,12 @@ import { useAppViewport } from "@/hooks/useAppViewport";
 import { useReadingTypography } from "@/hooks/useReadingTypography";
 import { BootstrapAuthRequiredError, clearSavedSecret, consumeUrlBootstrapSecret, deriveWsUrl, fetchBootstrap, loadSavedSecret, saveSecret } from "@/lib/bootstrap";
 import type { SendAttachment } from "@/lib/agent-input";
+import { fetchChatSearch, fetchChatSearchSemantic } from "@/lib/api";
+import {
+  parseChatSearchResult,
+  parseChatSemanticResult,
+  type ChatSearchHit,
+} from "@/lib/chat-search";
 import { formatMessageGroupTime } from "@/lib/format-time";
 import { readHomeView, writeHomeView, type HomeView } from "@/lib/local-ui-state";
 import { messageTimeGroups } from "@/lib/message-groups";
@@ -306,11 +313,13 @@ function MessageTimeDivider({ timestamp }: { timestamp: number }) {
   );
 }
 
-function ChatView({ greeting, run, model, onOpenSettings }: {
+function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocusHandled }: {
   greeting: string;
   run: ReturnType<typeof useAgentRun>;
   model: string | null;
   onOpenSettings?: () => void;
+  focusMessageId?: string | null;
+  onFocusHandled?: () => void;
 }) {
   const { t } = useTranslation();
   const viewport = useRef<HTMLDivElement>(null);
@@ -353,6 +362,20 @@ function ChatView({ greeting, run, model, onOpenSettings }: {
     await run.send(composed, attachments?.map((item) => item.media));
     if (pending) setQuote(null);
   };
+  // A search result lands on its message the same way a quote jump does.
+  useEffect(() => {
+    if (!focusMessageId) return;
+    const root = thread.current;
+    if (!root) return;
+    const target = Array.from(root.querySelectorAll<HTMLElement>("[data-message-id]"))
+      .find((node) => node.dataset.messageId === focusMessageId);
+    if (!target) return;
+    target.scrollIntoView({ block: "center", behavior: "smooth" });
+    setQuoteTarget(focusMessageId);
+    if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current);
+    highlightTimer.current = window.setTimeout(() => setQuoteTarget(null), 1_400);
+    onFocusHandled?.();
+  }, [focusMessageId, groups, onFocusHandled]);
   return (
     <main className="relative flex min-h-0 flex-1 flex-col">
       <AgentRecovery />
@@ -462,9 +485,11 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
   const navigate = useNavigate();
   const control = useTheme();
   const { toggle, theme } = control;
-  const { client, modelName } = useClient();
+  const { client, getToken, modelName } = useClient();
   const [model, setModel] = useState<string | null>(modelName ?? null);
   const [homeView, setHomeView] = useState<HomeView>(readHomeView);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [focusMessageId, setFocusMessageId] = useState<string | null>(null);
   const changeHomeView = useCallback((view: HomeView) => {
     setHomeView(view);
     writeHomeView(view);
@@ -477,6 +502,25 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
   useEffect(() => client.onRuntimeModelUpdate(setModel), [client]);
   const location = useLocation();
   const homeOpen = location.pathname === "/" && homeView === "home";
+  const clearFocusMessage = useCallback(() => setFocusMessageId(null), []);
+  const focusSearchResult = useCallback(async (hit: ChatSearchHit) => {
+    changeHomeView("chat");
+    if (location.pathname !== "/") navigate("/", { viewTransition: true });
+    // Search covers the whole store, so the target may predate this window.
+    let present = run.messages.some((message) => message.id === hit.id);
+    while (!present) {
+      const page = await run.loadOlder().catch(() => null);
+      if (!page || page.length === 0) break;
+      present = page.some((message) => message.id === hit.id);
+    }
+    if (present) setFocusMessageId(hit.id);
+  }, [changeHomeView, location.pathname, navigate, run]);
+  const requestLocalSearch: ChatSearchProps["requestLocal"] = useCallback(async (query) => {
+    return parseChatSearchResult(await fetchChatSearch(getToken(), query));
+  }, [getToken]);
+  const requestSemanticSearch: ChatSearchProps["requestSemantic"] = useCallback(async (query) => {
+    return parseChatSemanticResult(await fetchChatSearchSemantic(getToken(), query));
+  }, [getToken]);
   return <ThemeControlProvider control={control}>
     <AmbientBackground />
     <div className="relative z-10 flex h-full min-h-0 w-full text-foreground">
@@ -485,7 +529,7 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
       <div className="h-16 shrink-0" aria-hidden />
       <div className="app-route-view flex min-h-0 flex-1 flex-col">
       <Routes>
-        <Route path="/" element={<ChatView greeting={greeting} run={run} model={model} onOpenSettings={() => navigate("/settings", { viewTransition: true })} />} />
+        <Route path="/" element={<ChatView greeting={greeting} run={run} model={model} onOpenSettings={() => navigate("/settings", { viewTransition: true })} focusMessageId={focusMessageId} onFocusHandled={clearFocusMessage} />} />
         <Route path="/settings" element={
           <SettingsIndex
             onOpenSection={(section) => navigate(`/settings/${section}`, { viewTransition: true })}
@@ -507,8 +551,16 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
       <AppHeader
         theme={theme}
         onToggleTheme={toggle}
+        onOpenSearch={() => setSearchOpen(true)}
         homeView={homeView}
         onHomeViewChange={changeHomeView}
+      />
+      <ChatSearch
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        onSelect={focusSearchResult}
+        requestLocal={requestLocalSearch}
+        requestSemantic={requestSemanticSearch}
       />
     </div>
   </ThemeControlProvider>;

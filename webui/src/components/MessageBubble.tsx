@@ -687,7 +687,9 @@ export function MessageBubble({
       data-assistant-message
       data-message-id={message.id}
       className={cn(
-        "message-enter group/message relative w-full text-reading",
+        // Fit the answer's own text so a one-liner reads as a bubble, while
+        // flowing prose still fills the reading column.
+        "message-enter group/message relative w-fit max-w-full text-reading",
         message.isStreaming && "assistant-caret",
       )}
     >

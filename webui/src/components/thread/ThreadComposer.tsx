@@ -1,10 +1,11 @@
-import { useCallback, useRef, useState, type Ref } from "react";
+import { useCallback, useEffect, useRef, useState, type Ref } from "react";
 import { ArrowUp, ChevronDown, Mic, Paperclip, Square, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAttachedImages, ACCEPT_ATTR } from "@/hooks/useAttachedImages";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { readComposerDraft, writeComposerDraft } from "@/lib/local-ui-state";
 import { cn } from "@/lib/utils";
 import type { SendAttachment, SendOptions } from "@/lib/agent-input";
 import type { LocalAttachment } from "../../../../packages/client-events/attachments";
@@ -34,16 +35,21 @@ interface Props {
   onInspectAttachment?: (path: string) => Promise<LocalAttachment>;
   ingressLimits?: WebUIIngressLimits | null;
   surfaceRef?: Ref<HTMLDivElement>;
+  /** Restore and keep the unsent text across reloads and route changes. */
+  persistDraft?: boolean;
 }
 
-/** Drafts and attachments belong to the current page; execution belongs to the Agent. */
-export function ThreadComposer({ onSend, onStop, disabled = false, isStreaming = false, placeholder, inputAriaLabel, variant = "thread", onTranscribeAudio, ingressLimits, surfaceRef, modelLabel, modelPreset, modelPresets, onModelPresetChange, onModelBadgeClick }: Props) {
+/** The composer owns its text and attachments; execution belongs to the Agent. */
+export function ThreadComposer({ onSend, onStop, disabled = false, isStreaming = false, placeholder, inputAriaLabel, variant = "thread", onTranscribeAudio, ingressLimits, surfaceRef, modelLabel, modelPreset, modelPresets, onModelPresetChange, onModelBadgeClick, persistDraft = false }: Props) {
   const { t } = useTranslation();
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(() => (persistDraft ? readComposerDraft() : ""));
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const files = useRef<HTMLInputElement>(null);
   const attachments = useAttachedImages({ ingressLimits });
+  useEffect(() => {
+    if (persistDraft) writeComposerDraft(value);
+  }, [persistDraft, value]);
   const appendTranscript = useCallback((text: string) => setValue((current) => current ? `${current}\n${text}` : text), []);
   const voice = useVoiceRecorder({ disabled, onClearError: () => setError(null), onError: (key) => setError(t(`thread.composer.voice.errors.${key}`)), onTranscript: appendTranscript, onTranscribeAudio });
   const send = async () => {

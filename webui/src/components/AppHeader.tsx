@@ -4,9 +4,8 @@ import { useTranslation } from "react-i18next";
 
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggleIcon } from "@/components/icons/ThemeToggleIcon";
+import type { HomeView } from "@/lib/local-ui-state";
 import { cn } from "@/lib/utils";
-
-type HomeView = "chat" | "home";
 
 type AppHeaderProps = {
   theme: "light" | "dark";

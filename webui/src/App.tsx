@@ -23,6 +23,7 @@ import { ThemeControlProvider, useTheme, useThemeControl } from "@/hooks/useThem
 import { useAppViewport } from "@/hooks/useAppViewport";
 import { useReadingTypography } from "@/hooks/useReadingTypography";
 import { BootstrapAuthRequiredError, clearSavedSecret, consumeUrlBootstrapSecret, deriveWsUrl, fetchBootstrap, loadSavedSecret, saveSecret } from "@/lib/bootstrap";
+import { readHomeView, writeHomeView, type HomeView } from "@/lib/local-ui-state";
 import { createRuntimeHost } from "@/lib/runtime";
 import { YoreniClient } from "@/lib/yoreni-client";
 import type { BootstrapResponse } from "@/lib/types";
@@ -340,6 +341,7 @@ function ChatView({ greeting, run, model, onOpenSettings }: {
               onStop={() => { void run.stop(); }}
               isStreaming={run.active}
               variant={empty ? "hero" : "thread"}
+              persistDraft
               modelLabel={model}
               onModelBadgeClick={onOpenSettings}
             />
@@ -392,7 +394,11 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
   const { toggle, theme } = control;
   const { client, modelName } = useClient();
   const [model, setModel] = useState<string | null>(modelName ?? null);
-  const [homeView, setHomeView] = useState<"chat" | "home">("chat");
+  const [homeView, setHomeView] = useState<HomeView>(readHomeView);
+  const changeHomeView = useCallback((view: HomeView) => {
+    setHomeView(view);
+    writeHomeView(view);
+  }, []);
   const run = useAgentRun();
   const greeting = useMemo(() => {
     const key = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
@@ -420,8 +426,8 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
           <SettingsSectionRoute
             onLogout={onLogout}
             onModelNameChange={setModel}
-            onStartAutomationChat={(text) => { setHomeView("chat"); navigate("/", { viewTransition: true }); void run.send(text); return true; }}
-            onBackToChat={() => { setHomeView("chat"); navigate("/", { viewTransition: true }); }}
+            onStartAutomationChat={(text) => { changeHomeView("chat"); navigate("/", { viewTransition: true }); void run.send(text); return true; }}
+            onBackToChat={() => { changeHomeView("chat"); navigate("/", { viewTransition: true }); }}
           />
         } />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -432,7 +438,7 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
         theme={theme}
         onToggleTheme={toggle}
         homeView={homeView}
-        onHomeViewChange={setHomeView}
+        onHomeViewChange={changeHomeView}
       />
     </div>
   </ThemeControlProvider>;

@@ -28,6 +28,7 @@ import { providerFormFromRow } from "@/components/settings/models/providerForm";
 import { AboutSettings, AppearanceSettings, OverviewSettings } from "@/components/settings/overview/OverviewSettings";
 import { WidgetsSettings } from "@/components/settings/overview/WidgetsSettings";
 import { NotificationSettings } from "@/components/settings/notifications/NotificationSettings";
+import { ProfileSettings } from "@/components/settings/profile/ProfileSettings";
 import { SettingsSidebar, standaloneSectionTitle } from "@/components/settings/SettingsSidebar";
 import {
   YoreniFeatureInstallDialog,
@@ -274,6 +275,8 @@ export function SettingsPage({
           </section>
         );
       }
+      case "profile":
+        return <ProfileSettings />;
       case "overview":
         return (
           <OverviewSettings

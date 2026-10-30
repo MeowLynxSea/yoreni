@@ -4,6 +4,7 @@ export type SettingsExitGuard = (leave: () => void, options?: { promptRestart?: 
 
 export type SettingsSectionKey =
   | "overview"
+  | "profile"
   | "about"
   | "appearance"
   | "widgets"
@@ -23,6 +24,7 @@ export type SettingsSectionKey =
 
 export const SETTINGS_SECTION_KEYS = [
   "overview",
+  "profile",
   "about",
   "appearance",
   "widgets",

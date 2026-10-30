@@ -23,6 +23,9 @@ export const SelectTrigger = React.forwardRef<
 ));
 SelectTrigger.displayName = "SelectTrigger";
 
+// Popper positioning keeps the list anchored to the trigger without relying on
+// a SelectValue or a selected item; item-aligned drops the content into the
+// document flow whenever either is missing.
 export function SelectContent({ children, ...props }: Pick<
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>,
   "children" | "onPointerUpCapture" | "onPointerDownOutside" | "onKeyDownCapture" | "onEscapeKeyDown" | "onCloseAutoFocus"
@@ -30,7 +33,8 @@ export function SelectContent({ children, ...props }: Pick<
   const container = useFloatingPortal();
   return (
     <SelectPrimitive.Portal container={container ?? undefined}>
-      <SelectPrimitive.Content {...props} position="item-aligned" className={cn("z-50 max-h-[min(24rem,calc(100dvh-2rem))] min-w-[10rem] overflow-hidden rounded-control border border-transparent", floatingSurfaceElevationClassName)}>
+      <SelectPrimitive.Content {...props} position="popper" sideOffset={4} collisionPadding={8}
+        className={cn("z-50 max-h-[min(24rem,var(--radix-select-content-available-height))] min-w-[max(10rem,var(--radix-select-trigger-width))] overflow-hidden rounded-control border border-transparent", floatingSurfaceElevationClassName)}>
         <SelectPrimitive.ScrollUpButton className="flex h-6 items-center justify-center"><ChevronUp className="h-3.5 w-3.5" /></SelectPrimitive.ScrollUpButton>
         <SelectPrimitive.Viewport className="p-1">
           {children}

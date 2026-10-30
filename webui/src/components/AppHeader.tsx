@@ -22,6 +22,7 @@ export function AppHeader({ theme, onToggleTheme, homeView, onHomeViewChange }: 
   const settingsLabel = t("settings.sidebar.title", { defaultValue: "Settings" });
   const preloadSettings = () => { void import("@/components/settings/SettingsView"); };
   const onHome = location.pathname === "/" && homeView === "home";
+  const onRoute = location.pathname === "/";
   const openHome = () => {
     if (location.pathname !== "/") {
       onHomeViewChange?.("home");
@@ -29,6 +30,11 @@ export function AppHeader({ theme, onToggleTheme, homeView, onHomeViewChange }: 
       return;
     }
     onHomeViewChange?.(onHome ? "chat" : "home");
+  };
+  // The pill doubles as the way out of settings on mobile.
+  const openHomeView = (view: HomeView) => {
+    onHomeViewChange?.(view);
+    if (location.pathname !== "/") navigate("/", { viewTransition: true });
   };
 
   return (
@@ -47,36 +53,34 @@ export function AppHeader({ theme, onToggleTheme, homeView, onHomeViewChange }: 
         <House className="h-5 w-5" strokeWidth={1.7} aria-hidden />
       </button>
 
-      {location.pathname === "/" ? (
-        <div className="pointer-events-auto absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border border-white/60 bg-white/45 p-1 backdrop-blur-xl md:hidden dark:border-white/10 dark:bg-white/[0.06]">
-          <button
-            type="button"
-            onClick={() => onHomeViewChange?.("home")}
-            aria-pressed={homeView === "home"}
-            className={cn(
-              "h-10 rounded-full px-4 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-              homeView === "home"
-                ? "bg-white text-foreground shadow-sm dark:bg-white/[0.14]"
-                : "text-muted-foreground",
-            )}
-          >
-            {t("home.title")}
-          </button>
-          <button
-            type="button"
-            onClick={() => onHomeViewChange?.("chat")}
-            aria-pressed={homeView !== "home"}
-            className={cn(
-              "h-10 rounded-full px-4 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-              homeView !== "home"
-                ? "bg-white text-foreground shadow-sm dark:bg-white/[0.14]"
-                : "text-muted-foreground",
-            )}
-          >
-            {t("home.tabs.chat")}
-          </button>
-        </div>
-      ) : null}
+      <div className="pointer-events-auto absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border border-white/60 bg-white/45 p-1 backdrop-blur-xl md:hidden dark:border-white/10 dark:bg-white/[0.06]">
+        <button
+          type="button"
+          onClick={() => openHomeView("home")}
+          aria-pressed={onRoute && homeView === "home"}
+          className={cn(
+            "h-10 rounded-full px-4 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+            onRoute && homeView === "home"
+              ? "bg-white text-foreground shadow-sm dark:bg-white/[0.14]"
+              : "text-muted-foreground",
+          )}
+        >
+          {t("home.title")}
+        </button>
+        <button
+          type="button"
+          onClick={() => openHomeView("chat")}
+          aria-pressed={onRoute && homeView !== "home"}
+          className={cn(
+            "h-10 rounded-full px-4 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+            onRoute && homeView !== "home"
+              ? "bg-white text-foreground shadow-sm dark:bg-white/[0.14]"
+              : "text-muted-foreground",
+          )}
+        >
+          {t("home.tabs.chat")}
+        </button>
+      </div>
 
       <div className="ml-auto flex items-center gap-1">
         <button

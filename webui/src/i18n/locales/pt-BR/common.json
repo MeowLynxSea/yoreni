@@ -110,19 +110,23 @@
   },
   "home": {
     "title": "Início",
-    "empty": "Nenhum widget visível. Ative-os nas configurações.",
+    "empty": {
+      "title": "Nada por aqui ainda",
+      "description": "Ative os widgets em Configurações ou peça ao Yoreni para criar algo."
+    },
     "widgets": {
       "goal": {
         "title": "Objetivo",
-        "empty": "Nenhum objetivo ativo.",
         "active": "Em andamento",
         "blocked": "Bloqueado"
       },
       "automations": {
         "title": "Automações",
-        "empty": "Nenhuma tarefa agendada.",
         "more": "Mais {{count}} agendadas"
       }
+    },
+    "tabs": {
+      "chat": "Chat"
     }
   },
   "settings": {

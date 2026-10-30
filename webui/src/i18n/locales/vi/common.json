@@ -110,19 +110,23 @@
   },
   "home": {
     "title": "Trang chính",
-    "empty": "Không có tiện ích nào được hiển thị. Bật trong phần cài đặt.",
+    "empty": {
+      "title": "Chưa có gì ở đây",
+      "description": "Bật tiện ích trong Cài đặt hoặc nhờ Yoreni tạo nội dung."
+    },
     "widgets": {
       "goal": {
         "title": "Mục tiêu",
-        "empty": "Không có mục tiêu đang chạy.",
         "active": "Đang thực hiện",
         "blocked": "Bị chặn"
       },
       "automations": {
         "title": "Tự động hóa",
-        "empty": "Không có tác vụ theo lịch.",
         "more": "{{count}} mục khác theo lịch"
       }
+    },
+    "tabs": {
+      "chat": "Trò chuyện"
     }
   },
   "settings": {

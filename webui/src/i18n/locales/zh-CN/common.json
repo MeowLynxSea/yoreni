@@ -110,19 +110,23 @@
   },
   "home": {
     "title": "主页",
-    "empty": "未显示小组件，可在设置中开启。",
+    "empty": {
+      "title": "还没有任何内容",
+      "description": "从设置中启用，或与Yoreni对话以创建"
+    },
     "widgets": {
       "goal": {
         "title": "目标",
-        "empty": "当前没有目标。",
         "active": "进行中",
         "blocked": "已阻塞"
       },
       "automations": {
         "title": "自动任务",
-        "empty": "没有定时任务。",
         "more": "另有 {{count}} 项"
       }
+    },
+    "tabs": {
+      "chat": "聊天"
     }
   },
   "settings": {

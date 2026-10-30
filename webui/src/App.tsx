@@ -354,10 +354,12 @@ function SettingsSectionRoute({
   onLogout,
   onModelNameChange,
   onStartAutomationChat,
+  onBackToChat,
 }: {
   onLogout: () => void;
   onModelNameChange: (model: string | null) => void;
   onStartAutomationChat: (text: string) => boolean;
+  onBackToChat: () => void;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -374,7 +376,7 @@ function SettingsSectionRoute({
         onBack={() => navigate("/settings", { viewTransition: true })}
         onSectionChange={(next) => navigate(`/settings/${next}`, { replace: true, viewTransition: true })}
         onChangeTheme={setTheme}
-        onBackToChat={() => navigate("/", { viewTransition: true })}
+        onBackToChat={onBackToChat}
         onModelNameChange={onModelNameChange}
         onLogout={onLogout}
         onStartAutomationChat={onStartAutomationChat}
@@ -401,8 +403,8 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
   return <ThemeProvider theme={theme}>
     <AmbientBackground />
     <div className="relative z-10 flex h-full min-h-0 w-full text-foreground">
-      <HomePanel open={homeOpen} onClose={() => setHomeView("chat")} />
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      <HomePanel open={homeOpen} />
+      <div className={cn("relative flex min-h-0 flex-1 flex-col", homeOpen && "hidden md:flex")}>
       <div className="h-16 shrink-0" aria-hidden />
       <div className="app-route-view flex min-h-0 flex-1 flex-col">
       <Routes>
@@ -418,6 +420,7 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
             onLogout={onLogout}
             onModelNameChange={setModel}
             onStartAutomationChat={(text) => { setHomeView("chat"); navigate("/", { viewTransition: true }); void run.send(text); return true; }}
+            onBackToChat={() => { setHomeView("chat"); navigate("/", { viewTransition: true }); }}
           />
         } />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -39,13 +39,44 @@ export function AppHeader({ theme, onToggleTheme, homeView, onHomeViewChange }: 
         aria-pressed={onHome}
         aria-label={t("home.title")}
         className={cn(
-          "pointer-events-auto grid h-11 w-11 shrink-0 place-items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+          "pointer-events-auto hidden h-11 w-11 shrink-0 place-items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 md:grid",
           "border-white/60 bg-white/40 text-foreground/85 hover:bg-white/60 dark:border-white/10 dark:bg-white/[0.06] dark:hover:bg-white/[0.1]",
           onHome && "ring-2 ring-foreground/15",
         )}
       >
         <House className="h-5 w-5" strokeWidth={1.7} aria-hidden />
       </button>
+
+      {location.pathname === "/" ? (
+        <div className="pointer-events-auto absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border border-white/60 bg-white/45 p-1 backdrop-blur-xl md:hidden dark:border-white/10 dark:bg-white/[0.06]">
+          <button
+            type="button"
+            onClick={() => onHomeViewChange?.("home")}
+            aria-pressed={homeView === "home"}
+            className={cn(
+              "h-10 rounded-full px-4 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+              homeView === "home"
+                ? "bg-white text-foreground shadow-sm dark:bg-white/[0.14]"
+                : "text-muted-foreground",
+            )}
+          >
+            {t("home.title")}
+          </button>
+          <button
+            type="button"
+            onClick={() => onHomeViewChange?.("chat")}
+            aria-pressed={homeView !== "home"}
+            className={cn(
+              "h-10 rounded-full px-4 text-[14px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+              homeView !== "home"
+                ? "bg-white text-foreground shadow-sm dark:bg-white/[0.14]"
+                : "text-muted-foreground",
+            )}
+          >
+            {t("home.tabs.chat")}
+          </button>
+        </div>
+      ) : null}
 
       <div className="ml-auto flex items-center gap-1">
         <button

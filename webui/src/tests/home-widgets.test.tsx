@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import type { ReactNode } from "react";
@@ -75,6 +75,45 @@ describe("home widgets", () => {
     expect(screen.getByText("Needs production access.")).toBeInTheDocument();
   });
 
+  it("hides the goal widget once the goal is cleared", async () => {
+    vi.mocked(fetchGoal).mockResolvedValue({
+      active: true, status: "active", ui_summary: "Ship the fix", objective: "Ship the fix and verify tests.",
+    });
+    const { client, emit } = fakeClient();
+    render(<GoalWidget />, { wrapper: wrap(client) });
+    expect(await screen.findByText("Ship the fix")).toBeInTheDocument();
+
+    act(() => emit({ event: "goal_state", goal_state: { active: false } }));
+
+    await waitFor(() => expect(screen.queryByText("Goal")).not.toBeInTheDocument());
+  });
+
+  it("hides the automations widget when nothing is scheduled", async () => {
+    vi.mocked(fetchAutomations).mockResolvedValue({ jobs: [job()] });
+    const { client } = fakeClient();
+    render(<AutomationsWidget />, { wrapper: wrap(client) });
+    expect(await screen.findByText("Morning briefing")).toBeInTheDocument();
+
+    vi.mocked(fetchAutomations).mockResolvedValue({ jobs: [] });
+    act(() => { window.dispatchEvent(new Event("focus")); });
+
+    await waitFor(() => expect(screen.queryByText("Automations")).not.toBeInTheDocument());
+  });
+
+  it("shows the empty state until a widget has content", async () => {
+    const { client, emit } = fakeClient();
+    render(<HomeFeed />, { wrapper: wrap(client) });
+
+    expect(await screen.findByText("Nothing here yet")).toBeInTheDocument();
+
+    act(() => emit({
+      event: "goal_state",
+      goal_state: { active: true, status: "active", ui_summary: "Ship the fix", objective: "Ship the fix and verify tests." },
+    }));
+
+    await waitFor(() => expect(screen.queryByText("Nothing here yet")).not.toBeInTheDocument());
+  });
+
   it("lists the next scheduled task", async () => {
     vi.mocked(fetchAutomations).mockResolvedValue({ jobs: [job()] });
     const { client } = fakeClient();
@@ -85,6 +124,7 @@ describe("home widgets", () => {
 
   it("hides widgets that the device turned off", async () => {
     writeLocalPreferences({ ...DEFAULT_LOCAL_PREFS, homeWidgets: { goal: false } });
+    vi.mocked(fetchAutomations).mockResolvedValue({ jobs: [job()] });
     const { client } = fakeClient();
     render(<HomeFeed />, { wrapper: wrap(client) });
 

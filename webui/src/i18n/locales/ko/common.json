@@ -110,19 +110,23 @@
   },
   "home": {
     "title": "홈",
-    "empty": "표시할 위젯이 없습니다. 설정에서 켜세요.",
+    "empty": {
+      "title": "아직 아무것도 없습니다",
+      "description": "설정에서 위젯을 켜거나 Yoreni에게 만들어 달라고 해보세요."
+    },
     "widgets": {
       "goal": {
         "title": "목표",
-        "empty": "진행 중인 목표가 없습니다.",
         "active": "진행 중",
         "blocked": "차단됨"
       },
       "automations": {
         "title": "자동화",
-        "empty": "예약된 작업이 없습니다.",
         "more": "{{count}}개 더 있음"
       }
+    },
+    "tabs": {
+      "chat": "채팅"
     }
   },
   "settings": {

@@ -110,19 +110,23 @@
   },
   "home": {
     "title": "主頁",
-    "empty": "未顯示小工具，可在設定中開啟。",
+    "empty": {
+      "title": "還沒有任何內容",
+      "description": "從設定中啟用，或與Yoreni對話以建立"
+    },
     "widgets": {
       "goal": {
         "title": "目標",
-        "empty": "目前沒有目標。",
         "active": "進行中",
         "blocked": "已阻塞"
       },
       "automations": {
         "title": "自動任務",
-        "empty": "沒有定時任務。",
         "more": "另有 {{count}} 項"
       }
+    },
+    "tabs": {
+      "chat": "聊天"
     }
   },
   "settings": {

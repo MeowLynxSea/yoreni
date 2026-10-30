@@ -6,7 +6,7 @@ import { relativeTime } from "@/lib/format-time";
 import type { AutomationJob } from "@/lib/types";
 import { useClient } from "@/providers/ClientProvider";
 
-import { WidgetCard, WidgetEmpty, WidgetPill } from "./WidgetCard";
+import { WidgetCard, WidgetPill } from "./WidgetCard";
 
 function upcoming(jobs: AutomationJob[]): AutomationJob[] {
   return jobs
@@ -38,12 +38,13 @@ export function AutomationsWidget() {
   const next = upcoming(scheduled);
   const title = t("home.widgets.automations.title");
 
+  if (!scheduled.length) return null;
+
   return (
     <WidgetCard
       title={title}
-      badge={scheduled.length ? <WidgetPill tone="muted">{scheduled.length}</WidgetPill> : undefined}
+      badge={<WidgetPill tone="muted">{scheduled.length}</WidgetPill>}
     >
-      {scheduled.length === 0 ? <WidgetEmpty>{t("home.widgets.automations.empty")}</WidgetEmpty> : null}
       {next.length ? (
         <ul className="space-y-2.5">
           {next.map((job) => (

@@ -110,19 +110,23 @@
   },
   "home": {
     "title": "ホーム",
-    "empty": "表示するウィジェットがありません。設定で有効にしてください。",
+    "empty": {
+      "title": "まだ何もありません",
+      "description": "設定でウィジェットを有効にするか、Yoreni に作成を頼めます。"
+    },
     "widgets": {
       "goal": {
         "title": "ゴール",
-        "empty": "進行中のゴールはありません。",
         "active": "進行中",
         "blocked": "ブロック中"
       },
       "automations": {
         "title": "自動化",
-        "empty": "予定されたタスクはありません。",
         "more": "他 {{count}} 件"
       }
+    },
+    "tabs": {
+      "chat": "チャット"
     }
   },
   "settings": {

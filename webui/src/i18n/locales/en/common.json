@@ -110,19 +110,23 @@
   },
   "home": {
     "title": "Home",
-    "empty": "No widgets are shown. Turn them on in Settings.",
+    "empty": {
+      "title": "Nothing here yet",
+      "description": "Turn on widgets in Settings, or ask Yoreni to create something."
+    },
     "widgets": {
       "goal": {
         "title": "Goal",
-        "empty": "No active goal.",
         "active": "In progress",
         "blocked": "Blocked"
       },
       "automations": {
         "title": "Automations",
-        "empty": "No scheduled tasks.",
         "more": "{{count}} more scheduled"
       }
+    },
+    "tabs": {
+      "chat": "Chat"
     }
   },
   "settings": {

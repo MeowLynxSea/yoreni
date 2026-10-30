@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import { useGoalState } from "@/hooks/useGoalState";
 
-import { WidgetCard, WidgetEmpty, WidgetPill } from "./WidgetCard";
+import { WidgetCard, WidgetPill } from "./WidgetCard";
 
 export function GoalWidget() {
   const { t } = useTranslation();
@@ -10,9 +10,7 @@ export function GoalWidget() {
   const blocked = goal.status === "blocked";
   const title = t("home.widgets.goal.title");
 
-  if (!goal.active && !blocked) {
-    return <WidgetCard title={title}><WidgetEmpty>{t("home.widgets.goal.empty")}</WidgetEmpty></WidgetCard>;
-  }
+  if (!goal.active && !blocked) return null;
 
   return (
     <WidgetCard

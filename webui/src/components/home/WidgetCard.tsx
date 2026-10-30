@@ -27,10 +27,6 @@ export function WidgetCard({
   );
 }
 
-export function WidgetEmpty({ children }: { children: ReactNode }) {
-  return <p className="text-[13px] leading-6 text-muted-foreground">{children}</p>;
-}
-
 export function WidgetPill({ tone, children }: { tone: "active" | "blocked" | "muted"; children: ReactNode }) {
   return (
     <span className={cn(

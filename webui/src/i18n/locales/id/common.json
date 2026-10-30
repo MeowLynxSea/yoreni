@@ -110,19 +110,23 @@
   },
   "home": {
     "title": "Beranda",
-    "empty": "Tidak ada widget yang ditampilkan. Aktifkan di pengaturan.",
+    "empty": {
+      "title": "Belum ada apa pun",
+      "description": "Aktifkan widget di Pengaturan, atau minta Yoreni membuat sesuatu."
+    },
     "widgets": {
       "goal": {
         "title": "Tujuan",
-        "empty": "Tidak ada tujuan aktif.",
         "active": "Berjalan",
         "blocked": "Terhambat"
       },
       "automations": {
         "title": "Otomasi",
-        "empty": "Tidak ada tugas terjadwal.",
         "more": "{{count}} lainnya terjadwal"
       }
+    },
+    "tabs": {
+      "chat": "Chat"
     }
   },
   "settings": {

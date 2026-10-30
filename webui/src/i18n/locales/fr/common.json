@@ -110,19 +110,23 @@
   },
   "home": {
     "title": "Accueil",
-    "empty": "Aucun widget affiché. Activez-les dans les réglages.",
+    "empty": {
+      "title": "Rien pour l'instant",
+      "description": "Activez les widgets dans Réglages ou demandez à Yoreni de créer quelque chose."
+    },
     "widgets": {
       "goal": {
         "title": "Objectif",
-        "empty": "Aucun objectif actif.",
         "active": "En cours",
         "blocked": "Bloqué"
       },
       "automations": {
         "title": "Automatisations",
-        "empty": "Aucune tâche planifiée.",
         "more": "{{count}} autres planifiées"
       }
+    },
+    "tabs": {
+      "chat": "Chat"
     }
   },
   "settings": {

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Callable, Protocol, runtime_checkable
 from yoreni.config.network import NetworkConfig
 
 if TYPE_CHECKING:
+    from yoreni.agent.memory import MemoryStore
     from yoreni.agent.state import AgentStore
     from yoreni.agent.tools.exec_session import ExecSessionManager
     from yoreni.agent.tools.file_state import FileStates
@@ -103,6 +104,7 @@ class ToolContext:
     cron_service: CronService | None = None
     exec_session_manager: ExecSessionManager | None = None
     agent_store: AgentStore | None = None
+    memory: MemoryStore | None = None
     file_state_store: FileStates | None = None
     provider_snapshot_loader: Callable[..., ProviderSnapshot] | None = None
     providers_config: ProvidersConfig | None = None

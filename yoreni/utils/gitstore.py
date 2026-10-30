@@ -441,13 +441,19 @@ class GitStore:
 
     # -- restore ---------------------------------------------------------------
 
-    def revert(self, commit: str, *, message_prefix: str | None = None) -> str | None:
+    def revert(
+        self,
+        commit: str,
+        *,
+        message_prefix: str | None = None,
+        message: str | None = None,
+    ) -> str | None:
         """Revert (undo) the changes introduced by the given commit.
 
         Restores all tracked memory files to the state at the commit's parent,
         then creates a new commit recording the revert. When *message_prefix*
         is provided, commits outside that history are rejected before any files
-        are changed.
+        are changed. *message* overrides the default revert commit message.
 
         Returns the new commit SHA, or ``None`` when the commit cannot be reverted.
         Repository and filesystem failures raise :class:`GitStoreError`.
@@ -501,7 +507,7 @@ class GitStore:
                 return None
 
             # Commit the restored state
-            msg = f"revert: undo {commit}"
+            msg = message or f"revert: undo {commit}"
             return self.auto_commit(msg)
         except Exception as exc:
             raise GitStoreError(f"Git revert failed for {commit}") from exc

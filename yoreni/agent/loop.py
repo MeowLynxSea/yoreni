@@ -372,6 +372,7 @@ class AgentLoop:
             cron_service=self.cron_service,
             exec_session_manager=self._exec_session_manager,
             agent_store=self.agent.store,
+            memory=self.context.memory,
             provider_snapshot_loader=provider_snapshot_loader,
             timezone=self.context.timezone or "UTC",
             workspace_sandbox=self.workspace_scopes.sandbox_status,

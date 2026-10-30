@@ -33,7 +33,11 @@ def goal_mutation_permission(allowed: bool):
 
 
 class GoalInputScope(ExitStack):
-    """Own goal authorization for fresh inputs consumed during one agent run."""
+    """Own goal authorization for fresh inputs consumed during one agent run.
+
+    A turn authored by the user authorizes goal mutations; internal, queued,
+    replayed, and continuation input does not.
+    """
 
     def __init__(self, initial_message: InboundMessage | None = None) -> None:
         super().__init__()
@@ -53,10 +57,4 @@ class GoalInputScope(ExitStack):
 
     @staticmethod
     def _authorizes(message: InboundMessage) -> bool:
-        if (
-            not message.is_user_input
-            or message.channel == "system"
-            or message.metadata.get("goal_requested") is not True
-        ):
-            return False
-        return True
+        return message.is_user_input and message.channel != "system"

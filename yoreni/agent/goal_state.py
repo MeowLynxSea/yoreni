@@ -21,20 +21,6 @@ def sustained_goal_active(metadata: Mapping[str, Any] | None) -> bool:
     return isinstance(goal, dict) and goal.get("status") == "active"
 
 
-def explicit_goal_requested(message_metadata: Mapping[str, Any] | None) -> bool:
-    """True when this turn was explicitly started as a sustained goal."""
-    return bool(message_metadata and message_metadata.get("goal_requested") is True)
-
-
-def sustained_goal_turn(
-    metadata: Mapping[str, Any] | None,
-    *,
-    message_metadata: Mapping[str, Any] | None = None,
-) -> bool:
-    """True when this turn should use sustained-goal runtime limits."""
-    return sustained_goal_active(metadata) or explicit_goal_requested(message_metadata)
-
-
 def parse_goal_state(blob: Any) -> dict[str, Any] | None:
     if blob is None:
         return None
@@ -50,21 +36,26 @@ def parse_goal_state(blob: Any) -> dict[str, Any] | None:
 
 
 def goal_state_runtime_lines(metadata: Mapping[str, Any] | None) -> list[str]:
-    """Lines appended inside the Runtime Context block when a goal is active."""
+    """Lines appended inside the Runtime Context block for an open goal."""
     if not metadata:
         return []
     goal = parse_goal_state(goal_state_raw(metadata))
-    if not isinstance(goal, dict) or goal.get("status") != "active":
+    if not isinstance(goal, dict) or goal.get("status") not in {"active", "blocked"}:
         return []
+    status = str(goal.get("status"))
     objective = str(goal.get("objective") or "").strip()
     if not objective:
-        return ["Goal: active (no objective text stored)."]
+        return [f"Goal ({status}): no objective text stored."]
     if len(objective) > MAX_GOAL_OBJECTIVE_CHARS:
         objective = objective[:MAX_GOAL_OBJECTIVE_CHARS].rstrip() + "\n… (truncated)"
-    out = ["Goal (active):", objective]
+    out = [f"Goal ({status}):", objective]
     hint = str(goal.get("ui_summary") or "").strip()
     if hint:
         out.append(f"Summary: {hint}")
+    if status == "blocked":
+        recap = str(goal.get("recap") or "").strip()
+        if recap:
+            out.append(f"Waiting on: {recap}")
     return out
 
 

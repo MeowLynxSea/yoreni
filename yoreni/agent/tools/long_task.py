@@ -17,7 +17,6 @@ from yoreni.agent.goal_permission import (
 from yoreni.agent.goal_state import (
     GOAL_STATE_KEY,
     MAX_GOAL_OBJECTIVE_CHARS,
-    explicit_goal_requested,
     goal_state_raw,
     goal_state_runtime_lines,
     parse_goal_state,
@@ -33,13 +32,17 @@ from yoreni.runtime_context import RuntimeContextBlock, wrap_runtime_context_lin
 from yoreni.utils.cancellation import shield_and_drain
 from yoreni.utils.prompt_templates import render_template
 
-_GOAL_ACTIONS = ("complete", "cancel", "block", "replace")
+_GOAL_ACTIONS = ("complete", "cancel", "block", "replace", "resume")
 _CREATE_UNAVAILABLE_ERROR = (
-    "Error: create_goal is unavailable for this turn. Ask the user to start a goal."
+    "Error: create_goal is unavailable for this turn. Only a user request can start a goal."
 )
 _REPLACE_UNAVAILABLE_ERROR = (
-    "Error: replacing the goal is unavailable for this turn. Ask the user to start "
-    "a replacement goal."
+    "Error: replacing the goal is unavailable for this turn. Only a user request can "
+    "change the objective."
+)
+_RESUME_UNAVAILABLE_ERROR = (
+    "Error: resuming the goal is unavailable for this turn. Only a user request can "
+    "continue a blocked goal."
 )
 
 
@@ -149,8 +152,9 @@ class CreateGoalTool(Tool, _GoalToolsMixin):
     @property
     def description(self) -> str:
         return (
-            "Create one sustained goal for the Agent only when Goal Runtime Guidance "
-            "asks you to record it. Do not retry after successful creation."
+            "Record a sustained goal when the user's request needs many steps, spans "
+            "beyond this turn, or must be verified before it counts as done. Skip it "
+            "for requests you can finish now. Do not retry after successful creation."
         )
 
     def runtime_context_provider(self):
@@ -162,15 +166,15 @@ class CreateGoalTool(Tool, _GoalToolsMixin):
     ) -> RuntimeContextBlock | None:
         target = await self._target()
         metadata = target.metadata
-        goal_start_requested = explicit_goal_requested(request.metadata)
+        goal_start_available = goal_mutation_allowed()
         goal_active = sustained_goal_active(metadata)
-        if not goal_start_requested and not goal_active:
+        if not goal_start_available and not goal_active:
             return None
 
         guidance = render_template(
             "agent/goal_runtime.md",
             strip=True,
-            goal_start_requested=goal_start_requested,
+            goal_start_available=goal_start_available,
             goal_active=goal_active,
         )
         state = wrap_runtime_context_lines(goal_state_runtime_lines(metadata))
@@ -242,7 +246,7 @@ class CreateGoalTool(Tool, _GoalToolsMixin):
     )
 )
 class UpdateGoalTool(Tool, _GoalToolsMixin):
-    """Complete, cancel, block, or replace the active sustained goal."""
+    """Complete, cancel, block, replace, or resume the sustained goal."""
 
     def __init__(
         self,
@@ -268,10 +272,11 @@ class UpdateGoalTool(Tool, _GoalToolsMixin):
     @property
     def description(self) -> str:
         return (
-            "Update the active sustained goal. Use action='complete' only after the objective "
-            "is actually achieved and verified. Use action='cancel' when the user cancels, "
-            "action='block' when progress is genuinely blocked, and action='replace' only when "
-            "the requested objective changes."
+            "Update the sustained goal. Use action='complete' only after the objective is "
+            "actually achieved and verified. Use action='cancel' when the user cancels, "
+            "action='block' when progress is genuinely blocked, action='resume' when the "
+            "user supplies what a blocked goal was waiting for, and action='replace' only "
+            "when the requested objective changes."
         )
 
     async def execute(
@@ -284,14 +289,26 @@ class UpdateGoalTool(Tool, _GoalToolsMixin):
     ) -> str:
         sess = await self._target()
         prior = parse_goal_state(goal_state_raw(sess.metadata))
-        if not isinstance(prior, dict) or prior.get("status") != "active":
-            return "No active goal to update."
+        prior_status = prior.get("status") if isinstance(prior, dict) else None
 
         normalized = (action or "").strip().lower()
         if normalized not in _GOAL_ACTIONS:
             return ToolResult.error(
-                "Error: action must be one of complete, cancel, block, or replace."
+                "Error: action must be one of complete, cancel, block, replace, or resume."
             )
+
+        if normalized == "resume":
+            if not isinstance(prior, dict) or prior_status != "blocked":
+                return "No blocked goal to resume."
+            if not self._goal_mutation_allowed():
+                return ToolResult.error(_RESUME_UNAVAILABLE_ERROR)
+            await self._save_goal_state(
+                sess, {**prior, "status": "active", "resumed_at": _iso_now()},
+            )
+            return "Goal resumed. Continue toward the recorded objective."
+
+        if not isinstance(prior, dict) or prior_status != "active":
+            return "No active goal to update."
 
         if normalized == "replace":
             if not self._goal_mutation_allowed():

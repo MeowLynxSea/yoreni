@@ -5,7 +5,6 @@ from __future__ import annotations
 from yoreni.agent.goal_state import (
     GOAL_STATE_KEY,
     MAX_GOAL_OBJECTIVE_CHARS,
-    explicit_goal_requested,
     goal_state_runtime_lines,
     goal_state_ws_blob,
     parse_goal_state,
@@ -117,6 +116,19 @@ def test_sustained_goal_active_true_when_active():
 
 
 
-def test_explicit_goal_requested_reads_goal_metadata():
-    assert explicit_goal_requested({}) is False
-    assert explicit_goal_requested({"goal_requested": True}) is True
+def test_runtime_lines_surface_blocked_goal_and_its_blocker():
+    meta = {
+        GOAL_STATE_KEY: {
+            "status": "blocked",
+            "objective": "Deploy safely.",
+            "ui_summary": "Approval required",
+            "recap": "Production access is required.",
+        },
+    }
+
+    assert goal_state_runtime_lines(meta) == [
+        "Goal (blocked):",
+        "Deploy safely.",
+        "Summary: Approval required",
+        "Waiting on: Production access is required.",
+    ]

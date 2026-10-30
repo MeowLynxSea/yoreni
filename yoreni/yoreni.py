@@ -128,10 +128,17 @@ class Yoreni:
         tools = ToolRegistry()
         register_image_generation_tool(config, tools, workspace=config.workspace_path)
         mcp_provider = MCPProvider.from_config(config, tools)
+        from yoreni.profile.store import UserProfileStore
+
         loop = AgentLoop.from_config(
             config,
             hook_factories=[create_file_edit_activity_hook],
             tool_registry=tools,
+            profile_store=(
+                UserProfileStore(resolved.parent / "profile.json")
+                if resolved is not None
+                else None
+            ),
         )
         return cls(loop, config=config, mcp_provider=mcp_provider)
 

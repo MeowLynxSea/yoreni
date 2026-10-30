@@ -44,6 +44,7 @@ from yoreni.config.network import NetworkConfig
 from yoreni.config.schema import AgentDefaults, MemoryConfig, ModelPresetConfig
 from yoreni.events import NO_EVENTS, EventSink
 from yoreni.llm_usage.context import source_from_request
+from yoreni.profile.store import UserProfileStore, profile_store_for_config
 from yoreni.providers.base import LLMProvider, ProviderConversationState
 from yoreni.providers.factory import ProviderSnapshot
 from yoreni.runtime_admission import RuntimeMaintenanceError
@@ -174,6 +175,7 @@ class AgentLoop:
         local_trigger_store: LocalTriggerStore | None = None,
         memory_config: MemoryConfig | None = None,
         providers_config: ProvidersConfig | None = None,
+        profile_store: UserProfileStore | None = None,
     ):
         from yoreni.config.schema import ToolsConfig
 
@@ -243,6 +245,7 @@ class AgentLoop:
             timezone=timezone,
             disabled_skills=disabled_skills,
             core_token_budget=memory_cfg.core_token_budget,
+            profile_store=profile_store,
         )
         from yoreni.memory.service import MemoryService
 
@@ -301,6 +304,7 @@ class AgentLoop:
         model = extra.pop("model", None) or resolved.model
         context_window_tokens = extra.pop("context_window_tokens", None) or resolved.context_window_tokens
         provider_snapshot_loader = extra.pop("provider_snapshot_loader", None)
+        profile_store = extra.pop("profile_store", None) or profile_store_for_config(config)
         preset_snapshot_loader = extra.pop("preset_snapshot_loader", None) or preset_helpers.make_preset_snapshot_loader(
             config,
             provider_snapshot_loader,
@@ -329,6 +333,7 @@ class AgentLoop:
             provider_snapshot_loader=provider_snapshot_loader,
             preset_snapshot_loader=preset_snapshot_loader,
             tool_registry=tool_registry,
+            profile_store=profile_store,
             **extra,
         )
 

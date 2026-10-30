@@ -98,18 +98,23 @@ export function useAgentRun() {
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [active, setActive] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const refreshHistory = useCallback(async () => {
-    const info = await fetchPersonalAgent(getToken());
-    const runs = info.history ?? [];
-    setMessages((current) => mergeHistory(current, runs));
-    setActive((current) => {
-      const next = new Map(current);
-      for (const run of runs) {
-        if (run.status === "queued" || run.status === "running") next.set(run.event_id, run.id);
-        else if (next.get(run.event_id) === run.id) next.delete(run.event_id);
-      }
-      return next;
-    });
+    try {
+      const info = await fetchPersonalAgent(getToken());
+      const runs = info.history ?? [];
+      setMessages((current) => mergeHistory(current, runs));
+      setActive((current) => {
+        const next = new Map(current);
+        for (const run of runs) {
+          if (run.status === "queued" || run.status === "running") next.set(run.event_id, run.id);
+          else if (next.get(run.event_id) === run.id) next.delete(run.event_id);
+        }
+        return next;
+      });
+    } finally {
+      setHistoryLoaded(true);
+    }
   }, [getToken]);
   useEffect(() => client.onEvent((frame) => {
     setMessages((current) => projectAgentFrame(current, frame));
@@ -141,5 +146,5 @@ export function useAgentRun() {
   const stop = useCallback(async () => {
     await Promise.all([...active.values()].map((runId) => client.requestMutation("agent.cancel", { run_id: runId })));
   }, [active, client]);
-  return { messages, send, stop, active: active.size > 0, error };
+  return { messages, send, stop, active: active.size > 0, error, historyLoaded };
 }

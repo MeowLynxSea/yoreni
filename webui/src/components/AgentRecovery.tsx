@@ -34,10 +34,10 @@ export function AgentRecovery() {
 
   if (!runs.length) return null;
   return (
-    <div className="z-10 shrink-0 border-b border-border bg-muted/40 px-4 py-2">
+    <div className="z-10 mx-auto mt-2 flex w-fit max-w-[calc(100vw-2rem)] shrink-0 flex-col gap-1.5 rounded-[1.25rem] border border-white/55 bg-white/45 px-4 py-2 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.05]">
       {runs.map((run) => (
         <div key={run.id} className="flex items-center justify-between gap-3 text-sm">
-          <span>{t("recovery.interrupted")} <code className="text-xs">{run.id.slice(0, 8)}</code></span>
+          <span className="truncate">{t("recovery.interrupted")} <code className="text-xs text-muted-foreground">{run.id.slice(0, 8)}</code></span>
           <Button
             variant="ghost"
             size="sm"

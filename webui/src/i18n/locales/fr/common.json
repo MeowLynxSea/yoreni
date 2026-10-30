@@ -74,7 +74,9 @@
       "expiresInline": "Le code expire {{expires}}.",
       "queueCount": "{{count}} en attente",
       "noMatch": "Aucune demande en attente ne correspond à ce code."
-    }
+    },
+    "chat": "Discussion",
+    "navigation": "Navigation principale"
   },
   "temporaryChat": {
     "title": "Discussion temporaire",
@@ -1908,7 +1910,7 @@
       "failed": "Non envoyé"
     },
     "assistantTyping": "L’assistant est en train d’écrire",
-    "toolSingle": "Utilisation d’un outil",
+    "toolSingle": "Outil utilisé",
     "toolMany": "{{count}} outils utilisés",
     "toolSummary": "{{count}} outil",
     "toolSummaryMany": "{{count}} outils",

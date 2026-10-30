@@ -37,6 +37,16 @@ export default {
         composer: ["max(16px, var(--text-reading-size))", { lineHeight: "1.5", fontWeight: "400" }],
       },
       fontFamily: {
+        display: [
+          "Iowan Old Style",
+          "Palatino Linotype",
+          "Palatino",
+          "Book Antiqua",
+          "Georgia",
+          "Songti SC",
+          "Noto Serif CJK SC",
+          "serif",
+        ],
         sans: [
           "system-ui",
           "-apple-system",

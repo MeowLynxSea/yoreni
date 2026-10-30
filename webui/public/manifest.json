@@ -4,11 +4,11 @@
   "description": "yoreni AI assistant",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#eef2f6",
+  "theme_color": "#eef2f6",
   "color_scheme_dark": {
-    "background_color": "#303030",
-    "theme_color": "#303030"
+    "background_color": "#0f141d",
+    "theme_color": "#0f141d"
   },
   "orientation": "any",
   "icons": [

@@ -16,7 +16,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 export type ThemePreference = "system" | "light" | "dark";
 type Theme = "light" | "dark";
 const STORAGE_KEY = "yoreni-webui.theme";
-const ThemeContext = createContext<Theme>("light");
+const ThemeContext = createContext<Theme | null>(null);
 
 function readStored(): ThemePreference {
   try {
@@ -145,5 +145,9 @@ export function ThemeProvider({ theme, children }: { theme: Theme; children: Rea
 }
 
 export function useThemeValue(): Theme {
-  return useContext(ThemeContext);
+  const value = useContext(ThemeContext);
+  if (value) return value;
+  return typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+    ? "dark"
+    : "light";
 }

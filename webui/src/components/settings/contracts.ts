@@ -20,6 +20,29 @@ export type SettingsSectionKey =
   | "runtime"
   | "advanced";
 
+export const SETTINGS_SECTION_KEYS = [
+  "overview",
+  "about",
+  "appearance",
+  "notifications",
+  "models",
+  "capabilities",
+  "image",
+  "voice",
+  "browser",
+  "channels",
+  "apps",
+  "automations",
+  "memory",
+  "skills",
+  "runtime",
+  "advanced",
+] as const satisfies readonly SettingsSectionKey[];
+
+export function isSettingsSectionKey(value: string | null | undefined): value is SettingsSectionKey {
+  return typeof value === "string" && (SETTINGS_SECTION_KEYS as readonly string[]).includes(value);
+}
+
 export function isCapabilitySection(section: SettingsSectionKey): boolean {
   return ["capabilities", "image", "voice", "browser", "memory"].includes(section);
 }

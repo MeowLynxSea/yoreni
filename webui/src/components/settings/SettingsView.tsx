@@ -16,6 +16,8 @@ interface SettingsViewProps {
   mainNavigationExpanded?: boolean;
   onChangeTheme: (value: ThemePreference) => void;
   onBackToChat: () => void;
+  onBack?: () => void;
+  backLabel?: string;
   onModelNameChange: (modelName: string | null) => void;
   onSettingsChange?: (payload: SettingsPayload) => void;
   skills?: SkillSummary[];
@@ -45,6 +47,8 @@ export function SettingsView({
   mainNavigationExpanded = false,
   onChangeTheme,
   onBackToChat,
+  onBack,
+  backLabel,
   onModelNameChange,
   onSettingsChange,
   skills = [],
@@ -78,6 +82,8 @@ export function SettingsView({
       mainNavigationExpanded={mainNavigationExpanded}
       onChangeTheme={onChangeTheme}
       onBackToChat={onBackToChat}
+      onBack={onBack}
+      backLabel={backLabel}
       skills={skills}
       skillsLoading={skillsLoading}
       skillsError={skillsError}

@@ -61,14 +61,14 @@ test("reopened completed history is readable without subtree entrance motion", a
       await page.getByRole("button", { name: "Reopen history" }).click();
       await expect(history.getByText("Earlier question", { exact: true })).toBeVisible();
       await expect(history.getByText("Earlier answer", { exact: true })).toBeVisible();
-      await expect(history.getByRole("button", { name: "Using a tool", exact: true })).toBeVisible();
+      await expect(history.getByRole("button", { name: "Used a tool", exact: true })).toBeVisible();
       await expect.poll(() => observation.evaluate((record) => record.frames)).toBeGreaterThan(12);
       expect(await observation.evaluate((record) => record.stop())).toEqual([]);
     } finally {
       await observation.evaluate((record) => record.stop());
       await observation.dispose();
     }
-    const disclosure = history.getByRole("button", { name: "Using a tool", exact: true });
+    const disclosure = history.getByRole("button", { name: "Used a tool", exact: true });
     await disclosure.click();
     await expect(history.getByText("Earlier tool call", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Close history" }).click();

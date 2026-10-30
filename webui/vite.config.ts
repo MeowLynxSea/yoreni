@@ -17,10 +17,8 @@ function startupSkeleton(): Plugin {
         if (!html.includes("<!--startup-shell-->")) return html;
         const css = readFileSync(path.resolve(__dirname, "src/components/startup-skeleton.css"), "utf8");
         const initialize = `var shell = document.querySelector('.startup-shell'); var layout = (${readStartupLayout.toString()})();
-          shell.dataset.startupSurface = layout.surface; shell.dataset.startupSection = layout.section;
-          shell.dataset.sidebarExpanded = String(layout.sidebarExpanded); shell.dataset.existingChat = String(layout.existingChat);
-          shell.dataset.calendarWeeks = String(layout.calendarWeeks);
-          shell.style.setProperty('--startup-sidebar-width', (layout.sidebarExpanded ? layout.sidebarWidth : 56) + 'px');`;
+          shell.dataset.startupSurface = layout.surface;
+          if (layout.surface === 'settings') shell.dataset.startupSettings = layout.settingsIndex ? 'index' : 'section';`;
         return html.replace("<!--startup-style-->", `<style>${css}</style>`)
           .replace("<!--startup-shell-->", renderToStaticMarkup(createElement(StartupSkeleton)))
           .replace("<!--startup-script-->", `<script>${initialize}</script>`)

@@ -74,7 +74,9 @@
       "expiresInline": "El código caduca {{expires}}.",
       "queueCount": "{{count}} pendientes",
       "noMatch": "No hay ninguna solicitud pendiente que coincida con este código."
-    }
+    },
+    "chat": "Chat",
+    "navigation": "Navegación principal"
   },
   "temporaryChat": {
     "title": "Chat temporal",
@@ -1908,7 +1910,7 @@
       "failed": "No enviado"
     },
     "assistantTyping": "El asistente está escribiendo",
-    "toolSingle": "Usando una herramienta",
+    "toolSingle": "Se usó una herramienta",
     "toolMany": "Se usaron {{count}} herramientas",
     "toolSummary": "{{count}} herramienta",
     "toolSummaryMany": "{{count}} herramientas",

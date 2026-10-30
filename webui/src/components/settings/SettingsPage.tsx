@@ -58,6 +58,8 @@ interface SettingsPageProps {
   mainNavigationExpanded: boolean;
   onChangeTheme: (value: ThemePreference) => void;
   onBackToChat: () => void;
+  onBack?: () => void;
+  backLabel?: string;
   skills: SkillSummary[];
   skillsLoading: boolean;
   skillsError: boolean;
@@ -81,6 +83,8 @@ export function SettingsPage({
   mainNavigationExpanded,
   onChangeTheme,
   onBackToChat,
+  onBack,
+  backLabel,
   skills,
   skillsLoading,
   skillsError,
@@ -186,6 +190,11 @@ export function SettingsPage({
     return () => registerExitGuard?.(null);
   }, [registerExitGuard, requestExit]);
   const backToChat = () => registerExitGuard ? onBackToChat() : requestExit(onBackToChat);
+  const navSection = isCapabilitySection(activeSection) ? "capabilities" : activeSection;
+  const sectionTitle = t(`settings.nav.${navSection}`, {
+    defaultValue: standaloneSectionTitle(navSection),
+  });
+  const leaveFeature = onBack ? () => requestExit(onBack, { promptRestart: false }) : backToChat;
   const pendingRestartSections = showSidebar
     ? { runtime: false, image: false, browser: false }
     : controllerPendingRestartSections;
@@ -223,8 +232,8 @@ export function SettingsPage({
         };
         return (
           <section className="settings-stack">
-            <div className="settings-section-heading">
-              <SettingsSectionTitle>{t("settings.nav.capabilities")}</SettingsSectionTitle>
+            <div className="settings-section-heading empty:hidden">
+              {showSidebar ? <SettingsSectionTitle>{t("settings.nav.capabilities")}</SettingsSectionTitle> : null}
               {!showSidebar && settings.requires_restart ? <RestartRequiredNotice message={t("settings.status.savedRestartApply")}
                 onRestart={restartViaSettingsSurface} isRestarting={restartInProgress} /> : null}
             </div>
@@ -620,7 +629,7 @@ export function SettingsPage({
 
   return (
     <DialogLayoutContext.Provider value={dialogLayoutAnchor}>
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-settings-canvas lg:flex-row">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent lg:flex-row">
       <Dialog open={pendingExit !== null} onOpenChange={(open) => { if (!open) setPendingExit(null); }}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
@@ -727,7 +736,7 @@ export function SettingsPage({
 
       <div
         className={cn(
-          "min-w-0 flex-1 bg-settings-canvas [scrollbar-gutter:stable]",
+          "min-w-0 flex-1 bg-transparent [scrollbar-gutter:stable]",
           "overflow-y-auto",
         )}
       >
@@ -751,16 +760,14 @@ export function SettingsPage({
             <div className={activeSection === "automations" ? "lg:hidden" : "settings-feature-header mb-7"}>
               <button
                 type="button"
-                onClick={backToChat}
-                className="touch-target mb-4 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors settings-hover hover:text-foreground lg:hidden"
+                onClick={leaveFeature}
+                className="touch-target -ml-2 mb-3 inline-flex items-center gap-1 rounded-full py-1 pl-1 pr-2.5 text-[13px] text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 motion-reduce:transition-none"
               >
-                <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-                {t("settings.backToChat")}
+                <ChevronLeft className="h-4 w-4" aria-hidden />
+                {backLabel ?? t("settings.backToChat")}
               </button>
-              {activeSection !== "automations" ? <h1 className="text-[24px] font-normal leading-tight tracking-normal text-foreground sm:text-[28px]">
-                {t(`settings.nav.${activeSection}`, {
-                  defaultValue: standaloneSectionTitle(activeSection),
-                })}
+              {activeSection !== "automations" ? <h1 className="display-serif text-[clamp(1.9rem,4vw,2.5rem)] leading-none text-foreground/95">
+                {sectionTitle}
               </h1> : null}
             </div>
           ) : null}

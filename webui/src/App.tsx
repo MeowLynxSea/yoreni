@@ -1,17 +1,21 @@
 import { cn } from "@/lib/utils";
 import { Disclosure } from "@/components/ui/disclosure";
 import { ChevronDown } from "lucide-react";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Eye, EyeOff, Settings, MessageCircle, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
+import { HashRouter, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { AmbientBackground } from "@/components/AmbientBackground";
+import { AppHeader } from "@/components/AppHeader";
 import { StartupShell } from "@/components/StartupShell";
 import { AgentRecovery } from "@/components/AgentRecovery";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { MessageBubble } from "@/components/MessageBubble";
+import { SettingsIndex } from "@/components/settings/SettingsIndex";
+import { isSettingsSectionKey } from "@/components/settings/contracts";
 import { ThreadComposer } from "@/components/thread/ThreadComposer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ThemeToggleIcon } from "@/components/icons/ThemeToggleIcon";
 import { useAgentRun } from "@/hooks/useAgentRun";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import { useAppViewport } from "@/hooks/useAppViewport";
@@ -24,51 +28,9 @@ import { ClientProvider, useClient } from "@/providers/ClientProvider";
 
 const SettingsView = lazy(() => import("@/components/settings/SettingsView").then((module) => ({ default: module.SettingsView })));
 type Ready = { client: YoreniClient; boot: BootstrapResponse };
-const SIDEBAR_COLLAPSED_KEY = "yoreni-webui.sidebar.collapsed";
+const GREETINGS = ["workOn", "start", "build", "tackle"] as const;
 
-function readSidebarCollapsed(): boolean {
-  try {
-    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
-function AgentNavButton({
-  collapsed,
-  label,
-  icon,
-  onClick,
-}: {
-  collapsed: boolean;
-  label: string;
-  icon: ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      variant="ghost"
-      aria-label={label}
-      title={collapsed ? label : undefined}
-      onClick={onClick}
-      className={cn(
-        "h-10 shrink-0",
-        collapsed ? "w-10 justify-center px-0" : "mx-2 justify-start gap-3 px-3",
-      )}
-    >
-      {icon}
-      {!collapsed && <span>{label}</span>}
-    </Button>
-  );
-}
-
-function AuthForm({
-  failed,
-  onSecret,
-}: {
-  failed: boolean;
-  onSecret: (secret: string) => void;
-}) {
+function AuthScreen({ failed, onSecret }: { failed: boolean; onSecret: (secret: string) => void }) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState("");
@@ -85,8 +47,12 @@ function AuthForm({
     return () => window.clearTimeout(timeout);
   }, [validationError]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (failed) setSubmitting(false);
+  }, [failed]);
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
     const secret = value.trim();
     if (!secret) {
       setValue("");
@@ -99,125 +65,145 @@ function AuthForm({
   };
 
   return (
-    <main className="flex h-full w-full flex-col overflow-y-auto bg-background">
-      <div className="mx-5 mt-5 shrink-0 self-end sm:mx-8">
-        <LanguageSwitcher className="h-8 min-w-0 gap-2 px-3 text-xs" />
+    <main className="relative flex h-full w-full items-center justify-center overflow-y-auto p-4 sm:p-6">
+      <AmbientBackground />
+      <div className="absolute right-4 top-4 z-20">
+        <LanguageSwitcher collapsed className="text-muted-foreground" />
       </div>
-      <div className="flex flex-1 shrink-0 items-center justify-center px-6 pb-20 pt-8">
-        <section
-          aria-labelledby="webui-auth-title"
-          className="w-full max-w-xs"
-        >
-          <div className="text-center">
+      <section className="message-enter app-surface-glass relative z-10 grid w-full max-w-[62rem] overflow-hidden rounded-[2rem] md:grid-cols-[1.05fr_0.95fr]">
+        <div className="relative hidden min-h-[36rem] overflow-hidden md:flex md:flex-col md:justify-between">
+          <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_20%_0%,rgba(255,255,255,0.72),transparent_60%),linear-gradient(155deg,rgba(91,164,173,0.16),rgba(191,90,66,0.13))]" />
+          <div className="relative flex flex-1 items-center justify-center p-10">
             <img
               src="/brand/yoreni_mark.svg"
               alt=""
-              width={56}
-              height={56}
               draggable={false}
-              className="mx-auto mb-5 h-14 w-14 select-none"
+              className="h-56 w-56 select-none rounded-[2rem] shadow-[0_30px_80px_-30px_rgba(21,34,50,0.4)]"
             />
-            <h1 id="webui-auth-title" className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]">
+          </div>
+          <div className="relative px-10 pb-10">
+            <p className="display-serif text-[2.75rem] leading-none text-foreground/90">yoreni</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-center px-6 py-10 sm:px-10 lg:px-14">
+          <div className="mx-auto w-full max-w-[19rem]">
+            <div className="mb-8 flex items-center gap-3 md:hidden">
+              <img src="/brand/yoreni_mark.svg" alt="" draggable={false} className="h-11 w-11 rounded-xl" />
+              <span className="display-serif text-[1.9rem] leading-none">yoreni</span>
+            </div>
+            <h1 id="webui-auth-title" className="display-serif text-[2rem] leading-[1.1] text-foreground sm:text-[2.25rem]">
               {t("app.auth.title")}
             </h1>
-          </div>
-          <form onSubmit={handleSubmit} className="mt-8">
-            <div className="relative">
-              <Input
-                ref={inputRef}
-                id="webui-access-password"
-                name="webui-access-password"
-                aria-label={t("app.auth.label")}
-                type={passwordVisible ? "text" : "password"}
-                autoComplete="current-password"
-                value={value}
-                onChange={(e) => {
-                  setValue(e.target.value);
-                  setValidationError(null);
-                }}
-                disabled={submitting}
-                aria-invalid={validationError ? true : undefined}
-                aria-describedby={validationError ? "webui-auth-error" : undefined}
-                placeholder={errorMessage ?? undefined}
-                className={cn(
-                  "h-12 rounded-full border-foreground/15 bg-muted/30 px-4 pr-24 text-base",
-                  validationError && "placeholder:text-[13px] placeholder:text-red-600 dark:placeholder:text-red-400",
-                )}
-                autoFocus
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={submitting}
-                aria-label={t(
-                  passwordVisible ? "app.auth.hidePassword" : "app.auth.showPassword",
-                )}
-                aria-controls="webui-access-password"
-                onClick={() => setPasswordVisible((visible) => !visible)}
-                className="absolute right-12 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full text-muted-foreground hover:text-foreground"
-              >
-                {passwordVisible ? (
-                  <EyeOff className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-                ) : (
-                  <Eye className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-                )}
-              </Button>
-              <Button
-                type="submit"
-                variant="ghost"
-                size="icon"
-                disabled={submitting}
-                aria-label={t("app.auth.submit")}
-                title={t("app.auth.submit")}
-                className="absolute right-1 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full"
-              >
-                <ArrowRight className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-              </Button>
-            </div>
-            {errorMessage ? (
-              <p id="webui-auth-error" role="alert" className="sr-only">
-                {errorMessage}
+            <form onSubmit={handleSubmit} className="mt-8">
+              <div className="relative">
+                <Input
+                  ref={inputRef}
+                  id="webui-access-password"
+                  name="webui-access-password"
+                  aria-label={t("app.auth.label")}
+                  type={passwordVisible ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={value}
+                  onChange={(event) => {
+                    setValue(event.target.value);
+                    setValidationError(null);
+                  }}
+                  disabled={submitting}
+                  aria-invalid={validationError ? true : undefined}
+                  aria-describedby={validationError ? "webui-auth-error" : undefined}
+                  placeholder={errorMessage ?? t("app.auth.label")}
+                  className={cn(
+                    "h-12 rounded-full border-foreground/10 bg-background/55 pl-5 pr-24 text-[15px] backdrop-blur-md",
+                    validationError && "placeholder:text-red-600 dark:placeholder:text-red-400",
+                  )}
+                  autoFocus
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={submitting}
+                  aria-label={t(passwordVisible ? "app.auth.hidePassword" : "app.auth.showPassword")}
+                  aria-controls="webui-access-password"
+                  onClick={() => setPasswordVisible((visible) => !visible)}
+                  className="absolute right-12 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full text-muted-foreground hover:text-foreground"
+                >
+                  {passwordVisible ? (
+                    <EyeOff className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                  ) : (
+                    <Eye className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                  )}
+                </Button>
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={submitting}
+                  aria-label={t("app.auth.submit")}
+                  title={t("app.auth.submit")}
+                  className="absolute right-1.5 top-1/2 h-9 w-9 -translate-y-1/2 rounded-full"
+                >
+                  <ArrowRight className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                </Button>
+              </div>
+              {errorMessage ? (
+                <p id="webui-auth-error" role="alert" className="sr-only">
+                  {errorMessage}
+                </p>
+              ) : null}
+            </form>
+            <Disclosure
+              className="mt-5"
+              summaryClassName="flex min-h-11 items-center justify-center gap-1.5 rounded-full text-[13px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              contentClassName="rounded-[1.25rem] border border-white/50 bg-white/45 p-4 text-[13px] leading-6 text-muted-foreground backdrop-blur-md dark:border-white/10 dark:bg-white/[0.04]"
+              summary={(
+                <>
+                  <span>{t("app.auth.helpTitle")}</span>
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0 transition-transform group-data-[state=open]/disclosure:rotate-180 motion-reduce:transition-none" strokeWidth={1.5} aria-hidden />
+                </>
+              )}
+            >
+              <p>{t("app.auth.helpConfig")}</p>
+              <code className="mt-2 block rounded-xl bg-background/70 px-3 py-2 font-mono text-xs text-foreground [overflow-wrap:anywhere]">
+                ~/.yoreni/config.json
+              </code>
+              <p className="mt-4">{t("app.auth.helpSecret")}</p>
+              <code className="mt-2 block rounded-xl bg-background/70 px-3 py-2 font-mono text-xs text-foreground [overflow-wrap:anywhere]">
+                channels.websocket.tokenIssueSecret
+              </code>
+              <p className="mt-3">
+                <Trans
+                  i18nKey="app.auth.helpFallback"
+                  components={{ code: <code className="font-mono text-xs text-foreground [overflow-wrap:anywhere]" /> }}
+                />
               </p>
-            ) : null}
-          </form>
-          <Disclosure
-            className="mt-4"
-            summaryClassName="flex min-h-11 items-center justify-center gap-1.5 rounded-compact text-[13px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            contentClassName="rounded-control bg-muted/50 p-4 text-sm leading-6 text-muted-foreground"
-            summary={(
-              <>
-                <span>{t("app.auth.helpTitle")}</span>
-                <ChevronDown className="h-3.5 w-3.5 shrink-0 transition-transform group-data-[state=open]/disclosure:rotate-180 motion-reduce:transition-none" strokeWidth={1.5} aria-hidden />
-              </>
-            )}
-          >
-            <p>{t("app.auth.helpConfig")}</p>
-            <code className="mt-2 block rounded-compact bg-background px-3 py-2 font-mono text-xs text-foreground [overflow-wrap:anywhere]">
-              ~/.yoreni/config.json
-            </code>
-            <p className="mt-4">{t("app.auth.helpSecret")}</p>
-            <code className="mt-2 block rounded-compact bg-background px-3 py-2 font-mono text-xs text-foreground [overflow-wrap:anywhere]">
-              channels.websocket.tokenIssueSecret
-            </code>
-            <p className="mt-3">
-              <Trans
-                i18nKey="app.auth.helpFallback"
-                components={{ code: <code className="font-mono text-xs text-foreground [overflow-wrap:anywhere]" /> }}
-              />
-            </p>
-          </Disclosure>
-        </section>
-      </div>
+            </Disclosure>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
 
+function BootError({ error, onRetry }: { error: string; onRetry: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <main className="relative flex h-full w-full items-center justify-center p-6">
+      <AmbientBackground />
+      <section className="message-enter app-surface-glass relative z-10 w-full max-w-md rounded-[2rem] p-8 text-center">
+        <h1 className="display-serif text-[1.9rem] leading-tight text-foreground">{t("app.error.title")}</h1>
+        <p className="mt-3 break-words text-[13px] leading-6 text-muted-foreground">{error}</p>
+        <Button onClick={onRetry} className="mt-6">
+          {t("common.retry")}
+        </Button>
+      </section>
+    </main>
+  );
+}
 
 export default function App() {
   useAppViewport();
   useReadingTypography();
-  const { t } = useTranslation();
   const [ready, setReady] = useState<Ready | null>(null);
   const [auth, setAuth] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -271,76 +257,163 @@ export default function App() {
     }).catch(() => {}); }, Math.max(5000, ready.boot.expires_in * 1000 - 30000));
     return () => clearTimeout(timer);
   }, [ready, refresh]);
-  if (auth) return <AuthForm failed={failed} onSecret={(value) => { void start(value); }} />;
-  if (error) return <div role="alert" className="m-auto max-w-lg p-8"><h1>{t("app.error.title")}</h1><p>{error}</p><Button onClick={() => { void start(secret.current); }}>{t("common.retry")}</Button></div>;
+  if (auth) return <AuthScreen failed={failed} onSecret={(value) => { void start(value); }} />;
+  if (error) return <BootError error={error} onRetry={() => { void start(secret.current); }} />;
   if (!ready) return <StartupShell />;
   return <ClientProvider client={ready.client} token={ready.boot.api_token ?? ""} modelName={ready.boot.model_name ?? null} ingressLimits={ready.boot.limits ?? null} webuiCapabilities={ready.boot.terminal?.webui?.capabilities ?? []}>
-    <AgentShell onLogout={() => { ++generation.current; ready.client.close(); clearSavedSecret(); setReady(null); setAuth(true); }} />
+    <HashRouter>
+      <AgentShell onLogout={() => { ++generation.current; ready.client.close(); clearSavedSecret(); window.history.replaceState(null, "", window.location.pathname + window.location.search); setReady(null); setAuth(true); }} />
+    </HashRouter>
   </ClientProvider>;
+}
+
+function HistorySkeleton() {
+  const { t } = useTranslation();
+  return (
+    <div className="thread-scroll min-h-0 flex-1 overflow-hidden">
+      <div role="status" aria-busy="true" aria-label={t("thread.loadingConversation")}
+        className="mx-auto flex min-h-full w-full max-w-[44rem] flex-col justify-end gap-6 px-5 pb-10 pt-10 sm:px-6 sm:pb-12">
+        <div className="thread-skeleton-bar ml-auto h-9 w-[36%]" />
+        <div className="rounded-[1.6rem] border border-white/50 bg-white/35 p-5 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.04]">
+          <div className="space-y-3">
+            <div className="thread-skeleton-bar h-3.5 w-[68%]" />
+            <div className="thread-skeleton-bar h-3.5 w-full" />
+            <div className="thread-skeleton-bar h-3.5 w-[52%]" />
+          </div>
+        </div>
+        <div className="thread-skeleton-bar ml-auto h-9 w-[28%]" />
+      </div>
+    </div>
+  );
+}
+
+function ChatView({ greeting, run, model, onOpenSettings }: {
+  greeting: string;
+  run: ReturnType<typeof useAgentRun>;
+  model: string | null;
+  onOpenSettings?: () => void;
+}) {
+  const viewport = useRef<HTMLDivElement>(null);
+  const following = useRef(true);
+  const loadingHistory = !run.historyLoaded && run.messages.length === 0;
+  const empty = run.messages.length === 0 && !loadingHistory;
+  useEffect(() => { if (following.current && viewport.current) viewport.current.scrollTop = viewport.current.scrollHeight; }, [run.messages]);
+  return (
+    <main className="relative flex min-h-0 flex-1 flex-col">
+      <AgentRecovery />
+      <div className={cn("flex min-h-0 flex-1 flex-col", empty && "justify-center")}>
+        {loadingHistory ? (
+          <HistorySkeleton />
+        ) : empty ? (
+          <div className="px-5 pb-8 pt-4 sm:pb-12">
+            <h1 className="message-enter display-serif mx-auto max-w-[38rem] text-balance text-center text-[clamp(2.1rem,5vw,3.5rem)] leading-[1.04] text-foreground/90">
+              {greeting}
+            </h1>
+          </div>
+        ) : (
+          <div
+            ref={viewport}
+            onScroll={() => {
+              const element = viewport.current;
+              if (element) following.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+            }}
+            className="thread-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain"
+          >
+            <div data-testid="thread-message-region" className="mx-auto flex min-h-full w-full max-w-[44rem] flex-col justify-end gap-6 px-5 pb-10 pt-10 sm:px-6 sm:pb-12">
+              {run.messages.map((message) => <MessageBubble key={message.id} message={message} />)}
+            </div>
+          </div>
+        )}
+        <div className={cn("shrink-0", empty ? "px-5 pb-8 sm:pb-10" : "px-4 pb-4 sm:px-6 sm:pb-6")}>
+          <div className={cn("message-enter mx-auto w-full [animation-delay:90ms]", empty ? "max-w-[42rem]" : "max-w-[44rem]")}>
+            {run.error ? (
+              <p role="alert" className="mx-auto mb-2 w-fit rounded-full bg-destructive/10 px-3 py-1.5 text-[12px] text-destructive">
+                {run.error}
+              </p>
+            ) : null}
+            <ThreadComposer
+              onSend={(content, attachments) => run.send(content, attachments?.map((item) => item.media))}
+              onStop={() => { void run.stop(); }}
+              isStreaming={run.active}
+              variant={empty ? "hero" : "thread"}
+              modelLabel={model}
+              onModelBadgeClick={onOpenSettings}
+            />
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function SettingsSectionRoute({
+  onLogout,
+  onModelNameChange,
+  onStartAutomationChat,
+}: {
+  onLogout: () => void;
+  onModelNameChange: (model: string | null) => void;
+  onStartAutomationChat: (text: string) => boolean;
+}) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { section } = useParams();
+  const { preference, setTheme } = useTheme();
+  if (!isSettingsSectionKey(section)) return <Navigate to="/settings" replace />;
+  return <div className="flex min-h-0 flex-1 flex-col">
+    <Suspense fallback={<StartupShell embedded surface="settings" />}>
+      <SettingsView
+        themePreference={preference}
+        showSidebar={false}
+        initialSection={section}
+        backLabel={t("settings.sidebar.title")}
+        onBack={() => navigate("/settings", { viewTransition: true })}
+        onSectionChange={(next) => navigate(`/settings/${next}`, { replace: true, viewTransition: true })}
+        onChangeTheme={setTheme}
+        onBackToChat={() => navigate("/", { viewTransition: true })}
+        onModelNameChange={onModelNameChange}
+        onLogout={onLogout}
+        onStartAutomationChat={onStartAutomationChat}
+      />
+    </Suspense>
+  </div>;
 }
 
 function AgentShell({ onLogout }: { onLogout: () => void }) {
   const { t } = useTranslation();
-  const { preference, setTheme, toggle, theme } = useTheme();
+  const navigate = useNavigate();
+  const { toggle, theme } = useTheme();
   const { client, modelName } = useClient();
-  const [settings, setSettings] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
-  const [model, setModel] = useState(modelName);
+  const [model, setModel] = useState<string | null>(modelName ?? null);
   const run = useAgentRun();
-  const viewport = useRef<HTMLDivElement>(null);
-  const following = useRef(true);
+  const greeting = useMemo(() => {
+    const key = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+    return t(`thread.empty.greetings.${key}`);
+  }, [t]);
   useEffect(() => client.onRuntimeModelUpdate(setModel), [client]);
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(sidebarCollapsed));
-    } catch {
-      // Local persistence is optional; the control still works for this page.
-    }
-  }, [sidebarCollapsed]);
-  useEffect(() => { if (following.current && viewport.current) viewport.current.scrollTop = viewport.current.scrollHeight; }, [run.messages]);
-  return <ThemeProvider theme={theme}><div className="flex h-full min-h-0 w-full bg-background text-foreground">
-    <nav aria-label={t("sidebar.navigation")} className={cn("flex shrink-0 flex-col gap-3 border-r border-border py-4 transition-[width] duration-200 motion-reduce:transition-none", sidebarCollapsed ? "w-14 items-center" : "w-60")}>
-      <div className={cn("flex w-full items-center px-3", sidebarCollapsed ? "justify-center" : "justify-between px-4")}>
-        <button
-          type="button"
-          aria-label={sidebarCollapsed ? t("thread.header.toggleSidebar") : "Yoreni"}
-          title={sidebarCollapsed ? t("thread.header.toggleSidebar") : undefined}
-          aria-hidden={!sidebarCollapsed}
-          aria-expanded={!sidebarCollapsed}
-          onClick={() => sidebarCollapsed && setSidebarCollapsed(false)}
-          tabIndex={sidebarCollapsed ? 0 : -1}
-          className={cn("flex h-9 shrink-0 items-center gap-2 rounded-control", sidebarCollapsed ? "w-9 justify-center" : "pointer-events-none")}
-        >
-          <img
-            src={sidebarCollapsed ? "/brand/yoreni_mark.svg" : "/brand/yoreni_wordmark.svg"}
-            alt=""
-            className={cn("select-none object-contain", sidebarCollapsed ? "h-8 w-8" : "h-7 w-32")}
-            draggable={false}
+  return <ThemeProvider theme={theme}>
+    <AmbientBackground />
+    <div className="relative z-10 flex h-full min-h-0 w-full flex-col text-foreground">
+      <AppHeader theme={theme} onToggleTheme={toggle} />
+      <div className="app-route-view flex min-h-0 flex-1 flex-col">
+      <Routes>
+        <Route path="/" element={<ChatView greeting={greeting} run={run} model={model} onOpenSettings={() => navigate("/settings", { viewTransition: true })} />} />
+        <Route path="/settings" element={
+          <SettingsIndex
+            onOpenSection={(section) => navigate(`/settings/${section}`, { viewTransition: true })}
+            onLogout={onLogout}
           />
-        </button>
-        {!sidebarCollapsed && <Button variant="ghost" size="icon" aria-label={t("sidebar.collapse")} title={t("sidebar.collapse")} aria-expanded="true" onClick={() => setSidebarCollapsed(true)}><PanelLeftClose className="h-4 w-4" /></Button>}
+        } />
+        <Route path="/settings/:section" element={
+          <SettingsSectionRoute
+            onLogout={onLogout}
+            onModelNameChange={setModel}
+            onStartAutomationChat={(text) => { navigate("/", { viewTransition: true }); void run.send(text); return true; }}
+          />
+        } />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
       </div>
-      <div className={cn("flex flex-col gap-2", !sidebarCollapsed && "w-full")}>
-        <AgentNavButton collapsed={sidebarCollapsed} label={t("settings.backToChat")} icon={<MessageCircle className="h-5 w-5" />} onClick={() => setSettings(false)} />
-        <AgentNavButton collapsed={sidebarCollapsed} label={t("sidebar.settings")} icon={<Settings className="h-5 w-5" />} onClick={() => setSettings(true)} />
-      </div>
-      <div className={cn("mt-auto flex gap-2", sidebarCollapsed ? "flex-col items-center" : "w-full flex-col px-2")}>
-        <LanguageSwitcher collapsed={sidebarCollapsed} className={sidebarCollapsed ? undefined : "w-full"} />
-        <AgentNavButton collapsed={sidebarCollapsed} label={t("settings.nav.appearance")} icon={<ThemeToggleIcon theme={theme} />} onClick={toggle} />
-        <AgentNavButton collapsed={sidebarCollapsed} label={t("settings.oauth.signOut")} icon={<LogOut className="h-4 w-4" />} onClick={onLogout} />
-      </div>
-      {sidebarCollapsed && <Button variant="ghost" size="icon" aria-label={t("thread.header.toggleSidebar")} title={t("thread.header.toggleSidebar")} aria-expanded="false" onClick={() => setSidebarCollapsed(false)}><PanelLeftOpen className="h-4 w-4" /></Button>}
-    </nav>
-    <main className="flex min-h-0 min-w-0 flex-1 flex-col">
-      {settings ? <Suspense fallback={<StartupShell />}><SettingsView themePreference={preference} showSidebar onChangeTheme={setTheme} onBackToChat={() => setSettings(false)} onModelNameChange={setModel} onLogout={onLogout} onStartAutomationChat={(text) => { setSettings(false); void run.send(text); return true; }} /></Suspense> : <>
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-5"><h1 className="font-semibold">Yoreni</h1><span className="text-xs text-muted-foreground">{model}</span></header>
-        <AgentRecovery />
-        <div ref={viewport} onScroll={() => { const element = viewport.current; if (element) following.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80; }} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-8">
-          <div className="mx-auto flex max-w-3xl flex-col gap-6 py-8">{run.messages.map((message) => <MessageBubble key={message.id} message={message} />)}</div>
-        </div>
-        {run.error && <p role="alert" className="mx-auto w-full max-w-3xl px-4 text-sm text-destructive">{run.error}</p>}
-        <div className="mx-auto w-full max-w-3xl shrink-0 p-4"><ThreadComposer onSend={(content, attachments) => run.send(content, attachments?.map((item) => item.media))} onStop={() => { void run.stop(); }} isStreaming={run.active} /></div>
-      </>}
-    </main>
-  </div></ThemeProvider>;
+    </div>
+  </ThemeProvider>;
 }

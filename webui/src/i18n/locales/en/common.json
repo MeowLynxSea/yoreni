@@ -74,7 +74,9 @@
       "expiresInline": "Code expires {{expires}}.",
       "queueCount": "{{count}} pending",
       "noMatch": "No pending request matches this code."
-    }
+    },
+    "chat": "Chat",
+    "navigation": "Main navigation"
   },
   "temporaryChat": {
     "title": "Temporary chat",
@@ -1908,7 +1910,7 @@
       "failed": "Not sent"
     },
     "assistantTyping": "Assistant is typing",
-    "toolSingle": "Using a tool",
+    "toolSingle": "Used a tool",
     "toolMany": "Used {{count}} tools",
     "toolSummary": "{{count}} tool",
     "toolSummaryMany": "{{count}} tools",

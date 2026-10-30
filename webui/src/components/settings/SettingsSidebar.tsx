@@ -44,7 +44,8 @@ export function standaloneSectionTitle(section: SettingsSectionKey): string {
   if (section === "automations") return "Automations";
   if (section === "skills") return "Skills";
   if (section === "channels") return "Channels";
-  return SETTINGS_NAV_ITEMS.find((item) => item.key === section)?.fallback ?? "Settings";
+  const navSection = isCapabilitySection(section) ? "capabilities" : section;
+  return SETTINGS_NAV_ITEMS.find((item) => item.key === navSection)?.fallback ?? "Settings";
 }
 
 interface SettingsSidebarProps {
@@ -92,7 +93,7 @@ export function SettingsSidebar(props: SettingsSidebarProps) {
   return (
     <aside
       className={cn(
-        "flex w-full shrink-0 select-none flex-col bg-settings-surface px-3 pb-2 lg:w-48 lg:px-3 lg:pb-4",
+        "flex w-full shrink-0 select-none flex-col border-border/50 bg-transparent px-3 pb-2 lg:w-52 lg:border-r lg:px-3 lg:pb-4",
         hostChromeInset ? "pt-10 lg:pt-10" : "pt-4 lg:pt-4",
       )}
     >
@@ -101,11 +102,12 @@ export function SettingsSidebar(props: SettingsSidebarProps) {
         onClick={onBackToChat}
         aria-label={t("settings.backToChat")}
         className={cn(
-          "touch-target mb-2 inline-flex h-9 w-9 items-center justify-center rounded-xl text-ui text-sidebar-content transition-colors duration-150 motion-reduce:transition-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ring hover:text-foreground lg:mb-3",
+          "touch-target mb-3 inline-flex h-9 items-center gap-1.5 rounded-full border border-white/55 bg-white/35 pl-2 pr-3 text-[12px] text-muted-foreground backdrop-blur-md transition-colors duration-150 hover:border-white/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 motion-reduce:transition-none dark:border-white/10 dark:bg-white/[0.05]",
           hostChromeInset && "-ml-1",
         )}
       >
-        <ChevronLeft className="h-4 w-4" aria-hidden />
+        <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+        <span>{t("app.chat", { defaultValue: "Chat" })}</span>
       </button>
 
       <nav
@@ -128,7 +130,7 @@ export function SettingsSidebar(props: SettingsSidebarProps) {
                 aria-current={active ? "page" : undefined}
                 onClick={() => onSelectSection(key)}
                 className={cn(
-                  "touch-target flex h-9 w-full items-center gap-2 rounded-xl px-2.5 text-left text-ui",
+                  "touch-target flex h-9 w-full items-center gap-2 rounded-full px-3 text-left text-ui",
                   SIDEBAR_SELECTION_ITEM_CLASS,
                   active
                     ? "text-sidebar-accent-foreground"
@@ -221,7 +223,7 @@ function MobileSettingsNavigation({
   ) : null;
 
   return (
-    <aside className={cn("shrink-0 border-b border-border/50 bg-settings-canvas",
+    <aside className={cn("shrink-0 border-b border-border/50 bg-transparent",
       hostChromeInset ? "pt-10" : "pt-[env(safe-area-inset-top)]")}
     >
       <div className="grid h-14 grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center px-3">

@@ -74,7 +74,9 @@
       "expiresInline": "Mã hết hạn {{expires}}.",
       "queueCount": "{{count}} đang chờ",
       "noMatch": "Không có yêu cầu đang chờ nào khớp với mã này."
-    }
+    },
+    "chat": "Trò chuyện",
+    "navigation": "Điều hướng chính"
   },
   "temporaryChat": {
     "title": "Trò chuyện tạm thời",
@@ -1908,7 +1910,7 @@
       "failed": "Chưa gửi"
     },
     "assistantTyping": "Trợ lý đang nhập",
-    "toolSingle": "Đang dùng một công cụ",
+    "toolSingle": "Đã dùng một công cụ",
     "toolMany": "Đã dùng {{count}} công cụ",
     "toolSummary": "{{count}} công cụ",
     "toolSummaryMany": "{{count}} công cụ",

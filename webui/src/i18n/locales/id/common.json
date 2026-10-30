@@ -74,7 +74,9 @@
       "expiresInline": "Kode kedaluwarsa {{expires}}.",
       "queueCount": "{{count}} menunggu",
       "noMatch": "Tidak ada permintaan tertunda yang cocok dengan kode ini."
-    }
+    },
+    "chat": "Obrolan",
+    "navigation": "Navigasi utama"
   },
   "temporaryChat": {
     "title": "Obrolan sementara",
@@ -1908,7 +1910,7 @@
       "failed": "Belum terkirim"
     },
     "assistantTyping": "Asisten sedang mengetik",
-    "toolSingle": "Menggunakan sebuah alat",
+    "toolSingle": "1 alat digunakan",
     "toolMany": "Menggunakan {{count}} alat",
     "toolSummary": "{{count}} alat",
     "toolSummaryMany": "{{count}} alat",

@@ -438,7 +438,7 @@ export function MessageBubble({
     );
     return (
       <div
-        className="group relative ml-auto flex w-fit max-w-[min(85%,36rem)] flex-col items-end gap-1.5"
+        className="message-enter group relative ml-auto flex w-fit max-w-[min(85%,36rem)] flex-col items-end gap-1.5"
       >
         {!hasText ? contextMenu : null}
         {hasImages ? <ImageGallery images={images} align="right" size="compact" /> : null}
@@ -458,11 +458,11 @@ export function MessageBubble({
               data-theme-surface
               data-temporary-message={temporary ? "true" : undefined}
               className={cn(
-                "ml-auto w-fit max-w-full min-w-0 rounded-floating px-4 py-2",
+                "ml-auto w-fit max-w-full min-w-0 rounded-[1.35rem] px-4 py-2.5",
                 "text-left text-reading whitespace-pre-wrap [overflow-wrap:anywhere]",
                 temporary
                   ? "border border-dashed border-muted-foreground/40 bg-transparent"
-                  : "bg-secondary/70",
+                  : "user-message-bubble",
               )}
             >
               {messageText}
@@ -490,7 +490,10 @@ export function MessageBubble({
   return (
     <div
       data-assistant-message
-      className="group/assistant relative w-full text-reading"
+      className={cn(
+        "message-enter group/assistant relative w-full text-reading",
+        message.isStreaming && "assistant-caret",
+      )}
     >
       {contextMenu}
       {hasReasoning ? (
@@ -503,23 +506,25 @@ export function MessageBubble({
       {empty && message.isStreaming && !hasReasoning ? (
         <ThinkingState />
       ) : empty && message.isStreaming ? null : (
-        <InlineImageProvider>
-          <div data-assistant-selectable={message.isStreaming ? undefined : "true"}>
-            {message.renderAs === "text" ? (
-              <CodeBlock language="text" code={assistantContent} highlight={false} ansi={false} />
-            ) : (
-              /* A mode switch rebuilds Streamdown's subtree and moves the scroll anchor. */
-              <MarkdownText
-                streaming={!!message.isStreaming}
-                preserveStreamingLayout
-                onOpenFilePreview={onOpenFilePreview}
-              >
-                {assistantContent}
-              </MarkdownText>
-            )}
-          </div>
-          {media.length > 0 ? <MessageMedia media={media} align="left" /> : null}
-        </InlineImageProvider>
+        <div className="assistant-bubble rounded-[1.6rem] px-5 py-4 sm:px-6 sm:py-5">
+          <InlineImageProvider>
+            <div data-assistant-selectable={message.isStreaming ? undefined : "true"}>
+              {message.renderAs === "text" ? (
+                <CodeBlock language="text" code={assistantContent} highlight={false} ansi={false} />
+              ) : (
+                /* A mode switch rebuilds Streamdown's subtree and moves the scroll anchor. */
+                <MarkdownText
+                  streaming={!!message.isStreaming}
+                  preserveStreamingLayout
+                  onOpenFilePreview={onOpenFilePreview}
+                >
+                  {assistantContent}
+                </MarkdownText>
+              )}
+            </div>
+            {media.length > 0 ? <MessageMedia media={media} align="left" /> : null}
+          </InlineImageProvider>
+        </div>
       )}
     </div>
   );
@@ -709,14 +714,15 @@ interface TraceGroupProps {
  */
 function TraceGroup({ message }: TraceGroupProps) {
   const { t } = useTranslation();
-  const lines = message.traces ?? [message.content];
+  const lines = (message.traces ?? [message.content]).filter((line) => line.trim().length > 0);
   const count = lines.length;
   const [open, setOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
   const releaseContent = useCallback(() => setHasOpened(false), []);
   const contentId = useId();
+  if (count === 0) return null;
   return (
-    <div className="w-full">
+    <div className="message-enter w-full">
       <button
         type="button"
         onClick={() => {
@@ -724,14 +730,17 @@ function TraceGroup({ message }: TraceGroupProps) {
           setOpen((value) => !value);
         }}
         className={cn(
-          "group flex w-full items-center gap-2 rounded-md px-2 py-1.5",
-          "text-xs text-muted-foreground transition-colors hover:bg-muted/45",
+          "group inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 backdrop-blur-md",
+          "border border-white/45 bg-white/30 text-[11px] font-medium leading-4 text-muted-foreground",
+          "transition-[background-color,color] duration-200 hover:bg-white/50 hover:text-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+          "dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.08]",
         )}
         aria-expanded={open}
         aria-controls={contentId}
       >
-        <Wrench className="h-3.5 w-3.5" aria-hidden />
-        <span className="font-medium">
+        <Wrench className="h-3 w-3" strokeWidth={1.75} aria-hidden />
+        <span>
           {count === 1
             ? t("message.toolSingle")
             : t("message.toolMany", { count })}
@@ -739,19 +748,24 @@ function TraceGroup({ message }: TraceGroupProps) {
         <ChevronRight
           aria-hidden
           className={cn(
-            "ml-auto h-3.5 w-3.5 transition-transform duration-200 motion-reduce:transition-none",
+            "h-3 w-3 transition-transform duration-200 motion-reduce:transition-none",
             open && "rotate-90",
           )}
         />
       </button>
       <DisclosureContent id={contentId} open={open} onExitComplete={releaseContent}>
         {hasOpened && <ul
-          className="mt-1 space-y-0.5 border-l border-muted-foreground/20 pl-3"
+          className={cn(
+            "mt-2 max-w-[38rem] space-y-1 rounded-2xl px-3.5 py-2.5",
+            "border border-white/60 bg-white/45 backdrop-blur-md",
+            "shadow-[0_10px_30px_-24px_rgba(24,36,58,0.5)]",
+            "dark:border-white/[0.12] dark:bg-white/[0.06]",
+          )}
         >
           {lines.map((line, i) => (
             <li
               key={i}
-              className="whitespace-pre-wrap break-words font-mono text-[11.5px] leading-relaxed text-muted-foreground/90"
+              className="whitespace-pre-wrap break-words font-mono text-[11.5px] leading-relaxed text-muted-foreground"
             >
               {line}
             </li>

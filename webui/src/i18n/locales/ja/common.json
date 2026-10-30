@@ -74,7 +74,9 @@
       "expiresInline": "コードの有効期限: {{expires}}。",
       "queueCount": "{{count}} 件待機中",
       "noMatch": "このコードに一致する保留中のリクエストはありません。"
-    }
+    },
+    "chat": "チャット",
+    "navigation": "メインナビゲーション"
   },
   "temporaryChat": {
     "title": "一時チャット",
@@ -1908,7 +1910,7 @@
       "failed": "未送信"
     },
     "assistantTyping": "アシスタントが入力中",
-    "toolSingle": "ツールを使用中",
+    "toolSingle": "ツールを1個使用",
     "toolMany": "{{count}} 個のツールを使用",
     "toolSummary": "{{count}} 個のツール",
     "toolSummaryMany": "{{count}} 個のツール",

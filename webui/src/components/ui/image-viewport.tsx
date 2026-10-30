@@ -23,6 +23,8 @@ export interface ImageViewportProps {
   testId?: string;
   /** Disable when a surrounding gallery owns the arrow keys. */
   panWithArrows?: boolean;
+  /** Clicking empty space around the image, as every photo viewer closes. */
+  onBackgroundClick?: () => void;
 }
 
 /** Image-local gestures and controls. Provide viewport dimensions and remount per image. */
@@ -34,12 +36,14 @@ export function ImageViewport({
   controlsClassName,
   testId = "image-viewport",
   panWithArrows = true,
+  onBackgroundClick,
 }: ImageViewportProps) {
   const { t } = useTranslation();
   const viewport = useRef<HTMLDivElement>(null);
   const image = useRef<HTMLImageElement>(null);
   const pointers = useRef(new Map<number, Point>());
   const viewRef = useRef(FIT);
+  const pressOrigin = useRef<Point | null>(null);
   const [view, setView] = useState(FIT);
   const [dragging, setDragging] = useState(false);
 
@@ -96,6 +100,7 @@ export function ImageViewport({
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 || pointers.current.size >= 2) return;
+    pressOrigin.current = { x: event.clientX, y: event.clientY };
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     event.currentTarget.setPointerCapture(event.pointerId);
     setDragging(true);
@@ -124,6 +129,13 @@ export function ImageViewport({
     <div ref={viewport} data-testid={testId} tabIndex={0} role="group" aria-label={t("lightbox.gestures")}
       className={cn("flex min-h-0 min-w-0 touch-none select-none items-center justify-center overflow-hidden focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring", view.scale > 1 ? dragging ? "cursor-grabbing" : "cursor-grab" : "cursor-zoom-in", className)}
       onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endPointer} onPointerCancel={endPointer} onLostPointerCapture={endPointer}
+      onClick={(event) => {
+        const origin = pressOrigin.current;
+        pressOrigin.current = null;
+        if (!onBackgroundClick || event.target !== event.currentTarget) return;
+        if (origin && Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > 6) return;
+        onBackgroundClick();
+      }}
       onDoubleClick={(event) => zoom(viewRef.current.scale > 1 ? 1 : 2, { x: event.clientX, y: event.clientY })}
       onKeyDown={(event) => {
         if (event.ctrlKey || event.metaKey || event.altKey) return;

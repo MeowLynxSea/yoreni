@@ -96,14 +96,14 @@ export function HtmlAttachment({ attachment, className }: HtmlAttachmentProps) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
           aria-describedby={undefined}
-          className="h-[85dvh] w-[min(94vw,64rem)] max-w-none gap-2 overflow-hidden p-2"
+          className="grid h-[85dvh] w-[min(94vw,64rem)] max-w-none grid-rows-[auto_minmax(0,1fr)] gap-2 overflow-hidden p-2"
         >
           <DialogTitle className="px-2 text-sm font-medium text-muted-foreground">{name}</DialogTitle>
           <iframe
             src={url}
             title={name}
             sandbox={HTML_FRAME_SANDBOX}
-            className="block h-full w-full rounded-control border border-border/60 bg-white"
+            className="block h-full min-h-0 w-full rounded-control border border-border/60 bg-white"
           />
         </DialogContent>
       </Dialog>

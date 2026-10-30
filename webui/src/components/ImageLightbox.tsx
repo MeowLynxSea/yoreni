@@ -100,6 +100,7 @@ export function ImageLightbox({
           onCloseAutoFocus={(event) => {
             if (opener.current?.isConnected) { event.preventDefault(); opener.current.focus(); }
           }}
+          onClick={(event) => { if (event.target === event.currentTarget) onOpenChange(false); }}
           className={cn(
             "fixed inset-0 z-50 flex items-center justify-center overflow-hidden",
             "focus:outline-none",
@@ -113,7 +114,12 @@ export function ImageLightbox({
             {current.name ?? t("lightbox.title")}
           </DialogPrimitive.Title>
 
-          <ZoomableImage key={`${index}:${current.url}`} src={current.url} alt={current.name ?? ""} />
+          <ZoomableImage
+            key={`${index}:${current.url}`}
+            src={current.url}
+            alt={current.name ?? ""}
+            onBackgroundClick={() => onOpenChange(false)}
+          />
 
           {hasMany ? (
             <>

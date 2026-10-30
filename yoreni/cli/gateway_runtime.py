@@ -24,7 +24,7 @@ from yoreni.agent.tools.image_generation import (
 )
 from yoreni.agent.tools.mcp import MCPProvider
 from yoreni.agent.tools.registry import ToolRegistry
-from yoreni.bus.events import OutboundMessage
+from yoreni.bus.events import InboundMessage, OutboundMessage
 from yoreni.bus.queue import MessageBus
 from yoreni.cli import terminal as cli_terminal
 from yoreni.cli.runtime_config import _migrate_cron_store
@@ -385,6 +385,7 @@ def _run_claimed_gateway(
     from yoreni.cron.types import CronJob, CronRunResult
     from yoreni.llm_usage import record_llm_call
     from yoreni.llm_usage.context import llm_usage_source
+    from yoreni.profile.store import UserProfileStore
     from yoreni.providers.factory import (
         ProviderSnapshot,
         build_provider_snapshot,
@@ -506,6 +507,7 @@ def _run_claimed_gateway(
         hooks=[_MCPReadinessHook(mcp_provider)],
         hook_factories=[create_file_edit_activity_hook],
         tool_registry=tools,
+        profile_store=UserProfileStore(Path(config_path).parent / "profile.json"),
     )
 
     deliver_to_channel = partial(_deliver_to_channel, bus=bus)
@@ -678,6 +680,20 @@ def _run_claimed_gateway(
     def _webui_refresh_runtime_config() -> None:
         agent.refresh_runtime_config()
 
+    from yoreni.webui.onboarding_api import OnboardingService
+    from yoreni.webui.settings_services import WebUISettingsConfig
+
+    onboarding = OnboardingService(
+        WebUISettingsConfig(Path(config_path)),
+        workspace=agent.workspace,
+    )
+
+    async def _webui_accept_input(message: InboundMessage) -> str | None:
+        """Reject chat input until first-run setup is complete."""
+        if not onboarding.is_complete():
+            raise RuntimeError("Finish setting up Yoreni before chatting")
+        return await agent.accept_message(message)
+
     def _webui_skill_state_action(disabled_skills: set[str]) -> None:
         config.agents.defaults.disabled_skills = sorted(disabled_skills)
         agent.context.skills.disabled_skills = set(disabled_skills)
@@ -707,7 +723,7 @@ def _run_claimed_gateway(
         webui_skill_state_action=_webui_skill_state_action,
         webui_agent_action=agent_action,
         webui_chat_search_action=chat_search_action,
-        webui_accept_input=agent.accept_message,
+        webui_accept_input=_webui_accept_input,
         config_path=Path(config_path),
     )
 

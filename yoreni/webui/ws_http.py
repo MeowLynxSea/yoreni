@@ -94,6 +94,7 @@ from yoreni.webui.http_utils import (
 )
 from yoreni.webui.ingress_policy import WebUIIngressPolicy
 from yoreni.webui.media_gateway import WebUIMediaGateway
+from yoreni.webui.onboarding_api import OnboardingError, OnboardingService
 from yoreni.webui.outbound_wire import encode_history_entries as _encode_history_entries
 from yoreni.webui.skills_api import (
     SkillManagementError,
@@ -128,6 +129,12 @@ _NO_STORE_HEADERS = [("Cache-Control", "no-store")]
 _WEBUI_MUTATION_PATHS = {
     "agent.resume": "/api/agent/resume",
     "agent.cancel": "/api/agent/cancel",
+    "onboarding.token": "/api/onboarding/token",
+    "onboarding.profile": "/api/onboarding/profile",
+    "onboarding.step": "/api/onboarding/step",
+    "onboarding.complete": "/api/onboarding/complete",
+    "onboarding.embedding_test": "/api/onboarding/embedding-test",
+    "profile.update": "/api/profile/update",
     "automation.enable": "/api/webui/automations/enable",
     "automation.disable": "/api/webui/automations/disable",
     "automation.delete": "/api/webui/automations/delete",
@@ -370,6 +377,11 @@ class GatewayHTTPHandler:
         from yoreni.webui.settings_routes import WebUISettingsRouter
 
         self._capabilities = _rc(runtime_surface, runtime_capabilities_overrides or {})
+        self.onboarding = OnboardingService(
+            settings.config,
+            workspace=skills_workspace_path,
+            live_websocket=config,
+        )
         self.settings_routes = WebUISettingsRouter(
             settings=settings,
             bus=bus,
@@ -481,6 +493,10 @@ class GatewayHTTPHandler:
             return True
         return path in {
             "/api/agent/resume", "/api/agent/cancel",
+            "/api/onboarding/token", "/api/onboarding/profile",
+            "/api/onboarding/step", "/api/onboarding/complete",
+            "/api/onboarding/embedding-test",
+            "/api/profile/update",
             "/api/webui/skills/install",
             "/api/webui/skills/update",
             "/api/webui/skills/delete",
@@ -527,7 +543,18 @@ class GatewayHTTPHandler:
         if got == "/webui/terminal":
             return self._handle_bootstrap(connection, request, terminal_probe=True)
 
+        if (
+            got == "/api/onboarding"
+            or got.startswith("/api/onboarding/")
+            or got in {"/api/profile", "/api/profile/update"}
+        ):
+            if not self.check_api_token(request):
+                return _http_error(401, "Unauthorized")
+            return await self._handle_setup(request, got)
+
         if got in {"/api/agent", "/api/agent/resume", "/api/agent/cancel"}:
+            if not self.onboarding.is_complete():
+                return _http_error(409, "Finish setting up Yoreni before chatting")
             if not self.check_api_token(request):
                 return _http_error(401, "Unauthorized")
             store = await asyncio.to_thread(AgentStore, self.skills_workspace_path)
@@ -650,6 +677,43 @@ class GatewayHTTPHandler:
             token_response_payload(token_value, self.config.token_ttl_s),
             extra_headers=_NO_STORE_HEADERS,
         )
+
+    # -- Onboarding and profile ---------------------------------------------
+
+    async def _handle_setup(self, request: WsRequest, path: str) -> Response:
+        """Serve first-run state and the owner profile outside agent execution."""
+        payload = _mutation_payload(request) or {}
+        try:
+            if path == "/api/onboarding":
+                return _http_json_response(
+                    self.onboarding.snapshot(),
+                    extra_headers=_NO_STORE_HEADERS,
+                )
+            if path == "/api/profile":
+                return _http_json_response(
+                    {"profile": self.onboarding.read_profile()},
+                    extra_headers=_NO_STORE_HEADERS,
+                )
+            if path == "/api/onboarding/token":
+                return _http_json_response(self.onboarding.set_token(payload.get("token")))
+            if path == "/api/onboarding/profile":
+                profile = self.onboarding.save_profile(payload.get("profile"))
+                step = payload.get("step")
+                if step is not None:
+                    self.onboarding.save_step(step)
+                return _http_json_response({"profile": profile})
+            if path == "/api/onboarding/step":
+                return _http_json_response(self.onboarding.save_step(payload.get("step")))
+            if path == "/api/onboarding/complete":
+                return _http_json_response(self.onboarding.complete(payload.get("locale")))
+            if path == "/api/onboarding/embedding-test":
+                return _http_json_response(await self.onboarding.test_embedding(payload))
+            if path == "/api/profile/update":
+                profile = self.onboarding.update_profile(payload.get("profile"))
+                return _http_json_response({"profile": profile})
+        except OnboardingError as exc:
+            return _http_error(exc.status, exc.message)
+        return _http_error(404, "Setup route not found")
 
     # -- Bootstrap ----------------------------------------------------------
 

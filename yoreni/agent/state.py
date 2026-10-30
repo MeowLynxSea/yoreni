@@ -368,6 +368,11 @@ class AgentStore:
                 (run_id, entry_id),
             )
 
+    def entries(self, run_id: str) -> list[RunEntry]:
+        """Return one Run's durable conversation rows in causal order."""
+        with self.connection() as db:
+            return self._entries_for(db, [run_id]).get(run_id, [])
+
     def _entries_for(self, db: sqlite3.Connection, run_ids: list[str]) -> dict[str, list[RunEntry]]:
         entries: dict[str, list[RunEntry]] = {run_id: [] for run_id in run_ids}
         if not run_ids:

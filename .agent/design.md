@@ -49,3 +49,9 @@ Retrieval fuses FTS5 and exact SQLite vector similarity with Reciprocal Rank Fus
 Dream is a single bounded model call producing a JSON change set. Validation, application, core-file writes, the Git commit, and the cursor advance are separate durable steps recorded in `dream_runs`, so recovery can resume without applying a change twice. Dream never receives file or shell tools and cannot write `SOUL.md` or install a skill; skill proposals stay pending for independent review.
 
 `memory/memory.sqlite3` is created and migrated by `MemoryService`; the one-shot legacy import lives in `yoreni/memory/migration.py` and aborts startup on any inconsistency rather than running with partial data.
+
+## User profile ownership
+
+`yoreni/profile/` owns two instance-level files beside the config: `profile.json` for structured identity and conversation style, and `onboarding.json` for first-run progress. Onboarding and WebUI settings both write through `UserProfileStore`; neither may keep a browser-local copy as a source of truth. Profile edits never rewrite `USER.md`, which remains owned by `MemoryService`.
+
+`ContextBuilder` is the single injection point: it renders `USER.md` through core memory and then appends the structured profile and style instructions, so every entry point that sees `USER.md` sees the same profile. The WebUI password is the existing `channels.websocket.tokenIssueSecret`; onboarding writes it into the config rather than creating a second credential store.

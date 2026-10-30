@@ -449,7 +449,6 @@ class GatewayHTTPHandler:
             "/api/webui/star-prompt/dismiss",
             "/api/workspaces/resolve-project",
             "/api/workspaces/favorite",
-            "/api/webui/home-widgets",
         }
 
     @staticmethod

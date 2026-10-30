@@ -108,6 +108,23 @@
       "title": "技能"
     }
   },
+  "home": {
+    "title": "主页",
+    "empty": "未显示小组件，可在设置中开启。",
+    "widgets": {
+      "goal": {
+        "title": "目标",
+        "empty": "当前没有目标。",
+        "active": "进行中",
+        "blocked": "已阻塞"
+      },
+      "automations": {
+        "title": "自动任务",
+        "empty": "没有定时任务。",
+        "more": "另有 {{count}} 项"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "没有匹配的时区。",
     "configure": "配置",
@@ -398,6 +415,7 @@
       "byok": "BYOK",
       "overview": "总览",
       "appearance": "外观",
+      "widgets": "小组件",
       "notifications": "通知",
       "models": "模型",
       "providers": "提供商",
@@ -541,6 +559,14 @@
       "summaryHelp": "显示修改文件和增删行数。",
       "diffHelp": "在对话中直接展示代码差异。",
       "collapsedHelp": "默认收起代码差异，需要时点开。"
+    },
+    "widgets": {
+      "title": "主页小组件",
+      "help": "小组件显示在主页，仅在当前设备生效。",
+      "descriptions": {
+        "goal": "显示 agent 正在推进的目标。",
+        "automations": "显示定时任务与下次运行时间。"
+      }
     },
     "readingTextSize": {
       "small": "阅读字号：小",

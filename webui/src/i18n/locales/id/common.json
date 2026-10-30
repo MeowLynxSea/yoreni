@@ -108,6 +108,23 @@
       "title": "Keterampilan"
     }
   },
+  "home": {
+    "title": "Beranda",
+    "empty": "Tidak ada widget yang ditampilkan. Aktifkan di pengaturan.",
+    "widgets": {
+      "goal": {
+        "title": "Tujuan",
+        "empty": "Tidak ada tujuan aktif.",
+        "active": "Berjalan",
+        "blocked": "Terhambat"
+      },
+      "automations": {
+        "title": "Otomasi",
+        "empty": "Tidak ada tugas terjadwal.",
+        "more": "{{count}} lainnya terjadwal"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "Tidak ada zona waktu yang cocok.",
     "configure": "Konfigurasi",
@@ -398,6 +415,7 @@
       "byok": "BYOK",
       "overview": "Ringkasan",
       "appearance": "Tampilan",
+      "widgets": "Widget",
       "notifications": "Notifikasi",
       "models": "Model",
       "providers": "Penyedia",
@@ -486,6 +504,14 @@
       "summaryHelp": "Tampilkan berkas yang diubah dan jumlah baris.",
       "diffHelp": "Tampilkan perubahan kode langsung dalam percakapan.",
       "collapsedHelp": "Lipat perubahan kode hingga Anda membukanya."
+    },
+    "widgets": {
+      "title": "Widget beranda",
+      "help": "Widget tampil di beranda. Perubahan berlaku untuk perangkat ini.",
+      "descriptions": {
+        "goal": "Menampilkan tujuan yang sedang dikerjakan agen.",
+        "automations": "Menampilkan tugas terjadwal dan waktu jalan berikutnya."
+      }
     },
     "readingTextSize": {
       "small": "Teks bacaan kecil",

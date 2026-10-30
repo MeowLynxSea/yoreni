@@ -108,6 +108,23 @@
       "title": "Kỹ năng"
     }
   },
+  "home": {
+    "title": "Trang chính",
+    "empty": "Không có tiện ích nào được hiển thị. Bật trong phần cài đặt.",
+    "widgets": {
+      "goal": {
+        "title": "Mục tiêu",
+        "empty": "Không có mục tiêu đang chạy.",
+        "active": "Đang thực hiện",
+        "blocked": "Bị chặn"
+      },
+      "automations": {
+        "title": "Tự động hóa",
+        "empty": "Không có tác vụ theo lịch.",
+        "more": "{{count}} mục khác theo lịch"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "Không tìm thấy múi giờ phù hợp.",
     "configure": "Cấu hình",
@@ -398,6 +415,7 @@
       "byok": "BYOK",
       "overview": "Tổng quan",
       "appearance": "Giao diện",
+      "widgets": "Tiện ích",
       "notifications": "Thông báo",
       "models": "Mô hình",
       "providers": "Nhà cung cấp",
@@ -486,6 +504,14 @@
       "summaryHelp": "Hiển thị các tệp đã thay đổi và số dòng.",
       "diffHelp": "Hiển thị thay đổi mã ngay trong cuộc trò chuyện.",
       "collapsedHelp": "Thu gọn thay đổi mã cho đến khi bạn mở ra."
+    },
+    "widgets": {
+      "title": "Tiện ích trang chính",
+      "help": "Tiện ích hiển thị trên trang chính. Thay đổi chỉ áp dụng cho thiết bị này.",
+      "descriptions": {
+        "goal": "Hiển thị mục tiêu agent đang thực hiện.",
+        "automations": "Hiển thị tác vụ theo lịch và lần chạy tiếp theo."
+      }
     },
     "readingTextSize": {
       "small": "Cỡ chữ đọc nhỏ",

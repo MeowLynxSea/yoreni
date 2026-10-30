@@ -108,6 +108,23 @@
       "title": "Habilidades"
     }
   },
+  "home": {
+    "title": "Início",
+    "empty": "Nenhum widget visível. Ative-os nas configurações.",
+    "widgets": {
+      "goal": {
+        "title": "Objetivo",
+        "empty": "Nenhum objetivo ativo.",
+        "active": "Em andamento",
+        "blocked": "Bloqueado"
+      },
+      "automations": {
+        "title": "Automações",
+        "empty": "Nenhuma tarefa agendada.",
+        "more": "Mais {{count}} agendadas"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "Nenhum fuso horário encontrado.",
     "configure": "Configurar",
@@ -398,6 +415,7 @@
       "byok": "BYOK",
       "overview": "Visão geral",
       "appearance": "Aparência",
+      "widgets": "Widgets",
       "notifications": "Notificações",
       "models": "Modelos",
       "providers": "Provedores",
@@ -541,6 +559,14 @@
       "summaryHelp": "Mostre os arquivos alterados e a contagem de linhas.",
       "diffHelp": "Mostre as alterações de código diretamente na conversa.",
       "collapsedHelp": "Mantenha as alterações de código recolhidas até você abri-las."
+    },
+    "widgets": {
+      "title": "Widgets do início",
+      "help": "Os widgets aparecem no início. As alterações valem para este dispositivo.",
+      "descriptions": {
+        "goal": "Mostra o objetivo em que o agente está trabalhando.",
+        "automations": "Mostra as tarefas agendadas e quando serão executadas."
+      }
     },
     "readingTextSize": {
       "small": "Texto de leitura pequeno",

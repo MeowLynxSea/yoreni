@@ -108,6 +108,23 @@
       "title": "Habilidades"
     }
   },
+  "home": {
+    "title": "Inicio",
+    "empty": "No hay widgets visibles. Actívalos en Ajustes.",
+    "widgets": {
+      "goal": {
+        "title": "Objetivo",
+        "empty": "No hay ningún objetivo activo.",
+        "active": "En curso",
+        "blocked": "Bloqueado"
+      },
+      "automations": {
+        "title": "Automatizaciones",
+        "empty": "No hay tareas programadas.",
+        "more": "{{count}} más programadas"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "No hay zonas horarias que coincidan.",
     "configure": "Configurar",
@@ -398,6 +415,7 @@
       "byok": "BYOK",
       "overview": "Resumen",
       "appearance": "Apariencia",
+      "widgets": "Widgets",
       "notifications": "Notificaciones",
       "models": "Modelos",
       "providers": "Proveedores",
@@ -486,6 +504,14 @@
       "summaryHelp": "Muestra los archivos modificados y el número de líneas.",
       "diffHelp": "Muestra los cambios de código directamente en la conversación.",
       "collapsedHelp": "Mantén los cambios de código contraídos hasta que los abras."
+    },
+    "widgets": {
+      "title": "Widgets de inicio",
+      "help": "Los widgets aparecen en Inicio. Los cambios se aplican a este dispositivo.",
+      "descriptions": {
+        "goal": "Muestra el objetivo en el que trabaja el agente.",
+        "automations": "Muestra las tareas programadas y cuándo se ejecutan."
+      }
     },
     "readingTextSize": {
       "small": "Texto de lectura pequeño",

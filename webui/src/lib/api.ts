@@ -1,5 +1,5 @@
 
-import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, FilePreviewPayload, FileReferenceMetadata, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
+import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
 
 const API_READ_TIMEOUT_MS = 20_000;
@@ -159,6 +159,19 @@ export async function fetchAutomations(
     undefined,
     API_READ_TIMEOUT_MS,
   );
+}
+
+export async function fetchGoal(
+  token: string,
+  base: string = "",
+): Promise<GoalStateWsPayload> {
+  const payload = await request<{ goal?: GoalStateWsPayload }>(
+    `${base}/api/webui/goal`,
+    token,
+    { cache: "no-store" },
+    API_READ_TIMEOUT_MS,
+  );
+  return payload.goal ?? { active: false };
 }
 
 export async function fetchAutomationRunResult(

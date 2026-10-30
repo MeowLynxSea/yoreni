@@ -466,7 +466,7 @@ export function MessageBubble({
       )}
     >
       {contextMenu}
-      <div className="assistant-bubble rounded-[1.6rem] px-5 py-4 sm:px-6 sm:py-5">
+      <div className="app-surface-glass rounded-[1.6rem] px-5 py-4 sm:px-6 sm:py-5">
         <InlineImageProvider>
           <div data-assistant-selectable={message.isStreaming ? undefined : "true"}>
             {message.renderAs === "text" ? (

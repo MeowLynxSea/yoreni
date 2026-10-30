@@ -4,10 +4,11 @@ import { ChevronDown } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
-import { HashRouter, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { AmbientBackground } from "@/components/AmbientBackground";
 import { AgentRunIndicator } from "@/components/AgentRunIndicator";
 import { AppHeader } from "@/components/AppHeader";
+import { HomePanel } from "@/components/home/HomePanel";
 import { StartupShell } from "@/components/StartupShell";
 import { AgentRecovery } from "@/components/AgentRecovery";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -388,16 +389,21 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
   const { toggle, theme } = useTheme();
   const { client, modelName } = useClient();
   const [model, setModel] = useState<string | null>(modelName ?? null);
+  const [homeView, setHomeView] = useState<"chat" | "home">("chat");
   const run = useAgentRun();
   const greeting = useMemo(() => {
     const key = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
     return t(`thread.empty.greetings.${key}`);
   }, [t]);
   useEffect(() => client.onRuntimeModelUpdate(setModel), [client]);
+  const location = useLocation();
+  const homeOpen = location.pathname === "/" && homeView === "home";
   return <ThemeProvider theme={theme}>
     <AmbientBackground />
-    <div className="relative z-10 flex h-full min-h-0 w-full flex-col text-foreground">
-      <AppHeader theme={theme} onToggleTheme={toggle} />
+    <div className="relative z-10 flex h-full min-h-0 w-full text-foreground">
+      <HomePanel open={homeOpen} onClose={() => setHomeView("chat")} />
+      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="h-16 shrink-0" aria-hidden />
       <div className="app-route-view flex min-h-0 flex-1 flex-col">
       <Routes>
         <Route path="/" element={<ChatView greeting={greeting} run={run} model={model} onOpenSettings={() => navigate("/settings", { viewTransition: true })} />} />
@@ -411,12 +417,19 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
           <SettingsSectionRoute
             onLogout={onLogout}
             onModelNameChange={setModel}
-            onStartAutomationChat={(text) => { navigate("/", { viewTransition: true }); void run.send(text); return true; }}
+            onStartAutomationChat={(text) => { setHomeView("chat"); navigate("/", { viewTransition: true }); void run.send(text); return true; }}
           />
         } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </div>
+      </div>
+      <AppHeader
+        theme={theme}
+        onToggleTheme={toggle}
+        homeView={homeView}
+        onHomeViewChange={setHomeView}
+      />
     </div>
   </ThemeProvider>;
 }

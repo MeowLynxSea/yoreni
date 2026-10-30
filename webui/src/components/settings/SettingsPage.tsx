@@ -25,6 +25,7 @@ import {
 } from "@/components/settings/models/ProviderSettings";
 import { providerFormFromRow } from "@/components/settings/models/providerForm";
 import { AboutSettings, AppearanceSettings, OverviewSettings } from "@/components/settings/overview/OverviewSettings";
+import { WidgetsSettings } from "@/components/settings/overview/WidgetsSettings";
 import { NotificationSettings } from "@/components/settings/notifications/NotificationSettings";
 import { SettingsSidebar, standaloneSectionTitle } from "@/components/settings/SettingsSidebar";
 import {
@@ -275,6 +276,8 @@ export function SettingsPage({
         );
       case "about":
         return <AboutSettings settings={settings} />;
+      case "widgets":
+        return <WidgetsSettings localPrefs={localPrefs} onChangeLocalPrefs={setLocalPrefs} />;
       case "notifications":
         return <NotificationSettings localPrefs={localPrefs} onChangeLocalPrefs={setLocalPrefs} />;
       case "models":
@@ -492,6 +495,8 @@ export function SettingsPage({
 
   const renderSection = (section: SettingsSectionKey, embedded = false): ReactNode => {
     switch (section) {
+      case "widgets":
+        return <WidgetsSettings localPrefs={localPrefs} onChangeLocalPrefs={setLocalPrefs} />;
       case "appearance":
         return <AppearanceSettings themePreference={themePreference} onChangeTheme={onChangeTheme}
           localPrefs={localPrefs} onChangeLocalPrefs={setLocalPrefs} />;

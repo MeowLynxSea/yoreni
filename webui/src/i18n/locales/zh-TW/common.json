@@ -108,6 +108,23 @@
       "title": "技能"
     }
   },
+  "home": {
+    "title": "主頁",
+    "empty": "未顯示小工具，可在設定中開啟。",
+    "widgets": {
+      "goal": {
+        "title": "目標",
+        "empty": "目前沒有目標。",
+        "active": "進行中",
+        "blocked": "已阻塞"
+      },
+      "automations": {
+        "title": "自動任務",
+        "empty": "沒有定時任務。",
+        "more": "另有 {{count}} 項"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "沒有符合的時區。",
     "configure": "設定",
@@ -398,6 +415,7 @@
       "byok": "BYOK",
       "overview": "總覽",
       "appearance": "外觀",
+      "widgets": "小工具",
       "notifications": "通知",
       "models": "模型",
       "providers": "供應商",
@@ -486,6 +504,14 @@
       "summaryHelp": "顯示修改檔案和增刪行數。",
       "diffHelp": "在對話中直接展示程式碼差異。",
       "collapsedHelp": "預設收合程式碼差異，需要時點開。"
+    },
+    "widgets": {
+      "title": "主頁小工具",
+      "help": "小工具顯示在主頁，僅對目前裝置生效。",
+      "descriptions": {
+        "goal": "顯示 agent 正在推進的目標。",
+        "automations": "顯示定時任務與下次執行時間。"
+      }
     },
     "readingTextSize": {
       "small": "閱讀字級：小",

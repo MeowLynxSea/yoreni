@@ -24,6 +24,7 @@ from websockets.datastructures import Headers
 from websockets.http11 import Request as WsRequest
 from websockets.http11 import Response
 
+from yoreni.agent.goal_state import goal_state_ws_blob
 from yoreni.agent.persistent import recoverable_runs
 from yoreni.agent.state import AgentStore
 from yoreni.cron.events import is_bound_cron_job
@@ -737,6 +738,17 @@ class GatewayHTTPHandler:
 
 
 
+    async def _handle_webui_goal(self, request: WsRequest) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        store = await asyncio.to_thread(AgentStore, self.skills_workspace_path)
+        identity = await asyncio.to_thread(store.identity)
+        return _http_json_response(
+            {"goal": goal_state_ws_blob(identity.state)},
+            extra_headers=_NO_STORE_HEADERS,
+        )
+
+
     def _handle_webui_automations(self, request: WsRequest) -> Response:
         if not self.check_api_token(request):
             return _http_error(401, "Unauthorized")
@@ -924,6 +936,8 @@ class GatewayHTTPHandler:
     ) -> Response | None:
         if got == "/api/agent/file-preview":
             return self._handle_file_preview(request)
+        if got == "/api/webui/goal":
+            return await self._handle_webui_goal(request)
         if got == "/api/workspaces/favorite":
             return self._handle_workspace_favorite(connection, request)
         if got == "/api/workspaces/resolve-project":

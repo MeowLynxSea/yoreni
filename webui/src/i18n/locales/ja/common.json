@@ -108,6 +108,23 @@
       "title": "スキル"
     }
   },
+  "home": {
+    "title": "ホーム",
+    "empty": "表示するウィジェットがありません。設定で有効にしてください。",
+    "widgets": {
+      "goal": {
+        "title": "ゴール",
+        "empty": "進行中のゴールはありません。",
+        "active": "進行中",
+        "blocked": "ブロック中"
+      },
+      "automations": {
+        "title": "自動化",
+        "empty": "予定されたタスクはありません。",
+        "more": "他 {{count}} 件"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "一致するタイムゾーンがありません。",
     "configure": "設定",
@@ -398,6 +415,7 @@
       "byok": "BYOK",
       "overview": "概要",
       "appearance": "外観",
+      "widgets": "ウィジェット",
       "notifications": "通知",
       "models": "モデル",
       "providers": "プロバイダー",
@@ -486,6 +504,14 @@
       "summaryHelp": "変更されたファイルと行数を表示します。",
       "diffHelp": "コードの変更を会話内に直接表示します。",
       "collapsedHelp": "コードの変更は、開くまで折りたたんでおきます。"
+    },
+    "widgets": {
+      "title": "ホームのウィジェット",
+      "help": "ウィジェットはホームに表示されます。変更はこのデバイスにのみ適用されます。",
+      "descriptions": {
+        "goal": "エージェントが取り組んでいるゴールを表示します。",
+        "automations": "予定されたタスクと次回の実行時刻を表示します。"
+      }
     },
     "readingTextSize": {
       "small": "本文の文字サイズ：小",

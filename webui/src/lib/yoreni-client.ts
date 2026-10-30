@@ -30,6 +30,7 @@ export interface AgentFrame {
   response_sources?: import("./types").ResponseSource[];
   render_as?: "text";
   created_at_ms?: number;
+  goal_state?: import("./types").GoalStateWsPayload;
 }
 export interface YoreniClientOptions {
   url: string;

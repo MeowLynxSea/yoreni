@@ -6,6 +6,7 @@ export type SettingsSectionKey =
   | "overview"
   | "about"
   | "appearance"
+  | "widgets"
   | "notifications"
   | "models"
   | "capabilities"
@@ -24,6 +25,7 @@ export const SETTINGS_SECTION_KEYS = [
   "overview",
   "about",
   "appearance",
+  "widgets",
   "notifications",
   "models",
   "capabilities",

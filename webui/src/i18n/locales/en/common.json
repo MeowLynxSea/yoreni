@@ -108,6 +108,23 @@
       "title": "Skills"
     }
   },
+  "home": {
+    "title": "Home",
+    "empty": "No widgets are shown. Turn them on in Settings.",
+    "widgets": {
+      "goal": {
+        "title": "Goal",
+        "empty": "No active goal.",
+        "active": "In progress",
+        "blocked": "Blocked"
+      },
+      "automations": {
+        "title": "Automations",
+        "empty": "No scheduled tasks.",
+        "more": "{{count}} more scheduled"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "No matching timezones.",
     "configure": "Configure",
@@ -398,6 +415,7 @@
       "byok": "BYOK",
       "overview": "Overview",
       "appearance": "Appearance",
+      "widgets": "Widgets",
       "notifications": "Notifications",
       "models": "Models",
       "providers": "Providers",
@@ -541,6 +559,14 @@
       "summaryHelp": "Show changed files and line counts.",
       "diffHelp": "Show code changes directly in the conversation.",
       "collapsedHelp": "Keep code changes folded until you open them."
+    },
+    "widgets": {
+      "title": "Home widgets",
+      "help": "Widgets appear on Home. Changes apply to this device.",
+      "descriptions": {
+        "goal": "Shows the goal the agent is working on.",
+        "automations": "Shows scheduled tasks and when they run next."
+      }
     },
     "readingTextSize": {
       "small": "Small reading text",

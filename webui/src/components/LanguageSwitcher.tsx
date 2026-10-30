@@ -31,7 +31,7 @@ export function LanguageSwitcher({ className, collapsed = false }: { className?:
         onKeyDown={() => setPointerFocus(false)}
         onBlur={() => setPointerFocus(false)}
       >
-        {collapsed ? <span className="text-[11px] font-semibold uppercase leading-none">{compactLabel}</span> : <SelectValue />}
+        {collapsed ? <span className="text-[13px] font-semibold uppercase leading-none">{compactLabel}</span> : <SelectValue />}
       </SelectTrigger>
       <SelectContent
         onPointerUpCapture={() => setPointerFocus(true)}

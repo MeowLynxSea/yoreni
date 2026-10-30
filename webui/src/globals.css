@@ -139,8 +139,8 @@
     --brand-ink: #152232;
     --brand-terracotta: #bf5a42;
     --brand-teal: #5ba4ad;
-    --app-glass: rgb(255 255 255 / 0.58);
-    --app-glass-strong: rgb(255 255 255 / 0.76);
+    --app-glass: rgb(255 255 255 / 0.8);
+    --app-glass-strong: rgb(255 255 255 / 0.9);
     --app-glass-border: rgb(255 255 255 / 0.66);
     --app-hairline: rgb(20 28 42 / 0.09);
     --composer-bg: rgb(255 255 255 / 0.62);
@@ -149,10 +149,6 @@
       0 2px 10px -4px rgb(24 36 58 / 0.08);
     --user-bubble-bg: rgb(255 255 255 / 0.72);
     --user-bubble-border: rgb(255 255 255 / 0.78);
-    --assistant-bubble-bg: rgb(255 255 255 / 0.5);
-    --assistant-bubble-border: rgb(255 255 255 / 0.62);
-    --assistant-bubble-shadow: 0 1px 0 rgb(255 255 255 / 0.5) inset,
-      0 20px 50px -40px rgb(24 36 58 / 0.4);
     --nav-pill-bg: rgb(255 255 255 / 0.56);
     --nav-pill-border: rgb(255 255 255 / 0.68);
   }
@@ -248,10 +244,6 @@
       0 2px 12px -4px rgb(0 0 0 / 0.4);
     --user-bubble-bg: rgb(255 255 255 / 0.08);
     --user-bubble-border: rgb(255 255 255 / 0.1);
-    --assistant-bubble-bg: rgb(255 255 255 / 0.075);
-    --assistant-bubble-border: rgb(255 255 255 / 0.12);
-    --assistant-bubble-shadow: 0 1px 0 rgb(255 255 255 / 0.06) inset,
-      0 22px 60px -44px rgb(0 0 0 / 0.7);
     --nav-pill-bg: rgb(255 255 255 / 0.08);
     --nav-pill-border: rgb(255 255 255 / 0.1);
   }
@@ -2058,14 +2050,6 @@
 
 .dark .user-message-bubble {
   box-shadow: 0 1px 0 rgb(255 255 255 / 0.06) inset;
-}
-
-.assistant-bubble {
-  background: var(--assistant-bubble-bg);
-  border: 1px solid var(--assistant-bubble-border);
-  box-shadow: var(--assistant-bubble-shadow);
-  -webkit-backdrop-filter: blur(22px) saturate(1.2);
-  backdrop-filter: blur(22px) saturate(1.2);
 }
 
 /* Content dissolves under the header and the composer instead of cutting off. */

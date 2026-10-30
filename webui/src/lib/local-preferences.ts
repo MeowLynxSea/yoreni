@@ -13,6 +13,7 @@ export interface LocalPreferences {
   browserNotifications: boolean;
   notificationSound: boolean;
   fileEditDisplayMode: FileEditDisplayMode;
+  homeWidgets: Record<string, boolean>;
 }
 
 export const LOCAL_PREFS_STORAGE_KEY = "yoreni-webui.settings-preferences";
@@ -32,10 +33,18 @@ export const DEFAULT_LOCAL_PREFS: LocalPreferences = {
   browserNotifications: false,
   notificationSound: false,
   fileEditDisplayMode: "summary",
+  homeWidgets: {},
 };
 
 function normalizeFileEditDisplayMode(value: unknown): FileEditDisplayMode {
   return value === "diff" || value === "collapsed_diff" ? value : "summary";
+}
+
+function normalizeHomeWidgets(value: unknown): Record<string, boolean> {
+  if (!value || typeof value !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(([, visible]) => typeof visible === "boolean"),
+  ) as Record<string, boolean>;
 }
 
 export function readLocalPreferences(): LocalPreferences {
@@ -57,6 +66,7 @@ export function readLocalPreferences(): LocalPreferences {
       browserNotifications: parsed.browserNotifications === true,
       notificationSound: parsed.notificationSound === true,
       fileEditDisplayMode: normalizeFileEditDisplayMode(parsed.fileEditDisplayMode),
+      homeWidgets: normalizeHomeWidgets(parsed.homeWidgets),
     };
   } catch {
     return DEFAULT_LOCAL_PREFS;

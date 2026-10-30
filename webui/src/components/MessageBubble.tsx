@@ -389,10 +389,11 @@ function trimmedMessage(content: string): string {
 }
 
 /**
- * The send time, revealed beside the message on hover: the Agent's on the left,
- * the reader's on the right, stacked date over clock like a chat client. The
- * label refreshes when the message is entered again so an overnight session
- * does not keep calling yesterday "today".
+ * The send time, revealed above the message on hover: the Agent's on the left,
+ * the reader's on the right, stacked date over clock like a chat client. It is
+ * anchored to the message's own edges, so a narrow window never widens the
+ * transcript to make room for the label. The label refreshes when the message is
+ * entered again so an overnight session does not keep calling yesterday "today".
  */
 function MessageHoverTime({ timestamp, align }: { timestamp: number; align: "start" | "end" }) {
   const [now, setNow] = useState(() => new Date());
@@ -408,7 +409,7 @@ function MessageHoverTime({ timestamp, align }: { timestamp: number; align: "sta
   const parts = formatMessageHoverTimeParts(timestamp, undefined, now);
   if (!parts) return null;
   return (
-    <HoverHint side={align === "start" ? "left" : "right"} align="center" content={parts.full}>
+    <HoverHint side="top" align={align === "start" ? "start" : "end"} content={parts.full}>
       <time
         ref={ref}
         data-message-hover-time
@@ -417,12 +418,12 @@ function MessageHoverTime({ timestamp, align }: { timestamp: number; align: "sta
         tabIndex={0}
         onFocus={() => setNow(new Date())}
         className={cn(
-          "pointer-events-none absolute top-1/2 z-10 hidden -translate-y-1/2 select-none flex-col",
+          "pointer-events-none absolute bottom-full z-10 mb-1 hidden select-none flex-col",
           "whitespace-nowrap text-[10px] leading-[1.45] tabular-nums text-muted-foreground/60",
           "opacity-0 transition-opacity duration-150 motion-reduce:transition-none",
           "focus-visible:opacity-100 focus-visible:outline-none group-hover/message:opacity-100",
           "group-focus-within/message:opacity-100 md:flex",
-          align === "start" ? "end-full me-3 items-end text-end" : "start-full ms-3 items-start text-start",
+          align === "start" ? "start-0 items-start text-start" : "end-0 items-end text-end",
         )}
       >
         {parts.date ? <span>{parts.date}</span> : null}

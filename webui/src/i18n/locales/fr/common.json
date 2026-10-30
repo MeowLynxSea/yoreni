@@ -1909,7 +1909,7 @@
       "sending": "Envoi",
       "failed": "Non envoyé"
     },
-    "assistantTyping": "L’assistant est en train d’écrire",
+    "agentWorking": "L’agent travaille",
     "toolSingle": "Outil utilisé",
     "toolMany": "{{count}} outils utilisés",
     "toolSummary": "{{count}} outil",

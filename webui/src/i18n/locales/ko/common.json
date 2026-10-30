@@ -1909,7 +1909,7 @@
       "sending": "전송 중",
       "failed": "전송되지 않음"
     },
-    "assistantTyping": "도우미가 입력 중",
+    "agentWorking": "에이전트가 작업 중",
     "toolSingle": "도구 1개 사용됨",
     "toolMany": "도구 {{count}}개 사용됨",
     "toolSummary": "도구 {{count}}개",

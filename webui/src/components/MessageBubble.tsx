@@ -1,15 +1,13 @@
 import {
   useCallback,
   useEffect,
-  useId,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
-import { Activity, Check, ChevronRight, CircleAlert, Clock3, Copy, Quote, Wrench } from "lucide-react";
+import { Activity, Check, CircleAlert, Clock3, Copy, Quote } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { DisclosureContent } from "@/components/ui/disclosure";
 
 import { AttachmentTile } from "@/components/AttachmentTile";
 import { CodeBlock } from "@/components/CodeBlock";
@@ -19,8 +17,6 @@ import { InlineImageProvider, useInlineImages } from "@/components/InlineImageCo
 import { INLINE_REFERENCE_HIGHLIGHT_COLOR, InlineTokenHighlight } from "@/components/InlineTokenHighlight";
 import { MarkdownText } from "@/components/MarkdownText";
 import { SlashCommandText } from "@/components/SlashCommandText";
-import { ReasoningRow } from "@/components/thread/activity/ReasoningRow";
-import { StreamingLabelSheen } from "@/components/ui/streaming-label-sheen";
 import { ContextCompactionNotice } from "@/components/thread/ContextCompactionNotice";
 import { UserMessageText } from "@/components/UserMessageText";
 import { HoverHint } from "@/components/ui/tooltip";
@@ -393,11 +389,9 @@ export function MessageBubble({
     return <ContextCompactionNotice compaction={message.compaction} />;
   }
 
-  if (message.kind === "trace") {
-    return <TraceGroup message={message} />;
-  }
-
-
+  // Tool calls and their progress are runtime detail, not conversation; the
+  // transcript never renders them.
+  if (message.kind === "trace") return null;
 
   if (message.role === "user") {
     const images = message.images ?? [];
@@ -482,11 +476,12 @@ export function MessageBubble({
   }
 
   const assistantContent = messageCopyContent(message, t);
-  const empty = assistantContent.trim().length === 0;
   const media = message.media ?? [];
-  const reasoning = message.role === "assistant" ? message.reasoning ?? "" : "";
-  const reasoningStreaming = !!(message.role === "assistant" && message.reasoningStreaming);
-  const hasReasoning = reasoning.length > 0 || reasoningStreaming;
+  if (assistantContent.trim().length === 0 && media.length === 0) {
+    // A pre-token or tool-only slot has no answer of its own; the run indicator
+    // carries the waiting state instead of an empty sheet that flashes away.
+    return null;
+  }
   return (
     <div
       data-assistant-message
@@ -496,36 +491,25 @@ export function MessageBubble({
       )}
     >
       {contextMenu}
-      {hasReasoning ? (
-        <ReasoningBubble
-          text={reasoning}
-          streaming={reasoningStreaming}
-          hasBodyBelow={!empty}
-        />
-      ) : null}
-      {empty && message.isStreaming && !hasReasoning ? (
-        <ThinkingState />
-      ) : empty && message.isStreaming ? null : (
-        <div className="assistant-bubble rounded-[1.6rem] px-5 py-4 sm:px-6 sm:py-5">
-          <InlineImageProvider>
-            <div data-assistant-selectable={message.isStreaming ? undefined : "true"}>
-              {message.renderAs === "text" ? (
-                <CodeBlock language="text" code={assistantContent} highlight={false} ansi={false} />
-              ) : (
-                /* A mode switch rebuilds Streamdown's subtree and moves the scroll anchor. */
-                <MarkdownText
-                  streaming={!!message.isStreaming}
-                  preserveStreamingLayout
-                  onOpenFilePreview={onOpenFilePreview}
-                >
-                  {assistantContent}
-                </MarkdownText>
-              )}
-            </div>
-            {media.length > 0 ? <MessageMedia media={media} align="left" /> : null}
-          </InlineImageProvider>
-        </div>
-      )}
+      <div className="assistant-bubble rounded-[1.6rem] px-5 py-4 sm:px-6 sm:py-5">
+        <InlineImageProvider>
+          <div data-assistant-selectable={message.isStreaming ? undefined : "true"}>
+            {message.renderAs === "text" ? (
+              <CodeBlock language="text" code={assistantContent} highlight={false} ansi={false} />
+            ) : (
+              /* A mode switch rebuilds Streamdown's subtree and moves the scroll anchor. */
+              <MarkdownText
+                streaming={!!message.isStreaming}
+                preserveStreamingLayout
+                onOpenFilePreview={onOpenFilePreview}
+              >
+                {assistantContent}
+              </MarkdownText>
+            )}
+          </div>
+          {media.length > 0 ? <MessageMedia media={media} align="left" /> : null}
+        </InlineImageProvider>
+      </div>
     </div>
   );
 }
@@ -661,117 +645,6 @@ function MessageMedia({
           ))}
         </div>
       ) : null}
-    </div>
-  );
-}
-
-/** Quiet pre-token state that occupies a stable line in the answer column. */
-function ThinkingState() {
-  const { t } = useTranslation();
-  return (
-    <span
-      aria-label={t("message.assistantTyping")}
-      className="inline-flex min-h-7 items-center py-1 text-[13px]"
-    >
-      <StreamingLabelSheen active>
-        {t("message.reasoningStreaming", { defaultValue: "Thinking…" })}
-      </StreamingLabelSheen>
-    </span>
-  );
-}
-
-interface ReasoningBubbleProps {
-  text: string;
-  streaming: boolean;
-  hasBodyBelow: boolean;
-}
-
-function ReasoningBubble({
-  text,
-  streaming,
-  hasBodyBelow,
-}: ReasoningBubbleProps) {
-  return (
-    <ReasoningRow
-      text={text}
-      streaming={streaming}
-      className={cn(
-        "animate-in fade-in-0 slide-in-from-top-1 duration-200",
-        hasBodyBelow && "mb-2",
-      )}
-    />
-  );
-}
-
-interface TraceGroupProps {
-  message: UIMessage;
-}
-
-/**
- * Collapsible group of tool-call / progress breadcrumbs. Defaults to
- * collapsed because tool traces are supporting evidence, not the answer.
- * A single click expands the exact calls when the user wants details.
- */
-function TraceGroup({ message }: TraceGroupProps) {
-  const { t } = useTranslation();
-  const lines = (message.traces ?? [message.content]).filter((line) => line.trim().length > 0);
-  const count = lines.length;
-  const [open, setOpen] = useState(false);
-  const [hasOpened, setHasOpened] = useState(false);
-  const releaseContent = useCallback(() => setHasOpened(false), []);
-  const contentId = useId();
-  if (count === 0) return null;
-  return (
-    <div className="message-enter w-full">
-      <button
-        type="button"
-        onClick={() => {
-          if (!open) setHasOpened(true);
-          setOpen((value) => !value);
-        }}
-        className={cn(
-          "group inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 backdrop-blur-md",
-          "border border-white/45 bg-white/30 text-[11px] font-medium leading-4 text-muted-foreground",
-          "transition-[background-color,color] duration-200 hover:bg-white/50 hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
-          "dark:border-white/10 dark:bg-white/[0.04] dark:hover:bg-white/[0.08]",
-        )}
-        aria-expanded={open}
-        aria-controls={contentId}
-      >
-        <Wrench className="h-3 w-3" strokeWidth={1.75} aria-hidden />
-        <span>
-          {count === 1
-            ? t("message.toolSingle")
-            : t("message.toolMany", { count })}
-        </span>
-        <ChevronRight
-          aria-hidden
-          className={cn(
-            "h-3 w-3 transition-transform duration-200 motion-reduce:transition-none",
-            open && "rotate-90",
-          )}
-        />
-      </button>
-      <DisclosureContent id={contentId} open={open} onExitComplete={releaseContent}>
-        {hasOpened && <ul
-          className={cn(
-            "mt-2 max-w-[38rem] space-y-1 rounded-2xl px-3.5 py-2.5",
-            "border border-white/60 bg-white/45 backdrop-blur-md",
-            "shadow-[0_10px_30px_-24px_rgba(24,36,58,0.5)]",
-            "dark:border-white/[0.12] dark:bg-white/[0.06]",
-          )}
-        >
-          {lines.map((line, i) => (
-            <li
-              key={i}
-              className="whitespace-pre-wrap break-words font-mono text-[11.5px] leading-relaxed text-muted-foreground"
-            >
-              {line}
-            </li>
-          ))}
-        </ul>}
-      </DisclosureContent>
     </div>
   );
 }

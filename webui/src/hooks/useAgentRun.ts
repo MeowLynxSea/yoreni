@@ -40,8 +40,22 @@ function historyMessages(runs: AgentHistoryRun[]): UIMessage[] {
 /** Merge durable runs without replacing a stream that arrived while the HTTP request was in flight. */
 function mergeHistory(current: UIMessage[], runs: AgentHistoryRun[]): UIMessage[] {
   const terminal = new Set(runs.filter((run) => TERMINAL_RUNS.has(run.status)).map((run) => run.id));
-  const merged = current.filter((message) => !message.turnId || !terminal.has(message.turnId));
-  for (const message of historyMessages(runs)) {
+  const durable = historyMessages(runs);
+  // A streamed answer whose durable copy matches keeps its node, so completing
+  // a turn does not replay the entrance animation on unchanged text.
+  const survived = new Set<string>();
+  const merged = current.filter((message) => {
+    if (!message.turnId || !terminal.has(message.turnId)) return true;
+    if (message.role !== "assistant") return false;
+    const settled = durable.some((entry) => entry.role === "assistant"
+      && entry.turnId === message.turnId
+      && entry.content === message.content);
+    if (!settled) return false;
+    survived.add(message.turnId);
+    return true;
+  });
+  for (const message of durable) {
+    if (message.role === "assistant" && message.turnId && survived.has(message.turnId)) continue;
     const index = merged.findIndex((entry) => entry.id === message.id);
     if (index >= 0) {
       const old = merged[index];
@@ -96,7 +110,7 @@ export function projectAgentFrame(messages: UIMessage[], frame: AgentFrame): UIM
 export function useAgentRun() {
   const { client, getToken } = useClient();
   const [messages, setMessages] = useState<UIMessage[]>([]);
-  const [active, setActive] = useState<Map<string, string>>(new Map());
+  const [activeRuns, setActiveRuns] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const refreshHistory = useCallback(async () => {
@@ -104,7 +118,7 @@ export function useAgentRun() {
       const info = await fetchPersonalAgent(getToken());
       const runs = info.history ?? [];
       setMessages((current) => mergeHistory(current, runs));
-      setActive((current) => {
+      setActiveRuns((current) => {
         const next = new Map(current);
         for (const run of runs) {
           if (run.status === "queued" || run.status === "running") next.set(run.event_id, run.id);
@@ -119,10 +133,10 @@ export function useAgentRun() {
   useEffect(() => client.onEvent((frame) => {
     setMessages((current) => projectAgentFrame(current, frame));
     if (frame.event === "accepted" && frame.run_id && frame.event_id) {
-      setActive((current) => new Map(current).set(frame.event_id!, frame.run_id!));
+      setActiveRuns((current) => new Map(current).set(frame.event_id!, frame.run_id!));
     }
     if (frame.event === "turn_end" || (frame.event === "goal_status" && frame.status === "idle")) {
-      setActive((current) => new Map([...current].filter(([event, run]) => run !== frame.run_id && event !== frame.turn_id)));
+      setActiveRuns((current) => new Map([...current].filter(([event, run]) => run !== frame.run_id && event !== frame.turn_id)));
     }
     if (frame.event === "error") setError(frame.message ?? (typeof frame.error === "string" ? frame.error : frame.error?.message) ?? "Request failed");
     if (frame.event === "turn_end") void refreshHistory().catch(() => {});
@@ -144,7 +158,11 @@ export function useAgentRun() {
     }
   }, [client]);
   const stop = useCallback(async () => {
-    await Promise.all([...active.values()].map((runId) => client.requestMutation("agent.cancel", { run_id: runId })));
-  }, [active, client]);
-  return { messages, send, stop, active: active.size > 0, error, historyLoaded };
+    await Promise.all([...activeRuns.values()].map((runId) => client.requestMutation("agent.cancel", { run_id: runId })));
+  }, [activeRuns, client]);
+  // A message awaiting acknowledgment is already an agent run from the reader's
+  // point of view; the indicator must not blink between the optimistic send and
+  // the run recorded in history.
+  const sending = messages.some((message) => message.deliveryStatus === "sending");
+  return { messages, send, stop, active: activeRuns.size > 0, sending, error, historyLoaded };
 }

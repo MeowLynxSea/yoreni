@@ -1909,7 +1909,7 @@
       "sending": "Mengirim",
       "failed": "Belum terkirim"
     },
-    "assistantTyping": "Asisten sedang mengetik",
+    "agentWorking": "Agen sedang bekerja",
     "toolSingle": "1 alat digunakan",
     "toolMany": "Menggunakan {{count}} alat",
     "toolSummary": "{{count}} alat",

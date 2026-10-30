@@ -1909,7 +1909,7 @@
       "sending": "送信中",
       "failed": "未送信"
     },
-    "assistantTyping": "アシスタントが入力中",
+    "agentWorking": "エージェントが処理中",
     "toolSingle": "ツールを1個使用",
     "toolMany": "{{count}} 個のツールを使用",
     "toolSummary": "{{count}} 個のツール",

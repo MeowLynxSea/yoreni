@@ -1909,7 +1909,7 @@
       "sending": "傳送中",
       "failed": "未傳送"
     },
-    "assistantTyping": "助理正在輸入",
+    "agentWorking": "助理正在處理",
     "toolSingle": "已使用 1 個工具",
     "toolMany": "已使用 {{count}} 個工具",
     "toolSummary": "{{count}} 個工具",

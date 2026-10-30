@@ -6,6 +6,7 @@ import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import { HashRouter, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { AmbientBackground } from "@/components/AmbientBackground";
+import { AgentRunIndicator } from "@/components/AgentRunIndicator";
 import { AppHeader } from "@/components/AppHeader";
 import { StartupShell } from "@/components/StartupShell";
 import { AgentRecovery } from "@/components/AgentRecovery";
@@ -295,9 +296,10 @@ function ChatView({ greeting, run, model, onOpenSettings }: {
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const following = useRef(true);
+  const running = run.active || run.sending;
   const loadingHistory = !run.historyLoaded && run.messages.length === 0;
-  const empty = run.messages.length === 0 && !loadingHistory;
-  useEffect(() => { if (following.current && viewport.current) viewport.current.scrollTop = viewport.current.scrollHeight; }, [run.messages]);
+  const empty = run.messages.length === 0 && !loadingHistory && !running;
+  useEffect(() => { if (following.current && viewport.current) viewport.current.scrollTop = viewport.current.scrollHeight; }, [run.messages, running]);
   return (
     <main className="relative flex min-h-0 flex-1 flex-col">
       <AgentRecovery />
@@ -321,6 +323,7 @@ function ChatView({ greeting, run, model, onOpenSettings }: {
           >
             <div data-testid="thread-message-region" className="mx-auto flex min-h-full w-full max-w-[44rem] flex-col justify-end gap-6 px-5 pb-10 pt-10 sm:px-6 sm:pb-12">
               {run.messages.map((message) => <MessageBubble key={message.id} message={message} />)}
+              {running ? <AgentRunIndicator key="agent-run" className="-mt-3" /> : null}
             </div>
           </div>
         )}

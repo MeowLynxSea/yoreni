@@ -1909,7 +1909,7 @@
       "sending": "Đang gửi",
       "failed": "Chưa gửi"
     },
-    "assistantTyping": "Trợ lý đang nhập",
+    "agentWorking": "Trợ lý đang xử lý",
     "toolSingle": "Đã dùng một công cụ",
     "toolMany": "Đã dùng {{count}} công cụ",
     "toolSummary": "{{count}} công cụ",

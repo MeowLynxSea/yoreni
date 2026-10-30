@@ -1,5 +1,5 @@
 
-import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemorySettingsUpdate, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
+import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemorySettingsUpdate, OnboardingSnapshot, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
 
 const API_READ_TIMEOUT_MS = 20_000;
@@ -856,6 +856,17 @@ export async function updateModelCallOrder(
   return mutation<SettingsPayload>(transport, "settings.model_call_order.update", { order });
 }
 
+export async function updateAgentSettings(
+  transport: WebUIMutationTransport,
+  update: { model?: string; provider?: string; modelPreset?: string },
+): Promise<SettingsPayload> {
+  return mutation<SettingsPayload>(transport, "settings.agent.update", {
+    ...(update.model !== undefined ? { model: update.model } : {}),
+    ...(update.provider !== undefined ? { provider: update.provider } : {}),
+    ...(update.modelPreset !== undefined ? { model_preset: update.modelPreset } : {}),
+  });
+}
+
 export async function updateProviderSettings(
   transport: WebUIMutationTransport,
   update: ProviderSettingsUpdate,
@@ -1072,6 +1083,78 @@ export interface AgentHistoryRun {
 export function fetchPersonalAgent(token: string, beforeSeq?: number): Promise<PersonalAgentInfo> {
   const query = beforeSeq === undefined ? "" : `?before_seq=${beforeSeq}`;
   return request<PersonalAgentInfo>(`/api/agent${query}`, token, undefined, API_READ_TIMEOUT_MS);
+}
+
+/** First-run state; the gateway owns this because it guards the whole WebUI. */
+export function fetchOnboarding(token: string): Promise<OnboardingSnapshot> {
+  return request<OnboardingSnapshot>("/api/onboarding", token, undefined, API_READ_TIMEOUT_MS);
+}
+
+export function fetchUserProfile(token: string): Promise<{ profile: UserProfile }> {
+  return request<{ profile: UserProfile }>("/api/profile", token, undefined, API_READ_TIMEOUT_MS);
+}
+
+export function saveOnboardingToken(
+  transport: WebUIMutationTransport,
+  value: string,
+): Promise<{ token_set: boolean }> {
+  return mutation<{ token_set: boolean }>(transport, "onboarding.token", { token: value });
+}
+
+export function saveOnboardingProfile(
+  transport: WebUIMutationTransport,
+  profile: UserProfile,
+  step?: string,
+): Promise<{ profile: UserProfile }> {
+  return mutation<{ profile: UserProfile }>(
+    transport,
+    "onboarding.profile",
+    { profile, ...(step ? { step } : {}) },
+  );
+}
+
+export function saveOnboardingStep(
+  transport: WebUIMutationTransport,
+  step: string,
+): Promise<{ step: string; status: string }> {
+  return mutation<{ step: string; status: string }>(transport, "onboarding.step", { step });
+}
+
+export function completeOnboarding(
+  transport: WebUIMutationTransport,
+  locale: string,
+): Promise<{ status: string; completed_at: string | null; created_welcome: boolean }> {
+  return mutation(transport, "onboarding.complete", { locale });
+}
+
+export function updateUserProfile(
+  transport: WebUIMutationTransport,
+  profile: UserProfile,
+): Promise<{ profile: UserProfile }> {
+  return mutation<{ profile: UserProfile }>(transport, "profile.update", { profile });
+}
+
+export function testEmbeddingEndpoint(
+  transport: WebUIMutationTransport,
+  values: {
+    provider: string;
+    apiBase: string;
+    apiKey: string;
+    model: string;
+    dimensions: number | null;
+  },
+): Promise<{ ok: boolean; dimensions: number }> {
+  return mutation<{ ok: boolean; dimensions: number }>(
+    transport,
+    "onboarding.embedding_test",
+    {
+      provider: values.provider,
+      api_base: values.apiBase,
+      api_key: values.apiKey,
+      model: values.model,
+      dimensions: values.dimensions,
+    },
+  );
 }
 
 /** Search the whole durable transcript; the gateway owns the ranking. */

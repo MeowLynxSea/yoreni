@@ -132,6 +132,186 @@
       "chat": "Chat"
     }
   },
+  "onboarding": {
+    "continue": "Lanjutkan",
+    "back": "Kembali",
+    "skip": "Lewati",
+    "token": {
+      "eyebrow": "PENGGUNAAN PERTAMA",
+      "title": "Buat kata sandi WebUI",
+      "body": "Kata sandi ini melindungi Yoreni di perangkat ini. Kamu akan memakainya setiap membuka WebUI atau terhubung dari perangkat lain.",
+      "placeholder": "Minimal 8 karakter",
+      "keepPlaceholder": "Masukkan kata sandi baru untuk menggantinya",
+      "confirmPlaceholder": "Masukkan lagi",
+      "label": "Kata sandi WebUI",
+      "confirmLabel": "Konfirmasi kata sandi",
+      "show": "Tampilkan kata sandi",
+      "hide": "Sembunyikan kata sandi",
+      "tooShort": "Gunakan minimal 8 karakter.",
+      "mismatch": "Kedua kata sandi tidak cocok.",
+      "alreadySet": "Kata sandi sudah dibuat. Biarkan kedua kolom kosong untuk mempertahankannya.",
+      "hint": "Pilih sesuatu yang hanya kamu tahu. Hanya disimpan di perangkat ini.",
+      "footnote": "Yoreni mengutamakan lokal. Kata sandimu tidak pernah meninggalkan perangkat ini."
+    },
+    "intro": {
+      "line1": "Yoreni, asisten pribadimu yang selalu menemani.",
+      "line2": "Aku bisa membantumu mengurus berbagai hal,",
+      "line3": "dan akan mengingat hal-hal kecil tentangmu.",
+      "action": "Mari berkenalan"
+    },
+    "name": {
+      "eyebrow": "TENTANG KAMU",
+      "question": "Aku harus memanggilmu apa?",
+      "hint": "Ini cara Yoreni memanggilmu.",
+      "placeholder": "Namamu"
+    },
+    "birthday": {
+      "eyebrow": "TENTANG KAMU",
+      "question": "Kapan ulang tahunmu?",
+      "hint": "Aku akan mengingatnya di momen yang tepat.",
+      "year": "Tahun",
+      "month": "Bulan",
+      "day": "Tanggal",
+      "yearPlaceholder": "Tahun",
+      "monthPlaceholder": "Bulan",
+      "dayPlaceholder": "Tanggal"
+    },
+    "gender": {
+      "eyebrow": "TENTANG KAMU",
+      "question": "Bagaimana kamu mengidentifikasi diri?",
+      "hint": "Ini membantuku berbicara tentangmu dengan alami.",
+      "male": "Laki-laki",
+      "female": "Perempuan",
+      "undisclosed": "Tidak ingin menyebutkan"
+    },
+    "style": {
+      "eyebrow": "CARA AKU BERBICARA",
+      "question": "Kamu suka ngobrol dengan gaya seperti apa?",
+      "hint": "Pilih dasar gayanya, lalu sesuaikan detailnya. Bisa diubah kapan saja."
+    },
+    "notes": {
+      "eyebrow": "SATU HAL LAGI",
+      "question": "Ada hal lain yang perlu aku ingat?",
+      "hint": "Apa pun yang ingin kamu ingatkan tentang cara kerjamu atau hal yang harus dihindari.",
+      "placeholder": "Contoh: jawaban singkat, tanya dulu sebelum mengubah, ..."
+    },
+    "model": {
+      "eyebrow": "JIWA",
+      "title": "Beri jiwa pada Yoreni",
+      "body": "Hubungkan model bahasa yang menjalankan Yoreni. Kamu bisa menggantinya nanti di pengaturan.",
+      "provider": "Penyedia",
+      "providerPlaceholder": "Pilih penyedia",
+      "customProvider": "Endpoint kompatibel OpenAI khusus",
+      "providerName": "Nama penyedia",
+      "providerNamePlaceholder": "mis. Gateway saya",
+      "providerNameRequired": "Beri nama penyedia ini.",
+      "apiBase": "Alamat API",
+      "apiBaseRequired": "Masukkan alamat API.",
+      "apiKey": "Kunci API",
+      "apiKeyKeep": "Sudah dikonfigurasi — masukkan kunci baru untuk menggantinya",
+      "apiKeyPlaceholder": "Tempel kunci API-mu",
+      "test": "Uji koneksi",
+      "reachable": "Endpoint dapat dijangkau",
+      "connected": "Terhubung · {{count}} model",
+      "connectFailed": "Tidak dapat terhubung",
+      "model": "Model",
+      "modelPlaceholder": "mis. gpt-4o",
+      "modelCount": "{{count}} model tersedia",
+      "modelRequired": "Pilih atau masukkan model.",
+      "providerRequired": "Pilih penyedia."
+    },
+    "embedding": {
+      "eyebrow": "INGATAN",
+      "title": "Buka ingatan Yoreni",
+      "body": "Model embedding memungkinkan Yoreni mengingat hal penting berdasarkan makna, bukan hanya kata kunci.",
+      "provider": "Penyedia",
+      "providerPlaceholder": "Endpoint khusus",
+      "customEndpoint": "Endpoint khusus",
+      "model": "Model embedding",
+      "dimensions": "Dimensi",
+      "dimensionsPlaceholder": "Otomatis",
+      "apiBase": "Alamat API",
+      "providerBase": "Memakai alamat API penyedia",
+      "apiKey": "Kunci API",
+      "apiKeyProvider": "Memakai kunci penyedia",
+      "apiKeyPlaceholder": "Tempel kunci API-mu",
+      "test": "Uji koneksi",
+      "connected": "Endpoint embedding terhubung",
+      "connectFailed": "Tidak dapat terhubung",
+      "optionalHint": "Opsional. Jika dilewati, Yoreni memakai pencarian kata kunci sampai kamu mengaktifkannya di pengaturan. Perubahan ingatan berlaku setelah gateway dimulai ulang.",
+      "skip": "Lewati dulu",
+      "finish": "Masuk ke Yoreni",
+      "modelRequired": "Masukkan model embedding.",
+      "endpointRequired": "Masukkan alamat API atau pilih penyedia."
+    },
+    "done": {
+      "title": "Semua siap",
+      "body": "Senang berkenalan, {{name}}. Mari mulai."
+    },
+    "errors": {
+      "nameRequired": "Beri tahu Yoreni cara memanggilmu."
+    }
+  },
+  "profile": {
+    "intro": "Yoreni memakai detail ini untuk memahami kamu dan menyesuaikan cara bicaranya. Data tersimpan di perangkat ini, terpisah dari file ingatan.",
+    "name": "Yoreni harus memanggilmu apa?",
+    "nameHint": "Dipakai saat Yoreni menyapamu.",
+    "birthday": "Ulang tahun",
+    "gender": {
+      "label": "Gender",
+      "male": "Laki-laki",
+      "female": "Perempuan",
+      "undisclosed": "Tidak ingin menyebutkan"
+    },
+    "notes": "Ada hal lain yang perlu diingat?",
+    "notesPlaceholder": "Preferensi, batasan, atau konteks yang ingin Yoreni ingat.",
+    "save": "Simpan perubahan",
+    "saved": "Tersimpan",
+    "loadFailed": "Tidak dapat memuat profilmu.",
+    "errors": {
+      "nameRequired": "Masukkan nama.",
+      "customRequired": "Jelaskan gaya khususmu."
+    },
+    "style": {
+      "sectionTitle": "Gaya percakapan",
+      "baseLabel": "Gaya dasar",
+      "fineTuneLabel": "Penyesuaian",
+      "fineTuneHint": "Netral tidak menambah penekanan.",
+      "customLabel": "Gaya khususmu",
+      "customPlaceholder": "Jelaskan bagaimana kamu ingin Yoreni berbicara.",
+      "base": {
+        "default": "Bawaan",
+        "professional": "Profesional",
+        "friendly": "Ramah",
+        "direct": "Terus terang",
+        "imaginative": "Imajinatif",
+        "pragmatic": "Pragmatis",
+        "custom": "Khusus",
+        "defaultDescription": "Suara dan nada bawaan Yoreni.",
+        "professionalDescription": "Akurat, logis, dan rapi.",
+        "friendlyDescription": "Alami, lembut, dan mudah didekati.",
+        "directDescription": "Blak-blakan dan positif.",
+        "imaginativeDescription": "Kreatif dan nyaman menjelajah ide.",
+        "pragmaticDescription": "Ringkas dan fokus pada solusi.",
+        "customDescription": "Tulis instruksi gayamu sendiri."
+      },
+      "dimension": {
+        "affability": "Keakraban",
+        "enthusiasm": "Semangat",
+        "emoji": "Emoji",
+        "structure": "Judul dan daftar",
+        "affabilityDescription": "Seberapa dekat dan personal aku terdengar.",
+        "enthusiasmDescription": "Seberapa besar dukungan yang kutunjukkan.",
+        "emojiDescription": "Seberapa sering aku memakai emoji.",
+        "structureDescription": "Seberapa terstruktur jawaban panjangku."
+      },
+      "tuning": {
+        "more": "Lebih",
+        "neutral": "Netral",
+        "less": "Kurangi"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "Tidak ada zona waktu yang cocok.",
     "configure": "Konfigurasi",
@@ -421,6 +601,7 @@
       "general": "Umum",
       "byok": "BYOK",
       "overview": "Ringkasan",
+      "profile": "Profil",
       "appearance": "Tampilan",
       "widgets": "Widget",
       "notifications": "Notifikasi",

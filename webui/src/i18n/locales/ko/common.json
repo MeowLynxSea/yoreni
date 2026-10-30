@@ -132,6 +132,186 @@
       "chat": "채팅"
     }
   },
+  "onboarding": {
+    "continue": "계속",
+    "back": "뒤로",
+    "skip": "건너뛰기",
+    "token": {
+      "eyebrow": "첫 실행",
+      "title": "WebUI 비밀번호를 설정하세요",
+      "body": "이 비밀번호는 이 기기에서 Yoreni를 보호합니다. WebUI를 열거나 다른 기기에서 연결할 때 사용합니다.",
+      "placeholder": "8자 이상",
+      "keepPlaceholder": "변경하려면 새 비밀번호를 입력하세요",
+      "confirmPlaceholder": "다시 입력하세요",
+      "label": "WebUI 비밀번호",
+      "confirmLabel": "비밀번호 확인",
+      "show": "비밀번호 보기",
+      "hide": "비밀번호 숨기기",
+      "tooShort": "8자 이상 입력하세요.",
+      "mismatch": "두 비밀번호가 일치하지 않습니다.",
+      "alreadySet": "비밀번호가 이미 설정되어 있습니다. 두 칸을 비워 두면 유지됩니다.",
+      "hint": "나만 아는 내용을 선택하세요. 이 기기에만 저장됩니다.",
+      "footnote": "Yoreni는 로컬 우선입니다. 비밀번호는 이 기기를 떠나지 않습니다."
+    },
+    "intro": {
+      "line1": "Yoreni, 곁에 머무는 개인 비서입니다.",
+      "line2": "하고 있는 일을 도와드리고,",
+      "line3": "당신의 작은 것들도 기억하겠습니다.",
+      "action": "서로 알아가 볼까요"
+    },
+    "name": {
+      "eyebrow": "당신에 대해",
+      "question": "어떻게 불러 드릴까요?",
+      "hint": "Yoreni가 당신을 부르는 이름입니다.",
+      "placeholder": "이름"
+    },
+    "birthday": {
+      "eyebrow": "당신에 대해",
+      "question": "생일은 언제인가요?",
+      "hint": "알맞은 때에 기억하겠습니다.",
+      "year": "년",
+      "month": "월",
+      "day": "일",
+      "yearPlaceholder": "년",
+      "monthPlaceholder": "월",
+      "dayPlaceholder": "일"
+    },
+    "gender": {
+      "eyebrow": "당신에 대해",
+      "question": "성별은 어떻게 생각하시나요?",
+      "hint": "당신을 자연스럽게 이야기하는 데 도움이 됩니다.",
+      "male": "남성",
+      "female": "여성",
+      "undisclosed": "밝히고 싶지 않음"
+    },
+    "style": {
+      "eyebrow": "말투",
+      "question": "어떤 대화를 좋아하시나요?",
+      "hint": "기본 스타일을 고른 뒤 세부를 조정하세요. 언제든 바꿀 수 있습니다."
+    },
+    "notes": {
+      "eyebrow": "마지막으로",
+      "question": "더 주의할 점이 있을까요?",
+      "hint": "일하는 방식이나 피해야 할 것 등 오래 기억했으면 하는 내용입니다.",
+      "placeholder": "예: 답변은 짧게, 바꾸기 전에 물어보기 ..."
+    },
+    "model": {
+      "eyebrow": "영혼",
+      "title": "Yoreni에 영혼을 불어넣으세요",
+      "body": "Yoreni를 움직이는 언어 모델을 연결하세요. 나중에 설정에서 바꿀 수 있습니다.",
+      "provider": "공급자",
+      "providerPlaceholder": "공급자 선택",
+      "customProvider": "사용자 정의 OpenAI 호환 엔드포인트",
+      "providerName": "공급자 이름",
+      "providerNamePlaceholder": "예: 내 게이트웨이",
+      "providerNameRequired": "공급자 이름을 입력하세요.",
+      "apiBase": "API 주소",
+      "apiBaseRequired": "API 주소를 입력하세요.",
+      "apiKey": "API 키",
+      "apiKeyKeep": "설정됨 — 새 키를 입력하면 교체됩니다",
+      "apiKeyPlaceholder": "API 키 붙여넣기",
+      "test": "연결 테스트",
+      "reachable": "엔드포인트에 연결할 수 있습니다",
+      "connected": "연결됨 · 모델 {{count}}개",
+      "connectFailed": "연결하지 못했습니다",
+      "model": "모델",
+      "modelPlaceholder": "예: gpt-4o",
+      "modelCount": "사용 가능한 모델 {{count}}개",
+      "modelRequired": "모델을 선택하거나 입력하세요.",
+      "providerRequired": "공급자를 선택하세요."
+    },
+    "embedding": {
+      "eyebrow": "기억",
+      "title": "Yoreni의 기억을 열어 보세요",
+      "body": "임베딩 모델을 사용하면 Yoreni가 키워드뿐 아니라 의미로 중요한 것을 떠올릴 수 있습니다.",
+      "provider": "공급자",
+      "providerPlaceholder": "사용자 정의 엔드포인트",
+      "customEndpoint": "사용자 정의 엔드포인트",
+      "model": "임베딩 모델",
+      "dimensions": "차원",
+      "dimensionsPlaceholder": "자동",
+      "apiBase": "API 주소",
+      "providerBase": "공급자의 API 주소 사용",
+      "apiKey": "API 키",
+      "apiKeyProvider": "공급자의 키 사용",
+      "apiKeyPlaceholder": "API 키 붙여넣기",
+      "test": "연결 테스트",
+      "connected": "임베딩 엔드포인트에 연결되었습니다",
+      "connectFailed": "연결하지 못했습니다",
+      "optionalHint": "선택 사항입니다. 지금 건너뛰면 설정에서 켜기 전까지 키워드 검색을 사용합니다. 기억 설정은 게이트웨이를 다시 시작한 후 적용됩니다.",
+      "skip": "지금은 건너뛰기",
+      "finish": "Yoreni 시작하기",
+      "modelRequired": "임베딩 모델을 입력하세요.",
+      "endpointRequired": "API 주소를 입력하거나 공급자를 선택하세요."
+    },
+    "done": {
+      "title": "준비가 끝났어요",
+      "body": "만나서 반가워요, {{name}}. 시작해 볼까요."
+    },
+    "errors": {
+      "nameRequired": "Yoreni가 당신을 부를 이름을 알려 주세요."
+    }
+  },
+  "profile": {
+    "intro": "Yoreni는 이 정보로 당신을 이해하고 말투를 조정합니다. 정보는 이 기기에 저장되며 기억 파일과는 별도로 관리됩니다.",
+    "name": "Yoreni가 당신을 어떻게 부르면 될까요?",
+    "nameHint": "Yoreni가 당신을 부를 때 사용합니다.",
+    "birthday": "생일",
+    "gender": {
+      "label": "성별",
+      "male": "남성",
+      "female": "여성",
+      "undisclosed": "밝히고 싶지 않음"
+    },
+    "notes": "더 주의할 점이 있나요?",
+    "notesPlaceholder": "Yoreni가 오래 기억했으면 하는 선호, 경계, 배경.",
+    "save": "변경 사항 저장",
+    "saved": "저장됨",
+    "loadFailed": "프로필을 불러오지 못했습니다.",
+    "errors": {
+      "nameRequired": "이름을 입력하세요.",
+      "customRequired": "사용자 정의 스타일을 설명하세요."
+    },
+    "style": {
+      "sectionTitle": "대화 스타일",
+      "baseLabel": "기본 스타일",
+      "fineTuneLabel": "세부 조정",
+      "fineTuneHint": "중립은 추가 강조를 하지 않습니다.",
+      "customLabel": "사용자 정의 스타일",
+      "customPlaceholder": "Yoreni가 어떻게 말했으면 하는지 설명하세요.",
+      "base": {
+        "default": "기본",
+        "professional": "전문적",
+        "friendly": "친근함",
+        "direct": "직설적",
+        "imaginative": "상상력",
+        "pragmatic": "실용적",
+        "custom": "사용자 정의",
+        "defaultDescription": "Yoreni의 기본 목소리와 어조.",
+        "professionalDescription": "정확하고 논리적이며 세련된 표현.",
+        "friendlyDescription": "자연스럽고 부드럽고 다가가기 쉬운 말투.",
+        "directDescription": "솔직하고 긍정적인 태도.",
+        "imaginativeDescription": "창의적이고 아이디어를 넓히는 데 능숙.",
+        "pragmaticDescription": "간결하고 문제 해결에 집중.",
+        "customDescription": "직접 스타일 지시를 작성."
+      },
+      "dimension": {
+        "affability": "친밀도",
+        "enthusiasm": "열정",
+        "emoji": "이모지",
+        "structure": "제목과 목록",
+        "affabilityDescription": "얼마나 가깝고 개인적으로 말하는지.",
+        "enthusiasmDescription": "얼마나 격려를 표현하는지.",
+        "emojiDescription": "이모지를 쓰는 빈도.",
+        "structureDescription": "긴 답변을 얼마나 구조화하는지."
+      },
+      "tuning": {
+        "more": "강하게",
+        "neutral": "중립",
+        "less": "약하게"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "일치하는 시간대가 없습니다.",
     "configure": "설정",
@@ -421,6 +601,7 @@
       "general": "일반",
       "byok": "BYOK",
       "overview": "개요",
+      "profile": "프로필",
       "appearance": "외관",
       "widgets": "위젯",
       "notifications": "알림",

@@ -132,6 +132,186 @@
       "chat": "Trò chuyện"
     }
   },
+  "onboarding": {
+    "continue": "Tiếp tục",
+    "back": "Quay lại",
+    "skip": "Bỏ qua",
+    "token": {
+      "eyebrow": "LẦN ĐẦU SỬ DỤNG",
+      "title": "Đặt mật khẩu WebUI",
+      "body": "Mật khẩu này bảo vệ Yoreni trên thiết bị này. Bạn sẽ dùng nó mỗi khi mở WebUI hoặc kết nối từ thiết bị khác.",
+      "placeholder": "Ít nhất 8 ký tự",
+      "keepPlaceholder": "Nhập mật khẩu mới để thay thế",
+      "confirmPlaceholder": "Nhập lại lần nữa",
+      "label": "Mật khẩu WebUI",
+      "confirmLabel": "Xác nhận mật khẩu",
+      "show": "Hiện mật khẩu",
+      "hide": "Ẩn mật khẩu",
+      "tooShort": "Dùng ít nhất 8 ký tự.",
+      "mismatch": "Hai mật khẩu không khớp.",
+      "alreadySet": "Mật khẩu đã được đặt. Để trống cả hai ô để giữ nguyên.",
+      "hint": "Chọn điều chỉ bạn biết. Nó chỉ được lưu trên thiết bị này.",
+      "footnote": "Yoreni ưu tiên cục bộ. Mật khẩu không rời khỏi thiết bị này."
+    },
+    "intro": {
+      "line1": "Yoreni, trợ lý cá nhân luôn ở bên bạn.",
+      "line2": "Mình có thể giúp bạn xử lý công việc,",
+      "line3": "và sẽ nhớ những điều nhỏ bé về bạn.",
+      "action": "Hãy làm quen nhé"
+    },
+    "name": {
+      "eyebrow": "VỀ BẠN",
+      "question": "Mình nên gọi bạn là gì?",
+      "hint": "Đây là cách Yoreni sẽ gọi bạn.",
+      "placeholder": "Tên của bạn"
+    },
+    "birthday": {
+      "eyebrow": "VỀ BẠN",
+      "question": "Sinh nhật của bạn là ngày nào?",
+      "hint": "Mình sẽ nhớ vào đúng dịp.",
+      "year": "Năm",
+      "month": "Tháng",
+      "day": "Ngày",
+      "yearPlaceholder": "Năm",
+      "monthPlaceholder": "Tháng",
+      "dayPlaceholder": "Ngày"
+    },
+    "gender": {
+      "eyebrow": "VỀ BẠN",
+      "question": "Bạn nhận mình là?",
+      "hint": "Điều này giúp mình nói về bạn tự nhiên hơn.",
+      "male": "Nam",
+      "female": "Nữ",
+      "undisclosed": "Không muốn tiết lộ"
+    },
+    "style": {
+      "eyebrow": "CÁCH MÌNH NÓI",
+      "question": "Bạn thích trò chuyện theo cách nào?",
+      "hint": "Chọn một nền tảng rồi tinh chỉnh. Bạn có thể đổi bất cứ lúc nào."
+    },
+    "notes": {
+      "eyebrow": "MỘT ĐIỀU NỮA",
+      "question": "Có điều gì khác mình cần lưu ý không?",
+      "hint": "Bất cứ điều gì bạn muốn mình nhớ về cách bạn làm việc hoặc điều cần tránh.",
+      "placeholder": "Ví dụ: trả lời ngắn gọn, hỏi trước khi thay đổi, ..."
+    },
+    "model": {
+      "eyebrow": "LINH HỒN",
+      "title": "Thổi hồn vào Yoreni",
+      "body": "Kết nối mô hình ngôn ngữ vận hành Yoreni. Bạn có thể đổi sau trong phần cài đặt.",
+      "provider": "Nhà cung cấp",
+      "providerPlaceholder": "Chọn nhà cung cấp",
+      "customProvider": "Điểm cuối tương thích OpenAI tùy chỉnh",
+      "providerName": "Tên nhà cung cấp",
+      "providerNamePlaceholder": "ví dụ: Cổng của tôi",
+      "providerNameRequired": "Đặt tên cho nhà cung cấp này.",
+      "apiBase": "Địa chỉ API",
+      "apiBaseRequired": "Nhập địa chỉ API.",
+      "apiKey": "Khóa API",
+      "apiKeyKeep": "Đã cấu hình — nhập khóa mới để thay thế",
+      "apiKeyPlaceholder": "Dán khóa API của bạn",
+      "test": "Kiểm tra kết nối",
+      "reachable": "Điểm cuối có thể truy cập",
+      "connected": "Đã kết nối · {{count}} mô hình",
+      "connectFailed": "Không thể kết nối",
+      "model": "Mô hình",
+      "modelPlaceholder": "ví dụ: gpt-4o",
+      "modelCount": "{{count}} mô hình khả dụng",
+      "modelRequired": "Chọn hoặc nhập mô hình.",
+      "providerRequired": "Chọn nhà cung cấp."
+    },
+    "embedding": {
+      "eyebrow": "KÝ ỨC",
+      "title": "Mở ký ức của Yoreni",
+      "body": "Mô hình embedding giúp Yoreni nhớ điều quan trọng theo ý nghĩa, không chỉ từ khóa.",
+      "provider": "Nhà cung cấp",
+      "providerPlaceholder": "Điểm cuối tùy chỉnh",
+      "customEndpoint": "Điểm cuối tùy chỉnh",
+      "model": "Mô hình embedding",
+      "dimensions": "Số chiều",
+      "dimensionsPlaceholder": "Tự động",
+      "apiBase": "Địa chỉ API",
+      "providerBase": "Dùng địa chỉ API của nhà cung cấp",
+      "apiKey": "Khóa API",
+      "apiKeyProvider": "Dùng khóa của nhà cung cấp",
+      "apiKeyPlaceholder": "Dán khóa API của bạn",
+      "test": "Kiểm tra kết nối",
+      "connected": "Đã kết nối điểm cuối embedding",
+      "connectFailed": "Không thể kết nối",
+      "optionalHint": "Tùy chọn. Nếu bỏ qua, Yoreni dùng tìm kiếm từ khóa cho đến khi bạn bật trong cài đặt. Thay đổi ký ức có hiệu lực sau khi khởi động lại gateway.",
+      "skip": "Bỏ qua lúc này",
+      "finish": "Vào Yoreni",
+      "modelRequired": "Nhập mô hình embedding.",
+      "endpointRequired": "Nhập địa chỉ API hoặc chọn nhà cung cấp."
+    },
+    "done": {
+      "title": "Mọi thứ đã sẵn sàng",
+      "body": "Rất vui được gặp bạn, {{name}}. Bắt đầu thôi."
+    },
+    "errors": {
+      "nameRequired": "Cho Yoreni biết cách gọi bạn."
+    }
+  },
+  "profile": {
+    "intro": "Yoreni dùng những thông tin này để hiểu bạn và điều chỉnh cách nói. Chúng được lưu trên thiết bị này, tách khỏi các tệp ký ức.",
+    "name": "Yoreni nên gọi bạn là gì?",
+    "nameHint": "Dùng khi Yoreni gọi bạn.",
+    "birthday": "Sinh nhật",
+    "gender": {
+      "label": "Giới tính",
+      "male": "Nam",
+      "female": "Nữ",
+      "undisclosed": "Không muốn tiết lộ"
+    },
+    "notes": "Còn điều gì cần lưu ý không?",
+    "notesPlaceholder": "Sở thích, giới hạn hoặc bối cảnh bạn muốn Yoreni nhớ.",
+    "save": "Lưu thay đổi",
+    "saved": "Đã lưu",
+    "loadFailed": "Không thể tải hồ sơ của bạn.",
+    "errors": {
+      "nameRequired": "Nhập tên.",
+      "customRequired": "Mô tả phong cách tùy chỉnh của bạn."
+    },
+    "style": {
+      "sectionTitle": "Phong cách trò chuyện",
+      "baseLabel": "Phong cách nền",
+      "fineTuneLabel": "Tinh chỉnh",
+      "fineTuneHint": "Trung tính không thêm nhấn mạnh.",
+      "customLabel": "Phong cách của bạn",
+      "customPlaceholder": "Mô tả cách bạn muốn Yoreni nói.",
+      "base": {
+        "default": "Mặc định",
+        "professional": "Chuyên nghiệp",
+        "friendly": "Thân thiện",
+        "direct": "Thẳng thắn",
+        "imaginative": "Bay bổng",
+        "pragmatic": "Thực tế",
+        "custom": "Tùy chỉnh",
+        "defaultDescription": "Giọng điệu sẵn có của Yoreni.",
+        "professionalDescription": "Chính xác, logic và chỉn chu.",
+        "friendlyDescription": "Tự nhiên, nhẹ nhàng và gần gũi.",
+        "directDescription": "Bộc trực và tích cực.",
+        "imaginativeDescription": "Sáng tạo và thoải mái khám phá ý tưởng.",
+        "pragmaticDescription": "Ngắn gọn và tập trung giải quyết vấn đề.",
+        "customDescription": "Tự viết chỉ dẫn phong cách."
+      },
+      "dimension": {
+        "affability": "Gần gũi",
+        "enthusiasm": "Nhiệt tình",
+        "emoji": "Emoji",
+        "structure": "Tiêu đề và danh sách",
+        "affabilityDescription": "Mức độ thân mật trong cách nói.",
+        "enthusiasmDescription": "Mức độ khích lệ mình thể hiện.",
+        "emojiDescription": "Tần suất dùng emoji.",
+        "structureDescription": "Mức độ cấu trúc câu trả lời dài."
+      },
+      "tuning": {
+        "more": "Tăng",
+        "neutral": "Trung tính",
+        "less": "Giảm"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "Không tìm thấy múi giờ phù hợp.",
     "configure": "Cấu hình",
@@ -421,6 +601,7 @@
       "general": "Chung",
       "byok": "BYOK",
       "overview": "Tổng quan",
+      "profile": "Hồ sơ",
       "appearance": "Giao diện",
       "widgets": "Tiện ích",
       "notifications": "Thông báo",

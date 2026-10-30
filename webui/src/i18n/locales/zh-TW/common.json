@@ -132,6 +132,186 @@
       "chat": "聊天"
     }
   },
+  "onboarding": {
+    "continue": "繼續",
+    "back": "返回",
+    "skip": "暫時跳過",
+    "token": {
+      "eyebrow": "首次使用",
+      "title": "設定 WebUI 密碼",
+      "body": "這個密碼用來保護這台裝置上的 Yoreni。開啟 WebUI 或從其他裝置連線時都需要它。",
+      "placeholder": "至少 8 個字元",
+      "keepPlaceholder": "輸入新密碼以取代",
+      "confirmPlaceholder": "再輸入一次",
+      "label": "WebUI 密碼",
+      "confirmLabel": "確認密碼",
+      "show": "顯示密碼",
+      "hide": "隱藏密碼",
+      "tooShort": "至少需要 8 個字元。",
+      "mismatch": "兩次輸入的密碼不一致。",
+      "alreadySet": "密碼已設定。留空兩欄即可維持不變。",
+      "hint": "選擇只有你知道的內容，它只會保存在這台裝置上。",
+      "footnote": "Yoreni 以本機為優先，密碼不會離開這台裝置。"
+    },
+    "intro": {
+      "line1": "Yoreni，持續陪伴你的個人助理。",
+      "line2": "我能協助你處理各種事務，",
+      "line3": "也會記住你的點點滴滴。",
+      "action": "開始認識彼此"
+    },
+    "name": {
+      "eyebrow": "關於你",
+      "question": "我該怎麼稱呼您？",
+      "hint": "這是 Yoreni 稱呼您的方式。",
+      "placeholder": "您的稱呼"
+    },
+    "birthday": {
+      "eyebrow": "關於你",
+      "question": "您的生日是哪一天？",
+      "hint": "我會在適當的時候想起它。",
+      "year": "年",
+      "month": "月",
+      "day": "日",
+      "yearPlaceholder": "年",
+      "monthPlaceholder": "月",
+      "dayPlaceholder": "日"
+    },
+    "gender": {
+      "eyebrow": "關於你",
+      "question": "您的性別是？",
+      "hint": "這讓我能更自然地談起您。",
+      "male": "男",
+      "female": "女",
+      "undisclosed": "不願透露"
+    },
+    "style": {
+      "eyebrow": "我的說話方式",
+      "question": "您喜歡怎樣的交談風格？",
+      "hint": "先選一個基調，再微調細節。之後隨時可以修改。"
+    },
+    "notes": {
+      "eyebrow": "還有一件事",
+      "question": "還有什麼需要我注意的嗎？",
+      "hint": "任何希望我長期記住的工作習慣，或需要避開的事。",
+      "placeholder": "例如：回答簡短一些，修改前先詢問……"
+    },
+    "model": {
+      "eyebrow": "靈魂",
+      "title": "為 Yoreni 注入靈魂",
+      "body": "連接驅動 Yoreni 的大型語言模型。之後可以在設定中更換。",
+      "provider": "服務供應商",
+      "providerPlaceholder": "選擇服務供應商",
+      "customProvider": "自訂 OpenAI 相容介面",
+      "providerName": "供應商名稱",
+      "providerNamePlaceholder": "例如：我的閘道",
+      "providerNameRequired": "請為這個供應商命名。",
+      "apiBase": "API 位址",
+      "apiBaseRequired": "請輸入 API 位址。",
+      "apiKey": "API Key",
+      "apiKeyKeep": "已設定 —— 輸入新 Key 可更換",
+      "apiKeyPlaceholder": "貼上你的 API Key",
+      "test": "測試連線",
+      "reachable": "介面可連線",
+      "connected": "已連線 · {{count}} 個模型",
+      "connectFailed": "連線失敗",
+      "model": "模型",
+      "modelPlaceholder": "例如：gpt-4o",
+      "modelCount": "共 {{count}} 個可用模型",
+      "modelRequired": "請選擇或輸入模型。",
+      "providerRequired": "請選擇服務供應商。"
+    },
+    "embedding": {
+      "eyebrow": "記憶",
+      "title": "開啟 Yoreni 的記憶",
+      "body": "Embedding 模型讓 Yoreni 依語意而不只是關鍵字回想起重要的事。",
+      "provider": "服務供應商",
+      "providerPlaceholder": "自訂介面",
+      "customEndpoint": "自訂介面",
+      "model": "Embedding 模型",
+      "dimensions": "維度",
+      "dimensionsPlaceholder": "自動",
+      "apiBase": "API 位址",
+      "providerBase": "使用供應商的 API 位址",
+      "apiKey": "API Key",
+      "apiKeyProvider": "使用供應商的 Key",
+      "apiKeyPlaceholder": "貼上你的 API Key",
+      "test": "測試連線",
+      "connected": "Embedding 介面已連線",
+      "connectFailed": "連線失敗",
+      "optionalHint": "選填。暫時跳過時，Yoreni 會使用關鍵字檢索；之後可在設定中開啟。 記憶設定會在閘道重新啟動後生效。",
+      "skip": "暫時跳過",
+      "finish": "進入 Yoreni",
+      "modelRequired": "請輸入 Embedding 模型。",
+      "endpointRequired": "請輸入 API 位址或選擇服務供應商。"
+    },
+    "done": {
+      "title": "一切就緒",
+      "body": "很高興認識你，{{name}}。我們開始吧。"
+    },
+    "errors": {
+      "nameRequired": "告訴 Yoreni 該怎麼稱呼你。"
+    }
+  },
+  "profile": {
+    "intro": "Yoreni 用這些資訊理解你，並調整說話方式。它們保存在這台裝置上，與記憶檔案分開存放。",
+    "name": "Yoreni 該怎麼稱呼你？",
+    "nameHint": "Yoreni 稱呼你時使用。",
+    "birthday": "生日",
+    "gender": {
+      "label": "性別",
+      "male": "男",
+      "female": "女",
+      "undisclosed": "不願透露"
+    },
+    "notes": "還有什麼需要我注意的嗎？",
+    "notesPlaceholder": "希望 Yoreni 長期記住的偏好、界線或背景。",
+    "save": "儲存變更",
+    "saved": "已儲存",
+    "loadFailed": "無法載入個人資料。",
+    "errors": {
+      "nameRequired": "請輸入稱呼。",
+      "customRequired": "請描述你的自訂風格。"
+    },
+    "style": {
+      "sectionTitle": "交談風格",
+      "baseLabel": "基礎風格",
+      "fineTuneLabel": "風格微調",
+      "fineTuneHint": "中性表示不額外強調。",
+      "customLabel": "自訂風格",
+      "customPlaceholder": "描述你希望 Yoreni 如何說話。",
+      "base": {
+        "default": "預設",
+        "professional": "專業可靠",
+        "friendly": "親切友善",
+        "direct": "直率樂觀",
+        "imaginative": "天馬行空",
+        "pragmatic": "高效務實",
+        "custom": "自訂",
+        "defaultDescription": "使用 Yoreni 預設的風格和語調。",
+        "professionalDescription": "注重準確性、邏輯性和專業表達。",
+        "friendlyDescription": "自然、溫和、有親近感。",
+        "directDescription": "表達直接、坦誠，整體態度積極。",
+        "imaginativeDescription": "更有想像力，鼓勵創意和發散思維。",
+        "pragmaticDescription": "簡潔直接，以解決問題為導向。",
+        "customDescription": "自行填寫基礎風格指令。"
+      },
+      "dimension": {
+        "affability": "親切程度",
+        "enthusiasm": "熱情程度",
+        "emoji": "表情符號",
+        "structure": "標題和列表",
+        "affabilityDescription": "我說話時有多親近自然。",
+        "enthusiasmDescription": "我表現出的鼓勵程度。",
+        "emojiDescription": "我使用表情符號的頻率。",
+        "structureDescription": "較長回答的結構化程度。"
+      },
+      "tuning": {
+        "more": "增強",
+        "neutral": "中性",
+        "less": "減弱"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "沒有符合的時區。",
     "configure": "設定",
@@ -421,6 +601,7 @@
       "general": "一般",
       "byok": "BYOK",
       "overview": "總覽",
+      "profile": "個人資料",
       "appearance": "外觀",
       "widgets": "小工具",
       "notifications": "通知",

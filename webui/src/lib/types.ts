@@ -1378,6 +1378,56 @@ export interface MemorySettingsUpdate {
   embeddingBatchSize: number;
 }
 
+export type ChatStyleBase =
+  | "default"
+  | "professional"
+  | "friendly"
+  | "direct"
+  | "imaginative"
+  | "pragmatic"
+  | "custom";
+
+export type StyleTuning = "more" | "neutral" | "less";
+
+export interface ChatStyle {
+  base: ChatStyleBase;
+  custom: string;
+  affability: StyleTuning;
+  enthusiasm: StyleTuning;
+  emoji: StyleTuning;
+  structure: StyleTuning;
+}
+
+export type UserGender = "male" | "female" | "undisclosed";
+
+export interface UserProfile {
+  name: string;
+  birthday: string | null;
+  gender: UserGender | null;
+  style: ChatStyle;
+  notes: string;
+}
+
+export type OnboardingStep =
+  | "token"
+  | "intro"
+  | "name"
+  | "birthday"
+  | "gender"
+  | "style"
+  | "notes"
+  | "model"
+  | "embedding"
+  | "done";
+
+export interface OnboardingSnapshot {
+  status: "uninitialized" | "in_progress" | "completed";
+  step: OnboardingStep;
+  token_set: boolean;
+  profile: UserProfile;
+  completed_at: string | null;
+}
+
 export type ConnectionStatus =
   | "idle"
   | "connecting"

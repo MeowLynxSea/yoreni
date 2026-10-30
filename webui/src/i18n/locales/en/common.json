@@ -132,6 +132,186 @@
       "chat": "Chat"
     }
   },
+  "onboarding": {
+    "continue": "Continue",
+    "back": "Back",
+    "skip": "Skip",
+    "token": {
+      "eyebrow": "FIRST RUN",
+      "title": "Choose your WebUI password",
+      "body": "This password protects Yoreni on this device. You'll use it whenever you open the WebUI or connect from another device.",
+      "placeholder": "At least 8 characters",
+      "keepPlaceholder": "Enter a new password to replace it",
+      "confirmPlaceholder": "Enter it again",
+      "label": "WebUI password",
+      "confirmLabel": "Confirm password",
+      "show": "Show password",
+      "hide": "Hide password",
+      "tooShort": "Use at least 8 characters.",
+      "mismatch": "The two passwords don't match.",
+      "alreadySet": "A password is already set. Leave both fields empty to keep it.",
+      "hint": "Choose something only you know. It is stored locally on this device.",
+      "footnote": "Yoreni is local-first. Your password never leaves this device."
+    },
+    "intro": {
+      "line1": "Yoreni, your personal assistant that stays with you.",
+      "line2": "I can help you handle what's on your plate,",
+      "line3": "and I'll remember the little things about you.",
+      "action": "Let's get acquainted"
+    },
+    "name": {
+      "eyebrow": "ABOUT YOU",
+      "question": "What should I call you?",
+      "hint": "This is how Yoreni will address you.",
+      "placeholder": "Your name"
+    },
+    "birthday": {
+      "eyebrow": "ABOUT YOU",
+      "question": "When is your birthday?",
+      "hint": "I'll keep it in mind for the right moments.",
+      "year": "Year",
+      "month": "Month",
+      "day": "Day",
+      "yearPlaceholder": "Year",
+      "monthPlaceholder": "Month",
+      "dayPlaceholder": "Day"
+    },
+    "gender": {
+      "eyebrow": "ABOUT YOU",
+      "question": "How do you identify?",
+      "hint": "This helps me speak about you naturally.",
+      "male": "Male",
+      "female": "Female",
+      "undisclosed": "Prefer not to say"
+    },
+    "style": {
+      "eyebrow": "HOW I SOUND",
+      "question": "How do you like to talk?",
+      "hint": "Pick a starting point, then fine-tune the details. You can change this anytime."
+    },
+    "notes": {
+      "eyebrow": "ONE MORE THING",
+      "question": "Is there anything else I should keep in mind?",
+      "hint": "Anything you want me to remember about how you work or what to avoid.",
+      "placeholder": "For example: keep answers short, ask before making changes, ..."
+    },
+    "model": {
+      "eyebrow": "SOUL",
+      "title": "Give Yoreni a soul",
+      "body": "Connect the language model that powers Yoreni. You can change it later in settings.",
+      "provider": "Provider",
+      "providerPlaceholder": "Choose a provider",
+      "customProvider": "Custom OpenAI-compatible endpoint",
+      "providerName": "Provider name",
+      "providerNamePlaceholder": "e.g. My gateway",
+      "providerNameRequired": "Give this provider a name.",
+      "apiBase": "API address",
+      "apiBaseRequired": "Enter the API address.",
+      "apiKey": "API key",
+      "apiKeyKeep": "Configured — enter a new key to replace it",
+      "apiKeyPlaceholder": "Paste your API key",
+      "test": "Test connection",
+      "reachable": "Endpoint reachable",
+      "connected": "Connected · {{count}} models",
+      "connectFailed": "Couldn't connect",
+      "model": "Model",
+      "modelPlaceholder": "e.g. gpt-4o",
+      "modelCount": "{{count}} models available",
+      "modelRequired": "Choose or enter a model.",
+      "providerRequired": "Choose a provider."
+    },
+    "embedding": {
+      "eyebrow": "MEMORY",
+      "title": "Open Yoreni's memory",
+      "body": "An embedding model lets Yoreni recall what matters by meaning, not just keywords.",
+      "provider": "Provider",
+      "providerPlaceholder": "Custom endpoint",
+      "customEndpoint": "Custom endpoint",
+      "model": "Embedding model",
+      "dimensions": "Dimensions",
+      "dimensionsPlaceholder": "Auto",
+      "apiBase": "API address",
+      "providerBase": "Uses the provider's API address",
+      "apiKey": "API key",
+      "apiKeyProvider": "Uses the provider's key",
+      "apiKeyPlaceholder": "Paste your API key",
+      "test": "Test connection",
+      "connected": "Embedding endpoint connected",
+      "connectFailed": "Couldn't connect",
+      "optionalHint": "Optional. Skip for now and Yoreni will use keyword search until you enable it in settings. Memory changes take effect after the gateway restarts.",
+      "skip": "Skip for now",
+      "finish": "Enter Yoreni",
+      "modelRequired": "Enter an embedding model.",
+      "endpointRequired": "Enter an API address or choose a provider."
+    },
+    "done": {
+      "title": "You're all set",
+      "body": "Nice to meet you, {{name}}. Let's get started."
+    },
+    "errors": {
+      "nameRequired": "Tell Yoreni what to call you."
+    }
+  },
+  "profile": {
+    "intro": "Yoreni uses these details to understand you and shape how it speaks. They stay on this device, separate from memory files.",
+    "name": "What should Yoreni call you?",
+    "nameHint": "Used when Yoreni addresses you.",
+    "birthday": "Birthday",
+    "gender": {
+      "label": "Gender",
+      "male": "Male",
+      "female": "Female",
+      "undisclosed": "Prefer not to say"
+    },
+    "notes": "Anything else to keep in mind?",
+    "notesPlaceholder": "Preferences, boundaries, or context you want Yoreni to remember.",
+    "save": "Save changes",
+    "saved": "Saved",
+    "loadFailed": "Couldn't load your profile.",
+    "errors": {
+      "nameRequired": "Enter a name.",
+      "customRequired": "Describe your custom style."
+    },
+    "style": {
+      "sectionTitle": "Conversation style",
+      "baseLabel": "Base style",
+      "fineTuneLabel": "Fine-tune",
+      "fineTuneHint": "Neutral applies no extra emphasis.",
+      "customLabel": "Your custom style",
+      "customPlaceholder": "Describe how you'd like Yoreni to speak.",
+      "base": {
+        "default": "Default",
+        "professional": "Professional",
+        "friendly": "Friendly",
+        "direct": "Direct",
+        "imaginative": "Imaginative",
+        "pragmatic": "Pragmatic",
+        "custom": "Custom",
+        "defaultDescription": "Yoreni's preset voice and tone.",
+        "professionalDescription": "Accurate, logical, and polished.",
+        "friendlyDescription": "Natural, gentle, and approachable.",
+        "directDescription": "Candid and upbeat.",
+        "imaginativeDescription": "Creative and comfortable exploring ideas.",
+        "pragmaticDescription": "Concise and focused on solving the problem.",
+        "customDescription": "Write your own style instruction."
+      },
+      "dimension": {
+        "affability": "Warmth",
+        "enthusiasm": "Energy",
+        "emoji": "Emoji",
+        "structure": "Headings and lists",
+        "affabilityDescription": "How close and personal I sound.",
+        "enthusiasmDescription": "How much encouragement I show.",
+        "emojiDescription": "How often I use emoji.",
+        "structureDescription": "How much I structure longer answers."
+      },
+      "tuning": {
+        "more": "More",
+        "neutral": "Neutral",
+        "less": "Less"
+      }
+    }
+  },
   "settings": {
     "timezoneNoMatches": "No matching timezones.",
     "configure": "Configure",
@@ -421,6 +601,7 @@
       "general": "General",
       "byok": "BYOK",
       "overview": "Overview",
+      "profile": "Profile",
       "appearance": "Appearance",
       "widgets": "Widgets",
       "notifications": "Notifications",

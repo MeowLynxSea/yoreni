@@ -92,8 +92,8 @@ export function TokenUsageCard({ usage, timeZone }: { usage?: Usage; timeZone?: 
     <div className="min-w-0 space-y-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-sm font-medium">{t("settings.usage.shortTitle", { defaultValue: "Token usage" })}</h3>
-          <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums" aria-label={usage ? `${exact.format(total)} tokens` : undefined}>
+          <h3 className="display-serif text-[1.15rem] leading-tight text-foreground/90">{t("settings.usage.shortTitle", { defaultValue: "Token usage" })}</h3>
+          <p className="mt-2.5 display-serif text-[2.6rem] leading-none tracking-[-0.03em] tabular-nums" aria-label={usage ? `${exact.format(total)} tokens` : undefined}>
             {usage ? compact.format(total) : "—"}
           </p>
         </div>
@@ -112,7 +112,7 @@ export function TokenUsageCard({ usage, timeZone }: { usage?: Usage; timeZone?: 
             <div className="mb-2 text-right text-[11px] tabular-nums text-muted-foreground" aria-hidden>{compact.format(peak)}</div>
             <div className="relative">
             <div className="pointer-events-none absolute inset-0 flex flex-col justify-between" aria-hidden>
-              {[0, 1, 2].map(line => <div key={line} className="border-t border-border/40" />)}
+              {[0, 1, 2].map(line => <div key={line} className="border-t border-[color:var(--app-hairline)]" />)}
             </div>
             <div className="relative grid h-28 grid-cols-[repeat(30,minmax(0,1fr))] gap-1" role="group" aria-label={t("settings.usage.dailyTrend", { defaultValue: "Daily token usage" })}>
               <TooltipProvider>
@@ -140,7 +140,7 @@ export function TokenUsageCard({ usage, timeZone }: { usage?: Usage; timeZone?: 
                             <dt className="flex items-center text-muted-foreground"><span aria-hidden className={cn("size-2.5 rounded-sm", SEGMENT_CLASSES[index])} style={index === 0 ? CACHE_PATTERN : undefined} /><span className="sr-only">{segmentLabels[index]}</span></dt>
                             <dd className="tabular-nums">{exact.format(value)}</dd>
                           </div>)}
-                          <div className="flex justify-between gap-6 border-t border-border/50 pt-2">
+                          <div className="flex justify-between gap-6 border-t border-[color:var(--app-hairline)] pt-2">
                             <dt className="text-muted-foreground">{t("settings.usage.cacheHitRate", { defaultValue: "Cache hit rate" })}</dt>
                             <dd className="tabular-nums">{day.usage?.cache_read_observed_input_tokens ? percent.format(day.usage.cache_read_tokens / day.usage.cache_read_observed_input_tokens) : "—"}</dd>
                           </div>

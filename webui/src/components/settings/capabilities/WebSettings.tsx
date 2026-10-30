@@ -214,7 +214,7 @@ export function WebSettings({
                   </>
                 ) : (
                   <>
-                    <div className="flex h-9 items-center rounded-full border border-input bg-background px-3 pr-11 text-[13px] text-muted-foreground">
+                    <div className="flex h-9 items-center rounded-full border border-[color:var(--settings-glass-border)] bg-white/45 px-3 pr-11 text-[13px] text-muted-foreground dark:bg-white/[0.06]">
                       {settings.web_search.api_key_hint ?? t("settings.byok.configuredKeyHint")}
                     </div>
                     <Button

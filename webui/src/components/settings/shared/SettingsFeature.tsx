@@ -10,7 +10,7 @@ export function SettingsAdvancedOptions({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
     <Disclosure
-      summaryClassName="settings-list-inset flex min-h-12 cursor-pointer items-center justify-between gap-4 rounded-xl text-[13px] leading-5 text-muted-foreground settings-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      summaryClassName="settings-list-inset flex min-h-12 cursor-pointer items-center justify-between gap-4 rounded-control text-[13px] leading-5 text-muted-foreground settings-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       summary={<>
         {t("settings.runtimeConfig.advancedOptions")}
         <ChevronDown aria-hidden className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/disclosure:rotate-180 motion-reduce:transition-none" />
@@ -53,14 +53,14 @@ export function SettingsFeature({
         <SettingsRow title={children ? (
           <DialogTrigger asChild>
           <button type="button"
-            className="flex min-h-9 w-full items-center rounded-lg text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            className="flex min-h-9 w-full items-center rounded-full text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             {title}
           </button>
           </DialogTrigger>
         ) : title}>
           {children ? <DialogTrigger asChild>
             <button type="button"
-              className="mr-3 shrink-0 rounded-lg px-2 py-1 text-[13px] leading-5 text-muted-foreground settings-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              className="mr-3 shrink-0 rounded-full px-2.5 py-1 text-[13px] leading-5 text-muted-foreground settings-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               {t("settings.configure")}
             </button>
           </DialogTrigger> : null}
@@ -68,7 +68,7 @@ export function SettingsFeature({
             onChange={(next) => { setOpen(next); onChange(next); }} />
         </SettingsRow>
       </SettingsGroup>
-      {children ? <DialogContent aria-describedby={undefined} className="settings-grid max-h-[85dvh] w-[min(calc(100vw-2rem),40rem)] max-w-none overflow-y-auto p-0 [--settings-surface:var(--background)]">
+      {children ? <DialogContent aria-describedby={undefined} className="settings-grid max-h-[85dvh] w-[min(calc(100vw-2rem),40rem)] max-w-none overflow-y-auto p-0">
         <DialogTitle className="sr-only">{title}</DialogTitle>
         <div className="pb-4 pt-8">{children}</div>
       </DialogContent> : null}

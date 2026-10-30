@@ -74,7 +74,7 @@ export function LinearSecretField({ field, configured, disabled, onSave }: {
     </label>
     <div className="min-w-0" role="group" aria-labelledby={`${inputId}-label`} aria-busy={saving}>
       {displaySaved ? (
-        <div className="flex min-h-10 items-center justify-between gap-2 rounded-full border border-border/40 bg-background ps-3 pe-1 sm:min-h-9">
+        <div className="flex min-h-10 items-center justify-between gap-2 rounded-full border border-[color:var(--settings-glass-border)] bg-white/45 ps-3 pe-1 backdrop-blur-xl sm:min-h-9 dark:bg-white/[0.06]">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2.5">
             <span aria-hidden className="text-[13px] tracking-[0.12em] text-foreground/70">••••••••</span>
             <span role="status" className="text-[11px] text-muted-foreground">
@@ -101,7 +101,7 @@ export function LinearSecretField({ field, configured, disabled, onSave }: {
                 event.preventDefault(); event.stopPropagation(); cancel();
               }
             }}
-            className="h-10 rounded-full border-border/40 bg-background pe-10 text-base sm:h-9 sm:text-[13px]" />
+            className="h-10 rounded-full border-[color:var(--settings-glass-border)] bg-white/45 pe-10 text-base backdrop-blur-xl sm:h-9 sm:text-[13px] dark:bg-white/[0.06]" />
           {value ? <Button type="button" variant="ghost" size="icon" disabled={locked}
             aria-label={visible ? t("settings.channels.hideSecret", { defaultValue: "Hide secret" })
               : t("settings.channels.showSecret", { defaultValue: "Show secret" })}

@@ -163,10 +163,10 @@ export function AutomationRunAtPicker({ value, onChange, disabled = false, error
                       <button ref={focused ? activeDay : undefined} type="button" tabIndex={focused ? 0 : -1}
                         disabled={day.getFullYear() < 1 || day.getFullYear() > 9999}
                         aria-label={dayFormatter.format(day)} aria-current={key === todayKey ? "date" : undefined}
-                        className={cn("flex h-8 w-full items-center justify-center rounded-full tabular-nums transition-colors hover:bg-muted motion-reduce:transition-none",
+                        className={cn("flex h-8 w-full items-center justify-center rounded-full tabular-nums transition-colors hover:bg-foreground/[0.06] motion-reduce:transition-none dark:hover:bg-white/[0.08]",
                           formControlFocusClassName,
                           day.getMonth() !== month.getMonth() && "text-muted-foreground/60",
-                          key === todayKey && !selected && "font-semibold ring-1 ring-inset ring-border",
+                          key === todayKey && !selected && "font-semibold ring-1 ring-inset ring-[color:var(--settings-glass-border)]",
                           selected && "bg-foreground font-medium text-background hover:bg-foreground/90")}
                         onKeyDown={(event) => onDayKeyDown(event, day)} onClick={() => selectDay(day)}>
                         {day.getDate()}

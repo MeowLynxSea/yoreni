@@ -51,7 +51,7 @@ export function SettingsIndex({ onOpenSection, onLogout }: SettingsIndexProps) {
             className="h-14 w-14 shrink-0 select-none rounded-[1.1rem] shadow-[0_10px_30px_-18px_rgba(18,32,55,0.7)]"
           />
           <div className="min-w-0">
-            <p className="truncate text-[1.4rem] font-semibold leading-tight tracking-[-0.015em] text-foreground">
+            <p className="display-serif truncate text-[1.6rem] leading-tight text-foreground/95">
               yoreni
             </p>
             {connection ? (
@@ -66,14 +66,14 @@ export function SettingsIndex({ onOpenSection, onLogout }: SettingsIndexProps) {
           {SETTINGS_GROUPS.map((group, index) => (
             <ul
               key={index}
-              className="divide-y divide-border/40 overflow-hidden rounded-[1.6rem] border border-white/55 bg-white/40 shadow-[0_24px_70px_-52px_rgba(18,32,55,0.75)] backdrop-blur-2xl dark:border-white/[0.09] dark:bg-white/[0.05] dark:shadow-[0_24px_70px_-46px_rgba(0,0,0,0.8)]"
+              className="settings-sheet divide-y divide-[color:var(--app-hairline)] overflow-hidden"
             >
               {group.map(({ key, icon: Icon }) => (
                 <li key={key}>
                   <button
                     type="button"
                     onClick={() => onOpenSection(key)}
-                    className="group flex w-full items-center gap-4 px-5 py-4 text-left transition-colors duration-150 hover:bg-white/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/35 motion-reduce:transition-none dark:hover:bg-white/[0.06]"
+                    className="group flex w-full items-center gap-4 px-6 py-4 text-left transition-colors duration-150 hover:bg-white/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/35 motion-reduce:transition-none dark:hover:bg-white/[0.06]"
                   >
                     <Icon size={20} strokeWidth={1.6} className="shrink-0 text-foreground/70" aria-hidden />
                     <span className="min-w-0 flex-1 truncate text-[15.5px] text-foreground/95">
@@ -94,7 +94,7 @@ export function SettingsIndex({ onOpenSection, onLogout }: SettingsIndexProps) {
           <button
             type="button"
             onClick={onLogout}
-            className="mt-3 flex w-full items-center gap-4 rounded-[1.6rem] border border-white/45 bg-white/25 px-5 py-4 text-left text-muted-foreground backdrop-blur-xl transition-colors duration-150 hover:bg-white/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 motion-reduce:transition-none dark:border-white/[0.07] dark:bg-white/[0.035] dark:hover:bg-white/[0.07]"
+            className="settings-sheet mt-3 flex w-full items-center gap-4 px-6 py-4 text-left text-muted-foreground transition-colors duration-150 hover:bg-white/55 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 motion-reduce:transition-none dark:hover:bg-white/[0.07]"
           >
             <LogOut size={20} strokeWidth={1.6} className="shrink-0" aria-hidden />
             <span className="text-[15.5px]">{t("app.account.logout")}</span>

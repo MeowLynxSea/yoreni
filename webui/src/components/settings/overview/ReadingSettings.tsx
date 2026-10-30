@@ -137,11 +137,11 @@ export function ReadingSettings({ preferences, onChange }: {
       </div>
       <div data-reading-preview-content>
         <MarkdownText>{t("settings.appearance.previewText")}</MarkdownText>
-        <div className="mt-4 overflow-x-auto rounded-control bg-muted/60 px-4 py-3">
+        <div className="mt-4 overflow-x-auto rounded-control bg-foreground/[0.045] px-4 py-3 dark:bg-white/[0.06]">
           <code className={`block font-mono text-code ${preferences.codeWrap ? "whitespace-pre-wrap break-words" : "whitespace-pre"}`}><span className="text-[color:var(--code-keyword)]">const</span>{' idea = '}<span className="text-[color:var(--code-string)]">{'"Hello, yoreni."'}</span>;</code>
         </div>
       </div>
-      <div className="mt-4 flex items-center gap-3 rounded-control border border-border/65 px-4 py-3 text-muted-foreground/80" aria-hidden>
+      <div className="mt-4 flex items-center gap-3 rounded-full border border-[color:var(--settings-glass-border)] bg-white/35 px-4 py-3 text-muted-foreground/80 dark:bg-white/[0.04]" aria-hidden>
         <span className="min-w-0 flex-1 text-composer">{t("settings.appearance.previewPlaceholder")}</span>
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-foreground text-background"><ArrowUp className="h-4 w-4" /></span>
       </div>

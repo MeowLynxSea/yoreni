@@ -42,7 +42,7 @@ export function TimezonePicker({ value, onChange, ...triggerProps }: {
     <Popover open={open} onOpenChange={(next) => { setOpen(next); setQuery(""); }}>
       <PopoverTrigger asChild>
         <Button {...triggerProps} type="button" variant="outline"
-          className="h-9 w-full justify-between rounded-full border-input bg-background px-3 text-[13px] font-normal shadow-none">
+          className="h-9 w-full justify-between rounded-full border-white/55 bg-white/45 px-3 text-[13px] font-normal shadow-none backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]">
           <span className="truncate">{value}</span>
           <ChevronDown className="ml-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
         </Button>

@@ -129,8 +129,9 @@
     --sidebar-accent: 0 0% 100%;
     --sidebar-accent-foreground: 240 6% 12%;
     --sidebar-border: 240 6% 90%;
-    --settings-canvas: 40 24% 98%;
-    --settings-surface: 0 0% 100%;
+    --settings-glass: rgb(255 255 255 / 0.5);
+    --settings-glass-border: rgb(255 255 255 / 0.62);
+    --settings-subcard: rgb(255 255 255 / 0.38);
     --automation-view-track: hsl(0 0% 91%);
     --scrollbar-thumb: hsl(var(--muted-foreground) / 0.2);
     --scrollbar-thumb-hover: hsl(var(--muted-foreground) / 0.36);
@@ -229,8 +230,9 @@
     --sidebar-accent: 240 4% 18%;
     --sidebar-accent-foreground: 240 7% 96%;
     --sidebar-border: 240 4% 22%;
-    --settings-canvas: 240 5% 10%;
-    --settings-surface: 240 5% 14%;
+    --settings-glass: rgb(24 25 31 / 0.42);
+    --settings-glass-border: rgb(255 255 255 / 0.1);
+    --settings-subcard: rgb(255 255 255 / 0.04);
     --automation-view-track: hsl(var(--muted) / 0.65);
     --scrollbar-thumb: hsl(var(--muted-foreground) / 0.24);
     --scrollbar-thumb-hover: hsl(var(--muted-foreground) / 0.4);
@@ -1484,9 +1486,9 @@
   .settings-grid {
     --settings-columns: 4;
     --settings-gutter: 16px;
-    --settings-margin: 16px;
-    --settings-inset: 16px;
-    --settings-module-gap: 20px;
+    --settings-margin: 20px;
+    --settings-inset: 20px;
+    --settings-module-gap: 28px;
     container-type: inline-size;
     max-inline-size: 720px;
     padding-inline: var(--settings-margin);
@@ -1639,9 +1641,14 @@
     margin-block-start: var(--settings-module-gap, 20px);
   }
   .settings-section-title {
-    margin-block-end: 20px;
+    margin-block-end: 12px;
     padding-inline: var(--settings-inset, 16px);
-    line-height: 20px;
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 400;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    color: hsl(var(--foreground) / 0.9);
   }
   .settings-section-heading {
     display: flex;
@@ -1652,7 +1659,7 @@
     padding-inline: var(--settings-inset, 16px);
   }
   .settings-section-heading > .settings-section-title { margin: 0; padding: 0; }
-  .settings-stack > .settings-section-heading + :not([hidden]) { margin-block-start: 20px; }
+  .settings-stack > .settings-section-heading + :not([hidden]) { margin-block-start: 12px; }
   .control-layout {
     display: flex;
     height: 2.25rem;
@@ -1667,8 +1674,8 @@
     column-gap: var(--settings-gutter, 16px);
     row-gap: 12px;
     align-items: center;
-    padding: 12px var(--settings-inset, 16px);
-    min-block-size: 60px;
+    padding: 14px var(--settings-inset, 16px);
+    min-block-size: 64px;
   }
   .settings-row > *, .settings-footer > * { grid-column: 1 / -1; min-inline-size: 0; }
   .settings-disclosure-row { grid-template-columns: minmax(0, 1fr) auto; }
@@ -1676,7 +1683,7 @@
   .settings-control > * { max-inline-size: 100%; }
   .settings-control input, .settings-control textarea { max-inline-size: 100%; text-align: start; }
   .settings-control input[type="number"] { font-variant-numeric: tabular-nums; }
-  .settings-footer { min-block-size: 60px; }
+  .settings-footer { min-block-size: 56px; }
   .settings-footer-auto { min-block-size: 40px; padding-block: 8px; row-gap: 0; }
   .settings-footer-auto > :first-child { grid-column: 1 / -1; font-size: 12px; }
   .settings-footer-auto > :nth-child(2):empty { display: none; }
@@ -1687,7 +1694,7 @@
   .settings-row:has(> .settings-control > :is([role="switch"], [data-skeleton-switch])) > :first-child { grid-column: 1; }
   .settings-row:has(> .settings-control > :is([role="switch"], [data-skeleton-switch])) > :nth-child(2) { grid-column: 2; }
   .settings-list-row, .settings-list-inset { padding-inline: var(--settings-inset, 16px); }
-  .settings-list-row { min-block-size: 60px; border-radius: var(--radius-control); }
+  .settings-list-row { min-block-size: 64px; border-radius: var(--radius-control); }
   .settings-list-row:focus-visible { outline: none; }
   .icon-action[aria-pressed="true"], .icon-action[data-state="open"] {
     color: hsl(var(--foreground));
@@ -1749,7 +1756,30 @@
   .quiet-control[data-state="open"], .quiet-control[aria-pressed="true"] {
     background-color: var(--control-active-fill);
   }
-  .settings-editor { padding: 16px var(--settings-inset, 16px); }
+  .settings-editor { padding: 20px var(--settings-inset, 16px); }
+  /* The standard settings card: a light glass sheet that lets the sky through. */
+  .settings-sheet {
+    border: 1px solid var(--settings-glass-border);
+    border-radius: var(--radius-panel);
+    background: var(--settings-glass);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.34) inset,
+      0 30px 70px -56px rgb(24 36 58 / 0.55);
+    -webkit-backdrop-filter: blur(26px) saturate(1.22);
+    backdrop-filter: blur(26px) saturate(1.22);
+  }
+  .dark .settings-sheet {
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.05) inset,
+      0 30px 80px -52px rgb(0 0 0 / 0.75);
+  }
+  /* A nested disclosure or field cluster inside a sheet. */
+  .settings-subcard {
+    border: 1px solid var(--settings-glass-border);
+    border-radius: var(--radius-floating);
+    background: var(--settings-subcard);
+  }
+  /* Row separators stay hairline-subtle and inset with the card's padding. */
+  .settings-divider { border-top: 1px solid var(--app-hairline); }
+  .settings-group-divider { border-top: 1px solid var(--app-hairline); }
   @media (min-width: 640px) {
     .settings-grid { --settings-margin: 32px; }
     .settings-grid.settings-feature-page { --settings-margin: 1rem; }

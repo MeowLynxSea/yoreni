@@ -177,7 +177,7 @@ export function ChannelSetupSurfaceView({
                   type="button"
                   size="sm"
                   variant="secondary"
-                  className="h-8 rounded-full bg-background/80 px-3 text-[12px] font-semibold settings-hover"
+                  className="h-8 rounded-full bg-white/50 px-3 dark:bg-white/[0.07] text-[12px] font-semibold settings-hover"
                   onClick={() =>
                     setNotice(
                       tx(
@@ -203,7 +203,7 @@ export function ChannelSetupSurfaceView({
                 ) : null}
               </div>
               {setup.command ? (
-                <code className="mt-3 block rounded-control border border-border/50 bg-muted/45 px-2.5 py-2 font-mono text-[11px] leading-5 text-foreground">
+                <code className="mt-3 block rounded-floating border border-[color:var(--settings-glass-border)] bg-[color:var(--settings-subcard)] px-2.5 py-2 font-mono text-[11px] leading-5 text-foreground">
                   {setup.command}
                 </code>
               ) : null}
@@ -280,7 +280,7 @@ export function ChannelSetupSurfaceView({
         role="status"
         aria-live="polite"
         className={cn(
-          "rounded-control bg-muted/55 px-3 py-2.5 text-[12px] leading-5 text-muted-foreground",
+          "rounded-floating bg-[color:var(--settings-subcard)] px-4 py-3 text-[12px] leading-5 text-muted-foreground",
           !notice && (lastNotice.current ? "invisible" : "sr-only"),
         )}
       >

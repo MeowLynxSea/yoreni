@@ -17,7 +17,7 @@ export function NotificationSettings({ localPrefs, onChangeLocalPrefs }: {
         <SettingsGroup>
           <BrowserNotificationSettings localPrefs={localPrefs} onChangeLocalPrefs={onChangeLocalPrefs} />
           <div className="settings-list-inset" aria-hidden="true">
-            <div className="border-t border-border/40" />
+            <div className="settings-divider" />
           </div>
           <SettingsRow title={t("settings.rows.notificationSound")} description={t("settings.help.notificationSound")}>
             <ToggleButton checked={localPrefs.notificationSound}

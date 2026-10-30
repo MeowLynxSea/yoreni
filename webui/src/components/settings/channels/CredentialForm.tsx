@@ -163,7 +163,7 @@ export function CredentialForm({
               <span id={`${inputId}-label`} className="flex min-h-12 items-center sm:min-h-10">{header}</span>
               <div className="min-w-0">
               <span
-                className="grid rounded-control bg-muted p-0.5 text-[12px] font-medium text-muted-foreground"
+                className="grid rounded-control bg-foreground/[0.045] p-0.5 text-[12px] font-medium text-muted-foreground dark:bg-white/[0.06]"
                 style={{ gridTemplateColumns: `repeat(${field.options.length}, minmax(0, 1fr))` }}
               >
                 {field.options.map((option, index) => (
@@ -181,7 +181,7 @@ export function CredentialForm({
                       onBlur={() => onFieldBlur?.(field.key)}
                       className="peer sr-only"
                     />
-                    <span className="grid min-h-11 cursor-pointer place-items-center rounded-compact px-2 py-1.5 transition-colors hover:text-foreground peer-checked:bg-background peer-checked:text-foreground peer-checked:ring-1 peer-checked:ring-inset peer-checked:ring-border/45 peer-focus-visible:ring-2 peer-focus-visible:ring-ring sm:min-h-9">
+                    <span className="grid min-h-11 cursor-pointer place-items-center rounded-compact px-2 py-1.5 transition-colors hover:text-foreground peer-checked:bg-white/70 peer-checked:text-foreground peer-checked:ring-1 peer-checked:ring-inset peer-checked:ring-[color:var(--settings-glass-border)] dark:peer-checked:bg-white/[0.12] peer-focus-visible:ring-2 peer-focus-visible:ring-ring sm:min-h-9">
                       {option.label}
                     </span>
                   </label>
@@ -213,7 +213,7 @@ export function CredentialForm({
                   rows={4}
                   spellCheck={false}
                   className={cn(
-                    "resize-y border-border/40 bg-background font-mono text-[12px]",
+                    "resize-y border-[color:var(--settings-glass-border)] bg-white/45 font-mono text-[12px] dark:bg-white/[0.06]",
                     error && "border-destructive focus-visible:ring-destructive/30",
                   )}
                 />
@@ -245,7 +245,7 @@ export function CredentialForm({
                 onChange={(event) => onChange(field.key, event.target.value)}
                 onBlur={() => onFieldBlur?.(field.key)}
                 className={cn(
-                  "h-10 rounded-full border-border/40 bg-background text-base sm:h-9 sm:text-[13px]",
+                  "h-10 rounded-full border-[color:var(--settings-glass-border)] bg-white/45 text-base sm:h-9 sm:text-[13px] dark:bg-white/[0.06]",
                   error && "border-destructive focus-visible:ring-destructive/30",
                   showSecretToggle && "pr-9",
                 )}

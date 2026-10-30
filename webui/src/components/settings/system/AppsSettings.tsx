@@ -302,8 +302,8 @@ export function AppsCatalogSettings({
         />
       ) : null}
 
-      <section className="rounded-panel bg-settings-surface px-3 py-3 sm:px-4">
-        <div className="settings-section-heading border-b border-border/45 pb-2">
+      <section className="settings-sheet overflow-hidden">
+        <div className="settings-section-heading pb-1 pt-4">
           <SettingsSectionTitle>
             {filter === "mcp"
               ? tx("settings.apps.mcpTools", "MCP tools")
@@ -314,7 +314,7 @@ export function AppsCatalogSettings({
           </span>
         </div>
         {items.length ? (
-          <div className="grid grid-cols-1 gap-x-10 gap-y-1 py-3 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-x-10 gap-y-1 p-2 sm:p-3 xl:grid-cols-2">
             {items.map((item) =>
               item.kind === "cli" ? (
                 <CliAppsCatalogRow
@@ -428,11 +428,11 @@ function CliAppsCatalogRow({
   const description = app.description || app.requires || app.entry_point || app.name;
 
   return (
-    <article className="apps-catalog-row group flex min-w-0 items-center gap-3 rounded-control px-3 py-3 transition-colors settings-hover">
+    <article className="apps-catalog-row group flex min-w-0 items-center gap-3 rounded-[1.25rem] px-4 py-3.5 transition-colors settings-hover">
       <CliAppLogo app={app} showBrandLogos={showBrandLogos} />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-baseline gap-2">
-          <h3 className="truncate text-[14px] font-semibold leading-5 text-foreground">{app.display_name}</h3>
+          <h3 className="truncate text-[14.5px] font-medium leading-5 text-foreground/90">{app.display_name}</h3>
           <AppsTypeBadge>{tx("settings.apps.cliLabel", "App")}</AppsTypeBadge>
         </div>
         <p className="mt-0.5 truncate text-[12.5px] leading-5 text-muted-foreground">{description}</p>
@@ -612,8 +612,8 @@ function McpAppsCatalogRow({
   };
 
   return (
-    <article className="min-w-0 rounded-control transition-colors settings-hover">
-      <div className="group flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3">
+    <article className="min-w-0 rounded-[1.25rem] transition-colors settings-hover">
+      <div className="group flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5">
         <button
           type="button"
           aria-label={preset.display_name}
@@ -624,7 +624,7 @@ function McpAppsCatalogRow({
         <McpPresetLogo preset={preset} showBrandLogos={showBrandLogos} />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-baseline gap-2">
-            <h3 className="truncate text-[14px] font-semibold leading-5 text-foreground">{preset.display_name}</h3>
+            <h3 className="truncate text-[14.5px] font-medium leading-5 text-foreground/90">{preset.display_name}</h3>
             {showTypeBadge ? (
               <AppsTypeBadge>
                 {agentPlugin
@@ -773,7 +773,7 @@ function McpAppsCatalogRow({
 
       {manualCallback ? (
         <form
-          className="mx-3 mb-3 min-w-0 space-y-3 rounded-control bg-background/55 p-3"
+          className="mx-3 mb-3 min-w-0 space-y-3 rounded-floating border border-[color:var(--settings-glass-border)] bg-[color:var(--settings-subcard)] p-3"
           onSubmit={(event) => {
             event.preventDefault();
             onOAuthComplete();
@@ -851,7 +851,7 @@ function McpAppsCatalogRow({
           </div>
         </form>
       ) : oauthFlow && oauthPopupBlocked && oauthFlow.authorization_url ? (
-        <div className="mx-3 mb-3 flex flex-col gap-2.5 rounded-control bg-background/55 p-3">
+        <div className="mx-3 mb-3 flex flex-col gap-2.5 rounded-floating border border-[color:var(--settings-glass-border)] bg-[color:var(--settings-subcard)] p-3">
           <div className="flex min-w-0 items-center gap-2.5 text-[12.5px] text-muted-foreground">
             <span>
               {mcpOAuthStatusText(
@@ -901,7 +901,7 @@ function McpAppsCatalogRow({
 
 function AppsTypeBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground">
+    <span className="shrink-0 rounded-full bg-foreground/[0.06] px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground dark:bg-white/[0.08]">
       {children}
     </span>
   );
@@ -947,7 +947,7 @@ const AppsActionButton = forwardRef<HTMLButtonElement, AppsActionButtonProps>(
             : "h-9 w-9",
           tone === "installed" && "bg-transparent hover:text-foreground",
           tone === "danger" && "bg-transparent hover:text-destructive",
-          tone === "default" && "bg-muted/70 hover:text-foreground",
+          tone === "default" && "bg-foreground/[0.06] hover:text-foreground dark:bg-white/[0.08]",
           className,
         )}
       >
@@ -1045,10 +1045,10 @@ function McpCustomServerPanel({
   ];
 
   return (
-    <section className="overflow-hidden rounded-floating bg-settings-surface">
+    <section className="settings-sheet overflow-hidden">
       <div className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-control bg-muted text-muted-foreground">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/55 text-foreground/80 ring-1 ring-inset ring-white/50 dark:bg-white/[0.07] dark:ring-white/[0.06]">
             <McpIcon className="h-4 w-4" aria-hidden />
           </span>
           <div className="min-w-0">
@@ -1088,7 +1088,7 @@ function McpCustomServerPanel({
       </div>
 
       {activeMode === "custom" ? (
-        <div className="border-t border-border/35 bg-muted/18 px-3 py-3">
+        <div className="border-t border-[color:var(--app-hairline)] bg-foreground/[0.025] px-4 py-3.5 dark:bg-white/[0.03]">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
             <label className="min-w-0 flex-1">
               <span className="mb-1.5 block text-[11.5px] font-medium text-muted-foreground">
@@ -1171,7 +1171,7 @@ function McpCustomServerPanel({
 
           {remote ? (
             <ProxySettingsControl
-              className="mt-3 rounded-control bg-background/55 px-3 py-3"
+              className="mt-3 rounded-floating border border-[color:var(--settings-glass-border)] bg-[color:var(--settings-subcard)] px-3 py-3"
               checked={form.useProxy}
               disabled={customBusy}
               onChange={(useProxy) => update("useProxy", useProxy)}
@@ -1278,7 +1278,7 @@ function McpCustomServerPanel({
       ) : null}
 
       {activeMode === "import" ? (
-        <div className="border-t border-border/35 bg-muted/18 px-3 py-3">
+        <div className="border-t border-[color:var(--app-hairline)] bg-foreground/[0.025] px-4 py-3.5 dark:bg-white/[0.03]">
           <div className="flex flex-col gap-2 xl:flex-row xl:items-end">
             <label className="min-w-0 flex-1">
               <span className="mb-1.5 block text-[11.5px] font-medium text-muted-foreground">
@@ -1436,15 +1436,15 @@ function CliAppReadyPanel({
   };
 
   return (
-    <section className="rounded-control bg-settings-surface px-4 py-3">
+    <section className="settings-sheet px-5 py-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <CliAppLogo app={app} showBrandLogos={showBrandLogos} />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h3 className="truncate text-[14px] font-semibold leading-5 text-foreground">
+            <h3 className="truncate text-[15px] font-medium leading-5 text-foreground/90">
               {app.display_name}
             </h3>
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10.5px] font-medium text-muted-foreground">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[10.5px] font-medium text-muted-foreground dark:bg-white/[0.08]">
               <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-300" aria-hidden />
               {t("settings.cliApps.readyStatus", { defaultValue: "Ready" })}
             </span>

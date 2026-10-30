@@ -57,7 +57,7 @@ export function ChannelFieldGroups({
       {compositeRequirements.map((requirement, index) => (
         <div
           key={index}
-          className="rounded-control border border-border/60 bg-background/55 px-3 py-2.5"
+          className="rounded-floating border border-[color:var(--settings-glass-border)] bg-[color:var(--settings-subcard)] px-4 py-3"
         >
           <div className="text-[11px] font-semibold text-foreground">
             {tx("settings.channels.chooseCredentialMethod", "Choose one credential method")}
@@ -66,7 +66,7 @@ export function ChannelFieldGroups({
             {requirement.alternatives.map((alternative, alternativeIndex) => (
               <span key={alternative.join("|")} className="contents">
                 {alternativeIndex ? <span aria-hidden>{tx("settings.channels.or", "or")}</span> : null}
-                <span className="rounded-full bg-muted px-2 py-0.5 text-foreground/85">
+                <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-foreground/85 dark:bg-white/[0.08]">
                   {alternative.map((key) => labels.get(key) ?? key.split(".").at(-1)).join(" + ")}
                 </span>
               </span>

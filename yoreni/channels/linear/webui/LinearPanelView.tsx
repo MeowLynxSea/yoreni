@@ -158,7 +158,7 @@ export function LinearPanelView({ feature, showBrandLogos, fields, advancedField
           })}
         </div>
         {notice ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-muted/55 px-3 py-2.5 text-[12px] leading-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-control bg-foreground/[0.045] px-3 py-2.5 text-[12px] leading-5 dark:bg-white/[0.06]">
             <p role="alert">{notice}</p>
             <Button type="submit" variant="secondary" size="sm" disabled={busy || connecting}
               className="min-h-10 rounded-full text-[12px]">
@@ -213,7 +213,7 @@ export function LinearPanelView({ feature, showBrandLogos, fields, advancedField
               ) : null;
               return (
                 <article key={installation.organization_id} aria-label={name}
-                  className="overflow-hidden rounded-panel border border-border/70 bg-background">
+                  className="overflow-hidden rounded-panel border border-[color:var(--settings-glass-border)] bg-[color:var(--settings-subcard)]">
                   <header className="flex flex-wrap items-center justify-between gap-3 p-4">
                     <div className="flex min-w-0 flex-1 items-center gap-2.5">
                       <LinearAvatar name={name} url={logos[installation.organization_id]} workspace />

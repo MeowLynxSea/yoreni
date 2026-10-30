@@ -111,7 +111,7 @@ export function ChannelCatalogRow({
               className="inline-flex rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
               <Button ref={installButtonRef} type="button" variant="outline" size="icon"
                 className={cn(
-                  "h-[22px] w-[38px] min-w-0 shrink-0 rounded-full border-border/70 bg-background p-0",
+                  "h-[22px] w-[38px] min-w-0 shrink-0 rounded-full border-[color:var(--settings-glass-border)] bg-white/55 p-0 dark:bg-white/[0.07]",
                   installHint && "border-[#2997FF]/60 bg-[#2997FF]/10 text-[#087FE7] ring-2 ring-[#2997FF]/25 ring-offset-2",
                 )}
                 disabled={actionsDisabled || anyActionBusy || !feature.install_supported}
@@ -130,7 +130,7 @@ export function ChannelCatalogRow({
         ) : feature.restart_pending ? (
           <HoverHint content={t("settings.channels.restartRequired")}>
             <Button type="button" variant="outline" size="icon"
-              className="h-[22px] w-[38px] min-w-0 shrink-0 rounded-full border-border/70 bg-background p-0"
+              className="h-[22px] w-[38px] min-w-0 shrink-0 rounded-full border-[color:var(--settings-glass-border)] bg-white/55 p-0 dark:bg-white/[0.07]"
               aria-label={t("app.system.restart")}
               aria-busy={isRestarting}
               disabled={isRestarting || anyActionBusy || !onRestart}

@@ -92,7 +92,7 @@ export function ModelAPIControl({
         )}
       </SettingsRow>
       {configurable && selectedAPI === "responses" && (!requestAPIs || requestAPIs.includes("chat_completions")) ? (
-        <div className="mx-4 mb-3 flex items-start justify-between gap-4 rounded-xl bg-muted/30 px-3 py-3 sm:mx-5">
+        <div className="mx-4 mb-4 flex items-start justify-between gap-4 rounded-[1.25rem] bg-foreground/[0.035] px-4 py-3.5 sm:mx-5 dark:bg-white/[0.05]">
           <div className="min-w-0">
             <p className="text-[13px] leading-5 text-foreground">
               <SettingsHint description={t("settings.models.apiFallbackDescription")}>

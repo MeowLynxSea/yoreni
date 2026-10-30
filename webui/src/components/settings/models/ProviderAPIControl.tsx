@@ -15,7 +15,7 @@ export function ProviderAPIControl({ value, onChange }: {
   const preferred = value?.preferred_api ?? supported[0];
   return (
     <div className="space-y-3">
-      <fieldset className="space-y-3 rounded-floating border border-border/60 p-3">
+      <fieldset className="settings-subcard space-y-3 p-4">
         <legend className="px-1 text-[12px] font-medium text-muted-foreground">
           <SettingsHint description={t("settings.providers.supportedAPIsDescription")}>
             {t("settings.providers.supportedAPIs")}

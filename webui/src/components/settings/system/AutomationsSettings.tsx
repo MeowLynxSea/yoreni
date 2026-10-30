@@ -204,7 +204,7 @@ export function AutomationsSettings({
   return (
     <div className="automations-page">
       <header className="settings-feature-header mb-7">
-        <h1 ref={pageTitle} tabIndex={-1} className="text-[24px] font-normal leading-tight tracking-normal text-foreground outline-none sm:text-[28px]">
+        <h1 ref={pageTitle} tabIndex={-1} className="display-serif text-[clamp(1.9rem,4vw,2.5rem)] leading-none text-foreground/95 outline-none">
           {tx("settings.nav.automations", "Automations")}
         </h1>
       </header>
@@ -239,14 +239,14 @@ export function AutomationsSettings({
         ) : null}
 
         {error ? <AutomationError message={error} /> : null}
-        <div className="automation-panel overflow-hidden rounded-panel bg-[hsl(var(--settings-surface))]">
-          <div className="automation-panel-toolbar bg-foreground/[0.025]">
+        <div className="automation-panel settings-sheet overflow-hidden">
+          <div className="automation-panel-toolbar border-b border-[color:var(--app-hairline)]">
             <div className="automation-view-switch" role="group" aria-label={tx("settings.automations.views.label", "Automation view")}>
               <SegmentedControl
                 value={view}
-                className="rounded-[var(--radius-panel)] bg-[var(--automation-view-track)]"
-                itemClassName="min-h-8 rounded-[calc(var(--radius-panel)-0.25rem)]"
-                indicatorClassName="rounded-[calc(var(--radius-panel)-0.25rem)]"
+                className="rounded-full bg-[var(--automation-view-track)]"
+                itemClassName="min-h-8 rounded-full"
+                indicatorClassName="rounded-full"
                 options={[
                   { value: "tasks", label: tx("settings.automations.views.tasks", "Tasks") },
                   { value: "calendar", label: tx("settings.automations.views.calendar", "Calendar") },
@@ -262,7 +262,7 @@ export function AutomationsSettings({
             {filters || (loading && !payload) ? <div className="automation-panel-filters min-w-0">{filters ?? <div className="h-8 w-8" aria-hidden />}</div> : null}
             {view === "calendar" ? (
               <div className="automation-calendar-navigation flex shrink-0 items-center gap-1">
-                <Button type="button" variant="ghost" size="sm" className="h-8 rounded-full bg-background/60 px-3 text-[12px] text-foreground"
+                <Button type="button" variant="ghost" size="sm" className="h-8 rounded-full bg-white/50 px-3 text-[12px] text-foreground dark:bg-white/[0.07]"
                   onClick={() => { const today = new Date(); setMonth(new Date(today.getFullYear(), today.getMonth(), 1)); }}>
                   {tx("settings.automations.calendar.today", "Today")}
                 </Button>
@@ -299,10 +299,10 @@ export function AutomationsSettings({
                           type="button"
                           aria-haspopup="dialog"
                           onClick={(event) => inspectJob(job, event.currentTarget)}
-                          className={cn("flex w-full min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-control px-3 py-3 text-start transition-colors hover:bg-foreground/[0.045] motion-reduce:transition-none", formControlFocusClassName)}
+                          className={cn("flex w-full min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-2 rounded-[1.25rem] px-4 py-3.5 text-start transition-colors hover:bg-foreground/[0.045] motion-reduce:transition-none", formControlFocusClassName)}
                         >
                           <span className="min-w-0 flex-1 basis-48">
-                            <span className="block truncate text-[14px] font-medium text-foreground">{job.name || job.id}</span>
+                            <span className="block truncate text-[14.5px] font-medium text-foreground/90">{job.name || job.id}</span>
                             <span className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[12px] leading-5 text-muted-foreground">
                               <span>{formatAutomationSchedule(job, locale, tx)}</span>
                               {job.protected ? <span>{tx("settings.automations.filters.system", "System")}</span> : null}
@@ -554,7 +554,7 @@ function AutomationDetailPanel({
         </dl>}
       </div>
       {canManage ? (
-        <div className="flex shrink-0 items-center gap-2 border-t border-border/45 px-6 py-3">
+        <div className="flex shrink-0 items-center gap-2 border-t border-[color:var(--app-hairline)] px-6 py-3">
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" disabled={busy} aria-label={tx("settings.automations.moreActions", "More actions")} className="h-11 w-11 text-muted-foreground sm:h-9 sm:w-9"><MoreHorizontal className="h-4 w-4" aria-hidden /></Button></DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="start">
@@ -577,7 +577,7 @@ function AutomationDetailPanel({
 function AutomationError({ message }: { message: string }) {
   const { t } = useTranslation();
   const tx = (key: string, fallback: string) => t(key, { defaultValue: fallback });
-  return <div role="alert" className="mb-4 flex items-start gap-2 rounded-lg bg-destructive/5 px-3 py-2.5 text-[13px] leading-5 text-destructive">
+  return <div role="alert" className="mb-4 flex items-start gap-2 rounded-[1.25rem] border border-destructive/20 bg-destructive/[0.07] px-4 py-3 text-[13px] leading-5 text-destructive">
     <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
     <span className="min-w-0 break-words [overflow-wrap:anywhere]">
       {localizedAutomationError(message, tx)}
@@ -793,7 +793,7 @@ export function AutomationEditDialog({
                         }))
                       }
                       className={cn(
-                        "h-10 w-full rounded-control border border-input bg-background px-3 text-[13px] text-foreground transition-colors",
+                        "h-10 w-full rounded-control border border-[color:var(--settings-glass-border)] bg-white/45 px-3 text-[13px] text-foreground transition-colors dark:bg-white/[0.06]",
                         formControlFocusClassName,
                       )}
                     >

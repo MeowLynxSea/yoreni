@@ -129,7 +129,7 @@ export function ChannelQrConnectFlowView({
         </div>
       ) : pending ? (
         <div className={`grid items-center gap-4 py-2 ${showQrCode ? "sm:grid-cols-[auto_minmax(0,1fr)]" : ""}`}>
-          {showQrCode ? <div className="grid h-[196px] w-[196px] place-items-center rounded-control border border-border/60 bg-background">
+          {showQrCode ? <div className="grid h-[196px] w-[196px] place-items-center rounded-floating border border-[color:var(--settings-glass-border)] bg-white">
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}

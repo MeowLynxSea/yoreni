@@ -45,13 +45,13 @@ export function TokenUsageModelTrend({ days, modelDays, models }: {
   const hasOther = columns.some(column => column.values[series.length] > 0);
   const title = t("settings.usage.modelTrend", { defaultValue: "Model usage over time" });
   return <section className="mt-2">
-    <h3 className="mb-4 text-sm font-medium">{title}</h3>
+    <h3 className="mb-4 display-serif text-[1.05rem] leading-tight text-foreground/90">{title}</h3>
     <div className="relative pl-9">
       <div className="relative h-[clamp(144px,30vh,280px)]" data-model-usage-plot>
         <div className="pointer-events-none absolute inset-y-0 -left-9 right-0" aria-hidden>
           {[peak, peak / 2, 0].map((value, index) => <div key={index} className="absolute inset-x-0 flex items-center gap-2" style={{ top: `${index * 50}%` }}>
             <span className="absolute top-0 w-7 -translate-y-1/2 text-right text-[10px] tabular-nums text-muted-foreground">{compact.format(value)}</span>
-            <span className="ml-9 flex-1 border-t border-border/40" data-model-usage-gridline={index} />
+            <span className="ml-9 flex-1 border-t border-[color:var(--app-hairline)]" data-model-usage-gridline={index} />
           </div>)}
         </div>
       <div role="group" aria-label={title} className="relative grid h-full grid-cols-[repeat(30,minmax(0,1fr))] gap-px">
@@ -72,7 +72,7 @@ export function TokenUsageModelTrend({ days, modelDays, models }: {
                 {column.values.map((value, index) => ({ value, index })).filter(item => item.value > 0).sort((a, b) => b.value - a.value).map(({ value, index }) => <div key={index} className="flex items-start justify-between gap-3 text-xs">
                   <dt className="flex min-w-0 items-start gap-2"><span aria-hidden className={cn("mt-0.5 h-3 w-1 shrink-0 rounded-full", color(index))} /><span className="break-words">{labels[index]}</span></dt><dd className="shrink-0 tabular-nums">{number.format(value)}</dd>
                 </div>)}
-                <div className="flex justify-between border-t border-border/50 pt-2 text-xs font-medium"><dt>{t("settings.usage.totalTokens", { defaultValue: "Total tokens" })}</dt><dd className="tabular-nums">{number.format(column.total)}</dd></div>
+                <div className="flex justify-between border-t border-[color:var(--app-hairline)] pt-2 text-xs font-medium"><dt>{t("settings.usage.totalTokens", { defaultValue: "Total tokens" })}</dt><dd className="tabular-nums">{number.format(column.total)}</dd></div>
                 <div className="flex justify-between text-xs text-muted-foreground"><dt>{t("settings.usage.requests")}</dt><dd className="tabular-nums">{number.format(column.requests)}</dd></div>
               </dl>
             </TooltipContent>

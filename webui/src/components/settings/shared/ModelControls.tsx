@@ -125,7 +125,7 @@ export function ProviderPicker({
           type="button"
           disabled={disabled}
           className={cn(
-            "w-full justify-between rounded-full border-input bg-background text-[13px] font-normal shadow-none",
+            "w-full justify-between rounded-full border-white/55 bg-white/45 text-[13px] font-normal shadow-none backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]",
             "settings-hover focus-visible:ring-2 focus-visible:ring-ring",
             disabled && "text-muted-foreground",
           )}
@@ -432,7 +432,7 @@ export function ModelIdPicker({
       >
 
         {showCatalogNotice ? (
-          <div className="mx-1 mb-1.5 flex items-start gap-2 rounded-control bg-muted/60 px-2.5 py-2 text-[11px] leading-4">
+          <div className="mx-1 mb-1.5 flex items-start gap-2 rounded-[1rem] bg-foreground/[0.04] px-3 py-2 text-[11px] leading-4 dark:bg-white/[0.06]">
             {catalogNeedsSignIn ? <ProviderPickerIcon
               provider={effectiveProvider}
               showBrandLogos={showProviderLogos}

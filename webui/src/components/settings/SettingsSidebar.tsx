@@ -94,7 +94,7 @@ export function SettingsSidebar(props: SettingsSidebarProps) {
   return (
     <aside
       className={cn(
-        "flex w-full shrink-0 select-none flex-col border-border/50 bg-transparent px-3 pb-2 lg:w-52 lg:border-r lg:px-3 lg:pb-4",
+        "flex w-full shrink-0 select-none flex-col bg-transparent px-3 pb-2 lg:w-52 lg:px-3 lg:pb-4",
         hostChromeInset ? "pt-10 lg:pt-10" : "pt-4 lg:pt-4",
       )}
     >
@@ -131,7 +131,7 @@ export function SettingsSidebar(props: SettingsSidebarProps) {
                 aria-current={active ? "page" : undefined}
                 onClick={() => onSelectSection(key)}
                 className={cn(
-                  "touch-target flex h-9 w-full items-center gap-2 rounded-full px-3 text-left text-ui",
+                  "touch-target flex h-10 w-full items-center gap-2 rounded-full px-3 text-left text-ui",
                   SIDEBAR_SELECTION_ITEM_CLASS,
                   active
                     ? "text-sidebar-accent-foreground"
@@ -162,7 +162,7 @@ export function SettingsSidebar(props: SettingsSidebarProps) {
               onClick={onRestart}
               disabled={isRestarting}
               aria-describedby={restartPending ? "settings-restart-status" : undefined}
-              className={cn("h-9 w-full justify-start gap-2 rounded-control px-2.5 text-ui settings-hover",
+              className={cn("h-9 w-full justify-start gap-2 rounded-full px-3 text-ui settings-hover",
                 restartPending && !isRestarting
                   ? "settings-restart-pending text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300"
                   : "text-sidebar-content hover:text-foreground")}
@@ -178,7 +178,7 @@ export function SettingsSidebar(props: SettingsSidebarProps) {
             type="button"
             variant="ghost"
             onClick={onLogout}
-            className="hidden h-9 w-full justify-start gap-2 rounded-control px-2.5 text-ui text-sidebar-content hover:bg-destructive/8 hover:text-destructive lg:flex"
+            className="hidden h-9 w-full justify-start gap-2 rounded-full px-3 text-ui text-sidebar-content hover:bg-destructive/8 hover:text-destructive lg:flex"
           >
             <LogOut className="h-4 w-4" aria-hidden />
             <span>{t("app.account.logout")}</span>
@@ -224,13 +224,13 @@ function MobileSettingsNavigation({
   ) : null;
 
   return (
-    <aside className={cn("shrink-0 border-b border-border/50 bg-transparent",
+    <aside className={cn("shrink-0 border-b border-[color:var(--app-hairline)] bg-transparent",
       hostChromeInset ? "pt-10" : "pt-[env(safe-area-inset-top)]")}
     >
       <div className="grid h-14 grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center px-3">
         <Button size="icon" type="button" variant="ghost" onClick={onBackToChat}
           aria-label={t("settings.backToChat")}
-          className="h-11 w-11 rounded-xl p-0 text-sidebar-content"
+          className="h-11 w-11 rounded-full p-0 text-sidebar-content"
         >
           <ChevronLeft className="h-5 w-5" aria-hidden />
         </Button>

@@ -70,13 +70,13 @@ export function SettingsSectionSkeleton({ section, showRestart = false }: { sect
     case "notifications":
       content = <section><Title /><SettingsGroup>
         <Row control="switch" />
-        <div className="settings-list-inset" aria-hidden="true"><div className="border-t border-border/40" /></div>
+        <div className="settings-list-inset" aria-hidden="true"><div className="settings-divider" /></div>
         <Row control="switch" />
       </SettingsGroup><p className="settings-list-inset mt-3 text-[12px] leading-5"><span className={cn(block, "text-transparent")}>{t("settings.notifications.pageRequired")}</span></p></section>;
       break;
     case "overview":
       content = <>
-        <section className="rounded-panel bg-settings-surface p-6">
+        <section className="settings-sheet p-6">
           <div className="flex h-5 items-center"><div className={cn(block, "h-3.5 w-24")} /></div>
           <div className="mt-2 flex h-9 items-center"><div className={cn(block, "h-7 w-20")} /></div>
           <div className="mt-5 flex h-7 items-center"><div className={cn(block, "h-3.5 w-3/5")} /></div>

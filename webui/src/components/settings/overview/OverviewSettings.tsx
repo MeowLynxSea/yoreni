@@ -71,7 +71,7 @@ export function OverviewSettings({
     : tx("settings.values.disabled", "Disabled");
   return (
     <div className="settings-stack">
-      <section className="rounded-panel bg-settings-surface p-6">
+      <section className="settings-sheet p-6">
         <TokenUsageCard usage={settings.usage} timeZone={settings.agent.timezone} />
       </section>
 
@@ -179,7 +179,7 @@ function OverviewRowIcon({
   icon: LucideIcon;
 }) {
   return (
-    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-control bg-muted text-foreground/82 transition-colors dark:bg-muted/70">
+    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/55 text-foreground/80 ring-1 ring-inset ring-white/50 transition-colors dark:bg-white/[0.07] dark:text-foreground/85 dark:ring-white/[0.06]">
       <Icon className="h-4 w-4" aria-hidden />
     </span>
   );
@@ -269,11 +269,11 @@ function OverviewListRow({
     <button
       type="button"
       onClick={onClick}
-      className="group flex min-h-[68px] w-full select-none items-center gap-3 px-4 py-3.5 text-left transition-colors settings-hover sm:px-5"
+      className="group flex min-h-[72px] w-full select-none items-center gap-3.5 px-6 py-4 text-left transition-colors settings-hover"
     >
       <OverviewRowIcon icon={Icon} />
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px] font-medium leading-5 text-foreground">{title}</span>
+        <span className="block text-[14.5px] font-medium leading-5 text-foreground/90">{title}</span>
         {caption ? <span className="sr-only">{caption}</span> : null}
       </span>
       <span className="ml-auto flex min-w-0 max-w-[48%] items-center gap-2">

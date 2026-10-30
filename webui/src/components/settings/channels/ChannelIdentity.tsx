@@ -24,7 +24,7 @@ import type { ChannelRuntimeStatus, YoreniFeatureInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const CHANNEL_SETUP_PANEL_CLASS_NAME =
-  "min-h-full rounded-panel bg-settings-surface p-6";
+  "min-h-full settings-sheet p-6";
 
 export function channelSetup(
   feature: YoreniFeatureInfo,
@@ -267,7 +267,7 @@ export function ChannelRuntimeError({
   const { t } = useTranslation();
   if (!message) return null;
   return (
-    <div className={`${className} rounded-control border border-destructive/20 bg-destructive/5 px-3 py-2 text-[12px] leading-5 text-destructive`}>
+    <div className={`${className} rounded-floating border border-destructive/20 bg-destructive/[0.07] px-4 py-2.5 text-[12px] leading-5 text-destructive`}>
       {channelValidationMessage(message, t)}
     </div>
   );

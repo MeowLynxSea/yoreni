@@ -209,7 +209,7 @@ export function SkillsMarketplace({
             aria-label={t("settings.skills.marketplaceSearchLabel", {
               defaultValue: "Search skills",
             })}
-            className="h-11 rounded-full bg-settings-surface pl-9"
+            className="h-11 rounded-full bg-white/45 pl-9 backdrop-blur-xl dark:bg-white/[0.06]"
           />
           {loading ? (
             <span
@@ -227,13 +227,13 @@ export function SkillsMarketplace({
       </div>
 
       {error ? (
-        <div className="rounded-control bg-destructive/10 px-3 py-2.5 text-[13px] text-destructive">
+        <div className="rounded-floating border border-destructive/20 bg-destructive/[0.07] px-4 py-3 text-[13px] text-destructive">
           {error}
         </div>
       ) : null}
 
       {query.trim().length < 2 ? (
-        <section className="overflow-hidden rounded-panel bg-settings-surface">
+        <section className="settings-sheet overflow-hidden">
           <div className="flex flex-col items-start gap-2 px-4 pb-2 pt-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <h2 className="text-[14px] font-semibold">
               {t("settings.skills.marketplaceTrendingTitle", {
@@ -272,14 +272,14 @@ export function SkillsMarketplace({
           )}
         </section>
       ) : !loading && visibleResults.length === 0 && !error ? (
-        <div className="rounded-panel bg-settings-surface px-5 py-12 text-center text-sm text-muted-foreground">
+        <div className="settings-sheet px-5 py-12 text-center text-sm text-muted-foreground">
           {t("settings.skills.marketplaceEmpty", {
             query: query.trim(),
             defaultValue: "No skills found for “{{query}}”.",
           })}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-panel bg-settings-surface">
+        <div className="settings-sheet overflow-hidden">
           {loading && !visibleResults.length ? (
             <MarketplaceSkeleton provider={provider} />
           ) : (
@@ -321,7 +321,7 @@ export function SkillsMarketplace({
                     "This third-party skill comes from {{provider}} ({{source}}) and may include instructions or executable scripts.",
                 })}
               </span>
-              <span className="flex flex-wrap items-center gap-2 rounded-control bg-muted px-2 py-1.5 text-[12px] text-foreground">
+              <span className="flex flex-wrap items-center gap-2 rounded-control bg-foreground/[0.05] px-2 py-1.5 text-[12px] text-foreground dark:bg-white/[0.07]">
                 {selected ? <ProviderMark provider={selected.provider} /> : null}
                 <code>{selected?.source}</code>
                 {selected?.version ? <span>v{selected.version}</span> : null}
@@ -364,7 +364,7 @@ function ProviderFilter({
       ariaLabel={t("settings.skills.marketplaceProviderFilter", {
         defaultValue: "Skill source",
       })}
-      className="w-fit bg-settings-surface"
+      className="w-fit bg-white/45 backdrop-blur-xl dark:bg-white/[0.06]"
       itemClassName="inline-flex h-7 items-center gap-1.5"
       options={providers.map((provider) => ({
         value: provider,
@@ -558,7 +558,7 @@ function MarketplaceSkillRow({
         disabled={installed || installBusy || !skill.install_supported}
         onClick={() => onSelect(skill)}
         className={cn(
-          "h-9 w-9 shrink-0 rounded-full bg-muted/70 text-muted-foreground transition-[opacity,color] hover:text-foreground focus-visible:bg-foreground focus-visible:text-background focus-visible:opacity-100 sm:opacity-[0.55] sm:group-hover:opacity-100",
+          "h-9 w-9 shrink-0 rounded-full bg-foreground/[0.06] text-muted-foreground dark:bg-white/[0.08] transition-[opacity,color] hover:text-foreground focus-visible:bg-foreground focus-visible:text-background focus-visible:opacity-100 sm:opacity-[0.55] sm:group-hover:opacity-100",
           installed &&
             "bg-emerald-500/10 text-emerald-700 disabled:opacity-100 dark:text-emerald-300",
         )}

@@ -147,20 +147,20 @@ export function ChannelInstancesPanelView({
             <article
               key={instance.id}
               className={cn(
-                "overflow-hidden rounded-floating transition-colors",
+                "settings-subcard overflow-hidden transition-colors",
                 expanded
-                  ? "bg-background"
-                  : "bg-background/70",
+                  ? "bg-white/55 dark:bg-white/[0.06]"
+                  : "",
               )}
             >
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-3">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
                 <div className="flex min-w-0 flex-[1_1_12rem] items-center gap-3">
                   <ChannelInstanceAvatar
                     feature={feature}
                     instance={instance}
                     showBrandLogos={showBrandLogos}
                   />
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">
+                  <span className="min-w-0 flex-1 truncate text-[14px] font-medium text-foreground/90">
                     {channelInstanceDisplayName(instance)}
                   </span>
                   <ChannelInstanceStatusBadge
@@ -226,7 +226,7 @@ export function ChannelInstancesPanelView({
                   {expanded && instanceFields.length > 0 ? (
                     <div className={cn(
                       "text-[12px] leading-5 text-muted-foreground",
-                      hasInstanceOverview && "border-t border-border/50 pt-3",
+                      hasInstanceOverview && "border-t border-[color:var(--app-hairline)] pt-3",
                     )}>
                       <form
                         onSubmit={(event) => {
@@ -252,7 +252,7 @@ export function ChannelInstancesPanelView({
                             type="submit"
                             size="sm"
                             variant="secondary"
-                            className="h-8 rounded-full bg-muted/70 px-3 text-[12px] font-semibold settings-hover"
+                            className="h-8 rounded-full bg-white/50 px-3 dark:bg-white/[0.07] text-[12px] font-semibold settings-hover"
                             disabled={savingFields || Boolean(pendingToggle)}
                           >
                             {savingFields ? (
@@ -274,7 +274,7 @@ export function ChannelInstancesPanelView({
       {customization.footer}
 
       {notice ? (
-        <div className="mt-3 rounded-control border border-destructive/20 px-3 py-2 text-[12px] leading-5 text-destructive">
+        <div className="mt-3 rounded-floating border border-destructive/20 bg-destructive/[0.07] px-4 py-2.5 text-[12px] leading-5 text-destructive">
           {notice}
         </div>
       ) : null}

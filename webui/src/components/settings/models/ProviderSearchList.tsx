@@ -75,7 +75,7 @@ export function ProviderSearchList({ providers, showBrandLogos, query, onQueryCh
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
         <SearchInput {...inputProps} ref={inputRef} value={query} onChange={(event) => onQueryChange(event.target.value)}
           aria-label={searchLabel} placeholder={searchLabel}
-          className="rounded-xl border-transparent bg-muted/60 pl-9" />
+          className="rounded-full border-white/55 bg-white/45 pl-9 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]" />
       </div>
     </div>
     <div {...listProps} aria-label={searchLabel}
@@ -89,7 +89,7 @@ export function ProviderSearchList({ providers, showBrandLogos, query, onQueryCh
             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-x-2 gap-y-0.5">
               {group.providers.map((provider) => <ComboboxOption key={provider.name} {...getOptionProps(provider.name)}
                 aria-label={provider.label}
-                className="min-h-11 min-w-0 gap-2 rounded-xl px-2 py-2 text-[13px] font-normal sm:gap-3 sm:px-3 sm:text-sm">
+                className="min-h-11 min-w-0 gap-2 rounded-control px-2 py-2 text-[13px] font-normal sm:gap-3 sm:px-3 sm:text-sm">
                 <ProviderIcon provider={provider.name} showBrandLogos={showBrandLogos} compact />
                 <TruncatedTextTooltip text={provider.label} className="flex-1" />
               </ComboboxOption>)}
@@ -101,9 +101,9 @@ export function ProviderSearchList({ providers, showBrandLogos, query, onQueryCh
         {t("settings.providers.noMatches", { defaultValue: "No matching providers." })}
       </p> : null}
     </div>
-    <div className="shrink-0 overflow-y-auto border-t border-border/50 px-5 py-3 scrollbar-thin scrollbar-track-transparent">
+    <div className="shrink-0 overflow-y-auto border-t border-[color:var(--app-hairline)] px-5 py-3 scrollbar-thin scrollbar-track-transparent">
       <button type="button" onClick={onCustom}
-        className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm settings-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        className="flex min-h-11 w-full items-center gap-3 rounded-control px-3 text-left text-sm settings-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <Plus className="h-6 w-6 shrink-0 p-0.5 text-muted-foreground" aria-hidden />
         <span className="flex-1">{t("settings.providers.customProvider", { defaultValue: "Custom provider" })}</span>
       </button>

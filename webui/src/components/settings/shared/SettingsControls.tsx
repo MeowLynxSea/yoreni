@@ -18,7 +18,7 @@ import type { YoreniFeatureInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const SETTINGS_SEARCH_INPUT_CLASS =
-  "border-border/45 bg-settings-surface transition-colors hover:border-border/70";
+  "border-white/55 bg-white/45 backdrop-blur-xl transition-colors hover:bg-white/55 dark:border-white/10 dark:bg-white/[0.06] dark:hover:bg-white/[0.09]";
 
 export function CapabilityInstallNotice({
   title,
@@ -30,7 +30,7 @@ export function CapabilityInstallNotice({
   installing?: boolean;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-control border border-border/55 bg-muted/22 px-3.5 py-3">
+    <div className="flex items-start gap-3 rounded-floating border border-[color:var(--settings-glass-border)] bg-foreground/[0.03] px-4 py-3.5">
       {installing ? (
         <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-muted-foreground" aria-hidden />
       ) : (
@@ -91,7 +91,7 @@ export function YoreniFeatureInstallDialog({
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={installing}
-            className="h-11 w-full min-w-0 bg-muted/70 px-5 text-[15px] font-semibold text-foreground shadow-none settings-hover"
+            className="h-11 w-full min-w-0 bg-foreground/[0.06] px-5 text-[15px] font-semibold text-foreground shadow-none settings-hover dark:bg-white/[0.08]"
           >
             {tx("settings.automations.cancel", "Cancel")}
           </Button>
@@ -128,10 +128,10 @@ export function DismissibleStatusMessage({
       role={isError ? "alert" : "status"}
       aria-atomic="true"
       className={cn(
-        "flex items-center justify-between gap-3 rounded-control border py-2.5 pl-4 pr-2 text-[13px]",
+        "flex items-center justify-between gap-3 rounded-full border py-2 pl-4 pr-2 text-[13px]",
         isError
-          ? "border-destructive/20 bg-destructive/5 text-destructive"
-          : "border-border/55 bg-muted/35 text-muted-foreground",
+          ? "border-destructive/20 bg-destructive/[0.07] text-destructive"
+          : "border-[color:var(--settings-glass-border)] bg-[color:var(--settings-subcard)] text-muted-foreground",
       )}
     >
       <span className="min-w-0">{message}</span>
@@ -189,7 +189,7 @@ export function RestartRequiredNotice({
 
 export function SettingsSectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="settings-section-title select-none text-ui-heading tracking-[-0.01em] text-foreground/85">
+    <h2 className="settings-section-title select-none">
       {children}
     </h2>
   );
@@ -197,7 +197,7 @@ export function SettingsSectionTitle({ children }: { children: ReactNode }) {
 
 export function SettingsGroup({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-panel border border-white/50 bg-settings-surface/85 shadow-[0_1px_0_rgba(255,255,255,0.4)_inset] backdrop-blur-md dark:border-white/[0.06] dark:shadow-none">
+    <div className="settings-sheet overflow-hidden">
       {children}
     </div>
   );
@@ -213,9 +213,9 @@ export function SettingsRow({
   children?: ReactNode;
 }) {
   return (
-    <div className="settings-row rounded-xl transition-colors settings-hover focus-within:bg-sidebar-accent/60">
+    <div className="settings-row transition-colors settings-hover focus-within:bg-sidebar-accent/60">
       <div className="min-w-0">
-        <div className="select-none text-control-label text-foreground">
+        <div className="select-none text-[14px] font-medium leading-[1.4] text-foreground/90">
           {description ? <SettingsHint description={description}>{title}</SettingsHint> : title}
         </div>
       </div>
@@ -388,10 +388,10 @@ export function StatusPill({
   return (
     <span
       className={cn(
-        "inline-flex max-w-[260px] select-none items-center rounded-full px-2.5 py-1 text-[12px] font-medium",
-        tone === "success" && "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-        tone === "warning" && "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-        tone === "neutral" && "bg-muted text-muted-foreground",
+        "inline-flex max-w-[260px] select-none items-center rounded-full px-2.5 py-1 text-[11.5px] font-medium",
+        tone === "success" && "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+        tone === "warning" && "bg-amber-500/14 text-amber-700 dark:text-amber-300",
+        tone === "neutral" && "bg-foreground/[0.06] text-muted-foreground dark:bg-white/[0.08]",
       )}
     >
       <span className="truncate">{children}</span>

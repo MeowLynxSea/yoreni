@@ -22,7 +22,7 @@ export function WidgetsSettings({ localPrefs, onChangeLocalPrefs }: {
               <Fragment key={widget.id}>
                 {index ? (
                   <div className="settings-list-inset" aria-hidden="true">
-                    <div className="border-t border-border/40" />
+                    <div className="settings-divider" />
                   </div>
                 ) : null}
                 <SettingsRow

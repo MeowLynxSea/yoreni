@@ -55,7 +55,7 @@ export function LinearMemberAccessView({ snapshot, disabled = false, onLoad, onS
   }
 
   return (
-    <section className="w-full border-t border-border/50 bg-settings-surface">
+    <section className="w-full border-t border-[color:var(--app-hairline)]">
       <button type="button" aria-expanded={expanded} aria-controls={panelId}
         disabled={disabled} onMouseEnter={prefetch} onFocus={prefetch}
         className="settings-list-inset flex min-h-12 w-full items-center justify-between gap-3 py-2 text-start text-[12px] font-medium settings-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50"
@@ -74,7 +74,7 @@ export function LinearMemberAccessView({ snapshot, disabled = false, onLoad, onS
         {payload && loading ? tx("members.refreshing", "Checking for updates…") : null}
       </span>
       <DisclosureContent id={panelId} open={expanded} className="space-y-3 pb-2">
-        {payload?.legacy_allow_all ? <p className="settings-list-inset rounded-control bg-muted py-2 text-[12px] leading-5">
+        {payload?.legacy_allow_all ? <p className="settings-list-inset rounded-control bg-foreground/[0.045] py-2 text-[12px] leading-5 dark:bg-white/[0.06]">
           {tx("members.allowAll", "Advanced settings currently allow all members (*), including new members. Individual off switches still take precedence. Remove * to require approval for new members.")}
         </p> : null}
         <div className="settings-list-inset flex items-center gap-2">

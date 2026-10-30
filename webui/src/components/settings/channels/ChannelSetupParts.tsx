@@ -29,7 +29,7 @@ export function ChannelSetupActions({
           type="button"
           size="sm"
           variant="secondary"
-          className="h-8 rounded-full bg-background/80 px-3 text-[12px] font-semibold settings-hover"
+          className="h-8 rounded-full bg-white/50 px-3 dark:bg-white/[0.07] text-[12px] font-semibold settings-hover"
           onClick={() => {
             if (action.copyText) {
               void copyTextToClipboard(action.copyText).then((ok) =>

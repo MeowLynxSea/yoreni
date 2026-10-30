@@ -36,7 +36,7 @@ export function TokenUsageDetails({ days, models, modelDays }: {
           <dl className="grid grid-cols-3 gap-3">
             {metrics.map(([label, value], index) => <div key={label} title={index === 2 ? t("settings.usage.cacheRateHelp") : undefined}>
               <dt className="text-xs text-muted-foreground">{label}</dt>
-              <dd className="mt-1 text-lg font-medium tabular-nums sm:text-2xl">{value}</dd>
+              <dd className="mt-1 display-serif text-lg leading-tight tabular-nums sm:text-2xl">{value}</dd>
             </div>)}
           </dl>
           {modelDays?.length ? <TokenUsageModelTrend days={days} modelDays={modelDays} models={models} /> : <p className="text-sm text-muted-foreground">{t("settings.usage.modelsUnavailable")}</p>}

@@ -370,7 +370,7 @@ export function AutomationCalendar({ jobs, loadingLabel, month, locale, copy, on
     </>;
 
   return (
-    <section ref={calendarRef} tabIndex={-1} className="automation-calendar overflow-hidden bg-[hsl(var(--settings-surface))]">
+    <section ref={calendarRef} tabIndex={-1} className="automation-calendar overflow-hidden">
       {loadingLabel ? <SkeletonStatus label={loadingLabel} className="">{content}</SkeletonStatus> : content}
       {selectedRun ? renderRunDialog({
         job: selectedRun.job, run: selectedRun.run, locale, open: runOpen,

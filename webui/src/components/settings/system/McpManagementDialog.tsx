@@ -161,7 +161,7 @@ export function McpManagementDialog({
           "flex h-[min(34rem,calc(100dvh-2rem))] w-[calc(100vw-2rem)] max-w-[42rem] flex-col gap-0 overflow-hidden p-0",
         )}
       >
-        <div className="flex shrink-0 items-center gap-3 border-b border-border/45 px-5 py-3.5 sm:px-6">
+        <div className="flex shrink-0 items-center gap-3 border-b border-[color:var(--app-hairline)] px-5 py-3.5 sm:px-6">
           <div className="shrink-0">{icon}</div>
           <div className="min-w-0 flex-1">
             <DialogTitle className="truncate text-[17px] leading-6 tracking-[-0.01em]">
@@ -186,7 +186,7 @@ export function McpManagementDialog({
           </div>
         </div>
 
-        <div className="shrink-0 border-b border-border/45 px-5 py-3 sm:px-6">
+        <div className="shrink-0 border-b border-[color:var(--app-hairline)] px-5 py-3 sm:px-6">
           <SegmentedControl
             value={tab}
             options={tabs}
@@ -249,7 +249,7 @@ export function McpManagementDialog({
         </div>
 
         {tab === "connection" && preset.installed && proxyDirty ? (
-          <div className="flex shrink-0 items-center justify-end border-t border-border/45 bg-background/95 px-5 py-3 sm:px-6">
+          <div className="flex shrink-0 items-center justify-end border-t border-[color:var(--app-hairline)] bg-background/95 px-5 py-3 sm:px-6">
             <Button
               type="button"
               disabled={busy}
@@ -266,7 +266,7 @@ export function McpManagementDialog({
         ) : null}
 
         {tab === "tools" && toolsDirty ? (
-          <div className="flex shrink-0 items-center justify-end border-t border-border/45 bg-background/95 px-5 py-3 sm:px-6">
+          <div className="flex shrink-0 items-center justify-end border-t border-[color:var(--app-hairline)] bg-background/95 px-5 py-3 sm:px-6">
             <Button
               type="button"
               disabled={toolsBusy || !toolNames.length}
@@ -305,7 +305,7 @@ function OverviewPanel({
   const previewTools = (preset.tool_names ?? []).slice(0, 4);
   return (
     <div className="space-y-4">
-      <section className="rounded-floating border border-border/55 px-4 py-3.5">
+      <section className="settings-subcard px-4 py-3.5">
         <h3 className="text-[13px] font-semibold text-foreground">
           {tx("settings.mcp.about", "About this MCP")}
         </h3>
@@ -337,18 +337,18 @@ function OverviewPanel({
       </dl>
 
       {previewTools.length ? (
-        <section className="rounded-floating bg-muted/45 p-4">
+        <section className="settings-subcard p-4">
           <h3 className="text-[13px] font-semibold text-foreground">
             {tx("settings.mcp.toolPreview", "Tools")}
           </h3>
           <div className="mt-3 flex flex-wrap gap-1.5">
             {previewTools.map((tool) => (
-              <code key={tool} className="max-w-full truncate rounded-full bg-background px-2.5 py-1 text-[12.5px] text-foreground/75">
+              <code key={tool} className="max-w-full truncate rounded-full bg-white/60 px-2.5 py-1 text-[12.5px] text-foreground/75 dark:bg-white/[0.08]">
                 {displayToolName(tool, preset.name)}
               </code>
             ))}
             {knownToolCount > previewTools.length ? (
-              <span className="rounded-full bg-background px-2.5 py-1 text-[12.5px] text-muted-foreground">
+              <span className="rounded-full bg-white/60 px-2.5 py-1 text-[12.5px] text-muted-foreground dark:bg-white/[0.08]">
                 +{knownToolCount - previewTools.length}
               </span>
             ) : null}
@@ -412,9 +412,9 @@ function ToolsPanel({
             ))}
           </div>
         </div>
-        <div className="overflow-hidden rounded-floating border border-border/55">
+        <div className="settings-subcard overflow-hidden">
           {Array.from({ length: 6 }, (_, index) => (
-            <div key={index} className="flex min-h-11 items-center gap-3 border-b border-border/45 px-3.5 py-2.5 last:border-b-0">
+            <div key={index} className="flex min-h-11 items-center gap-3 border-b border-[color:var(--app-hairline)] px-3.5 py-2.5 last:border-b-0">
               <div className="h-5 w-5 shrink-0 rounded-compact bg-muted-foreground/20" />
               <div className={cn("h-3.5 max-w-[70%] rounded bg-muted-foreground/20", index % 2 ? "w-40" : "w-52")} />
             </div>
@@ -428,8 +428,8 @@ function ToolsPanel({
     return (
       <div
         className={cn(
-          "flex flex-col gap-3 rounded-floating border px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between",
-          preset.error ? "border-destructive/25 bg-destructive/5" : "border-border/55 bg-muted/25",
+          "flex flex-col gap-3 rounded-floating border border-[color:var(--settings-glass-border)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between",
+          preset.error ? "border-destructive/25 bg-destructive/[0.07]" : "settings-subcard",
         )}
       >
         <div className="flex min-w-0 items-center gap-3">
@@ -473,7 +473,7 @@ function ToolsPanel({
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder={tx("settings.mcp.searchToolsPlaceholder", "Search tools")}
-            className="h-10 rounded-full bg-muted/45 pl-9 text-[12.5px]"
+            className="h-10 rounded-full bg-white/45 pl-9 text-[12.5px] backdrop-blur-xl dark:bg-white/[0.06]"
           />
         </label>
         <div className="flex items-center justify-between gap-2 sm:justify-end">
@@ -489,13 +489,13 @@ function ToolsPanel({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-floating border border-border/55">
+      <div className="settings-subcard overflow-hidden">
         {filteredTools.length ? filteredTools.map((toolName) => {
           const selected = selectedTools.has(toolName);
           return (
             <label
               key={toolName}
-              className="flex min-h-11 cursor-pointer items-center gap-3 border-b border-border/45 px-3.5 py-2.5 transition-colors last:border-b-0 settings-hover has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-inset has-[:focus-visible]:ring-ring"
+              className="flex min-h-11 cursor-pointer items-center gap-3 border-b border-[color:var(--app-hairline)] px-3.5 py-2.5 transition-colors last:border-b-0 settings-hover has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-inset has-[:focus-visible]:ring-ring"
             >
               <span className="relative h-5 w-5 shrink-0">
                 <input
@@ -511,7 +511,7 @@ function ToolsPanel({
                     "pointer-events-none absolute inset-0 grid place-items-center rounded-compact border transition-colors",
                     selected
                       ? "border-foreground bg-foreground text-background"
-                      : "border-border bg-background text-transparent",
+                      : "border-[color:var(--settings-glass-border)] bg-white/50 text-transparent dark:bg-white/[0.06]",
                   )}
                 >
                   <Check className="h-3 w-3" strokeWidth={2.75} />
@@ -576,7 +576,7 @@ function ConnectionPanel({
         <h3 id={`mcp-connection-${preset.name}`} className="sr-only">
           {tx("settings.mcp.connectionDetails", "Connection details")}
         </h3>
-        <div className="rounded-floating bg-muted/40 px-4 py-3.5">
+        <div className="settings-subcard px-4 py-3.5">
           {preset.connection_summary ? (
             <div className="min-w-0">
               <p className="text-[12.5px] font-medium text-muted-foreground">{connectionLabel}</p>
@@ -587,7 +587,7 @@ function ConnectionPanel({
           ) : null}
           <div className={cn(
             "flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-muted-foreground",
-            preset.connection_summary && "mt-3 border-t border-border/45 pt-3",
+            preset.connection_summary && "mt-3 border-t border-[color:var(--app-hairline)] pt-3",
           )}>
             <span>{formatTransport(preset.transport)}</span>
             <span>{authentication}</span>
@@ -633,7 +633,7 @@ function ConnectionPanel({
 
       {preset.transport !== "stdio" ? (
         <ProxySettingsControl
-          className="rounded-control bg-muted/40 px-4 py-3.5"
+          className="settings-subcard px-4 py-3.5"
           checked={values.use_proxy === "true"}
           disabled={busy}
           onChange={(checked) => onFieldChange(preset.name, "use_proxy", String(checked))}
@@ -665,7 +665,7 @@ function ConnectionPanel({
                     value={values[field.name] ?? ""}
                     onChange={(event) => onFieldChange(preset.name, field.name, event.target.value)}
                     placeholder={field.configured ? tx("settings.mcp.keepExisting", "Leave blank to keep the current value") : field.placeholder}
-                    className="h-10 rounded-full bg-muted/35 text-[12.5px]"
+                    className="h-10 rounded-full bg-white/45 text-[12.5px] backdrop-blur-xl dark:bg-white/[0.06]"
                   />
                 </label>
               );
@@ -717,7 +717,7 @@ function ConnectionPanel({
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-control bg-muted/45 px-3.5 py-3">
+    <div className="settings-subcard min-w-0 px-4 py-3">
       <dt className="text-[12px] font-medium text-muted-foreground">{label}</dt>
       <dd className="mt-1 truncate text-[14px] font-semibold text-foreground">{value}</dd>
     </div>
@@ -731,7 +731,7 @@ function StatusPill({ children, tone }: { children: ReactNode; tone: "success" |
         "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
         tone === "success" && "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
         tone === "warning" && "bg-destructive/10 text-destructive",
-        tone === "neutral" && "bg-muted text-muted-foreground",
+        tone === "neutral" && "bg-foreground/[0.06] text-muted-foreground dark:bg-white/[0.08]",
       )}
     >
       <span className={cn("h-1.5 w-1.5 rounded-full bg-current", tone === "neutral" && "opacity-55")} aria-hidden />

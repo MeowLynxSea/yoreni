@@ -41,7 +41,7 @@ export function ProviderParameterFields({ fields, form, onChange, onSave, inheri
   if (!visible.length) return null;
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-floating border border-border/60 md:col-span-2">
+    <div className="settings-subcard min-w-0 overflow-hidden md:col-span-2">
       {visible.map((item) => {
         const title = t(item.titleKey);
         return (
@@ -71,7 +71,7 @@ export function ProviderParameterFields({ fields, form, onChange, onSave, inheri
               }
             }}
             trigger={
-              <button type="button" className="settings-hover flex min-h-12 w-full items-center gap-3 border-b border-border/60 px-3 py-3 text-left text-[13px] leading-5 last:border-b-0">
+              <button type="button" className="settings-hover flex min-h-12 w-full items-center gap-3 border-b border-[color:var(--app-hairline)] px-4 py-3.5 text-left text-[13px] leading-5 last:border-b-0">
                 <span className="min-w-0 flex-1 font-medium">{title}</span>
                 <span className="min-w-0 text-right text-muted-foreground">{parameterSummary(form[item.formKey], inherit, t)}</span>
                 <span className="shrink-0 text-muted-foreground">{t("settings.actions.edit")}</span>

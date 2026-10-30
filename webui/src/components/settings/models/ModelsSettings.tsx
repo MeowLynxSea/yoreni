@@ -709,7 +709,7 @@ export function ModelsSettings({
           <SettingsGroup>
             <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div className="flex min-w-0 items-start gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-control bg-muted text-muted-foreground">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/55 text-muted-foreground ring-1 ring-inset ring-white/45 dark:bg-white/[0.07] dark:ring-white/[0.05]">
                   <ListOrdered className="h-4 w-4" aria-hidden />
                 </span>
                 <div className="min-w-0">
@@ -764,7 +764,7 @@ export function ModelsSettings({
                 <div key={key} role="listitem" data-call-order-index={orderIndex} data-preset-sort-key={key}
                   style={{ order: (ordered ? orderIndex : rowIndex) * 2 }} className={cn(!primary && "mb-2")}>
                   <div data-preset-sort-surface={key}
-                    className={cn("relative origin-top-left rounded-panel", isDragging && "z-10 shadow-md ring-1 ring-border/50")}>
+                    className={cn("relative origin-top-left rounded-panel", isDragging && "z-10 shadow-[0_18px_50px_-24px_rgba(20,28,42,0.35)] ring-1 ring-white/60 dark:ring-white/15")}>
                     <SettingsGroup>
                       <div
                         tabIndex={ordered ? 0 : -1}
@@ -794,7 +794,7 @@ export function ModelsSettings({
                           primary ? "py-5 [--preset-title-size:1.375rem] sm:py-6 sm:[--preset-title-size:1.625rem]" : "py-4",
                           ordered && (callOrderBusy ? "cursor-wait" : "cursor-grab active:cursor-grabbing"),
                           !isDragging && "settings-hover",
-                          isSelected && "bg-muted/45",
+                          isSelected && "bg-white/40 dark:bg-white/[0.06]",
                           !hideEditorReturnFocus && "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                         )}
                       >
@@ -821,8 +821,9 @@ export function ModelsSettings({
                             )}
                             <span className="min-w-0 flex-1">
                               <span className="flex min-w-0 items-center gap-x-2">
-                                <TruncatedTextTooltip text={name} className={cn("font-medium text-foreground",
-                                  primary ? "text-[length:var(--preset-title-size)] leading-snug tracking-tight" : "text-[14px]")} />
+                                <TruncatedTextTooltip text={name} className={cn(
+                                  primary ? "display-serif text-[length:var(--preset-title-size)] font-normal leading-snug tracking-[-0.02em] text-foreground/95"
+                                    : "text-[14.5px] font-medium text-foreground/90")} />
                                 {primary ? (
                                   <span className="shrink-0 whitespace-nowrap"><StatusPill tone="success">{t("settings.models.primary")}</StatusPill></span>
                                 ) : !ordered ? (

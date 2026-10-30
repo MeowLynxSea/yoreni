@@ -44,7 +44,7 @@ export function LinearResetConnectionView({ disabled, onReset }: {
     setOpen(value);
     setError(null);
   }}>
-    <div className="mt-4 border-t border-border/60 pt-3">
+    <div className="mt-4 border-t border-[color:var(--app-hairline)] pt-3">
         <Button ref={triggerRef} type="button" variant="ghost" size="sm" disabled={disabled || busy}
           onClick={() => { setError(null); setOpen(true); }}
           className="h-8 rounded-full text-[12px] text-muted-foreground hover:text-destructive">
@@ -62,7 +62,7 @@ export function LinearResetConnectionView({ disabled, onReset }: {
         <AlertDialogDescription asChild>
           <div className="space-y-4 text-sm leading-6">
             <p>{tx("custom.resetDescription", "Disconnect all workspaces linked through this app and stop the channel.")}</p>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 rounded-xl bg-muted/40 p-4 text-[13px] leading-5">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 rounded-floating bg-foreground/[0.045] p-4 text-[13px] leading-5 dark:bg-white/[0.06]">
               <dt className="font-medium text-foreground">{tx("custom.resetClears", "Clears")}</dt>
               <dd>{tx("custom.resetClearsDetail", "Member access settings and this instance’s app configuration, including saved credentials.")}</dd>
               <dt className="font-medium text-foreground">{tx("custom.resetKeeps", "Keeps")}</dt>

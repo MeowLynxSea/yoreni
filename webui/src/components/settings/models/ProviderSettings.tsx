@@ -225,7 +225,7 @@ export function ProviderOAuthLoginDialog({
                   : t("settings.oauth.localCodeHelp")}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center gap-2 rounded-control border border-border/45 bg-muted/35 px-3 py-2.5 text-[12px] text-muted-foreground">
+          <div className="flex items-center gap-2 settings-subcard px-4 py-3 text-[12px] text-muted-foreground">
             {expectsCallbackUrl && remoteBrowserAccess ? (
               <Clipboard className="h-3.5 w-3.5 shrink-0" aria-hidden />
             ) : (
@@ -295,7 +295,7 @@ export function ProviderOAuthLoginDialog({
           {error ? (
             <p
               role="alert"
-              className="rounded-control border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-[12px] text-destructive"
+              className="rounded-floating border border-destructive/20 bg-destructive/[0.07] px-4 py-3 text-[12px] text-destructive"
             >
               {error}
             </p>
@@ -339,7 +339,7 @@ function ProviderRequestOptions({
   const tx = (key: string, fallback: string) => t(key, { defaultValue: fallback });
 
   return (
-    <div className="overflow-hidden rounded-floating border border-border/45 bg-background/75">
+    <div className="settings-subcard overflow-hidden">
       {options.map((option) => {
         const title = tx(option.titleKey, option.title);
         const Icon = option.kind === "priority" ? Zap : Globe2;
@@ -347,10 +347,10 @@ function ProviderRequestOptions({
         return (
           <div
             key={option.titleKey}
-            className="flex items-center justify-between gap-4 rounded-control px-4 py-3 transition-colors settings-hover focus-within:bg-sidebar-accent/60"
+            className="flex items-center justify-between gap-4 rounded-[1.25rem] px-4 py-3.5 transition-colors settings-hover focus-within:bg-sidebar-accent/60"
           >
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted/70 text-muted-foreground">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/55 text-muted-foreground ring-1 ring-inset ring-white/45 dark:bg-white/[0.07] dark:ring-white/[0.05]">
                 <Icon className="h-4 w-4" aria-hidden />
               </span>
               <div className="min-w-0">
@@ -714,7 +714,7 @@ export function ProvidersSettings({
             ) : null}
             {isOauthProvider ? (
               <>
-                <div className="flex flex-col gap-3 rounded-floating border border-border/45 bg-background/75 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="settings-subcard flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     {!oauthAuthenticated ? (
                       <p className="text-[13px] font-semibold text-foreground">
@@ -862,7 +862,7 @@ export function ProvidersSettings({
                       </>
                     ) : (
                       <>
-                        <div className="flex h-9 items-center rounded-full border border-input bg-background px-3 pr-11 text-[13px] text-muted-foreground">
+                        <div className="flex h-9 items-center rounded-full border border-[color:var(--settings-glass-border)] bg-white/45 px-3 pr-11 text-[13px] text-muted-foreground dark:bg-white/[0.06]">
                           {provider.api_key_hint ?? t("settings.byok.configuredKeyHint")}
                         </div>
                         <Button
@@ -1103,7 +1103,7 @@ export function ProvidersSettings({
               <button key={provider.name} type="button" aria-label={provider.label}
                 data-provider-return-focus={lastProvider.current === provider.name ? "" : undefined}
                 onClick={() => editProvider(provider.name, false)}
-                className="flex min-h-14 w-full rounded-xl px-3 items-center justify-between gap-4 py-2.5 text-left transition-colors settings-hover">
+                className="flex min-h-14 w-full rounded-[1.25rem] px-3 items-center justify-between gap-4 py-2.5 text-left transition-colors settings-hover">
                 <span className="flex min-w-0 items-center gap-3">
                   <ProviderIcon provider={provider.name} showBrandLogos={showBrandLogos} />
                   <span className="truncate text-[14px] font-medium leading-5 text-foreground">{provider.label}</span>

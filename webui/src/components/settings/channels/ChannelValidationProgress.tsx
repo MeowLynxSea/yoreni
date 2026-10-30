@@ -33,7 +33,7 @@ export function channelValidationStatusClass(status: string): string {
   if (status === "invalid") {
     return "bg-destructive/10 text-destructive";
   }
-  return "bg-muted text-muted-foreground";
+  return "bg-foreground/[0.06] text-muted-foreground dark:bg-white/[0.08]";
 }
 
 export function channelValidationStatusIcon(status: string): ReactNode {
@@ -115,7 +115,7 @@ export function ChannelValidationProgress({
       role="status"
       aria-live="polite"
       aria-atomic="true"
-      className="rounded-control border border-border/60 bg-muted/25 px-3 py-3"
+      className="rounded-floating border border-[color:var(--settings-glass-border)] bg-[color:var(--settings-subcard)] px-4 py-3.5"
     >
       <div className="space-y-2.5">
         {validating ? (

@@ -106,7 +106,7 @@ export function SkillsCatalogSettings({ skills, loading = false, error = false }
       />
 
       {view === "installed" ? (
-        <section className="overflow-hidden rounded-panel bg-settings-surface">
+        <section className="settings-sheet overflow-hidden">
           <div className="flex flex-col gap-3 px-4 pb-2 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-[320px]">
               <Search
@@ -239,7 +239,7 @@ function SkillCatalogRow({
         "group flex w-full min-w-0 items-center gap-3 rounded-control px-2 py-3 text-left",
         "transition-colors duration-150",
         "settings-hover",
-        "focus-visible:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "focus-visible:bg-foreground/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:focus-visible:bg-white/[0.09]",
         !enabled && "opacity-60",
       )}
     >
@@ -452,25 +452,25 @@ function SkillDetailSheet({
             {loading && !detail ? (
               <div className="mt-6">
                 <SkeletonStatus label={t("settings.skills.loadingDetail", { defaultValue: "Loading skill details..." })} className="space-y-5">
-                  <div data-skill-toggle-skeleton className="flex min-h-16 items-center justify-between gap-3 border-y border-border/45 px-1 py-3.5">
+                  <div data-skill-toggle-skeleton className="flex min-h-16 items-center justify-between gap-3 border-y border-[color:var(--app-hairline)] px-1 py-3.5">
                     <div className="h-3 w-28 rounded bg-muted-foreground/20" /><div className="h-5 w-[38px] rounded-full bg-muted-foreground/20" />
                   </div>
-                  {!skill.available && enabled ? <div className="rounded-floating border border-border/45 p-4">
+                  {!skill.available && enabled ? <div className="settings-subcard p-4">
                     <div className="h-4 w-28 rounded bg-muted-foreground/20" /><div className="mt-3 h-3 w-4/5 rounded bg-muted-foreground/15" />
                     <div className="mt-3 h-9 w-24 rounded-full bg-muted-foreground/15" />
                   </div> : null}
-                  <div data-skill-instructions-skeleton className="flex min-h-[70px] items-center justify-between rounded-floating border border-border/45 bg-muted/20 px-3 py-3">
+                  <div data-skill-instructions-skeleton className="flex min-h-[70px] items-center justify-between settings-subcard px-3 py-3">
                     <div className="h-3 w-32 rounded bg-muted-foreground/20" /><div className="h-2.5 w-12 rounded bg-muted-foreground/15" />
                   </div>
                 </SkeletonStatus>
               </div>
             ) : loadFailed && !detail ? (
-              <div className="mt-8 rounded-floating bg-destructive/10 px-3 py-3 text-sm text-destructive">
+              <div className="mt-8 rounded-floating border border-destructive/20 bg-destructive/[0.07] px-4 py-3.5 text-sm text-destructive">
                 {t("settings.skills.loadFailed", { defaultValue: "Could not load skill details." })}
               </div>
             ) : (
               <div className="mt-6 space-y-5">
-                <div className="flex min-h-16 items-center justify-between gap-3 border-y border-border/45 px-1 py-3.5">
+                <div className="flex min-h-16 items-center justify-between gap-3 border-y border-[color:var(--app-hairline)] px-1 py-3.5">
                   <p className="text-[13px] font-medium text-foreground">
                     {t("settings.skills.enabledControl", { defaultValue: "Use this skill" })}
                   </p>
@@ -493,7 +493,7 @@ function SkillDetailSheet({
                 </div>
 
                 {actionError || loadFailed ? (
-                  <div role="alert" className="rounded-control bg-destructive/10 px-3 py-2.5 text-[13px] text-destructive">
+                  <div role="alert" className="rounded-floating border border-destructive/20 bg-destructive/[0.07] px-4 py-3 text-[13px] text-destructive">
                     {actionError || t("settings.skills.loadFailed", { defaultValue: "Could not load skill details." })}
                   </div>
                 ) : null}
@@ -508,7 +508,7 @@ function SkillDetailSheet({
                 {detail ? <RawInstructionsBlock markdown={detail.raw_markdown} /> : null}
 
                 {deletable ? (
-                  <div className="flex flex-col items-stretch gap-3 border-t border-border/45 pt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                  <div className="flex flex-col items-stretch gap-3 border-t border-[color:var(--app-hairline)] pt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                     <div>
                       <p className="text-[13px] font-medium text-foreground">
                         {t("settings.skills.deleteTitle", { defaultValue: "Delete skill" })}
@@ -584,7 +584,7 @@ function RawInstructionsBlock({ markdown }: { markdown: string }) {
 
   return (
     <Disclosure
-      className="rounded-floating border border-border/45 bg-muted/20 px-3 py-3"
+      className="settings-subcard px-3 py-3"
       summaryClassName="flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-sm text-[13px] font-medium text-foreground/90 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       summary={<>
         <span>
@@ -595,7 +595,7 @@ function RawInstructionsBlock({ markdown }: { markdown: string }) {
         </code>
       </>}
     >
-      <div className="mt-3 overflow-hidden rounded-control border border-border/35 bg-background/70">
+      <div className="mt-3 overflow-hidden rounded-floating border border-[color:var(--settings-glass-border)] bg-[color:var(--settings-subcard)]">
         <pre
           className={cn(
             "max-h-[min(42vh,32rem)] overflow-auto overscroll-contain px-3.5 py-3 pr-4",
@@ -637,7 +637,7 @@ function RequirementsSection({
   };
 
   return (
-    <section className="rounded-floating border border-amber-500/20 bg-amber-500/[0.06] p-4">
+    <section className="rounded-floating border border-amber-500/25 bg-amber-500/[0.08] p-4">
       <div className="flex items-start gap-2.5">
         <CircleAlert
           className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300"
@@ -660,7 +660,7 @@ function RequirementsSection({
         {installOptions.map((option) => (
           <div
             key={`${option.id}:${option.command}`}
-            className="flex min-w-0 items-center gap-2 rounded-control bg-background/80 px-3 py-2"
+            className="flex min-w-0 items-center gap-2 rounded-full bg-white/50 px-3 py-2 dark:bg-white/[0.07]"
           >
             <Terminal className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
             <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono text-[11px] text-foreground/80">
@@ -705,7 +705,7 @@ function RequirementsSection({
         variant="outline"
         size="sm"
         onClick={onRefresh}
-        className="mt-3 h-9 rounded-full bg-background/60 px-3 text-[11px]"
+        className="mt-3 h-9 rounded-full bg-white/50 px-3 dark:bg-white/[0.07] text-[11px]"
       >
         <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden />
         {t("settings.skills.checkAgain", { defaultValue: "Check again" })}
@@ -732,7 +732,7 @@ function SetupRequirement({
       {items.map((item) => (
         <code
           key={item}
-          className="rounded-full bg-background/80 px-2 py-0.5 font-mono text-[10px] text-foreground/70"
+          className="rounded-full bg-white/60 px-2 py-0.5 dark:bg-white/[0.08] font-mono text-[10px] text-foreground/70"
         >
           {item}
         </code>
@@ -756,7 +756,7 @@ function Pill({
           ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
           : tone === "warning"
             ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
-            : "bg-muted text-muted-foreground",
+            : "bg-foreground/[0.06] text-muted-foreground dark:bg-white/[0.08]",
       )}
     >
       {children}

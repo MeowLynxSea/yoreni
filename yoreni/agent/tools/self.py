@@ -63,7 +63,6 @@ class MyTool(Tool):
         "runner", "consolidator",
         "dream", "auto_compact", "context", "commands",
         # Sensitive runtime state (credentials, message routing, task tracking)
-        "_pending_queues",
         "_active_tasks", "_background_tasks",
         # Security boundaries (inspect + modify both blocked)
         "restrict_to_workspace", "channels_config",

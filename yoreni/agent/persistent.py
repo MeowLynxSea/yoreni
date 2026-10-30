@@ -54,7 +54,8 @@ _REACTION_ROUND = RequiredToolRound(
     tool_name="react",
     instruction=(
         "React to the message the user just sent with the react tool before "
-        "answering. One emoji that shows your first reaction."
+        "answering. One emoji that shows your first reaction, or NONE when no "
+        "emoji fits it."
     ),
 )
 

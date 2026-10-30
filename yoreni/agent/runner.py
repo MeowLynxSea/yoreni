@@ -447,9 +447,9 @@ class AgentRunner:
         pending_length_segment: tuple[AgentHookContext, str] | None = None
         had_injections = False
         injection_cycles = 0
-        # A message that broke into the turn is acknowledged with an emoji
-        # before the model is allowed to answer it.
-        required_tool_pending = False
+        # A new owner message is acknowledged with an emoji before the model is
+        # allowed to answer it, whether it arrived mid-turn or started the turn.
+        required_tool_pending = spec.required_tool_round is not None
         required_tool_nudges = 0
         armed_injection_cycle = 0
         pending_stream_content: str | None = None
@@ -530,8 +530,11 @@ class AgentRunner:
                     definition for definition in spec.tools.get_definitions()
                     if definition.get("function", {}).get("name") == spec.required_tool_round.tool_name
                 ]
-                # An unregistered tool cannot be required; keep the normal set.
-                round_tools = required_definitions or None
+                if required_definitions:
+                    round_tools = required_definitions
+                else:
+                    # A tool this turn cannot call is not a requirement.
+                    required_tool_pending = False
             response, raw_usage = await self._request_model(
                 spec,
                 request_messages,

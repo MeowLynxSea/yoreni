@@ -34,6 +34,25 @@ async def test_react_rejects_text_instead_of_one_emoji(emoji: str) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("decline", ["NONE", "none", " None "])
+async def test_react_can_decline_when_no_emoji_fits(decline: str, tmp_path) -> None:
+    """Declining must leave no reaction row and send nothing."""
+    store = AgentStore(tmp_path)
+    run_id = _run(store)
+    sent, deliver = _collector()
+    tool = ReactTool(send_callback=deliver, store=store)
+
+    with request_context(RequestContext(
+        channel="websocket", chat_id="yoreni", turn_id=run_id, message_id="msg-1",
+    )):
+        result = await tool.execute(emoji=decline)
+
+    assert result == "No reaction sent."
+    assert sent == []
+    assert store.webui_history()[-1]["entries"] == []
+
+
+@pytest.mark.asyncio
 async def test_react_requires_a_target_message() -> None:
     _, deliver = _collector()
     tool = ReactTool(send_callback=deliver)

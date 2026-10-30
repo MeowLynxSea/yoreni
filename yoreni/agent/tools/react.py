@@ -24,6 +24,8 @@ if TYPE_CHECKING:
     from yoreni.agent.state import AgentStore
 
 _EMOJI_MAX_POINTS = 16
+# The reaction round must not force a fake feeling: the agent may decline.
+NONE_EMOJI = "none"
 
 
 def _clean_emoji(value: str) -> str | None:
@@ -40,7 +42,8 @@ def _clean_emoji(value: str) -> str | None:
 @tool_parameters(
     tool_parameters_schema(
         emoji=StringSchema(
-            "One emoji that expresses your first reaction, e.g. 😊, 👀, 👍, 🤔. No words."
+            "One emoji that expresses your first reaction, e.g. 😊, 👀, 👍, 🤔. No words. "
+            "Pass NONE when no emoji fits the message."
         ),
         message_id=StringSchema(
             "Conversation message ID to react to. Defaults to the newest message "
@@ -75,12 +78,13 @@ class ReactTool(Tool):
     @property
     def description(self) -> str:
         return (
-            "Put an emoji reaction on a message instead of replying to it. Use it to "
-            "acknowledge that you saw and understood what the user just said before "
-            "you answer. One emoji, no text."
+            "Put one emoji reaction on a message. Do it first, before you answer, "
+            "to acknowledge what the user just said. Pass NONE when no emoji fits."
         )
 
     async def execute(self, emoji: str = "", message_id: str | None = None, **kwargs: object) -> str:
+        if emoji.strip().lower() == NONE_EMOJI:
+            return "No reaction sent."
         cleaned = _clean_emoji(emoji)
         if cleaned is None:
             return ToolResult.error("Error: emoji must be a single emoji without words")

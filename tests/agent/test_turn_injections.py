@@ -146,6 +146,66 @@ async def test_reaction_round_offers_only_the_required_tool() -> None:
 
 
 @pytest.mark.asyncio
+async def test_a_new_message_starts_with_the_reaction() -> None:
+    """A message that starts its own turn is acknowledged the same way."""
+    provider = MagicMock()
+    offered: list[list[str]] = []
+    responses = [
+        LLMResponse(
+            content="",
+            tool_calls=[ToolCallRequest(id="c1", name="react", arguments={"emoji": "👋"})],
+            usage=None,
+        ),
+        LLMResponse(content="done", tool_calls=[], usage=None),
+    ]
+
+    async def respond(**kwargs: Any) -> LLMResponse:
+        offered.append([tool["function"]["name"] for tool in kwargs.get("tools") or []])
+        return responses.pop(0)
+
+    provider.chat_stream_with_retry = AsyncMock(side_effect=respond)
+
+    result = await AgentRunner().run(make_run_spec(provider,
+        initial_messages=[{"role": "user", "content": "hello"}],
+        tools=_registry(_NamedTool("react"), _NamedTool("echo")),
+        model="test-model",
+        max_iterations=4,
+        max_tool_result_chars=_MAX_TOOL_RESULT_CHARS,
+        required_tool_round=RequiredToolRound("react", "React first."),
+    ))
+
+    assert [sorted(names) for names in offered] == [["react"], ["echo", "react"]]
+    assert result.tools_used == ["react"]
+    assert result.final_content == "done"
+
+
+@pytest.mark.asyncio
+async def test_a_missing_required_tool_leaves_the_turn_unrestricted() -> None:
+    """Nothing to acknowledge with means nothing to insist on."""
+    provider = MagicMock()
+    offered: list[list[str]] = []
+
+    async def respond(**kwargs: Any) -> LLMResponse:
+        offered.append([tool["function"]["name"] for tool in kwargs.get("tools") or []])
+        return LLMResponse(content="no reaction to give", tool_calls=[], usage=None)
+
+    provider.chat_stream_with_retry = AsyncMock(side_effect=respond)
+
+    result = await AgentRunner().run(make_run_spec(provider,
+        initial_messages=[{"role": "user", "content": "hello"}],
+        tools=_registry(_NamedTool("echo")),
+        model="test-model",
+        max_iterations=4,
+        max_tool_result_chars=_MAX_TOOL_RESULT_CHARS,
+        required_tool_round=RequiredToolRound("react", "React first."),
+    ))
+
+    assert offered == [["echo"]]
+    assert provider.chat_stream_with_retry.await_count == 1
+    assert result.final_content == "no reaction to give"
+
+
+@pytest.mark.asyncio
 async def test_reaction_round_stops_nudging_after_the_limit() -> None:
     provider = MagicMock()
     provider.chat_stream_with_retry = AsyncMock(side_effect=[

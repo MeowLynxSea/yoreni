@@ -396,21 +396,24 @@ function revealMessage(messageId: string): void {
   node?.scrollIntoView({ block: "center", behavior: "smooth" });
 }
 
+/** Reactions sit on the bubble's bottom corner, the way a chat app shows them. */
 function MessageReactions({
   reactions,
-  align,
+  side,
 }: {
   reactions: string[] | undefined;
-  align: "left" | "right";
+  side: "left" | "right";
 }) {
   const { t } = useTranslation();
   if (!reactions?.length) return null;
   return (
-    <div
+    <span
       data-message-reactions
       className={cn(
-        "flex max-w-full flex-wrap items-center gap-1",
-        align === "right" ? "justify-end" : "justify-start",
+        "absolute -bottom-4 z-10 flex items-center gap-1 rounded-full",
+        "border border-border/70 bg-background/95 px-2 py-1 shadow-sm backdrop-blur",
+        "animate-in fade-in-0 zoom-in-50 duration-200 ease-out motion-reduce:animate-none",
+        side === "right" ? "right-3 origin-bottom-right" : "left-4 origin-bottom-left",
       )}
     >
       {reactions.map((emoji) => (
@@ -418,15 +421,12 @@ function MessageReactions({
           key={emoji}
           role="img"
           aria-label={t("message.reactionFromAgent")}
-          className={cn(
-            "inline-flex select-none items-center rounded-full border border-border/60 bg-muted/45 px-2 py-0.5",
-            "text-[13px] leading-5 shadow-sm",
-          )}
+          className="select-none text-[18px] leading-none animate-in zoom-in-50 duration-150 motion-reduce:animate-none"
         >
           {emoji}
         </span>
       ))}
-    </div>
+    </span>
   );
 }
 
@@ -597,6 +597,7 @@ export function MessageBubble({
         {!hasImages && hasMedia ? (
           <MessageMedia media={media} align="right" pending={message.deliveryStatus === "sending"} />
         ) : null}
+        {!hasText ? <MessageReactions reactions={message.reactions} side="right" /> : null}
         {quotedContext ? (
           <UserQuotedContext
             text={quotedContext}
@@ -619,9 +620,9 @@ export function MessageBubble({
             >
               {messageText}
             </p>
+            <MessageReactions reactions={message.reactions} side="right" />
           </div>
         ) : null}
-        <MessageReactions reactions={message.reactions} align="right" />
         {showDeliveryStatus ? (
             <div className="flex min-h-8 items-center justify-end gap-1.5 text-muted-foreground">
               <UserDeliveryStatus
@@ -681,11 +682,7 @@ export function MessageBubble({
           {media.length > 0 ? <MessageMedia media={media} align="left" /> : null}
         </InlineImageProvider>
       </div>
-      {message.reactions?.length ? (
-        <div className="mt-1.5 pl-1">
-          <MessageReactions reactions={message.reactions} align="left" />
-        </div>
-      ) : null}
+      <MessageReactions reactions={message.reactions} side="left" />
     </div>
   );
 }

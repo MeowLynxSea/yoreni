@@ -277,7 +277,7 @@ export function SettingsPage({
       case "about":
         return <AboutSettings settings={settings} />;
       case "widgets":
-        return <WidgetsSettings localPrefs={localPrefs} onChangeLocalPrefs={setLocalPrefs} />;
+        return <WidgetsSettings />;
       case "notifications":
         return <NotificationSettings localPrefs={localPrefs} onChangeLocalPrefs={setLocalPrefs} />;
       case "models":
@@ -496,7 +496,7 @@ export function SettingsPage({
   const renderSection = (section: SettingsSectionKey, embedded = false): ReactNode => {
     switch (section) {
       case "widgets":
-        return <WidgetsSettings localPrefs={localPrefs} onChangeLocalPrefs={setLocalPrefs} />;
+        return <WidgetsSettings />;
       case "appearance":
         return <AppearanceSettings themePreference={themePreference} onChangeTheme={onChangeTheme}
           localPrefs={localPrefs} onChangeLocalPrefs={setLocalPrefs} />;

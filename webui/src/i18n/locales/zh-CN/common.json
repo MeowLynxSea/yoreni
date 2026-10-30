@@ -566,7 +566,9 @@
     },
     "widgets": {
       "title": "主页小组件",
-      "help": "小组件显示在主页，仅在当前设备生效。",
+      "help": "小组件显示在主页，仅对本机 yoreni 生效。",
+      "moveUp": "上移{{name}}",
+      "moveDown": "下移{{name}}",
       "descriptions": {
         "goal": "显示 agent 正在推进的目标。",
         "automations": "显示定时任务与下次运行时间。"

@@ -511,7 +511,9 @@
     },
     "widgets": {
       "title": "Widgets de l'accueil",
-      "help": "Les widgets apparaissent sur l'accueil. Les modifications s'appliquent à cet appareil.",
+      "help": "Les widgets apparaissent sur l'accueil. Les modifications s'appliquent à cette installation de yoreni.",
+      "moveUp": "Déplacer {{name}} vers le haut",
+      "moveDown": "Déplacer {{name}} vers le bas",
       "descriptions": {
         "goal": "Affiche l'objectif sur lequel travaille l'agent.",
         "automations": "Affiche les tâches planifiées et leur prochaine exécution."

@@ -1,40 +1,44 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useLocalPreferences } from "@/hooks/useLocalPreferences";
 import { cn } from "@/lib/utils";
 
 import { HOME_WIDGETS } from "./registry";
-
-function visibleWidgets(hidden: Record<string, boolean>) {
-  return HOME_WIDGETS.filter((widget) => hidden[widget.id] ?? widget.defaultVisible);
-}
-
-function useRefEmpty(node: RefObject<HTMLDivElement | null>) {
-  const [empty, setEmpty] = useState(true);
-  useLayoutEffect(() => {
-    const element = node.current;
-    if (!element) return;
-    const update = () => setEmpty(element.childElementCount === 0);
-    update();
-    const observer = new MutationObserver(update);
-    observer.observe(element, { childList: true });
-    return () => observer.disconnect();
-  }, [node]);
-  return empty;
-}
+import { WidgetFrame } from "./WidgetFrame";
+import { useHomeWidgets } from "./widget-layout";
 
 export function HomeFeed({ className }: { className?: string }) {
   const { t } = useTranslation();
-  const prefs = useLocalPreferences();
-  const widgets = visibleWidgets(prefs.homeWidgets);
-  const feed = useRef<HTMLDivElement>(null);
-  const empty = useRefEmpty(feed);
+  const { states, toggleCollapsed } = useHomeWidgets();
+  const [present, setPresent] = useState<Record<string, boolean>>({});
+
+  const reportPresence = useCallback((id: string, visible: boolean) => {
+    setPresent((previous) => (previous[id] === visible ? previous : { ...previous, [id]: visible }));
+  }, []);
+
+  const visible = states.filter((state) => state.visible);
+  const empty = !visible.some((state) => present[state.id]);
 
   return (
     <div className="flex flex-1 flex-col">
-      <div ref={feed} className={cn("flex flex-col gap-3", className)}>
-        {widgets.map(({ id, Component }) => <Component key={id} />)}
+      <div className={cn("-mt-3 flex flex-col", className)}>
+        {visible.map((state) => {
+          const definition = HOME_WIDGETS.find((widget) => widget.id === state.id);
+          if (!definition) return null;
+          const { Component, id } = definition;
+          return (
+            <WidgetFrame
+              key={id}
+              id={id}
+              collapsible={definition.collapsible}
+              collapsed={state.collapsed}
+              onToggleCollapsed={() => toggleCollapsed(id)}
+              onPresenceChange={reportPresence}
+            >
+              <Component />
+            </WidgetFrame>
+          );
+        })}
       </div>
       {empty ? (
         <div className="flex flex-1 flex-col items-center justify-center px-4 pb-12 text-center">

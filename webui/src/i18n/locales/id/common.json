@@ -511,7 +511,9 @@
     },
     "widgets": {
       "title": "Widget beranda",
-      "help": "Widget tampil di beranda. Perubahan berlaku untuk perangkat ini.",
+      "help": "Widget tampil di beranda. Perubahan berlaku untuk instalasi yoreni ini.",
+      "moveUp": "Pindahkan {{name}} ke atas",
+      "moveDown": "Pindahkan {{name}} ke bawah",
       "descriptions": {
         "goal": "Menampilkan tujuan yang sedang dikerjakan agen.",
         "automations": "Menampilkan tugas terjadwal dan waktu jalan berikutnya."

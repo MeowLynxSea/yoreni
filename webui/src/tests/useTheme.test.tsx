@@ -1,7 +1,7 @@
-import { act, cleanup, renderHook } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useTheme } from "@/hooks/useTheme";
+import { ThemeControlProvider, useTheme, useThemeControl } from "@/hooks/useTheme";
 
 describe("useTheme", () => {
   let systemDark = false;
@@ -311,5 +311,30 @@ describe("useTheme", () => {
     unmount();
     expect(document.documentElement).not.toHaveAttribute("data-theme-transition");
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("keeps every shared control on the same preference", () => {
+    function Consumer({ id }: { id: string }) {
+      const { preference, theme, toggle, setTheme } = useThemeControl();
+      return <div>
+        <span data-testid={`${id}-preference`}>{preference}</span>
+        <span data-testid={`${id}-theme`}>{theme}</span>
+        <button onClick={toggle}>toggle {id}</button>
+        <button onClick={() => setTheme("dark")}>dark {id}</button>
+      </div>;
+    }
+    function Owner() {
+      return <ThemeControlProvider control={useTheme()}>
+        <Consumer id="header" />
+        <Consumer id="settings" />
+      </ThemeControlProvider>;
+    }
+    render(<Owner />);
+
+    fireEvent.click(screen.getByRole("button", { name: "toggle header" }));
+
+    expect(screen.getByTestId("header-theme")).toHaveTextContent("dark");
+    expect(screen.getByTestId("settings-preference")).toHaveTextContent("dark");
+    expect(document.documentElement).toHaveClass("dark");
   });
 });

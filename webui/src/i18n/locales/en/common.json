@@ -566,7 +566,9 @@
     },
     "widgets": {
       "title": "Home widgets",
-      "help": "Widgets appear on Home. Changes apply to this device.",
+      "help": "Widgets appear on Home. Changes apply to this yoreni install.",
+      "moveUp": "Move {{name}} up",
+      "moveDown": "Move {{name}} down",
       "descriptions": {
         "goal": "Shows the goal the agent is working on.",
         "automations": "Shows scheduled tasks and when they run next."

@@ -566,7 +566,9 @@
     },
     "widgets": {
       "title": "Widgets do início",
-      "help": "Os widgets aparecem no início. As alterações valem para este dispositivo.",
+      "help": "Os widgets aparecem no início. As alterações valem para esta instalação do yoreni.",
+      "moveUp": "Mover {{name}} para cima",
+      "moveDown": "Mover {{name}} para baixo",
       "descriptions": {
         "goal": "Mostra o objetivo em que o agente está trabalhando.",
         "automations": "Mostra as tarefas agendadas e quando serão executadas."

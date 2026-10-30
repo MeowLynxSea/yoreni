@@ -39,6 +39,10 @@ from yoreni.webui.file_preview import (
     file_preview_payload,
 )
 from yoreni.webui.gateway_tokens import GatewayTokenStore, token_response_payload
+from yoreni.webui.home_widgets import (
+    home_widget_layout_payload,
+    update_home_widget_layout,
+)
 from yoreni.webui.http_utils import accepts_gzip as _accepts_gzip
 from yoreni.webui.http_utils import (
     case_insensitive_header as _case_insensitive_header,
@@ -128,6 +132,7 @@ _WEBUI_MUTATION_PATHS = {
     "star_prompt.dismiss": "/api/webui/star-prompt/dismiss",
     "workspace.favorite": "/api/workspaces/favorite",
     "workspace.resolve_project": "/api/workspaces/resolve-project",
+    "webui.home_widgets.update": "/api/webui/home-widgets",
     "settings.agent.update": "/api/settings/update",
     "settings.model_configuration.create": "/api/settings/model-configurations/create",
     "settings.model_configuration.update": "/api/settings/model-configurations/update",
@@ -444,6 +449,7 @@ class GatewayHTTPHandler:
             "/api/webui/star-prompt/dismiss",
             "/api/workspaces/resolve-project",
             "/api/workspaces/favorite",
+            "/api/webui/home-widgets",
         }
 
     @staticmethod
@@ -938,6 +944,8 @@ class GatewayHTTPHandler:
             return self._handle_file_preview(request)
         if got == "/api/webui/goal":
             return await self._handle_webui_goal(request)
+        if got == "/api/webui/home-widgets":
+            return self._handle_home_widgets(request)
         if got == "/api/workspaces/favorite":
             return self._handle_workspace_favorite(connection, request)
         if got == "/api/workspaces/resolve-project":
@@ -973,6 +981,24 @@ class GatewayHTTPHandler:
                 return _http_error(500, "failed to save reminder preference")
             return _http_json_response({"show": show})
         return None
+
+    def _handle_home_widgets(self, request: WsRequest) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        payload = _mutation_payload(request)
+        if payload is None:
+            return _http_json_response(
+                home_widget_layout_payload(),
+                extra_headers=_NO_STORE_HEADERS,
+            )
+        try:
+            layout = update_home_widget_layout(payload.get("order"), payload.get("widgets"))
+        except ValueError as exc:
+            return _http_error(400, str(exc))
+        except OSError:
+            self._log.exception("failed to save home widget layout")
+            return _http_error(500, "could not save widget layout")
+        return _http_json_response(layout)
 
     def _handle_workspaces(self, connection: Any, request: WsRequest) -> Response:
         if not self.check_api_token(request):

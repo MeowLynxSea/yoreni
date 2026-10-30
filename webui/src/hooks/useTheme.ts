@@ -140,8 +140,32 @@ export function useTheme(): {
   return { theme, preference, toggle, setTheme };
 }
 
+export interface ThemeControl {
+  theme: Theme;
+  preference: ThemePreference;
+  setTheme: (value: ThemePreference) => void;
+  toggle: () => void;
+}
+
+const ThemeControlContext = createContext<ThemeControl | null>(null);
+
 export function ThemeProvider({ theme, children }: { theme: Theme; children: ReactNode }) {
   return createElement(ThemeContext.Provider, { value: theme }, children);
+}
+
+/** Shares one `useTheme` instance so every control edits the same state. */
+export function ThemeControlProvider({ control, children }: { control: ThemeControl; children: ReactNode }) {
+  return createElement(
+    ThemeContext.Provider,
+    { value: control.theme },
+    createElement(ThemeControlContext.Provider, { value: control }, children),
+  );
+}
+
+export function useThemeControl(): ThemeControl {
+  const value = useContext(ThemeControlContext);
+  if (!value) throw new Error("useThemeControl must be used inside ThemeControlProvider");
+  return value;
 }
 
 export function useThemeValue(): Theme {

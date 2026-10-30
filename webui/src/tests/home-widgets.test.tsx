@@ -1,22 +1,23 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HomeFeed } from "@/components/home/HomePanel";
 import { GoalWidget } from "@/components/home/GoalWidget";
 import { AutomationsWidget } from "@/components/home/AutomationsWidget";
+import { resetHomeWidgets } from "@/components/home/widget-layout";
 import { WidgetsSettings } from "@/components/settings/overview/WidgetsSettings";
-import { fetchAutomations, fetchGoal } from "@/lib/api";
-import { DEFAULT_LOCAL_PREFS, writeLocalPreferences } from "@/lib/local-preferences";
-import type { AutomationJob } from "@/lib/types";
+import { fetchAutomations, fetchGoal, fetchHomeWidgets, saveHomeWidgets } from "@/lib/api";
+import type { AutomationJob, HomeWidgetsPayload } from "@/lib/types";
 import { ClientProvider } from "@/providers/ClientProvider";
 import type { AgentFrame, YoreniClient } from "@/lib/yoreni-client";
 
 vi.mock("@/lib/api", () => ({
   fetchGoal: vi.fn(),
   fetchAutomations: vi.fn(),
+  fetchHomeWidgets: vi.fn(),
+  saveHomeWidgets: vi.fn(),
 }));
 
 function fakeClient() {
@@ -36,6 +37,17 @@ function wrap(client: YoreniClient) {
   );
 }
 
+function layout(overrides: Partial<HomeWidgetsPayload> = {}): HomeWidgetsPayload {
+  return {
+    order: ["goal", "automations"],
+    widgets: {
+      goal: { visible: true, collapsed: false },
+      automations: { visible: true, collapsed: false },
+    },
+    ...overrides,
+  };
+}
+
 function job(overrides: Partial<AutomationJob> = {}): AutomationJob {
   return {
     id: "job-1",
@@ -51,8 +63,11 @@ function job(overrides: Partial<AutomationJob> = {}): AutomationJob {
 
 beforeEach(() => {
   window.localStorage.clear();
+  resetHomeWidgets();
   vi.mocked(fetchGoal).mockResolvedValue({ active: false });
   vi.mocked(fetchAutomations).mockResolvedValue({ jobs: [] });
+  vi.mocked(fetchHomeWidgets).mockResolvedValue(layout());
+  vi.mocked(saveHomeWidgets).mockImplementation(async (_transport, next) => next);
 });
 
 describe("home widgets", () => {
@@ -122,29 +137,78 @@ describe("home widgets", () => {
     expect(await screen.findByText("Morning briefing")).toBeInTheDocument();
   });
 
-  it("hides widgets that the device turned off", async () => {
-    writeLocalPreferences({ ...DEFAULT_LOCAL_PREFS, homeWidgets: { goal: false } });
+  it("renders widgets in the stored order and skips the hidden ones", async () => {
     vi.mocked(fetchAutomations).mockResolvedValue({ jobs: [job()] });
+    vi.mocked(fetchGoal).mockResolvedValue({
+      active: true, status: "active", ui_summary: "Ship the fix", objective: "Ship the fix.",
+    });
+    vi.mocked(fetchHomeWidgets).mockResolvedValue(layout({
+      order: ["automations", "goal"],
+      widgets: {
+        goal: { visible: false, collapsed: false },
+        automations: { visible: true, collapsed: false },
+      },
+    }));
     const { client } = fakeClient();
     render(<HomeFeed />, { wrapper: wrap(client) });
 
-    expect(screen.queryByText("Goal")).not.toBeInTheDocument();
-    expect(await screen.findByText("Automations")).toBeInTheDocument();
+    expect(await screen.findByText("Morning briefing")).toBeInTheDocument();
+    expect(screen.queryByText("Ship the fix")).not.toBeInTheDocument();
+  });
+
+  it("collapses a widget and stores the collapsed state", async () => {
+    vi.mocked(fetchAutomations).mockResolvedValue({ jobs: [job()] });
+    const user = userEvent.setup();
+    const { client } = fakeClient();
+    render(<HomeFeed />, { wrapper: wrap(client) });
+
+    const header = await screen.findByRole("button", { name: "Automations" });
+    expect(header).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(header);
+
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("Morning briefing")).toBeInTheDocument();
+    await waitFor(() => expect(saveHomeWidgets).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        widgets: expect.objectContaining({
+          automations: { visible: true, collapsed: true },
+        }),
+      }),
+    ));
   });
 });
 
 describe("widget settings", () => {
-  it("toggles a system widget for this device", async () => {
-    function Harness() {
-      const [prefs, setPrefs] = useState({ ...DEFAULT_LOCAL_PREFS, homeWidgets: {} });
-      return <WidgetsSettings localPrefs={prefs} onChangeLocalPrefs={setPrefs} />;
-    }
+  it("toggles a widget for the installation", async () => {
     const user = userEvent.setup();
-    render(<Harness />);
+    const { client } = fakeClient();
+    render(<WidgetsSettings />, { wrapper: wrap(client) });
 
-    const toggle = screen.getByRole("switch", { name: "Goal" });
+    const toggle = await screen.findByRole("switch", { name: "Goal" });
     expect(toggle).toHaveAttribute("aria-checked", "true");
     await user.click(toggle);
     expect(toggle).toHaveAttribute("aria-checked", "false");
+
+    await waitFor(() => expect(saveHomeWidgets).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        widgets: expect.objectContaining({ goal: { visible: false, collapsed: false } }),
+      }),
+    ));
+  });
+
+  it("moves a widget down in the stored order", async () => {
+    const user = userEvent.setup();
+    const { client } = fakeClient();
+    render(<WidgetsSettings />, { wrapper: wrap(client) });
+
+    await user.click(await screen.findByRole("button", { name: "Move Goal down" }));
+
+    await waitFor(() => expect(saveHomeWidgets).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ order: ["automations", "goal"] }),
+    ));
   });
 });

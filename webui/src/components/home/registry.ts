@@ -11,6 +11,7 @@ export interface HomeWidgetDefinition {
   icon: LucideIcon;
   Component: ComponentType;
   defaultVisible: boolean;
+  collapsible: boolean;
 }
 
 export const HOME_WIDGETS: HomeWidgetDefinition[] = [
@@ -20,6 +21,7 @@ export const HOME_WIDGETS: HomeWidgetDefinition[] = [
     icon: Target,
     Component: GoalWidget,
     defaultVisible: true,
+    collapsible: true,
   },
   {
     id: "automations",
@@ -27,5 +29,6 @@ export const HOME_WIDGETS: HomeWidgetDefinition[] = [
     icon: CalendarClock,
     Component: AutomationsWidget,
     defaultVisible: true,
+    collapsible: true,
   },
 ];

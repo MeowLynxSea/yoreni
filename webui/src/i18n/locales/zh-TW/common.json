@@ -511,7 +511,9 @@
     },
     "widgets": {
       "title": "主頁小工具",
-      "help": "小工具顯示在主頁，僅對目前裝置生效。",
+      "help": "小工具顯示在主頁，僅對本機 yoreni 生效。",
+      "moveUp": "上移{{name}}",
+      "moveDown": "下移{{name}}",
       "descriptions": {
         "goal": "顯示 agent 正在推進的目標。",
         "automations": "顯示定時任務與下次執行時間。"

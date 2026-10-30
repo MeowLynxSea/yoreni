@@ -280,6 +280,17 @@ export interface GoalStateWsPayload {
   recap?: string;
 }
 
+/** Persisted layout for the Home widgets, shared by every WebUI client. */
+export interface HomeWidgetEntry {
+  visible: boolean;
+  collapsed: boolean;
+}
+
+export interface HomeWidgetsPayload {
+  order: string[];
+  widgets: Record<string, HomeWidgetEntry>;
+}
+
 export interface ToolProgressEvent {
   version?: number;
   phase?: "start" | "end" | "error" | string;

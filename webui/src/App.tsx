@@ -19,7 +19,7 @@ import { ThreadComposer } from "@/components/thread/ThreadComposer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAgentRun } from "@/hooks/useAgentRun";
-import { ThemeProvider, useTheme } from "@/hooks/useTheme";
+import { ThemeControlProvider, useTheme, useThemeControl } from "@/hooks/useTheme";
 import { useAppViewport } from "@/hooks/useAppViewport";
 import { useReadingTypography } from "@/hooks/useReadingTypography";
 import { BootstrapAuthRequiredError, clearSavedSecret, consumeUrlBootstrapSecret, deriveWsUrl, fetchBootstrap, loadSavedSecret, saveSecret } from "@/lib/bootstrap";
@@ -364,7 +364,7 @@ function SettingsSectionRoute({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { section } = useParams();
-  const { preference, setTheme } = useTheme();
+  const { preference, setTheme } = useThemeControl();
   if (!isSettingsSectionKey(section)) return <Navigate to="/settings" replace />;
   return <div className="flex min-h-0 flex-1 flex-col">
     <Suspense fallback={<StartupShell embedded surface="settings" />}>
@@ -388,7 +388,8 @@ function SettingsSectionRoute({
 function AgentShell({ onLogout }: { onLogout: () => void }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { toggle, theme } = useTheme();
+  const control = useTheme();
+  const { toggle, theme } = control;
   const { client, modelName } = useClient();
   const [model, setModel] = useState<string | null>(modelName ?? null);
   const [homeView, setHomeView] = useState<"chat" | "home">("chat");
@@ -400,7 +401,7 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
   useEffect(() => client.onRuntimeModelUpdate(setModel), [client]);
   const location = useLocation();
   const homeOpen = location.pathname === "/" && homeView === "home";
-  return <ThemeProvider theme={theme}>
+  return <ThemeControlProvider control={control}>
     <AmbientBackground />
     <div className="relative z-10 flex h-full min-h-0 w-full text-foreground">
       <HomePanel open={homeOpen} />
@@ -434,5 +435,5 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
         onHomeViewChange={setHomeView}
       />
     </div>
-  </ThemeProvider>;
+  </ThemeControlProvider>;
 }

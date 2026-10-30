@@ -511,7 +511,9 @@
     },
     "widgets": {
       "title": "Tiện ích trang chính",
-      "help": "Tiện ích hiển thị trên trang chính. Thay đổi chỉ áp dụng cho thiết bị này.",
+      "help": "Tiện ích hiển thị trên trang chính. Thay đổi áp dụng cho bản cài yoreni này.",
+      "moveUp": "Chuyển {{name}} lên",
+      "moveDown": "Chuyển {{name}} xuống",
       "descriptions": {
         "goal": "Hiển thị mục tiêu agent đang thực hiện.",
         "automations": "Hiển thị tác vụ theo lịch và lần chạy tiếp theo."

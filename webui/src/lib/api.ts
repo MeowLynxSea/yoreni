@@ -1,5 +1,5 @@
 
-import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
+import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
 
 const API_READ_TIMEOUT_MS = 20_000;
@@ -324,6 +324,28 @@ export async function fetchSettingsUsage(
     undefined,
     API_READ_TIMEOUT_MS,
   );
+}
+
+export async function fetchHomeWidgets(
+  token: string,
+  base: string = "",
+): Promise<HomeWidgetsPayload> {
+  return request<HomeWidgetsPayload>(
+    `${base}/api/webui/home-widgets`,
+    token,
+    { cache: "no-store" },
+    API_READ_TIMEOUT_MS,
+  );
+}
+
+export async function saveHomeWidgets(
+  transport: WebUIMutationTransport,
+  layout: HomeWidgetsPayload,
+): Promise<HomeWidgetsPayload> {
+  return mutation<HomeWidgetsPayload>(transport, "webui.home_widgets.update", {
+    order: layout.order,
+    widgets: layout.widgets,
+  });
 }
 
 export async function fetchWorkspaces(

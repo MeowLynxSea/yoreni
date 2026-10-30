@@ -73,8 +73,11 @@ def test_selected_project_path_follows_shared_cache_prefix(tmp_path) -> None:
     assert prompt_a == builder.build_system_prompt(workspace=project_a)
 
 
+# -- memory contract ---------------------------------------------------------
+
+
 @pytest.mark.parametrize("selected_project", [False, True])
-def test_system_prompt_reflects_current_dream_memory_contract(tmp_path, selected_project) -> None:
+def test_system_prompt_reflects_current_memory_contract(tmp_path, selected_project) -> None:
     workspace = _make_workspace(tmp_path)
     builder = ContextBuilder(workspace)
     project = tmp_path / "project" if selected_project else workspace
@@ -82,11 +85,9 @@ def test_system_prompt_reflects_current_dream_memory_contract(tmp_path, selected
 
     prompt = builder.build_system_prompt(workspace=project)
 
-    assert "memory/history.jsonl" in prompt
-    assert (
-        "Only Dream memory-consolidation tasks may edit the profile and long-term memory files "
-        "listed above."
-    ) in prompt
+    assert "Long-term memory summary: " in prompt
+    assert "memory_search" in prompt
+    assert "history.jsonl" not in prompt
 
 
 def test_provider_context_appended_after_user_content(tmp_path) -> None:
@@ -271,7 +272,7 @@ def test_template_memory_md_is_skipped(tmp_path) -> None:
     prompt = builder.build_system_prompt()
 
     assert "# Long-term Memory" not in prompt
-    assert "History log: memory/history.jsonl" in prompt
+    assert "Long-term memory summary: memory/MEMORY.md" in prompt
     assert "This file is automatically updated by yoreni" not in prompt
 
 
@@ -286,7 +287,7 @@ def test_customized_memory_md_is_injected(tmp_path, monkeypatch) -> None:
     )
 
     builder = ContextBuilder(workspace)
-    read_memory = builder.memory.read_memory
+    read_memory = builder.core.read_memory
     calls = 0
 
     def tracked_read_memory() -> str:
@@ -294,7 +295,7 @@ def test_customized_memory_md_is_injected(tmp_path, monkeypatch) -> None:
         calls += 1
         return read_memory()
 
-    monkeypatch.setattr(builder.memory, "read_memory", tracked_read_memory)
+    monkeypatch.setattr(builder.core, "read_memory", tracked_read_memory)
     prompt = builder.build_system_prompt()
 
     assert prompt.count("# Long-term Memory") == 1

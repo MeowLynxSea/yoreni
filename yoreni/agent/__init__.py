@@ -16,7 +16,6 @@ if TYPE_CHECKING:
         CompositeHook,
     )
     from yoreni.agent.loop import AgentLoop
-    from yoreni.agent.memory import MemoryStore
     from yoreni.agent.skills import SkillsLoader
 
 
@@ -29,7 +28,6 @@ _EXPORTS = {
     "AgentLoop": "yoreni.agent.loop",
     "CompositeHook": "yoreni.agent.hook",
     "ContextBuilder": "yoreni.agent.context",
-    "MemoryStore": "yoreni.agent.memory",
     "SkillsLoader": "yoreni.agent.skills",
 }
 
@@ -56,6 +54,5 @@ __all__ = [
     "AgentLoop",
     "CompositeHook",
     "ContextBuilder",
-    "MemoryStore",
     "SkillsLoader",
 ]

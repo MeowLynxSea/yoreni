@@ -346,6 +346,9 @@ async def agent(tmp_path):
     registry = ToolRegistry()
     registry.register(EchoTool())
     bot = Yoreni(AgentLoop(MessageBus(), provider, tmp_path, tool_registry=registry))
+    # Fact extraction is covered by tests/memory; the facade tests assert
+    # request/stream semantics and must not see background model calls.
+    bot._loop.agent.schedule_extraction = lambda: None
     try:
         yield bot, provider
     finally:
@@ -371,7 +374,8 @@ async def test_ephemeral_is_a_run_option_and_does_not_retain_input(agent):
     assert result.usage == LLMUsage.reported(input_tokens=3, output_tokens=2)
     with pytest.raises(KeyError):
         bot._loop.agent.store.read_run(result.metadata["agent_run_id"])
-    assert bot.memory.read_history() == []
+    assert bot.memory.read() == ""
+    assert bot.memory.stats()["evidence_items"] == 0
     await bot.run("later")
     assert all("private scratch" not in str(row["content"]) for row in provider.calls[-1])
 
@@ -486,14 +490,50 @@ def test_public_event_run_types():
     assert yoreni.RunStream is RunStream
 
 
-async def test_memory_journal_is_owned_by_agent(agent):
+async def test_memory_client_uses_the_agent_fact_store(agent):
     bot, _ = agent
+    bot._loop.agent.schedule_extraction = lambda: None
     bot.memory.write("preference")
     assert bot.memory.read() == "preference"
-    cursor = bot.memory.append_history("observation")
-    assert cursor > 0
-    entries = bot.memory.read_history()
-    assert entries[-1]["content"] == "observation"
+
+    result = await bot.run("I prefer Chinese.")
+    fact_ids = await bot.memory.remember(
+        run_id=result.metadata["agent_run_id"],
+        subject="user",
+        predicate="preferred_language",
+        text="The user prefers Chinese.",
+        kind="user_preference",
+    )
+    assert len(fact_ids) == 1
+
+    hits = await bot.memory.search("Chinese")
+    assert [hit["fact_id"] for hit in hits] == fact_ids
+    assert hits[0]["sources"][0]["run_id"] == result.metadata["agent_run_id"]
+    assert bot.memory.stats()["active_facts"] == 1
+
+
+async def test_memory_client_can_cite_tool_evidence(agent):
+    bot, _ = agent
+    bot._loop.agent.schedule_extraction = lambda: None
+    result = await bot.run("look up the latest version")
+    run_id = result.metadata["agent_run_id"]
+    evidence_id = bot._loop.memory.record_tool_result(
+        run_id, "exec", "Yoreni version 2.4.1 is the latest release.",
+    )
+
+    [fact_id] = await bot.memory.remember(
+        run_id=run_id,
+        subject="project:yoreni",
+        predicate="version",
+        text="Yoreni is on version 2.4.1.",
+        kind="project_knowledge",
+        evidence_ids=[evidence_id],
+    )
+    hits = await bot.memory.search("Yoreni version")
+
+    assert [hit["fact_id"] for hit in hits] == [fact_id]
+    assert hits[0]["source_type"] == "tool_result"
+    assert hits[0]["sources"][0]["evidence_id"] == evidence_id
 
 
 async def test_cached_event_result_keeps_completion_reason(agent):

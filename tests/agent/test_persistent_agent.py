@@ -15,9 +15,7 @@ from yoreni.agent.state import (
     AgentStore,
     pending_run_activity,
 )
-from yoreni.agent.tools.base import Tool
 from yoreni.agent.tools.context import current_request_context
-from yoreni.agent.tools.registry import ToolRegistry
 from yoreni.bus.events import InboundMessage
 from yoreni.bus.queue import MessageBus
 from yoreni.providers.base import LLMProvider, LLMResponse, ToolCallRequest
@@ -43,7 +41,7 @@ class Provider(LLMProvider):
         if str(messages[-1]["content"]).startswith("remember"):
             return LLMResponse(content=None, tool_calls=[ToolCallRequest(
                 id="remember", name="agent_state",
-                arguments={"action": "update", "revision": 0, "state": {"language": "zh"}},
+                arguments={"action": "update", "revision": 0, "state": {"task": {"objective": "remember"}}},
             )])
         return LLMResponse(content="done")
 
@@ -54,6 +52,9 @@ async def runtime(tmp_path):
     loop = AgentLoop(
         MessageBus(), provider, tmp_path, restrict_to_workspace=True, max_iterations=3,
     )
+    # These tests exercise Run durability; extraction has its own suite and
+    # would otherwise add model calls that belong to a different contract.
+    loop.agent.schedule_extraction = lambda: None
     try:
         yield loop, provider
     finally:
@@ -64,12 +65,12 @@ async def test_identity_state_and_recent_context_survive_without_session(runtime
     loop, provider = runtime
     first = await Yoreni(loop).act(AgentInput("api", "remember", principal="owner"))
     identity = loop.agent.store.identity()
-    assert identity.state == {"language": "zh"}
+    assert identity.state == {"task": {"objective": "remember"}}
     reopened = AgentStore(loop.workspace)
     assert reopened.identity() == identity
     await loop.process_event(AgentInput("webui", "hello", principal="owner"))
     assert any(str(message["content"]).startswith("remember") for message in provider.calls[-1])
-    assert '"language": "zh"' in str(provider.calls[-1])
+    assert '"objective": "remember"' in str(provider.calls[-1])
     run = reopened.read_run(first.metadata["agent_run_id"])
     assert run["status"] == "completed"
     assert run["payload"]["source"] == "api"
@@ -240,8 +241,9 @@ async def test_goal_tools_store_the_objective_on_the_agent(runtime):
     assert AgentStore(loop.workspace).identity().state == state
 
 
-async def test_completed_run_retries_the_memory_outbox_without_duplicate_entries(runtime, monkeypatch):
+async def test_completed_run_retries_the_memory_outbox_without_duplicate_evidence(runtime, monkeypatch):
     loop, provider = runtime
+    monkeypatch.setattr(loop.agent, "schedule_extraction", lambda: None)
     event = AgentInput("api", "hello", principal="owner", event_id="archive-retry")
     mark = loop.agent.store.mark_journaled
     failed = False
@@ -258,57 +260,52 @@ async def test_completed_run_retries_the_memory_outbox_without_duplicate_entries
         await loop.process_event(event)
     response = await loop.process_event(event)
     assert response.content == "done" and len(provider.calls) == 1
-    entries = loop.context.memory.read_unprocessed_history(0)
-    assert len(entries) == 1
+
+    run_id = response.metadata["agent_run_id"]
+    evidence = loop.memory.store.evidence_for_run(run_id)
+    assert [item.role for item in evidence] == ["user", "assistant"]
+    assert loop.memory.store.job_counts() == (1, 0)
     assert not loop.agent.store.pending_journal()
     assert not loop.agent.store.pending()
 
 
-async def test_background_memory_write_detects_a_newer_interaction(tmp_path):
-    workspace = tmp_path
-    registry = ToolRegistry()
+async def test_a_completed_run_extracts_facts_without_waiting_for_dream(runtime, monkeypatch):
+    import types
 
-    class WriteMemory(Tool):
-        name = "write_memory"
-        description = "Write the selected preference"
-        parameters = {"type": "object", "properties": {"value": {"type": "string"}}, "required": ["value"]}
+    from yoreni.agent.persistent import PersistentAgent
+    from yoreni.memory.extraction import ExtractionResult
+    from yoreni.memory.models import FactDraft
 
-        async def execute(self, **kwargs):
-            (workspace / "USER.md").write_text(kwargs["value"])
-            return "saved"
+    loop, provider = runtime
+    monkeypatch.setattr(
+        loop.agent,
+        "schedule_extraction",
+        types.MethodType(PersistentAgent.schedule_extraction, loop.agent),
+    )
 
-    registry.register(WriteMemory())
-    provider = Provider()
+    async def extract(evidence, *, runtime, existing=None):
+        fact_id = loop.memory.store.commit_candidates([FactDraft(
+            subject="user",
+            predicate="preferred_language",
+            text="The user prefers Chinese.",
+            kind="user_preference",
+            sources=(evidence[0].id,),
+            source_type="user_statement",
+        )])[0]
+        return ExtractionResult(fact_ids=(fact_id,), candidates=1)
 
-    async def memory_chat(messages, **kwargs):
-        request = current_request_context()
-        if messages[-1]["role"] == "user":
-            background = request.metadata["_agent_event_source"] == "heartbeat"
-            if background:
-                provider.entered.set()
-                await provider.hold.wait()
-            return LLMResponse(content=None, tool_calls=[ToolCallRequest(
-                "write", "write_memory", {"value": "stale" if background else "new preference"},
-            )])
-        return LLMResponse(content="done")
+    monkeypatch.setattr(loop.memory.extractor, "extract", extract)
 
-    provider.chat = memory_chat
-    loop = AgentLoop(MessageBus(), provider, workspace, tool_registry=registry, max_iterations=3)
-    task = asyncio.create_task(loop.process_event(
-        AgentInput("heartbeat", "background", principal="owner", kind="internal"),
-    ))
-    try:
-        await asyncio.wait_for(provider.entered.wait(), 5)
-        await loop.process_event(AgentInput("api", "update", principal="owner"))
-        provider.hold.set()
-        response = await task
-        assert (workspace / "USER.md").read_text() == "new preference"
-        transcript = loop.agent.store.read_run(response.metadata["agent_run_id"])["transcript"]
-        assert any("Agent memory changed" in str(row.get("content")) for row in transcript)
-    finally:
-        provider.hold.set()
-        await task
-        await loop.aclose()
+    response = await Yoreni(loop).act(AgentInput("api", "remember", principal="owner"))
+    for _ in range(50):
+        if not loop._background_tasks:
+            break
+        await asyncio.sleep(0)
+
+    assert response.content == "done"
+    assert loop.memory.store.job_counts() == (0, 0)
+    hits = await loop.memory.search("Chinese")
+    assert [hit.fact.subject for hit in hits] == ["user"]
 
 
 async def test_personal_automation_retries_keep_event_identity_without_fake_user_history(runtime):

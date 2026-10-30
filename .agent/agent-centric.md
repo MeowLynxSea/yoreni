@@ -39,7 +39,7 @@ Technical uses of the word session remain only where they describe an external o
 ## Engineering rules
 
 - Keep Agent state, Event admission, Run lifecycle, memory, and recovery in their owning Agent modules.
-- Reuse `AgentRunner`, ContextBuilder, tool registry, sandbox, MemoryStore, hooks, and output adapters instead of duplicating them.
+- Reuse `AgentRunner`, ContextBuilder, tool registry, sandbox, MemoryService, hooks, and output adapters instead of duplicating them.
 - Validate source, principal, destination, and event payloads at ingress; do not infer authority from a client-supplied identifier.
 - Keep complete history durable for audit and recovery, but select bounded context for each model call.
 - Do not reintroduce a Session-shaped compatibility layer under another name.

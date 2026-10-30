@@ -155,6 +155,12 @@ def _exec_parameters(config: ExecToolConfig) -> dict[str, Any]:
     )
 
 
+_MEMORY_INTERNAL_PATTERN = (
+    r"(?:memory[\\/](?:memory\.sqlite3(?:-(?:wal|shm))?|memory\.md)"
+    r"|(?<![a-z0-9_.-])(?:soul|user)\.md)"
+)
+
+
 class ExecTool(Tool):
     """Tool to execute shell commands."""
     _scopes = {"core", "subagent"}
@@ -235,14 +241,14 @@ class ExecTool(Tool):
             r">\s*/dev/sd",                  # write to disk
             r"\b(shutdown|reboot|poweroff)\b",  # system power
             r":\(\)\s*\{.*\};\s*:",          # fork bomb
-            # Block writes to yoreni internal state files (#2989).
-            # history.jsonl / .dream_cursor are managed by append_history();
-            # direct writes corrupt the cursor format and crash Dream.
-            r">>?\s*\S*(?:history\.jsonl|\.dream_cursor)",            # > / >> redirect
-            r"\btee\b[^|;&<>]*(?:history\.jsonl|\.dream_cursor)",     # tee / tee -a
-            r"\b(?:cp|mv)\b(?:\s+[^\s|;&<>]+)+\s+\S*(?:history\.jsonl|\.dream_cursor)",  # cp/mv target
-            r"\bdd\b[^|;&<>]*\bof=\S*(?:history\.jsonl|\.dream_cursor)",  # dd of=
-            r"\bsed\s+-i[^|;&<>]*(?:history\.jsonl|\.dream_cursor)",  # sed -i
+            # Block writes to yoreni internal state files. The memory database
+            # and the core memory documents are owned by the memory service;
+            # direct writes corrupt transactions or bypass provenance checks.
+            r">>?\s*\S*" + _MEMORY_INTERNAL_PATTERN,            # > / >> redirect
+            r"\btee\b[^|;&<>]*" + _MEMORY_INTERNAL_PATTERN,     # tee / tee -a
+            r"\b(?:cp|mv)\b(?:\s+[^\s|;&<>]+)+\s+\S*" + _MEMORY_INTERNAL_PATTERN,  # cp/mv target
+            r"\bdd\b[^|;&<>]*\bof=\S*" + _MEMORY_INTERNAL_PATTERN,  # dd of=
+            r"\bsed\s+-i[^|;&<>]*" + _MEMORY_INTERNAL_PATTERN,  # sed -i
         ]
         self.allow_patterns = allow_patterns or []
         self.restrict_to_workspace = restrict_to_workspace

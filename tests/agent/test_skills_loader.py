@@ -371,11 +371,14 @@ def test_build_skills_summary_keeps_absolute_roots_for_selected_project(tmp_path
     assert str(project.resolve()) not in summary
 
 
-def test_bundled_memory_skill_uses_agent_owned_path(tmp_path: Path) -> None:
+def test_bundled_memory_skill_describes_the_memory_tools(tmp_path: Path) -> None:
     memory = SkillsLoader(tmp_path).load_skill("memory")
 
     assert memory is not None
-    assert "`History log` path from the system prompt" in memory
+    assert "memory_search" in memory
+    assert "memory_remember" in memory
+    assert "memory_forget" in memory
+    assert "History log" not in memory
 
 
 def test_disabled_skills_excluded_from_get_always_skills(tmp_path: Path) -> None:

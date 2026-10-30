@@ -191,7 +191,7 @@ def strip_think(text: str) -> str:
       6. Trailing partial control tags split across stream chunks, such as
          `<thi`, `<thin`, or `<tho`.
 
-    Since this is also applied before persisting to history (memory.py),
+    Since this is also applied before persisting evidence,
     the edge-only stripping of (4) and (5) is deliberate: stripping those
     tokens mid-text would silently rewrite any message where a user or the
     assistant discusses the tokens themselves.
@@ -910,7 +910,6 @@ def sync_workspace_templates(workspace: Path, silent: bool = False) -> list[str]
             _write(item, workspace / item.name)
     _write(tpl / "memory" / "MEMORY.md", workspace / "memory" / "MEMORY.md")
     _write(tpl / "prompts" / "README.md", workspace / "prompts" / "README.md")
-    _write(None, workspace / "memory" / "history.jsonl")
     (workspace / "skills").mkdir(exist_ok=True)
 
     if added and not silent:

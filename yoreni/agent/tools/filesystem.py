@@ -24,12 +24,21 @@ from yoreni.security.workspace_access import current_tool_workspace
 from yoreni.utils.file_edit_events import FileDiff, FileEditResult, display_file_edit_path
 from yoreni.utils.helpers import build_image_content_blocks, detect_image_mime
 
+# Written only by MemoryService and core-memory maintenance, never by agent tools.
+_MEMORY_OWNED_FILES = (
+    "SOUL.md",
+    "USER.md",
+    "memory/MEMORY.md",
+    "memory/memory.sqlite3",
+    "memory/memory.sqlite3-wal",
+    "memory/memory.sqlite3-shm",
+)
+
 
 class _FsTool(Tool):
     """Shared base for filesystem tools — common init and path resolution."""
 
     config_key = "file"
-
     @classmethod
     def config_cls(cls):
         return FileToolsConfig
@@ -86,13 +95,12 @@ class _FsTool(Tool):
         )
         sandbox_restricts = bool(ctx.config.exec.sandbox)
         allowed_dir = agent_workspace if restrict else None
-        # Agent-owned skills stay available from project scopes. History is a narrower
-        # capability: expose only the append-only log, not the surrounding memory directory.
+        # Agent-owned skills stay available from project scopes. The memory
+        # directory is not a file-tool surface; memory is read through its tools.
         return cls(
             workspace=agent_workspace,
             allowed_dir=allowed_dir,
             extra_read_allowed_dirs=[BUILTIN_SKILLS_DIR, resolved_agent_workspace / "skills"],
-            extra_read_allowed_files=[resolved_agent_workspace / "memory" / "history.jsonl"],
             file_states=ctx.file_state_store,
             restrict_to_workspace=ctx.config.restrict_to_workspace,
             sandbox_restricts_workspace=sandbox_restricts,
@@ -174,12 +182,30 @@ class _FsTool(Tool):
         )
 
     def _resolve_write(self, path: str) -> Path:
-        return self._resolve_with_extra(
+        target = self._resolve_with_extra(
             path,
             self._extra_write_allowed_dirs,
             self._extra_write_allowed_files,
             include_media_dir=False,
         )
+        self._refuse_memory_write(target)
+        return target
+
+    def _refuse_memory_write(self, target: Path) -> None:
+        """Core memory and the fact store are only written by the memory system."""
+        if self._workspace is None:
+            return
+        try:
+            root = Path(self._workspace).expanduser().resolve(strict=False)
+            resolved = target.expanduser().resolve(strict=False)
+        except (OSError, RuntimeError, ValueError):
+            return
+        for relative in _MEMORY_OWNED_FILES:
+            if resolved == (root / relative).resolve(strict=False):
+                raise PermissionError(
+                    f"{relative} is maintained by the memory system; use the memory "
+                    "tools instead of editing it directly"
+                )
 
     def _resolve(self, path: str) -> Path:
         return self._resolve_read(path)

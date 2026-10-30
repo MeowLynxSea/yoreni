@@ -16,10 +16,10 @@ from loguru import logger
 
 from yoreni.agent import model_presets as preset_helpers
 from yoreni.agent.context import ContextBuilder, TranscriptInput
-from yoreni.agent.injection import TurnInjections
+from yoreni.agent.context_compaction import Consolidator
 from yoreni.agent.goal_permission import GoalInputScope
 from yoreni.agent.hook import AgentHook, AgentTurnHookFactory
-from yoreni.agent.memory import Consolidator
+from yoreni.agent.injection import TurnInjections
 from yoreni.agent.model_runtime import ModelRuntimeResolver
 from yoreni.agent.runner import (
     AgentRunner,
@@ -41,7 +41,7 @@ from yoreni.bus.events import InboundMessage, OutboundMessage
 from yoreni.bus.outbound_events import StreamDeltaEvent, StreamedResponseEvent, StreamEndEvent
 from yoreni.bus.queue import MessageBus
 from yoreni.config.network import NetworkConfig
-from yoreni.config.schema import AgentDefaults, ModelPresetConfig
+from yoreni.config.schema import AgentDefaults, MemoryConfig, ModelPresetConfig
 from yoreni.events import NO_EVENTS, EventSink
 from yoreni.llm_usage.context import source_from_request
 from yoreni.providers.base import LLMProvider, ProviderConversationState
@@ -61,7 +61,12 @@ from yoreni.security.workspace_access import (
 from yoreni.utils.llm_runtime import LLMRuntime
 
 if TYPE_CHECKING:
-    from yoreni.config.schema import ChannelsConfig, Config, ToolsConfig
+    from yoreni.config.schema import (
+        ChannelsConfig,
+        Config,
+        ProvidersConfig,
+        ToolsConfig,
+    )
     from yoreni.cron.service import CronService
     from yoreni.triggers.local_store import LocalTriggerStore
     from yoreni.widgets.service import WidgetService
@@ -167,10 +172,13 @@ class AgentLoop:
         runtime_model_publisher: Callable[[str, str | None], None] | None = None,
         restart_mode: str = "auto",
         local_trigger_store: LocalTriggerStore | None = None,
+        memory_config: MemoryConfig | None = None,
+        providers_config: ProvidersConfig | None = None,
     ):
         from yoreni.config.schema import ToolsConfig
 
         _tc = tools_config or ToolsConfig()
+        memory_cfg = memory_config or MemoryConfig()
         defaults = AgentDefaults()
         self.bus = bus
         if turn_delivery_factory is not None:
@@ -230,14 +238,27 @@ class AgentLoop:
         self._extra_hooks: list[AgentHook] = hooks or []
         self._hook_factories: list[AgentTurnHookFactory] = hook_factories or []
 
-        self.context = ContextBuilder(workspace, timezone=timezone, disabled_skills=disabled_skills)
+        self.context = ContextBuilder(
+            workspace,
+            timezone=timezone,
+            disabled_skills=disabled_skills,
+            core_token_budget=memory_cfg.core_token_budget,
+        )
+        from yoreni.memory.service import MemoryService
+
+        self.memory = MemoryService(
+            workspace,
+            memory_cfg,
+            providers=providers_config,
+            core=self.context.core,
+        )
         self.tools = tool_registry if tool_registry is not None else ToolRegistry()
         self._exec_session_manager = ExecSessionManager()
         self.runner = AgentRunner()
         from yoreni.agent.persistent import PersistentAgent
 
         self.agent = PersistentAgent(self)
-        self.consolidator = Consolidator(store=self.context.memory)
+        self.consolidator = Consolidator()
         self._running = False
         self._runtime_context_providers: list[RuntimeContextProvider] = []
         self._active_tasks: dict[str, set[asyncio.Task[Any]]] = {}
@@ -299,6 +320,8 @@ class AgentLoop:
             disabled_skills=defaults.disabled_skills,
             tools_config=config.tools,
             network_config=config.network,
+            memory_config=config.memory,
+            providers_config=config.providers,
             model_presets=preset_helpers.configured_model_presets(config),
             model_preset=defaults.model_preset,
             dream_model_preset=defaults.dream.model_override,
@@ -389,7 +412,7 @@ class AgentLoop:
             cron_service=self.cron_service,
             exec_session_manager=self._exec_session_manager,
             agent_store=self.agent.store,
-            memory=self.context.memory,
+            memory=self.memory,
             provider_snapshot_loader=provider_snapshot_loader,
             timezone=self.context.timezone or "UTC",
             workspace_sandbox=self.workspace_scopes.sandbox_status,
@@ -482,6 +505,18 @@ class AgentLoop:
         file_token = bind_file_states(file_states if file_states is not None else FileStates())
         request_token = bind_request_context(request)
         workspace_token = bind_workspace_scope(scope)
+
+        tool_evidence = None
+        if request.turn_id and self.memory.config.enabled:
+            active_run = request.turn_id
+
+            async def record_tool_evidence(tool_name: str, content: str) -> None:
+                await asyncio.to_thread(
+                    self.memory.record_tool_result, active_run, tool_name, content,
+                )
+
+            tool_evidence = record_tool_evidence
+
         try:
             with ExitStack() as stack:
                 stack.enter_context(GoalInputScope())
@@ -515,13 +550,14 @@ class AgentLoop:
                     provider_retry_mode=self.provider_retry_mode,
                     checkpoint_callback=checkpoint_callback,
                     checkpoint_messages=checkpoint_callback is not None,
+                    record_tool_result=tool_evidence,
                     consolidate_history=partial(
                         self.consolidator.summarize_transcript, runtime=runtime,
-                        run_id=request.turn_id, tools=tools.get_definitions(), persist=False,
+                        run_id=request.turn_id, tools=tools.get_definitions(),
                     ),
                     consolidate_provider_compaction=partial(
                         self.consolidator.summarize_provider_compaction, runtime=runtime,
-                        run_id=request.turn_id, tools=tools.get_definitions(), persist=False,
+                        run_id=request.turn_id, tools=tools.get_definitions(),
                     ),
                     continuation_callback=continuation_callback,
                     required_tool_round=required_tool_round,
@@ -648,7 +684,7 @@ class AgentLoop:
                 key = (msg.channel, msg.chat_id)
                 if self._interactions.get(key) is interaction:
                     del self._interactions[key]
-                for leftover in injections.close():
+                for leftover in interaction.injections.close():
                     await self._resume_leftover(run_id, leftover)
 
         self.schedule_background(execute())

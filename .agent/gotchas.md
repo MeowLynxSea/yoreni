@@ -39,6 +39,29 @@ Built-in skills live in `yoreni/skills/` (markdown + YAML frontmatter format). A
 
 ## Persistence and durability
 
-`yoreni/agent/memory.py` owns the memory journal `memory/history.jsonl`; ordinary entries are appended under a lock, without explicit fsync. Full journal rewrites use `atomic_write_lines` with its default file and directory fsync. Preserve that atomic replacement path rather than truncating the live journal in place.
+`MemoryService` (`yoreni/memory/service.py`) owns long-term memory. Evidence, facts, FTS indexes, vectors, jobs and Dream state live in `memory/memory.sqlite3`; `SOUL.md`, `USER.md` and `memory/MEMORY.md` are its only file surface. Writes that change a fact's meaning run inside one `BEGIN IMMEDIATE` transaction with their sources and index rows. Never open that database with another schema, write those files from a tool, or bypass `FactStore`.
 
 Agent identity, Event records, Run state, checkpoints, and recovery are stored in `agent.sqlite3`. `AgentStore` (`yoreni/agent/state.py`) commits runtime mutations in SQLite transactions using WAL, foreign keys, and `PRAGMA synchronous = FULL` on every connection. Keep state updates behind the AgentStore owner and preserve transaction boundaries, event deduplication, and revision checks. Existing `sessions.sqlite3` files are left untouched and are not imported.
+
+## Memory configuration
+
+Long-term memory is configured under `memory` in `config/schema.py`. `embedding` is optional: when it is absent, retrieval is keyword-only and `memory_search` reports `semantic_index: false`. When present it must name a `model` and either an OpenAI-compatible `api_base` or a configured provider whose endpoint and key are reused.
+
+```yaml
+memory:
+  enabled: true
+  embedding:
+    provider: openai
+    model: text-embedding-3-small
+    dimensions: 1536
+  core_token_budget: 3000
+  retrieval_token_budget: 4000
+  retrieval_limit: 8
+  extraction_batch: 10
+  dream_batch_facts: 60
+  dream_backlog_threshold: 20
+```
+
+`core_token_budget` and `retrieval_token_budget` bound the always-visible profile and the per-turn memory block. Changing the embedding `model` creates a separate vector set; run `MemoryService.embed_missing()` to backfill before relying on semantic results.
+
+The same fields are editable in the WebUI under Settings → Capabilities → Long-term memory. The dialog reuses configured provider credentials by default; an API key entered there is stored in the local config, returned only as a masked hint, and requires a gateway restart like other memory changes.

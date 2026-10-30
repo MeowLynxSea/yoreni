@@ -1,6 +1,6 @@
 # Long-term Memory
 
-This file stores important information that should persist across sessions.
+This file stores high-value background that should stay visible in every conversation.
 
 ## User Information
 

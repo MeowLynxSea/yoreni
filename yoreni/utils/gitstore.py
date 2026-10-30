@@ -273,6 +273,56 @@ class GitStore:
         except Exception as exc:
             raise GitStoreError("Git log failed") from exc
 
+    def head_commit_sha(self, message_prefix: str | None = None) -> str | None:
+        """Return HEAD's short SHA, optionally only when its message matches."""
+        commits = self.log(max_entries=1, message_prefix=message_prefix)
+        return commits[0].sha if commits else None
+
+    def parent_of(self, short_sha: str) -> str | None:
+        """Return the short SHA of a commit's first parent, when it has one."""
+        full_sha = self._resolve_sha(short_sha)
+        if not full_sha:
+            return None
+        try:
+            from dulwich.repo import Repo
+
+            with Repo(str(self._workspace)) as repo:
+                commit = cast("Commit", repo[full_sha])
+                return commit.parents[0].decode()[:8] if commit.parents else None
+        except Exception as exc:
+            raise GitStoreError(f"Git parent lookup failed for {short_sha}") from exc
+
+    def read_file_at(self, short_sha: str, path: str) -> str | None:
+        """Read one tracked file as of *short_sha*; None when it did not exist."""
+        full_sha = self._resolve_sha(short_sha)
+        if not full_sha:
+            return None
+        try:
+            from dulwich.repo import Repo
+
+            with Repo(str(self._workspace)) as repo:
+                commit = cast("Commit", repo[full_sha])
+                tree = cast("Tree", repo[commit.tree])
+                return self._read_blob_from_tree(repo, tree, path)
+        except Exception as exc:
+            raise GitStoreError(f"Git file read failed for {path} at {short_sha}") from exc
+
+    def checkout_files_from(self, short_sha: str, paths: list[str]) -> list[str]:
+        """Write tracked files from *short_sha* into the working tree.
+
+        Only the named files change, so unrelated later edits survive.
+        """
+        restored: list[str] = []
+        for path in paths:
+            content = self.read_file_at(short_sha, path)
+            if content is None:
+                continue
+            target = self._workspace / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+            restored.append(path)
+        return restored
+
     def diff_commits(self, sha1: str, sha2: str) -> str:
         """Show diff between two commits."""
         if not self.is_initialized():

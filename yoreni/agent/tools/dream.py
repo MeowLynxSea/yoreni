@@ -1,32 +1,34 @@
-"""Tools for the framework-owned Dream memory consolidation."""
+"""Tools for framework-owned memory consolidation."""
 
 # pyright: reportIncompatibleMethodOverride=false
 
+# pyright: reportUnknownArgumentType=false, reportUnknownMemberType=false, reportUnknownVariableType=false
 from __future__ import annotations
 
 import asyncio
+import json
 from typing import Any
 
 from loguru import logger
 
-from yoreni.agent.memory import MemoryStore
 from yoreni.agent.tools.base import Tool, ToolResult, tool_parameters
 from yoreni.agent.tools.context import ToolContext
 from yoreni.agent.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
 from yoreni.cron.service import CronService
+from yoreni.memory.models import MemoryError
+from yoreni.memory.service import MemoryService
 from yoreni.utils.gitstore import GitStoreError
 
 _DREAM_JOB_ID = "dream"
-_COMMIT_PREFIX = "dream:"
 _DEFAULT_VERSIONS = 10
 _MAX_VERSIONS = 20
 
 _DREAM_PARAMETERS = tool_parameters_schema(
     action=StringSchema(
-        "Action to perform", enum=["run", "versions", "restore"]
+        "Action to perform", enum=["run", "versions", "restore", "proposals"]
     ),
-    commit=StringSchema(
-        "REQUIRED when action='restore': commit id from action='versions'."
+    run_id=StringSchema(
+        "REQUIRED when action='restore': consolidation id from action='versions'."
     ),
     limit=IntegerSchema(
         description="Maximum consolidations for action='versions'; defaults to 10.",
@@ -36,10 +38,10 @@ _DREAM_PARAMETERS = tool_parameters_schema(
     required=["action"],
 )
 
-_background_runs: set[asyncio.Task[bool]] = set()
+_background_runs: set[asyncio.Task[bool | None]] = set()
 
 
-def _log_background_failure(task: asyncio.Task[bool]) -> None:
+def _log_background_failure(task: asyncio.Task[bool | None]) -> None:
     _background_runs.discard(task)
     if task.cancelled():
         return
@@ -49,20 +51,20 @@ def _log_background_failure(task: asyncio.Task[bool]) -> None:
 
 @tool_parameters(_DREAM_PARAMETERS)
 class DreamTool(Tool):
-    """Run memory consolidation and inspect or undo its results."""
+    """Run consolidation and inspect or undo its recorded changes."""
 
-    def __init__(self, memory: MemoryStore, cron_service: CronService | None) -> None:
+    def __init__(self, memory: MemoryService, cron_service: CronService | None) -> None:
         self._memory = memory
         self._cron_service = cron_service
 
     @classmethod
     def enabled(cls, ctx: ToolContext) -> bool:
-        return ctx.memory is not None
+        return ctx.memory is not None and ctx.memory.config.enabled
 
     @classmethod
     def create(cls, ctx: ToolContext) -> Tool:
         if ctx.memory is None:
-            raise RuntimeError("DreamTool requires a MemoryStore")
+            raise RuntimeError("DreamTool requires a MemoryService")
         return cls(ctx.memory, ctx.cron_service)
 
     @property
@@ -72,17 +74,18 @@ class DreamTool(Tool):
     @property
     def description(self) -> str:
         return (
-            "Memory consolidation. action='run' organizes recent conversation into durable "
-            "memory in the background; use it only when the user asks to tidy or update "
-            "memory. action='versions' lists recent consolidations. action='restore' undoes "
-            "one consolidation; use it only when the user asks to undo it or it clearly "
-            "damaged memory."
+            "Memory consolidation. action='run' consolidates pending facts and refreshes "
+            "core memory in the background; use it only when the user asks to tidy or "
+            "update memory. action='versions' lists recorded consolidations. "
+            "action='restore' undoes one consolidation's facts and core-file changes. "
+            "action='proposals' lists skill proposals waiting for human review; they are "
+            "never installed automatically."
         )
 
     async def execute(
         self,
         action: str,
-        commit: str | None = None,
+        run_id: str | None = None,
         limit: int | None = None,
         **kwargs: Any,
     ) -> str:
@@ -92,9 +95,11 @@ class DreamTool(Tool):
         if normalized == "versions":
             return self._versions(limit)
         if normalized == "restore":
-            return self._restore(commit)
+            return self._restore(run_id)
+        if normalized == "proposals":
+            return self._proposals(limit)
         return ToolResult.error(
-            "Error: action must be one of run, versions, or restore."
+            "Error: action must be one of run, versions, restore, or proposals."
         )
 
     def _run(self) -> str:
@@ -110,34 +115,40 @@ class DreamTool(Tool):
 
     def _versions(self, limit: int | None) -> str:
         count = min(max(limit or _DEFAULT_VERSIONS, 1), _MAX_VERSIONS)
-        try:
-            commits = list(self._memory.git.log(
-                max_entries=count, message_prefix=_COMMIT_PREFIX,
-            ))
-        except GitStoreError as exc:
-            return ToolResult.error(f"Error: {exc}")
-        if not commits:
+        versions = self._memory.store.dream_versions(count)
+        if not versions:
             return "No memory consolidations yet."
-        lines = [
-            f"{item.sha}  {item.timestamp}  {item.message.splitlines()[0]}"
-            for item in commits
-        ]
-        return "Recent memory consolidations:\n" + "\n".join(lines)
+        rows = []
+        for version in versions:
+            applied = version.get("applied") or {}
+            rows.append({
+                "run_id": version["id"],
+                "completed_at": version["updated_at"],
+                "changes": applied.get("changes", 0) if isinstance(applied, dict) else 0,
+                "files": sorted((applied.get("files") or {}).keys())
+                if isinstance(applied, dict) else [],
+                "git_commit": version.get("git_commit"),
+            })
+        return json.dumps({"consolidations": rows}, ensure_ascii=False)
 
-    def _restore(self, commit: str | None) -> str:
-        sha = (commit or "").strip()
-        if not sha:
+    def _proposals(self, limit: int | None) -> str:
+        count = min(max(limit or _DEFAULT_VERSIONS, 1), _MAX_VERSIONS)
+        proposals = self._memory.store.skill_proposals()[:count]
+        if not proposals:
+            return "No pending skill proposals."
+        return json.dumps({"proposals": proposals}, ensure_ascii=False)
+
+    def _restore(self, run_id: str | None) -> str:
+        identifier = (run_id or "").strip()
+        if not identifier:
             return ToolResult.error(
-                "Error: action='restore' requires a commit from action='versions'."
+                "Error: action='restore' requires a consolidation id from action='versions'."
             )
         try:
-            created = self._memory.git.revert(
-                sha, message_prefix=_COMMIT_PREFIX, message=f"dream: undo {sha}",
-            )
-        except GitStoreError as exc:
+            result = self._memory.restore_dream(identifier)
+        except (MemoryError, GitStoreError) as exc:
             return ToolResult.error(f"Error: {exc}")
-        if created is None:
-            return ToolResult.error(
-                "Error: that commit is not a memory consolidation, or it cannot be undone."
-            )
-        return f"Memory restored. Recorded as {created}."
+        return json.dumps(result, ensure_ascii=False)
+
+
+__all__ = ["DreamTool"]

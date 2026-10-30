@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING, Any, Callable, Protocol, runtime_checkable
 from yoreni.config.network import NetworkConfig
 
 if TYPE_CHECKING:
-    from yoreni.agent.memory import MemoryStore
     from yoreni.agent.state import AgentStore
     from yoreni.agent.tools.exec_session import ExecSessionManager
     from yoreni.agent.tools.file_state import FileStates
@@ -18,6 +17,7 @@ if TYPE_CHECKING:
     from yoreni.bus.queue import MessageBus
     from yoreni.config.schema import ProvidersConfig, ToolsConfig
     from yoreni.cron.service import CronService
+    from yoreni.memory.service import MemoryService
     from yoreni.providers.factory import ProviderSnapshot
     from yoreni.security.workspace_access import WorkspaceSandboxStatus, WorkspaceScope
     from yoreni.utils.llm_runtime import LLMRuntime
@@ -105,7 +105,7 @@ class ToolContext:
     cron_service: CronService | None = None
     exec_session_manager: ExecSessionManager | None = None
     agent_store: AgentStore | None = None
-    memory: MemoryStore | None = None
+    memory: MemoryService | None = None
     file_state_store: FileStates | None = None
     provider_snapshot_loader: Callable[..., ProviderSnapshot] | None = None
     providers_config: ProvidersConfig | None = None

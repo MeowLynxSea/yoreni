@@ -35,3 +35,17 @@ Every new cast must be supported by a boundary check or an invariant established
 ## Explicit over magical
 
 Provider auto-detection must remain traceable from the factory to the concrete provider class.
+
+## Long-term memory ownership
+
+`yoreni/memory/` is the only long-term memory implementation. `MemoryService` owns evidence, facts, indexes, the job queue, Dream state, and the core files (`SOUL.md`, `USER.md`, `memory/MEMORY.md`). Agent tools, Run completion, context assembly, and consolidation call the service; none of them opens `memory/memory.sqlite3` or writes a core file directly.
+
+Memory is owner-scoped: only the personal agent principal reads or writes it, and project visibility is expressed through fact `scope` (`global` or `project:<name>`). Retrieval filters by scope, status, kind, subject and validity before ranking, so one project cannot see another project's local facts.
+
+Evidence is durable before interpretation: a completed Run is written as `evidence` rows with deterministic IDs, and extraction runs later as a queued job. Candidate facts must cite stored evidence; the store reconciles them by provenance (`user_statement`, `user_correction`, `tool_result`, `external_document`, `agent_inference`, `unverified`) rather than by model confidence. Single-valued facts version by dedupe key; unclear conflicts stay `disputed`.
+
+Retrieval fuses FTS5 and exact SQLite vector similarity with Reciprocal Rank Fusion. `ContextBuilder` renders only a bounded core-memory summary; per-turn retrieval reaches the model through a `RuntimeContextBlock` labelled as stored data, never as instructions.
+
+Dream is a single bounded model call producing a JSON change set. Validation, application, core-file writes, the Git commit, and the cursor advance are separate durable steps recorded in `dream_runs`, so recovery can resume without applying a change twice. Dream never receives file or shell tools and cannot write `SOUL.md` or install a skill; skill proposals stay pending for independent review.
+
+`memory/memory.sqlite3` is created and migrated by `MemoryService`; the one-shot legacy import lives in `yoreni/memory/migration.py` and aborts startup on any inconsistency rather than running with partial data.

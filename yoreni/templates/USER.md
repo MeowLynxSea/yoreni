@@ -46,4 +46,4 @@ Information about the user to help personalize interactions.
 
 ---
 
-*Edit this file to customize yoreni's behavior for your needs.*
+*This profile is maintained by the agent's memory system from durable facts; you can also edit it directly while the agent is not running.*

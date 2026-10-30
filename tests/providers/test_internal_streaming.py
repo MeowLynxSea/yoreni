@@ -10,7 +10,7 @@ from agent.runner_helpers import failed_test_consolidator
 from openai import AsyncOpenAI
 
 from yoreni.agent.hook import AgentHook
-from yoreni.agent.memory import MemoryArchiver, MemoryStore
+from yoreni.agent.context_compaction import Consolidator, ContextCompactionError
 from yoreni.agent.runner import AgentRunner, AgentRunSpec
 from yoreni.agent.tools.registry import ToolRegistry
 from yoreni.providers.azure_openai_provider import AzureOpenAIProvider
@@ -167,32 +167,27 @@ async def test_silent_stream_rejects_eof_without_completion(make_provider, api, 
 
 
 @pytest.mark.parametrize("api", ["chat", "responses", "azure"])
-async def test_archive_preserves_raw_history_after_truncated_stream_retries(
-    make_provider, tmp_path, api,
+async def test_compaction_reports_failure_after_truncated_stream_retries(
+    make_provider, api,
 ):
     provider, stream = await make_provider(api, "content")
     stream.events.pop()
     provider._CHAT_RETRY_DELAYS = (0,)
     calls = []
     provider.set_llm_call_observer(calls.append)
-    store = MemoryStore(tmp_path)
-    archiver = MemoryArchiver(store=store)
     messages = [{"role": "user", "content": "Mandatory constraint: PRESERVE_AUDIT_LOGS."}]
 
-    summary = await archiver.archive(
-        messages,
-        runtime=LLMRuntime.capture(provider, "gpt-5.2", context_window_tokens=128_000),
-        run_id="cli:archive",
-        history=messages,
-        request_tools=[],
-    )
+    with pytest.raises(ContextCompactionError, match="did not complete"):
+        await Consolidator().summarize_transcript(
+            messages,
+            None,
+            runtime=LLMRuntime.capture(provider, "gpt-5.2", context_window_tokens=128_000),
+            run_id="cli:archive",
+            tools=[],
+        )
 
     assert len(calls) == 2
     assert all(call.finish_reason == "error" and call.error_kind == "connection" for call in calls)
-    assert summary is not None and "[RAW]" in summary and "PRESERVE_AUDIT_LOGS" in summary
-    entries = store.read_unprocessed_history(since_cursor=0)
-    assert len(entries) == 1
-    assert entries[0]["content"] == summary
     assert stream.closed
 
 

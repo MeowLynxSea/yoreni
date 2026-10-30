@@ -636,16 +636,19 @@ class AgentStore:
             ))
         return result
 
-    def pending_journal(self) -> list[tuple[str, list[dict[str, Any]]]]:
+    def pending_journal(self) -> list[tuple[str, list[dict[str, Any]], int]]:
         with self.connection() as db:
             rows = db.execute(
-                """SELECT runs.id,runs.transcript AS messages FROM runs
-                   JOIN events ON events.seq=runs.event_seq
+                """SELECT runs.id,runs.transcript AS messages,runs.created_at_ms
+                   FROM runs JOIN events ON events.seq=runs.event_seq
                    WHERE runs.journaled=0 AND runs.result IS NOT NULL
                      AND json_extract(events.payload,'$.kind')='user'
                    ORDER BY events.seq LIMIT 100""",
             ).fetchall()
-        return [(row["id"], json.loads(row["messages"])) for row in rows]
+        return [
+            (row["id"], json.loads(row["messages"]), int(row["created_at_ms"] or 0))
+            for row in rows
+        ]
 
     def mark_journaled(self, run_id: str) -> None:
         with self.connection() as db:

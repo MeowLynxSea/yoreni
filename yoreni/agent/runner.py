@@ -70,6 +70,7 @@ def _raise_if_cancelling() -> None:
 ContinuationCallback = Callable[[], Awaitable[str | None]]
 CheckpointCallback = Callable[[dict[str, Any]], Awaitable[None]]
 InjectionCallback = Callable[[], Awaitable[Iterable[Any] | None]]
+ToolEvidenceCallback = Callable[[str, str], Awaitable[None]]
 
 _DEFAULT_ERROR_MESSAGE = "Sorry, I encountered an error calling the AI model."
 _ARREARAGE_ERROR_MESSAGE = (
@@ -123,6 +124,7 @@ class AgentRunSpec:
     provider_retry_mode: str = "standard"
     checkpoint_callback: CheckpointCallback | None = None
     checkpoint_messages: bool = False
+    record_tool_result: ToolEvidenceCallback | None = None
     consolidate_history: HistoryConsolidator | None = None
     consolidate_provider_compaction: ProviderCompactionConsolidator | None = None
     injection_callback: InjectionCallback | None = None
@@ -675,6 +677,8 @@ class AgentRunner:
                     }
                     messages.append(tool_message)
                     completed_tool_results.append(tool_message)
+                    if spec.record_tool_result is not None:
+                        await spec.record_tool_result(tool_call.name, tool_message["content"])
                 checkpoint_model_messages = (
                     await self.prepare_prompt(
                         self.context_governor.prepare_messages_for_model, governance_config,

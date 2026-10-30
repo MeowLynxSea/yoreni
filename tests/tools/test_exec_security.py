@@ -173,29 +173,27 @@ async def test_exec_blocks_chained_internal_url():
     assert "Error" in result
 
 
-# --- #2989: block writes to yoreni internal state files -----------------
+# --- #2989: block writes to memory-owned files ---------------------------
 
 
 @pytest.mark.parametrize(
     "command",
     [
-        "cat foo >> history.jsonl",
-        "echo '{}' > history.jsonl",
-        "echo '{}' > memory/history.jsonl",
-        "echo '{}' > ./workspace/memory/history.jsonl",
-        "tee -a history.jsonl < foo",
-        "tee history.jsonl",
-        "cp /tmp/fake.jsonl history.jsonl",
-        "mv backup.jsonl memory/history.jsonl",
-        "dd if=/dev/zero of=memory/history.jsonl",
-        "sed -i 's/old/new/' history.jsonl",
-        "echo x > .dream_cursor",
-        "cp /tmp/x memory/.dream_cursor",
+        "echo '{}' > USER.md",
+        "echo '{}' > ./workspace/USER.md",
+        "echo '{}' > SOUL.md",
+        "echo '{}' > memory/MEMORY.md",
+        "echo '{}' > memory/memory.sqlite3",
+        "tee -a memory/MEMORY.md < foo",
+        "tee USER.md",
+        "cp /tmp/fake.md USER.md",
+        "mv backup.md memory/MEMORY.md",
+        "dd if=/dev/zero of=memory/memory.sqlite3",
+        "sed -i 's/old/new/' USER.md",
     ],
 )
-
-def test_exec_blocks_writes_to_history_jsonl(command):
-    """Direct writes to history.jsonl / .dream_cursor must be blocked (#2989)."""
+def test_exec_blocks_writes_to_memory_owned_files(command):
+    """Direct writes to core memory or the fact store must be blocked."""
     tool = ExecTool()
     result = tool._guard_command(command, "/tmp")
     assert result is not None
@@ -205,18 +203,16 @@ def test_exec_blocks_writes_to_history_jsonl(command):
 @pytest.mark.parametrize(
     "command",
     [
-        "cat history.jsonl",
-        "wc -l history.jsonl",
-        "tail -n 5 history.jsonl",
-        "grep foo history.jsonl",
-        "cp history.jsonl /tmp/history.backup",
+        "cat USER.md",
+        "grep foo memory/MEMORY.md",
+        "tail -n 5 memory/MEMORY.md",
+        "cp USER.md /tmp/user.backup",
         "ls memory/",
-        "echo history.jsonl",
+        "echo USER.md",
     ],
 )
-
-def test_exec_allows_reads_of_history_jsonl(command):
-    """Read-only access to history.jsonl must still be allowed."""
+def test_exec_allows_reads_of_memory_owned_files(command):
+    """Read-only access to core memory remains available."""
     tool = ExecTool()
     result = tool._guard_command(command, "/tmp")
     assert result is None

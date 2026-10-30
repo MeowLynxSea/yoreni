@@ -91,6 +91,38 @@ class DreamConfig(Base):
         return f"every {hours}h"
 
 
+class EmbeddingConfig(Base):
+    """OpenAI-compatible embedding endpoint used for semantic retrieval."""
+
+    provider: str | None = None  # Provider name whose api_base/api_key are reused
+    model: str = Field(min_length=1)
+    api_base: str | None = None  # Explicit endpoint base, e.g. https://api.openai.com/v1
+    api_key: str | None = Field(default=None, repr=False)
+    dimensions: int | None = Field(default=None, ge=1, le=8192)
+    batch_size: int = Field(default=32, ge=1, le=64)
+
+    @model_validator(mode="after")
+    def _require_endpoint(self) -> "EmbeddingConfig":
+        if not (self.api_base or self.provider):
+            raise ValueError("embedding requires api_base or provider")
+        return self
+
+
+class MemoryConfig(Base):
+    """Long-term memory budgets, retrieval and background consolidation."""
+
+    enabled: bool = True
+    embedding: EmbeddingConfig | None = None  # Absent means keyword-only retrieval
+    core_token_budget: int = Field(default=3_000, ge=400, le=32_000)
+    retrieval_token_budget: int = Field(default=4_000, ge=200, le=32_000)
+    retrieval_limit: int = Field(default=8, ge=1, le=50)
+    max_candidates: int = Field(default=20, ge=1, le=50)
+    extraction_batch: int = Field(default=10, ge=1, le=100)
+    dream_batch_facts: int = Field(default=60, ge=5, le=500)
+    dream_backlog_threshold: int = Field(default=20, ge=1, le=1_000)
+    dream_backlog_interval_min: int = Field(default=10, ge=1, le=1_440)
+
+
 class ProviderAPIConfig(Base):
     """Connection API defaults and custom endpoints' accepted request APIs."""
 
@@ -495,6 +527,7 @@ class Config(BaseSettings):
     channels: ChannelsConfig = Field(default_factory=ChannelsConfig)
     transcription: TranscriptionConfig = Field(default_factory=TranscriptionConfig)
     providers: ProvidersConfig = Field(default_factory=ProvidersConfig)
+    memory: MemoryConfig = Field(default_factory=MemoryConfig)
     network: NetworkConfig = Field(default_factory=NetworkConfig)
     api: ApiConfig = Field(default_factory=ApiConfig)
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)

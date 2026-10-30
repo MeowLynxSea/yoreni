@@ -285,15 +285,3 @@ class TestRevert:
         assert git_ready.revert(backup_sha, message_prefix="dream:") is None
         assert (ws / "SOUL.md").read_text(encoding="utf-8") == "dream v2"
         assert git_ready.log()[0].sha == latest_sha
-
-
-class TestMemoryStoreGitProperty:
-    def test_git_property_exposes_gitstore(self, tmp_path):
-        from yoreni.agent.memory import MemoryStore
-        store = MemoryStore(tmp_path)
-        assert isinstance(store.git, GitStore)
-
-    def test_git_property_is_same_object(self, tmp_path):
-        from yoreni.agent.memory import MemoryStore
-        store = MemoryStore(tmp_path)
-        assert store.git is store._git

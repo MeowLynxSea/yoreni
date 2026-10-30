@@ -15,6 +15,7 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
 from filelock import FileLock, Timeout
+from loguru import logger
 
 from yoreni.agent.agent_state_tool import AgentStateTool
 from yoreni.agent.context import TranscriptInput
@@ -30,15 +31,17 @@ from yoreni.agent.state import (
     RunOutcome,
     StoredRun,
 )
-from yoreni.agent.tools.base import Tool, ToolResult
+from yoreni.agent.tools.base import Tool
+from yoreni.agent.tools.chat_delivery import capture_message_deliveries
 from yoreni.agent.tools.context import ContextAware, RequestContext
 from yoreni.agent.tools.file_state import FileStates
-from yoreni.agent.tools.chat_delivery import capture_message_deliveries
 from yoreni.agent.tools.registry import ToolRegistry
 from yoreni.bus.events import INBOUND_META_TURN_ID, InboundMessage, OutboundMessage
 from yoreni.bus.outbound_events import StreamDeltaEvent, StreamEndEvent
 from yoreni.cron.events import cron_run_id
 from yoreni.events import AgentEvent, EventSink
+from yoreni.memory.service import iso_from_ms
+from yoreni.runtime_admission import RuntimeMaintenanceError
 from yoreni.runtime_context import (
     RUNTIME_CONTEXT_MESSAGE_META,
     RuntimeContextBlock,
@@ -102,22 +105,12 @@ def recoverable_runs(store: AgentStore) -> list[PendingRun]:
     return result
 
 
-def memory_snapshot(store: AgentStore) -> dict[str, str]:
-    root = store.path.parent
-    return {
-        str((root / name).resolve()): hashlib.sha256((root / name).read_bytes()).hexdigest()
-        if (root / name).exists() else ""
-        for name in ("SOUL.md", "USER.md", "memory/MEMORY.md")
-    }
-
-
 class _CoordinatedTool(Tool):
-    """Coordinate effects between runs, retaining the original tool contracts."""
+    """Serialize effectful tool calls without changing the tool contract."""
 
-    def __init__(self, tool: Tool, store: AgentStore, snapshots: dict[str, str]):
+    def __init__(self, tool: Tool, store: AgentStore):
         self.tool = tool
         self.store = store
-        self.snapshots = snapshots
         self._legacy_context: RequestContext | None = None
 
     @property
@@ -169,37 +162,9 @@ class _CoordinatedTool(Tool):
 
     async def execute(self, **kwargs: Any) -> Any:
         if self.read_only:
-            if self.name == "read_file":
-                from pathlib import Path
-
-                path = kwargs.get("path")
-                if isinstance(path, str):
-                    candidate = Path(path).expanduser()
-                    if not candidate.is_absolute():
-                        from yoreni.agent.tools.context import current_request_context
-
-                        context = current_request_context()
-                        candidate = (context.workspace if context and context.workspace else self.store.path.parent) / candidate
-                    resolved = str(candidate.resolve())
-                    if resolved in self.snapshots:
-                        async with resource_lock(self.store, "tool-effects"):
-                            result = await self._invoke(kwargs)
-                            if not getattr(result, "is_error", False):
-                                self.snapshots[resolved] = memory_snapshot(self.store)[resolved]
-                            return result
             return await self._invoke(kwargs)
         async with resource_lock(self.store, "tool-effects"):
-            current = memory_snapshot(self.store)
-            # Shell/MCP can edit arbitrary files. Their effects share this lease;
-            # reject stale memory before allowing a mutation from an old context.
-            if current != self.snapshots:
-                return ToolResult.error(
-                    "Agent memory changed during this run. Read SOUL.md, USER.md and "
-                    "memory/MEMORY.md again and merge your changes before writing."
-                )
-            result = await self._invoke(kwargs)
-            self.snapshots.update(memory_snapshot(self.store))
-            return result
+            return await self._invoke(kwargs)
 
 
 class PersistentAgent:
@@ -235,15 +200,33 @@ class PersistentAgent:
         )
 
     async def archive_pending(self) -> None:
-        """Drain the durable interaction outbox into the existing Dream journal."""
-        for run_id, messages in await asyncio.to_thread(self.store.pending_journal):
-            visible = [row for row in public_history_messages(messages)
-                       if row.get("role") in {"user", "assistant"} and not row.get("tool_calls")]
-            entry = self.loop.context.memory._format_messages(visible)
+        """Persist completed Runs as durable evidence and queue extraction."""
+        memory = self.loop.memory
+        if not memory.config.enabled:
+            return
+        pending = await asyncio.to_thread(self.store.pending_journal)
+        for run_id, messages, created_at_ms in pending:
             await asyncio.to_thread(
-                self.loop.context.memory.append_history, entry, entry_id=run_id, max_chars=8000,
+                memory.record_run,
+                run_id,
+                public_history_messages(messages),
+                observed_at=iso_from_ms(created_at_ms),
             )
             await asyncio.to_thread(self.store.mark_journaled, run_id)
+        if pending:
+            self.schedule_extraction()
+
+    def schedule_extraction(self) -> None:
+        """Extract new facts without blocking the Run that produced them."""
+        memory = self.loop.memory
+        if not memory.config.enabled:
+            return
+        try:
+            self.loop.schedule_background(
+                memory.extract_pending(self.loop.llm_runtime(), limit=memory.config.extraction_batch)
+            )
+        except RuntimeMaintenanceError:
+            logger.debug("memory extraction deferred: runtime is shutting down")
 
     async def execute(
         self, event: AgentInput, *,
@@ -355,11 +338,19 @@ class PersistentAgent:
                     "agent_id": identity.id, "revision": identity.revision, "state": identity.state,
                     "event": {"source": event.source, "kind": event.kind, "id": event.event_id},
                 }, ensure_ascii=False),
-                "Use agent_state to maintain preferences and task progress across runs.",
+                "Use agent_state for current task progress; durable facts belong to memory tools.",
             ]),
         )]
         if event.kind == "user" and not event.ephemeral:
             blocks.append(await self._conversation_block())
+            if self.loop.memory.config.enabled:
+                query = event.content
+                task = identity.state.get("task")
+                if isinstance(task, dict) and task:
+                    query = f"{query}\n{json.dumps(task, ensure_ascii=False)[:500]}"
+                memory_block = await self.loop.memory.context_block(query)
+                if memory_block is not None:
+                    blocks.append(memory_block)
         current_message: str | None = content
         if checkpoint:
             history = public_history_messages(checkpoint["messages"][1:])
@@ -396,17 +387,13 @@ class PersistentAgent:
             log_content=not event.ephemeral,
         )
         registry = ToolRegistry()
-        # Run-local receipts and shared effect leases prevent unrelated runs from
-        # inheriting each other's file-read deduplication or mutation baselines.
+        # Run-local receipts and shared effect leases keep unrelated runs from
+        # inheriting each other's read deduplication or concurrent mutations.
         source_tools = tools if tools is not None else loop.tools
-        snapshots = (
-            dict(checkpoint["memory_snapshot"])
-            if checkpoint and "memory_snapshot" in checkpoint else memory_snapshot(self.store)
-        )
         for name in source_tools.tool_names:
             tool = source_tools.get(name)
             if tool is not None:
-                registry.register(_CoordinatedTool(tool, self.store, snapshots))
+                registry.register(_CoordinatedTool(tool, self.store))
         if tools is None:
             registry.register(AgentStateTool(self.store))
         if event.kind == "user":
@@ -432,7 +419,6 @@ class PersistentAgent:
         async def save_checkpoint(payload: dict[str, Any]) -> None:
             portable = {key: value for key, value in payload.items() if key != "provider_state"}
             portable["context_count"] = context_count
-            portable["memory_snapshot"] = dict(snapshots)
             if not event.ephemeral:
                 await asyncio.to_thread(self.store.checkpoint, run_id, portable)
 

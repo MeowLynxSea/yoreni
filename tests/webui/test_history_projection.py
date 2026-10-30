@@ -72,6 +72,33 @@ def test_rich_rows_replay_as_cards() -> None:
     }]
 
 
+def test_link_rows_replay_as_cards() -> None:
+    frames = encode_history_entries(
+        [{
+            "seq": 1, "kind": "message",
+            "payload": {
+                "id": "l-1", "content": "https://example.com/a",
+                "created_at_ms": 5, "rich": True,
+                "media": ["https://example.com/a"],
+                "links": [{
+                    "url": "https://example.com/a", "title": "Example",
+                    "description": "A page", "site": "example.com",
+                }],
+            },
+        }],
+        sign_media=_sign,
+    )
+
+    assert frames == [{
+        "event": "message", "id": "l-1", "text": "", "created_at_ms": 5,
+        "media_urls": [{
+            "kind": "link", "url": "https://example.com/a", "name": "Example",
+            "title": "Example", "description": "A page", "site": "example.com",
+        }],
+        "rich": True,
+    }]
+
+
 def test_unknown_rows_do_not_reach_the_client() -> None:
     assert encode_history_entries(
         [{"seq": 1, "kind": "trace", "payload": {"id": "x"}}],

@@ -14,6 +14,13 @@ from yoreni.bus.outbound_events import (
     TurnEndEvent,
 )
 from yoreni.events import AgentEvent, CompactionReason
+from yoreni.utils.link_preview import (
+    LinkPreview,
+    fallback_preview,
+    host_label,
+    is_http_url,
+    link_payload,
+)
 from yoreni.webui.metadata import WEBUI_TURN_METADATA_KEY
 
 _JSONValue: TypeAlias = (
@@ -60,6 +67,65 @@ def project_tool_events(events: list[dict[str, Any]]) -> list[dict[str, _JSONVal
     return projected_events
 
 
+def media_attachments(
+    paths: Sequence[str],
+    *,
+    sign_media: Callable[[str], dict[str, str] | None],
+    links: Sequence[LinkPreview] = (),
+) -> list[dict[str, str]]:
+    """Turn delivered media into wire attachments.
+
+    External URLs become link cards, using the preview fetched at delivery or
+    the host name when a stored row predates previews.
+    """
+    previews = {link.url: link for link in links}
+    attachments: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for path in paths:
+        if not is_http_url(path):
+            signed = sign_media(path)
+            if signed is not None:
+                attachments.append(signed)
+            continue
+        if path in seen:
+            continue
+        seen.add(path)
+        attachments.append(link_payload(previews.get(path) or fallback_preview(path)))
+    for link in links:
+        if link.url in seen:
+            continue
+        seen.add(link.url)
+        attachments.append(link_payload(link))
+    return attachments
+
+
+def message_text(text: str, links: Sequence[LinkPreview]) -> str:
+    """Drop a body that only repeats a link the card already shows."""
+    trimmed = text.strip()
+    return "" if any(trimmed == link.url for link in links) else text
+
+
+def _payload_links(payload: Mapping[str, object]) -> list[LinkPreview]:
+    raw = payload.get("links")
+    if not isinstance(raw, list):
+        return []
+    links: list[LinkPreview] = []
+    for item in cast(list[object], raw):
+        if not isinstance(item, Mapping):
+            continue
+        entry = cast(Mapping[str, object], item)
+        url = str(entry.get("url") or "")
+        if not url:
+            continue
+        links.append(LinkPreview(
+            url=url,
+            title=str(entry.get("title") or host_label(url)),
+            description=str(entry.get("description") or ""),
+            site=str(entry.get("site") or ""),
+        ))
+    return links
+
+
 def encode_history_entries(
     entries: Sequence[Mapping[str, Any]],
     *,
@@ -77,17 +143,15 @@ def encode_history_entries(
         created_at_ms = payload.get("created_at_ms")
         created = int(created_at_ms) if isinstance(created_at_ms, int) else 0
         if kind == "message":
+            links = _payload_links(payload)
             frame: dict[str, Any] = {
                 "event": "message",
                 "id": str(payload.get("id") or ""),
-                "text": str(payload.get("content") or ""),
+                "text": message_text(str(payload.get("content") or ""), links),
                 "created_at_ms": created,
             }
             media_paths = [str(item) for item in cast(list[object], payload.get("media") or [])]
-            attachments = [
-                signed for path in media_paths
-                if (signed := sign_media(path)) is not None
-            ]
+            attachments = media_attachments(media_paths, sign_media=sign_media, links=links)
             if attachments:
                 frame["media_urls"] = attachments
             if payload.get("reply_to"):

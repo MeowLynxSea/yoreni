@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from loguru import logger
@@ -19,6 +19,7 @@ from yoreni.agent.tools.context import current_request_context
 from yoreni.bus.delivery import DeliveryRequest
 from yoreni.bus.events import OutboundMessage
 from yoreni.bus.outbound_events import AgentMessageEvent
+from yoreni.utils.link_preview import LinkPreview, fetch_link_preview, is_http_url
 
 if TYPE_CHECKING:
     from yoreni.agent.state import AgentStore
@@ -50,6 +51,18 @@ def capture_message_deliveries() -> Generator[SentMessages, None, None]:
         yield sends
     finally:
         _CURRENT_MESSAGE_SENDS.reset(token)
+
+
+async def preview_links(items: list[str]) -> tuple[LinkPreview, ...]:
+    """Preview every external link in a delivery, once per URL.
+
+    The requests are independent and bounded by their own timeouts, so a slow
+    site delays only its own card.
+    """
+    urls = list(dict.fromkeys(item for item in items if is_http_url(item)))
+    if not urls:
+        return ()
+    return tuple(await asyncio.gather(*(fetch_link_preview(url) for url in urls)))
 
 
 def normalize_quote(quote: str | None) -> str | None:
@@ -235,7 +248,7 @@ class OutboundChatTool(Tool):
 
     def _build_event(
         self, *, content: str, media: list[str], reply_to: str | None,
-        quote: str | None, rich: bool,
+        quote: str | None, rich: bool, links: tuple[LinkPreview, ...] = (),
     ) -> AgentMessageEvent:
         return AgentMessageEvent(
             message_id=uuid4().hex,
@@ -245,6 +258,7 @@ class OutboundChatTool(Tool):
             reply_to=reply_to,
             quote=quote,
             rich=rich,
+            links=links,
         )
 
     async def _last_chat(self, channel: str) -> str | None:
@@ -282,6 +296,16 @@ class OutboundChatTool(Tool):
         }
         if event.rich:
             payload["rich"] = True
+        if event.links:
+            payload["links"] = [
+                {
+                    "url": link.url,
+                    "title": link.title,
+                    "description": link.description,
+                    "site": link.site,
+                }
+                for link in event.links
+            ]
         try:
             await asyncio.to_thread(
                 self._store.append_entry, request_ctx.turn_id, "message", payload,

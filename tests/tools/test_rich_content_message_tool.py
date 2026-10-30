@@ -8,6 +8,7 @@ from yoreni.agent.tools.context import RequestContext, request_context
 from yoreni.agent.tools.rich_content_message import RichContentMessageTool
 from yoreni.bus.events import OutboundMessage
 from yoreni.config.paths import get_workspace_path
+from yoreni.utils.link_preview import LinkPreview
 
 
 def _collector():
@@ -34,7 +35,7 @@ async def test_rich_content_delivers_a_card_event() -> None:
 
     result = await tool.execute(media=[image], channel="telegram", chat_id="1")
 
-    assert result.startswith("Sent 1 file(s) to telegram:1")
+    assert result.startswith("Sent 1 item(s) to telegram:1")
     assert sent[0].media == [image]
     assert sent[0].event.rich is True
     assert sent[0].content == ""
@@ -95,7 +96,7 @@ async def test_rich_content_allows_workspace_absolute_media_when_restricted(tmp_
 
     result = await tool.execute(media=[str(image)], channel="telegram", chat_id="1")
 
-    assert result.startswith("Sent 1 file(s) to telegram:1")
+    assert result.startswith("Sent 1 item(s) to telegram:1")
     assert sent[0].media == [str(image.resolve())]
 
 
@@ -170,7 +171,7 @@ async def test_rich_content_validates_the_reply_target(tmp_path) -> None:
 
     assert unknown.startswith("Error: unknown reply_to message ID")
     assert wrong_quote.startswith("Error: quote must be an exact excerpt")
-    assert ok.startswith("Sent 1 file(s)")
+    assert ok.startswith("Sent 1 item(s)")
     assert sent[-1].event.reply_to == "msg-1"
     assert sent[-1].event.quote == "original"
 
@@ -203,3 +204,23 @@ async def test_rich_content_counts_sends_for_turn_delivery() -> None:
 
     assert sent.count == 2
     assert sent.targets == {("telegram", "1")}
+
+
+@pytest.mark.asyncio
+async def test_rich_content_previews_links_as_cards(monkeypatch) -> None:
+    sent, deliver = _collector()
+    tool = RichContentMessageTool(send_callback=deliver)
+
+    async def _preview(url: str) -> LinkPreview:
+        return LinkPreview(url=url, title="Example", description="A page", site="example.com")
+
+    monkeypatch.setattr("yoreni.agent.tools.chat_delivery.fetch_link_preview", _preview)
+
+    result = await tool.execute(media=["https://example.com/a"], channel="telegram", chat_id="1")
+
+    assert result.startswith("Sent 1 item(s)")
+    assert sent[0].media == ["https://example.com/a"]
+    assert sent[0].event.rich is True
+    assert sent[0].event.links == (LinkPreview(
+        url="https://example.com/a", title="Example", description="A page", site="example.com",
+    ),)

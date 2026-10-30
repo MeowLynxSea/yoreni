@@ -27,7 +27,13 @@ from yoreni.bus.queue import MessageBus
 from yoreni.pairing.events import PairingChanged
 from yoreni.webui.media_gateway import WebUIMediaGateway
 from yoreni.webui.metadata import WEBUI_TURN_METADATA_KEY
-from yoreni.webui.outbound_wire import encode_turn_end, project_notification, project_tool_events
+from yoreni.webui.outbound_wire import (
+    encode_turn_end,
+    media_attachments,
+    message_text,
+    project_notification,
+    project_tool_events,
+)
 
 if TYPE_CHECKING:
     from websockets.asyncio.server import ServerConnection
@@ -137,18 +143,19 @@ class WebUIOutboundDelivery:
             "event": "message",
             "chat_id": PERSONAL_CHAT_ID,
             "id": event.message_id,
-            "text": self._media.rewrite_local_markdown_images(event.content),
+            "text": self._media.rewrite_local_markdown_images(
+                message_text(event.content, event.links),
+            ),
         }
         # The tool puts the same files on the Event and the OutboundMessage.
         media = list(dict.fromkeys((*event.media, *msg.media)))
-        if media:
-            attachments = [
-                attachment
-                for entry in media
-                if (attachment := self._media.sign_or_stage_media_path(Path(entry))) is not None
-            ]
-            if attachments:
-                payload["media_urls"] = attachments
+        attachments = media_attachments(
+            media,
+            sign_media=lambda entry: self._media.sign_or_stage_media_path(Path(entry)),
+            links=event.links,
+        )
+        if attachments:
+            payload["media_urls"] = attachments
         if event.reply_to:
             payload["reply_to"] = event.reply_to
         if event.quote:

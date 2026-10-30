@@ -18,6 +18,7 @@ from yoreni.events import RecoveryStateEvent as RecoveryStateEvent
 from yoreni.events import RetryStatusEvent as RetryStatusEvent
 from yoreni.events import RetryWaitEvent as RetryWaitEvent
 from yoreni.providers.base import LLMUsage
+from yoreni.utils.link_preview import LinkPreview
 
 
 @dataclass(frozen=True)
@@ -109,6 +110,8 @@ class AgentMessageEvent(AgentEvent):
     quote: str | None = None
     # A card of files, drawn as its own block rather than inside a bubble.
     rich: bool = False
+    # External links whose title and description were read server-side.
+    links: tuple[LinkPreview, ...] = ()
 
 
 @dataclass(frozen=True)

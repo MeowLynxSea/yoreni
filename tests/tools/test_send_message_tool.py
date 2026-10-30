@@ -5,6 +5,7 @@ from yoreni.agent.tools.chat_delivery import capture_message_deliveries
 from yoreni.agent.tools.context import RequestContext, request_context
 from yoreni.agent.tools.send_message import LONG_MESSAGE_CHARS, SendMessageTool
 from yoreni.bus.events import OutboundMessage
+from yoreni.utils.link_preview import LinkPreview
 
 
 def _collector():
@@ -263,3 +264,45 @@ async def test_send_message_counts_sends_for_turn_delivery() -> None:
 
     assert sent.count == 2
     assert sent.targets == {("telegram", "1")}
+
+
+@pytest.mark.asyncio
+async def test_a_bare_link_is_delivered_as_a_card(monkeypatch) -> None:
+    sent, deliver = _collector()
+    tool = SendMessageTool(send_callback=deliver)
+
+    async def _preview(url: str) -> LinkPreview:
+        return LinkPreview(url=url, title="Example", description="A page", site="example.com")
+
+    monkeypatch.setattr("yoreni.agent.tools.send_message.fetch_link_preview", _preview)
+
+    result = await tool.execute(text="https://example.com/post", channel="telegram", chat_id="1")
+
+    assert "link card" in result
+    assert sent[0].event.rich is True
+    assert sent[0].event.links[0].title == "Example"
+    assert sent[0].content == "https://example.com/post"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("text", [
+    "look at https://example.com/post",
+    "https://example.com/post and read it",
+    "https://example.com/post\nthanks",
+    "https://example.com/post.",
+    "(https://example.com/post)",
+    "https://example.com/post\uff0c",
+])
+async def test_prose_around_a_link_stays_a_text_message(monkeypatch, text) -> None:
+    sent, deliver = _collector()
+    tool = SendMessageTool(send_callback=deliver)
+
+    async def _unexpected(url: str) -> LinkPreview:
+        raise AssertionError(f"should not preview {url}")
+
+    monkeypatch.setattr("yoreni.agent.tools.send_message.fetch_link_preview", _unexpected)
+
+    await tool.execute(text=text, channel="telegram", chat_id="1")
+
+    assert sent[0].event.rich is False
+    assert sent[0].event.links == ()

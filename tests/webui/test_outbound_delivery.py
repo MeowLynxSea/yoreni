@@ -8,6 +8,7 @@ import pytest
 
 from yoreni.bus.events import OutboundMessage
 from yoreni.bus.outbound_events import AgentMessageEvent, ReactionEvent, UserInputEvent
+from yoreni.utils.link_preview import LinkPreview
 from yoreni.webui.outbound_delivery import WebUIOutboundDelivery
 
 
@@ -103,6 +104,48 @@ async def test_a_rich_message_is_marked_as_a_card() -> None:
     assert transport.frames[0]["media_urls"] == [
         {"url": "/api/media/a.png", "name": "a.png"},
     ]
+
+
+@pytest.mark.asyncio
+async def test_a_link_arrives_as_a_card_instead_of_a_bare_url() -> None:
+    delivery, transport = _delivery()
+    link = LinkPreview(url="https://example.com/a", title="Example", description="A page", site="example.com")
+    event = AgentMessageEvent(
+        message_id="m4", content="https://example.com/a", created_at_ms=1,
+        media=("https://example.com/a",), rich=True, links=(link,),
+    )
+
+    await delivery.send(_message(event, media=["https://example.com/a"]))
+
+    frame = transport.frames[0]
+    assert frame["text"] == ""
+    assert frame["media_urls"] == [{
+        "kind": "link",
+        "url": "https://example.com/a",
+        "name": "Example",
+        "title": "Example",
+        "description": "A page",
+        "site": "example.com",
+    }]
+
+
+@pytest.mark.asyncio
+async def test_a_url_without_a_preview_still_becomes_a_card() -> None:
+    delivery, transport = _delivery()
+    event = AgentMessageEvent(
+        message_id="m5", content="", created_at_ms=1, media=("https://www.example.com/a",),
+    )
+
+    await delivery.send(_message(event))
+
+    assert transport.frames[0]["media_urls"] == [{
+        "kind": "link",
+        "url": "https://www.example.com/a",
+        "name": "example.com",
+        "title": "example.com",
+        "description": "",
+        "site": "example.com",
+    }]
 
 
 @pytest.mark.asyncio

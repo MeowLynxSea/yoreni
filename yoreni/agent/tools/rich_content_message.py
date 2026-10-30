@@ -1,4 +1,4 @@
-"""Tool that delivers files, images, video, and HTML as one card."""
+"""Tool that delivers files, links, images, video, and HTML as one card."""
 
 # pyright: reportIncompatibleMethodOverride=false
 
@@ -11,7 +11,11 @@ from typing import TYPE_CHECKING, Any, cast
 from loguru import logger
 
 from yoreni.agent.tools.base import ToolResult, tool_parameters
-from yoreni.agent.tools.chat_delivery import DeliveryTarget, OutboundChatTool
+from yoreni.agent.tools.chat_delivery import (
+    DeliveryTarget,
+    OutboundChatTool,
+    preview_links,
+)
 from yoreni.agent.tools.context import ToolContext
 from yoreni.agent.tools.path_utils import resolve_workspace_path
 from yoreni.agent.tools.schema import ArraySchema, StringSchema, tool_parameters_schema
@@ -28,8 +32,8 @@ if TYPE_CHECKING:
         media=ArraySchema(
             StringSchema(""),
             description=(
-                "Files to deliver: images, video, HTML pages, or any other file. "
-                "Relative paths resolve inside the workspace."
+                "Files or links to deliver: images, video, HTML pages, http(s) "
+                "links, or any other file. Relative paths resolve inside the workspace."
             ),
         ),
         text=StringSchema(
@@ -96,10 +100,11 @@ class RichContentMessageTool(OutboundChatTool):
     @property
     def description(self) -> str:
         return (
-            "Deliver files to the user as one card: images and video show a preview, "
-            "HTML pages open in a sandboxed viewer, and anything else becomes a "
-            "download card. The card is not a chat bubble, so send the sentence that "
-            "explains the files with send_message."
+            "Deliver files or links to the user as one card: images and video show a "
+            "preview, HTML pages open in a sandboxed viewer, links show the page's "
+            "title and description, and anything else becomes a download card. The "
+            "card is not a chat bubble, so send the sentence that explains them with "
+            "send_message."
         )
 
     def _resolve_media(self, media: list[str]) -> list[str]:
@@ -160,11 +165,12 @@ class RichContentMessageTool(OutboundChatTool):
             reply_to=reply_to,
             quote=normalized_quote,
             rich=True,
+            links=await preview_links(items),
         )
         error = await self._deliver(target, event, media=items, buttons=[])
         if error is not None:
             return ToolResult.error(error)
         return (
-            f"Sent {len(items)} file(s) to {target.channel}:{target.chat_id} "
+            f"Sent {len(items)} item(s) to {target.channel}:{target.chat_id} "
             f"(id: {event.message_id})."
         )

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, cast
 
@@ -13,6 +14,7 @@ from yoreni.agent.tools.base import ToolResult, tool_parameters
 from yoreni.agent.tools.chat_delivery import DeliveryTarget, OutboundChatTool
 from yoreni.agent.tools.context import ToolContext
 from yoreni.agent.tools.schema import ArraySchema, StringSchema, tool_parameters_schema
+from yoreni.utils.link_preview import fetch_link_preview, is_http_url
 
 if TYPE_CHECKING:
     from yoreni.agent.state import AgentStore
@@ -23,6 +25,24 @@ if TYPE_CHECKING:
 # splitting a long answer is the agent's call, not the transport's.
 LONG_MESSAGE_CHARS = 1200
 HUGE_MESSAGE_CHARS = 5000
+
+# One link and nothing else is a link card, not a sentence. Matching is
+# deliberately strict: prose that mentions a URL, a URL wearing a sentence's
+# trailing punctuation, and multi-line text all stay ordinary messages.
+_LINK_ONLY = re.compile(r"https?://[^\s<>\x22\x27\x60]+", re.IGNORECASE)
+_LINK_TAIL_PUNCTUATION = (
+    ".,;:!?)]}\u3001\u3002\uff0c\uff1a\uff01\uff1f\uff09\u201d\u2019\x22\x27"
+)
+
+
+def bare_link(text: str) -> str | None:
+    """Return the URL when the message is exactly one link."""
+    candidate = text.strip()
+    if not candidate or "\n" in candidate or "\r" in candidate:
+        return None
+    if not _LINK_ONLY.fullmatch(candidate) or candidate.endswith(tuple(_LINK_TAIL_PUNCTUATION)):
+        return None
+    return candidate if is_http_url(candidate) else None
 
 
 @tool_parameters(
@@ -87,8 +107,9 @@ class SendMessageTool(OutboundChatTool):
             "Say something to the user. This is how you speak: your own text output "
             "is private working notes and is never delivered. Send one message per "
             "thought, the way a person texts — short reactions, answers, follow-ups. "
-            "Use reply_to when answering a specific earlier message. Send files with "
-            "rich_content_message instead."
+            "Use reply_to when answering a specific earlier message. A message that is "
+            "only a link is delivered as a link card with the page's title and "
+            "description. Send files with rich_content_message instead."
         )
 
     async def execute(
@@ -132,6 +153,24 @@ class SendMessageTool(OutboundChatTool):
         if self._suppressed:
             logger.debug("SendMessageTool: delivery suppressed during internal check")
             return f"Message acknowledged for {target.channel}:{target.chat_id} (not delivered)"
+
+        link = bare_link(content)
+        if link is not None:
+            # A bare link reads better as a card: the page's own title and
+            # description replace a raw URL the reader would have to open.
+            preview = await fetch_link_preview(link)
+            event = self._build_event(
+                content=content, media=[], reply_to=reply_to, quote=normalized_quote,
+                rich=True, links=(preview,),
+            )
+            error = await self._deliver(target, event, media=[], buttons=button_rows or [])
+            if error is not None:
+                return ToolResult.error(error)
+            return (
+                f"Sent {link} as a link card to {target.channel}:{target.chat_id} "
+                f"(id: {event.message_id}). The card shows the page title and "
+                "description fetched server-side; the URL is not repeated as text."
+            )
 
         event = self._build_event(
             content=content, media=[], reply_to=reply_to, quote=normalized_quote, rich=False,

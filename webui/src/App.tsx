@@ -309,7 +309,7 @@ function ChatView({ greeting, run, model, onOpenSettings }: {
           <HistorySkeleton />
         ) : empty ? (
           <div className="px-5 pb-8 pt-4 sm:pb-12">
-            <h1 className="message-enter display-serif mx-auto max-w-[38rem] text-balance text-center text-[clamp(2.1rem,5vw,3.5rem)] leading-[1.04] text-foreground/90">
+            <h1 className="message-enter display-serif mx-auto max-w-[38rem] text-balance text-center text-[clamp(1.6rem,3.4vw,2.5rem)] leading-[1.15] text-foreground/90">
               {greeting}
             </h1>
           </div>

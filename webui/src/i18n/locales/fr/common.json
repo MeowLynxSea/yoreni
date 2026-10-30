@@ -808,7 +808,7 @@
       "newPresetHelp": "Enregistrez un modèle et ses réglages pour les réutiliser.",
       "presets": "Préréglages de modèle",
       "presetName": "Nom du préréglage",
-      "presetNameHelp": "Les noms doivent être uniques ; ils servent aussi à /model.",
+      "presetNameHelp": "Les noms doivent être uniques.",
       "presetNameDuplicate": "Un préréglage portant ce nom existe déjà.",
       "presetNamePlaceholder": "p. ex. Rédaction rapide",
       "advancedOptions": "Options avancées",
@@ -1766,85 +1766,6 @@
         "noInput": "Aucune entrée microphone détectée.",
         "noDevice": "Aucun microphone trouvé. Connectez-en un, puis réessayez.",
         "failed": "Impossible de transcrire l'audio."
-      },
-      "slash": {
-        "ariaLabel": "Commandes slash",
-        "label": "commandes",
-        "navigateHint": "↑↓ Naviguer",
-        "selectHint": "Entrée/Tab Insérer",
-        "closeHint": "Échap Fermer",
-        "commands": {
-          "new": {
-            "title": "Nouvelle discussion",
-            "description": "Réinitialisez ce sujet et commencez-en un nouveau."
-          },
-          "compact": {
-            "title": "Compacter le contexte",
-            "description": "Compactez le contexte et poursuivez la discussion."
-          },
-          "stop": {
-            "title": "Arrêter la tâche",
-            "description": "Arrêtez la tâche active dans cette discussion."
-          },
-          "restart": {
-            "title": "Redémarrer yoreni",
-            "description": "Redémarrez le processus yoreni."
-          },
-          "status": {
-            "title": "Afficher l’état",
-            "description": "Vérifiez l’état d’exécution, des fournisseurs et des canaux."
-          },
-          "model": {
-            "title": "Modèle",
-            "description": "Consultez ou changez le préréglage de modèle actuel."
-          },
-          "history": {
-            "title": "Historique de discussion",
-            "description": "Affichez les N derniers messages enregistrés."
-          },
-          "dream": {
-            "title": "Lancer Dream",
-            "description": "Organisez la mémoire maintenant."
-          },
-          "dream_log": {
-            "title": "Journal Dream",
-            "description": "Consultez les modifications de la dernière exécution de Dream."
-          },
-          "dream_restore": {
-            "title": "Restaurer la mémoire",
-            "description": "Restaurez un instantané précédent de la mémoire Dream."
-          },
-          "dream_prompt": {
-            "title": "Réglages Dream",
-            "description": "Définissez comment Dream organise la mémoire de cet espace."
-          },
-          "goal": {
-            "title": "Objectif long terme",
-            "description": "Demandez à l’assistant de poursuivre cet objectif."
-          },
-          "trigger": {
-            "title": "Déclencheur CLI",
-            "description": "Créez un déclencheur CLI pour cette discussion."
-          },
-          "help": {
-            "title": "Afficher l’aide",
-            "description": "Affichez les commandes slash disponibles."
-          },
-          "pairing": {
-            "title": "Appairage",
-            "description": "Gérez les demandes d’association."
-          }
-        },
-        "badges": {
-          "current": "Actuel",
-          "recent": "Récent"
-        },
-        "details": {
-          "goalActive": "L’objectif est en cours",
-          "goalReady": "Démarrer un objectif durable",
-          "history": "Afficher les messages récents",
-          "stopRunning": "En cours"
-        }
       },
       "encoding": "Traitement…",
       "remove": "Retirer la pièce jointe",

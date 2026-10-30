@@ -808,7 +808,7 @@
       "newPresetHelp": "모델과 설정을 저장해 다시 사용하세요.",
       "presets": "모델 프리셋",
       "presetName": "프리셋 이름",
-      "presetNameHelp": "이름은 고유해야 하며 /model에서도 사용됩니다.",
+      "presetNameHelp": "이름은 고유해야 합니다.",
       "presetNameDuplicate": "같은 이름의 프리셋이 이미 있습니다.",
       "presetNamePlaceholder": "예: 빠른 작성",
       "advancedOptions": "고급 옵션",
@@ -1766,85 +1766,6 @@
         "noInput": "마이크 입력이 감지되지 않았습니다.",
         "noDevice": "마이크를 찾을 수 없습니다. 연결 후 다시 시도하세요.",
         "failed": "오디오를 변환하지 못했습니다."
-      },
-      "slash": {
-        "ariaLabel": "슬래시 명령",
-        "label": "명령",
-        "navigateHint": "↑↓ 선택",
-        "selectHint": "Enter/Tab 입력",
-        "closeHint": "Esc 닫기",
-        "commands": {
-          "new": {
-            "title": "새 채팅",
-            "description": "이 주제를 초기화하고 새 주제를 시작합니다."
-          },
-          "compact": {
-            "title": "컨텍스트 압축",
-            "description": "컨텍스트를 압축하고 대화를 계속합니다."
-          },
-          "stop": {
-            "title": "작업 중지",
-            "description": "이 채팅에서 실행 중인 작업을 중지합니다."
-          },
-          "restart": {
-            "title": "yoreni 재시작",
-            "description": "yoreni 프로세스를 재시작합니다."
-          },
-          "status": {
-            "title": "상태 보기",
-            "description": "실행, 제공업체 및 채널 상태를 확인합니다."
-          },
-          "model": {
-            "title": "모델",
-            "description": "현재 모델 프리셋을 확인하거나 전환합니다."
-          },
-          "history": {
-            "title": "대화 기록",
-            "description": "저장된 최근 N개 메시지를 표시합니다."
-          },
-          "dream": {
-            "title": "Dream 실행",
-            "description": "메모리를 지금 정리합니다."
-          },
-          "dream_log": {
-            "title": "Dream 로그",
-            "description": "지난 Dream 실행의 변경을 확인합니다."
-          },
-          "dream_restore": {
-            "title": "메모리 복원",
-            "description": "이전 Dream 메모리 스냅샷을 복원합니다."
-          },
-          "dream_prompt": {
-            "title": "Dream 설정",
-            "description": "Dream이 이 작업 공간의 메모리를 정리하는 방법을 설정합니다."
-          },
-          "goal": {
-            "title": "장기 목표",
-            "description": "어시스턴트가 이 목표를 향해 계속 작업하게 합니다."
-          },
-          "trigger": {
-            "title": "CLI 트리거",
-            "description": "이 채팅의 CLI 트리거를 만듭니다."
-          },
-          "help": {
-            "title": "도움말 보기",
-            "description": "사용 가능한 슬래시 명령을 표시합니다."
-          },
-          "pairing": {
-            "title": "페어링",
-            "description": "연결 요청을 관리합니다."
-          }
-        },
-        "badges": {
-          "current": "현재",
-          "recent": "최근"
-        },
-        "details": {
-          "goalActive": "목표 실행 중",
-          "goalReady": "지속 목표 시작",
-          "history": "최근 메시지 보기",
-          "stopRunning": "실행 중"
-        }
       },
       "encoding": "처리 중…",
       "remove": "첨부 제거",

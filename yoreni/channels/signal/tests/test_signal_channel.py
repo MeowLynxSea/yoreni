@@ -727,10 +727,10 @@ class TestCheckInboundPolicy:
         allowed, _ = self._call(ch, is_group_message=True, group_id="g1", message_text="plain talk")
         assert allowed is False
 
-    def test_group_command_bypasses_mention_requirement(self):
+    def test_group_slash_text_does_not_bypass_mention_requirement(self):
         ch = _make_channel(group_enabled=True, group_policy="open", require_mention=True)
         allowed, _ = self._call(ch, is_group_message=True, group_id="g1", message_text="/help")
-        assert allowed is True
+        assert allowed is False
 
     def test_allowed_group_appends_to_buffer(self):
         """Side effect: when a group message is allowed, it lands in the buffer."""
@@ -1221,15 +1221,13 @@ class TestCommandHandling:
         assert forwarded[0]["content"].strip() == "/reset"
 
     @pytest.mark.asyncio
-    async def test_group_command_bypasses_mention_requirement(self):
-        """Slash commands in groups bypass the mention requirement and reach the bus."""
+    async def test_group_slash_text_does_not_bypass_mention_requirement(self):
         ch, forwarded = _make_channel_with_capture(
             group_enabled=True, group_policy="open", require_mention=True
         )
         params = _group_envelope(source_number="+19995550001", group_id="grp==", message="/reset")
         await ch._handle_receive_notification(params)
-        assert len(forwarded) == 1
-        assert "/reset" in forwarded[0]["content"]
+        assert forwarded == []
 
     @pytest.mark.asyncio
     async def test_command_denied_for_disallowed_dm_sender(self):

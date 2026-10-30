@@ -17,7 +17,6 @@
   "inlineTokens": {
     "title": "Inline tokens · 命令与会话标识",
     "description": "编辑命令与标识，查看高亮和会话颜色。",
-    "options": "SlashCommandText 接收 command；InlineTokenHighlight 接收 color 和内容；SessionHandleLabel 根据 id 生成颜色。",
     "command": "命令文本",
     "run": "运行 <command/> 查看状态。",
     "handle": "会话标识",

@@ -33,14 +33,11 @@ from yoreni.agent.tools.exec_session import ExecSessionManager
 from yoreni.agent.tools.file_state import FileStates, bind_file_states, reset_file_states
 from yoreni.agent.tools.registry import ToolRegistry
 from yoreni.agent.tools.runtime_control import AgentRuntimeControl
-from yoreni.agent.tools.shell import ExecTool
 from yoreni.agent.turn_delivery import TurnDeliveryFactory
 from yoreni.agent.turn_hooks import AgentTurnHookSpec, build_agent_turn_hook
 from yoreni.bus.events import InboundMessage, OutboundMessage
 from yoreni.bus.outbound_events import StreamDeltaEvent, StreamedResponseEvent, StreamEndEvent
 from yoreni.bus.queue import MessageBus
-from yoreni.command import CommandContext, CommandRouter, register_builtin_commands
-from yoreni.command.router import command_text
 from yoreni.config.network import NetworkConfig
 from yoreni.config.schema import AgentDefaults, ModelPresetConfig
 from yoreni.events import NO_EVENTS, EventSink
@@ -236,8 +233,6 @@ class AgentLoop:
         if model_preset:
             self.set_model_preset(model_preset, publish_update=False)
         self._register_default_tools(provider_snapshot_loader=provider_snapshot_loader)
-        self.commands = CommandRouter()
-        register_builtin_commands(self.commands)
 
 
     @classmethod
@@ -565,9 +560,6 @@ class AgentLoop:
         if msg.channel not in {"cli", "websocket"} and msg.principal != "owner":
             raise PermissionError("External input requires explicit owner authorization.")
         with self.bus.admission.activity():
-            raw = command_text(msg)
-            if self.commands.command_name(raw) is not None:
-                msg = dataclasses.replace(msg, metadata={**msg.metadata, "_dispatch_command": True})
             event = self.agent.input_from_message(msg)
             run_id = await asyncio.to_thread(self.agent.store.admit, event)
             record = await asyncio.to_thread(self.agent.store.read_run, run_id)
@@ -699,51 +691,3 @@ class AgentLoop:
             event=event,
             metadata=meta,
         )
-
-
-    async def execute_user_shell_command(self, ctx: CommandContext) -> OutboundMessage:
-        """Execute one trusted user command with the active workspace policy."""
-        metadata = dict(ctx.msg.metadata or {})
-        tool = self.tools.get("exec")
-        if not isinstance(tool, ExecTool):
-            content = "Shell execution is disabled in this yoreni configuration."
-        else:
-            scope = self.workspace_scopes.for_turn(
-                channel=ctx.msg.channel,
-                message_metadata=metadata,
-            )
-            request_token = bind_request_context(RequestContext(
-                channel=ctx.msg.channel,
-                chat_id=ctx.msg.chat_id,
-                message_id=metadata.get("message_id"),
-                agent_id=self.agent.store.identity().id,
-                original_user_text=f"!{ctx.args.strip()}",
-                runtime=ctx.runtime,
-                metadata=metadata,
-                sender_id=ctx.msg.sender_id,
-                turn_id=uuid4().hex,
-                workspace=scope.project_path,
-                log_content=True,
-            ))
-            workspace_token = bind_workspace_scope(scope)
-            turn_scope_stack = ExitStack()
-            try:
-                for turn_scope in ctx.turn_scopes:
-                    turn_scope_stack.enter_context(turn_scope)
-                result = await tool.execute_to_completion(
-                    command=ctx.args.strip(),
-                    working_dir=str(scope.project_path),
-                )
-                content = str(result)
-            finally:
-                turn_scope_stack.close()
-                reset_workspace_scope(workspace_token)
-                reset_request_context(request_token)
-        return OutboundMessage(
-            channel=ctx.msg.channel,
-            chat_id=ctx.msg.chat_id,
-            content=content,
-            metadata={**metadata, "render_as": "text"},
-        )
-
-

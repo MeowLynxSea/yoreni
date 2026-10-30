@@ -72,7 +72,6 @@ IMPORT_RULES = (
         ("yoreni.channels.websocket.runtime",),
         (
             "yoreni.bus.outbound_events",
-            "yoreni.command",
             "yoreni.runtime_context",
             "yoreni.security.workspace_access",
             "yoreni.pairing.events",

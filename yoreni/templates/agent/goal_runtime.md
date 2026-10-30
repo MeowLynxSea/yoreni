@@ -16,7 +16,7 @@ The objective may be replayed after compaction, retries, or resumption. Write on
 5. **Explicit about done-ness** — Name the evidence that proves completion: tests pass, an artifact exists, a checklist is satisfied, or another concrete condition holds.
 6. **Independent of `ui_summary`** — Keep `ui_summary` short and non-load-bearing; every requirement needed after compaction belongs in the objective.
 
-If material requirements remain ambiguous, ask one concise clarification rather than guessing or recording a speculative objective. Ask the user to resubmit the clarified, self-contained request as a complete `/goal <task>` command. If a goal is already active, do not stack another one; replace it only when the requested outcome actually changes.
+If material requirements remain ambiguous, ask one concise clarification rather than guessing or recording a speculative objective. Ask the user to resubmit the clarified, self-contained request as a complete goal. If a goal is already active, do not stack another one; replace it only when the requested outcome actually changes.
 {% endif %}
 
 {% if goal_active or goal_start_requested %}

@@ -808,7 +808,7 @@
       "newPresetHelp": "Lưu mô hình và thiết lập để dùng lại.",
       "presets": "Cấu hình mô hình đặt trước",
       "presetName": "Tên cấu hình đặt trước",
-      "presetNameHelp": "Tên phải duy nhất; cũng dùng trong /model.",
+      "presetNameHelp": "Tên phải duy nhất.",
       "presetNameDuplicate": "Đã có cấu hình đặt trước mang tên này.",
       "presetNamePlaceholder": "ví dụ: Viết nhanh",
       "advancedOptions": "Tùy chọn nâng cao",
@@ -1766,85 +1766,6 @@
         "noInput": "Không phát hiện đầu vào micrô.",
         "noDevice": "Không tìm thấy micrô. Hãy kết nối rồi thử lại.",
         "failed": "Không thể chép lời âm thanh."
-      },
-      "slash": {
-        "ariaLabel": "Lệnh slash",
-        "label": "lệnh",
-        "navigateHint": "↑↓ Chọn",
-        "selectHint": "Enter/Tab Chèn",
-        "closeHint": "Esc Đóng",
-        "commands": {
-          "new": {
-            "title": "Cuộc trò chuyện mới",
-            "description": "Đặt lại chủ đề này và bắt đầu chủ đề mới."
-          },
-          "compact": {
-            "title": "Nén ngữ cảnh",
-            "description": "Nén ngữ cảnh và tiếp tục trò chuyện."
-          },
-          "stop": {
-            "title": "Dừng tác vụ",
-            "description": "Dừng tác vụ đang chạy trong trò chuyện này."
-          },
-          "restart": {
-            "title": "Khởi động lại yoreni",
-            "description": "Khởi động lại tiến trình yoreni."
-          },
-          "status": {
-            "title": "Hiển thị trạng thái",
-            "description": "Xem trạng thái chạy, nhà cung cấp và kênh."
-          },
-          "model": {
-            "title": "Mô hình",
-            "description": "Xem hoặc đổi bộ thiết lập mô hình hiện tại."
-          },
-          "history": {
-            "title": "Lịch sử trò chuyện",
-            "description": "Hiện N tin nhắn đã lưu gần nhất."
-          },
-          "dream": {
-            "title": "Chạy Dream",
-            "description": "Sắp xếp bộ nhớ ngay."
-          },
-          "dream_log": {
-            "title": "Nhật ký Dream",
-            "description": "Xem thay đổi từ lần chạy Dream gần nhất."
-          },
-          "dream_restore": {
-            "title": "Khôi phục bộ nhớ",
-            "description": "Khôi phục ảnh chụp bộ nhớ Dream trước đó."
-          },
-          "dream_prompt": {
-            "title": "Thiết lập Dream",
-            "description": "Đặt cách Dream sắp xếp bộ nhớ vùng làm việc này."
-          },
-          "goal": {
-            "title": "Mục tiêu dài hạn",
-            "description": "Để trợ lý tiếp tục làm việc hướng đến mục tiêu này."
-          },
-          "trigger": {
-            "title": "Kích hoạt CLI",
-            "description": "Tạo kích hoạt CLI cho trò chuyện này."
-          },
-          "help": {
-            "title": "Hiển thị trợ giúp",
-            "description": "Hiện các lệnh slash có thể dùng."
-          },
-          "pairing": {
-            "title": "Ghép nối",
-            "description": "Quản lý yêu cầu ghép."
-          }
-        },
-        "badges": {
-          "current": "Hiện tại",
-          "recent": "Gần đây"
-        },
-        "details": {
-          "goalActive": "Mục tiêu đang chạy",
-          "goalReady": "Bắt đầu mục tiêu duy trì",
-          "history": "Hiển thị tin nhắn gần đây",
-          "stopRunning": "Đang chạy"
-        }
       },
       "encoding": "Đang xử lý…",
       "remove": "Xóa tệp đính kèm",

@@ -808,7 +808,7 @@
       "newPresetHelp": "Simpan model dan pengaturan untuk digunakan kembali.",
       "presets": "Prasetel model",
       "presetName": "Nama prasetel",
-      "presetNameHelp": "Nama harus unik; juga digunakan oleh /model.",
+      "presetNameHelp": "Nama harus unik.",
       "presetNameDuplicate": "Prasetel dengan nama ini sudah ada.",
       "presetNamePlaceholder": "mis. Menulis cepat",
       "advancedOptions": "Opsi lanjutan",
@@ -1766,85 +1766,6 @@
         "noInput": "Tidak ada input mikrofon yang terdeteksi.",
         "noDevice": "Mikrofon tidak ditemukan. Hubungkan mikrofon lalu coba lagi.",
         "failed": "Tidak dapat mentranskripsi audio."
-      },
-      "slash": {
-        "ariaLabel": "Perintah slash",
-        "label": "perintah",
-        "navigateHint": "↑↓ Pilih",
-        "selectHint": "Enter/Tab Sisipkan",
-        "closeHint": "Esc Tutup",
-        "commands": {
-          "new": {
-            "title": "Obrolan baru",
-            "description": "Reset topik ini dan mulai yang baru."
-          },
-          "compact": {
-            "title": "Ringkas konteks",
-            "description": "Ringkas konteks dan lanjutkan chat."
-          },
-          "stop": {
-            "title": "Hentikan tugas",
-            "description": "Hentikan tugas aktif di chat ini."
-          },
-          "restart": {
-            "title": "Mulai ulang yoreni",
-            "description": "Mulai ulang proses yoreni."
-          },
-          "status": {
-            "title": "Tampilkan status",
-            "description": "Periksa status eksekusi, penyedia, dan kanal."
-          },
-          "model": {
-            "title": "Model",
-            "description": "Lihat atau ganti preset model saat ini."
-          },
-          "history": {
-            "title": "Riwayat chat",
-            "description": "Tampilkan N pesan terakhir yang tersimpan."
-          },
-          "dream": {
-            "title": "Jalankan Dream",
-            "description": "Atur memori sekarang."
-          },
-          "dream_log": {
-            "title": "Log Dream",
-            "description": "Lihat perubahan dari eksekusi Dream terakhir."
-          },
-          "dream_restore": {
-            "title": "Pulihkan memori",
-            "description": "Pulihkan snapshot memori Dream sebelumnya."
-          },
-          "dream_prompt": {
-            "title": "Pengaturan Dream",
-            "description": "Atur cara Dream mengelola memori ruang kerja ini."
-          },
-          "goal": {
-            "title": "Tujuan jangka panjang",
-            "description": "Minta asisten terus mengerjakan tujuan ini."
-          },
-          "trigger": {
-            "title": "Pemicu CLI",
-            "description": "Buat pemicu CLI untuk chat ini."
-          },
-          "help": {
-            "title": "Tampilkan bantuan",
-            "description": "Tampilkan perintah slash yang tersedia."
-          },
-          "pairing": {
-            "title": "Pemasangan",
-            "description": "Kelola permintaan pemasangan."
-          }
-        },
-        "badges": {
-          "current": "Saat ini",
-          "recent": "Terbaru"
-        },
-        "details": {
-          "goalActive": "Tujuan sedang berjalan",
-          "goalReady": "Mulai tujuan berkelanjutan",
-          "history": "Tampilkan pesan terbaru",
-          "stopRunning": "Sedang berjalan"
-        }
       },
       "encoding": "Memproses…",
       "remove": "Hapus lampiran",

@@ -7,5 +7,4 @@ export interface SendOptions {
   mcpPresets?: OutboundMcpPresetMention[];
   quotedContext?: string;
   workspaceScope?: WorkspaceScopePayload | null;
-  userShell?: boolean;
 }

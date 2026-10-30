@@ -927,15 +927,14 @@ async def test_compaction_restores_issue_context_on_next_message(
 
 
 @pytest.mark.asyncio
-async def test_followup_slash_command_is_not_wrapped_in_issue_context(tmp_path: Path) -> None:
+async def test_followup_slash_prefixed_text_is_wrapped_in_issue_context(tmp_path: Path) -> None:
     channel, _ = _runtime(tmp_path)
     payload = _agent_webhook(action="prompted")
     payload["agentActivity"]["body"] = "/help"
     await channel._process_webhook("command", payload)  # pyright: ignore[reportPrivateUsage]
-    assert (await channel.bus.consume_inbound()).content == "/help"
-    payload["agentActivity"]["body"] = "Continue"
-    await channel._process_webhook("after-command", payload)  # pyright: ignore[reportPrivateUsage]
-    assert "Current Linear issue:" in (await channel.bus.consume_inbound()).content
+    content = (await channel.bus.consume_inbound()).content
+    assert "Current Linear issue:" in content
+    assert content.endswith("/help")
 
 
 @pytest.mark.asyncio
@@ -1087,16 +1086,14 @@ async def test_inbound_attachments_enforce_the_count_limit(
 
 
 @pytest.mark.asyncio
-async def test_prompted_stop_signal_becomes_priority_stop_command(tmp_path: Path) -> None:
+async def test_prompted_stop_signal_is_not_forwarded(tmp_path: Path) -> None:
     channel, client = _runtime(tmp_path)
     await channel._process_webhook(  # pyright: ignore[reportPrivateUsage]
         "delivery-2",
         _agent_webhook(action="prompted", signal="stop"),
     )
 
-    inbound = await channel.bus.consume_inbound()
-    assert inbound.content == "/stop"
-    assert inbound.metadata["linear"]["signal"] == "stop"
+    assert channel.bus.inbound_size == 0
     assert client.activities == []
 
 

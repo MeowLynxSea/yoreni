@@ -17,7 +17,6 @@
   "inlineTokens": {
     "title": "Inline tokens · Perintah dan pengenal sesi",
     "description": "Edit perintah dan pengenal untuk melihat sorotan serta warna sesi yang konsisten.",
-    "options": "SlashCommandText menerima command; InlineTokenHighlight menerima color dan konten. SessionHandleLabel menentukan warna berdasarkan id.",
     "command": "Teks perintah",
     "run": "Jalankan <command/> untuk memeriksa status.",
     "handle": "Pengenal sesi",

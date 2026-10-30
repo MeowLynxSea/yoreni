@@ -15,7 +15,6 @@ from urllib.parse import urlparse
 
 from pydantic import Field, field_validator, model_validator
 from telegram import (
-    BotCommand,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
@@ -34,7 +33,6 @@ from yoreni.bus.events import OutboundMessage
 from yoreni.bus.outbound_events import ProgressEvent
 from yoreni.bus.queue import MessageBus
 from yoreni.channels.base import BaseChannel
-from yoreni.command.builtin import build_help_text
 from yoreni.config.network import NetworkConfig
 from yoreni.config.paths import get_media_dir
 from yoreni.config_base import Base
@@ -483,7 +481,6 @@ class _StreamBuf:
 class _QueuedTelegramUpdate:
     """Telegram update staged for ordered chat ingress."""
 
-    kind: Literal["command", "message"]
     update: Update
     sort_key: tuple[int, int]
 
@@ -543,41 +540,6 @@ class TelegramConfig(Base):
         return self
 
 
-_TELEGRAM_COMMAND_ALIASES = {
-    "/dream_log": "/dream-log",
-    "/dream_restore": "/dream-restore",
-    "/dream_prompt": "/dream-prompt",
-    "/evaluator_prompt": "/evaluator-prompt",
-}
-_TELEGRAM_DISPLAY_COMMAND_RE = re.compile(
-    r"(?<![\w/.-])/(?:dream-log|dream-restore|dream-prompt|evaluator-prompt)(?![\w/.-])"
-)
-
-
-def _telegram_command_text(text: str) -> str:
-    """Render command references for Telegram without changing fenced code or diffs."""
-    display_names = {value: key for key, value in _TELEGRAM_COMMAND_ALIASES.items()}
-    lines: list[str] = []
-    fence: str | None = None
-    for line in text.splitlines(keepends=True):
-        stripped = line.lstrip()
-        if fence is not None:
-            if stripped.startswith(fence):
-                fence = None
-        elif stripped.startswith(("```", "~~~")):
-            fence = stripped[:3]
-        else:
-            line = _TELEGRAM_DISPLAY_COMMAND_RE.sub(lambda match: display_names[match[0]], line)
-            # Inline code is not tappable as a Telegram command.
-            line = re.sub(
-                r"`(/(?:dream_log|dream_restore|dream_prompt|evaluator_prompt)(?: [^`\n]*)?)`",
-                r"\1",
-                line,
-            )
-        lines.append(line)
-    return "".join(lines)
-
-
 class TelegramChannel(BaseChannel):
     """
     Telegram channel using long polling or webhook mode.
@@ -589,36 +551,6 @@ class TelegramChannel(BaseChannel):
     name = "telegram"
     display_name = "Telegram"
     uses_shared_proxy = True
-
-    # Commands registered with Telegram's command menu
-    BOT_COMMANDS: list[BotCommand] = [
-        BotCommand("start", "Start the bot"),
-        BotCommand("new", "Start a new conversation"),
-        BotCommand("compact", "Compact this chat's context"),
-        BotCommand("stop", "Stop the current task"),
-        BotCommand("restart", "Restart the bot"),
-        BotCommand("status", "Show bot status"),
-        BotCommand("history", "Show recent conversation messages"),
-        BotCommand("goal", "Start a sustained objective (long-running task)"),
-        BotCommand("trigger", "Create a named local trigger"),
-        BotCommand("pairing", "Manage DM pairing (approve/deny/list)"),
-        BotCommand("model", "Switch runtime model preset"),
-        BotCommand("skill", "List enabled skills"),
-        BotCommand("dream", "Run Dream memory consolidation now"),
-        BotCommand("dream_log", "Show the latest Dream memory change"),
-        BotCommand("dream_restore", "Restore Dream memory to an earlier version"),
-        BotCommand("dream_prompt", "Tell Dream how to organize memory"),
-        BotCommand("evaluator_prompt", "Customize the heartbeat evaluator prompt"),
-        BotCommand("help", "Show available commands"),
-    ]
-
-    # Regex for slash commands routed to AgentLoop via ``_forward_command``.
-    # Telegram-safe aliases are normalized before reaching the core router.
-    # Canonical hyphenated commands stay on a separate handler (below).
-    TELEGRAM_BUS_SLASH_COMMAND_RE = re.compile(
-        r"^/(?:new|compact|stop|restart|status|dream|history|goal|trigger|pairing|model|skill"
-        r"|dream_log|dream_restore|dream_prompt|evaluator_prompt|evaluator-prompt)(?:@\w+)?(?:\s+[\s\S]*)?$"
-    )
 
     @classmethod
     def default_config(cls) -> dict[str, Any]:
@@ -671,15 +603,6 @@ class TelegramChannel(BaseChannel):
             return False
 
         return sid in allow_list or username in allow_list
-
-    @staticmethod
-    def _normalize_telegram_command(content: str) -> str:
-        """Map Telegram-safe command aliases back to canonical yoreni commands."""
-        if not content.startswith("/"):
-            return content
-        command = content.split(maxsplit=1)[0]
-        canonical = _TELEGRAM_COMMAND_ALIASES.get(command, command)
-        return canonical + content[len(command):]
 
     async def start(self) -> None:
         """Start the Telegram bot, rebuilding the app whenever polling stalls."""
@@ -765,31 +688,12 @@ class TelegramChannel(BaseChannel):
         self._app = builder.build()
         self._app.add_error_handler(self._on_error)
 
-        # Add command handlers (using Regex to support @username suffixes before bot initialization)
-        self._app.add_handler(MessageHandler(filters.Regex(r"^/start(?:@\w+)?$"), self._on_start))
-        self._app.add_handler(
-            MessageHandler(
-                filters.Regex(TelegramChannel.TELEGRAM_BUS_SLASH_COMMAND_RE),
-                self._forward_command,
-            )
-        )
-        self._app.add_handler(
-            MessageHandler(
-                filters.Regex(
-                    r"^/(?:dream-log|dream-restore|dream-prompt)(?:@\w+)?(?:\s+[\s\S]*)?$"
-                ),
-                self._forward_command,
-            )
-        )
-        self._app.add_handler(MessageHandler(filters.Regex(r"^/help(?:@\w+)?$"), self._on_help))
-
         # Add message handler for text, photos, video, voice, documents, and locations
         self._app.add_handler(
             MessageHandler(
                 (filters.TEXT | filters.PHOTO | filters.VIDEO | filters.VIDEO_NOTE
                  | filters.ANIMATION | filters.VOICE | filters.AUDIO
-                 | filters.Document.ALL | filters.LOCATION)
-                & ~filters.COMMAND,
+                 | filters.Document.ALL | filters.LOCATION),
                 self._on_message
             )
         )
@@ -811,17 +715,17 @@ class TelegramChannel(BaseChannel):
         await self._app.initialize()
         await self._app.start()
 
-        # Get bot info and register command menu
+        # Get bot info
         bot_info = await self._app.bot.get_me()
         self._bot_user_id = getattr(bot_info, "id", None)
         self._bot_username = getattr(bot_info, "username", None)
         self.logger.info("bot @{} connected", bot_info.username)
 
         try:
-            await self._app.bot.set_my_commands(self.BOT_COMMANDS)
-            self.logger.debug("bot commands registered")
+            # Clear the command menu left behind by older versions.
+            await self._app.bot.set_my_commands([])
         except Exception as e:
-            self.logger.warning("Failed to register bot commands: {}", e)
+            self.logger.warning("Failed to clear bot commands: {}", e)
 
         if self.config.mode == "webhook":
             # ``url_path`` is the local HTTP route. ``webhook_url`` is the
@@ -1250,8 +1154,6 @@ class TelegramChannel(BaseChannel):
             buttons = cast(list[list[str]], getattr(msg, "buttons", None) or [])
             reply_markup = self._build_keyboard(buttons) if buttons else None
             text = msg.content
-            if msg.metadata.get("render_as") == "text":
-                text = _telegram_command_text(text)
             # Fallback: no native keyboard → splice labels into the message so the choices survive.
             if buttons and reply_markup is None:
                 text = f"{text}\n\n{self._buttons_as_text(buttons)}"
@@ -1702,33 +1604,6 @@ class TelegramChannel(BaseChannel):
         buf.message_id = sent.message_id
         buf.text = markdown_tail
 
-    async def _on_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Handle /start command."""
-        if not update.message or not update.effective_user:
-            return
-
-        user = update.effective_user
-        sender_id = self._sender_id(user)
-        if not self.is_allowed(sender_id):
-            await self._send_pairing_code_if_private(sender_id, update.message, user)
-            return
-        await update.message.reply_text(
-            f"👋 Hi {user.first_name}! I'm yoreni.\n\n"
-            "Send me a message and I'll respond!\n"
-            "Type /help to see available commands."
-        )
-
-    async def _on_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Handle /help command for allowed users only."""
-        if not update.message or not update.effective_user:
-            return
-        user = update.effective_user
-        sender_id = self._sender_id(user)
-        if not self.is_allowed(sender_id):
-            await self._send_pairing_code_if_private(sender_id, update.message, user)
-            return
-        await update.message.reply_text(_telegram_command_text(build_help_text()))
-
     @staticmethod
     def _sender_id(user: User) -> str:
         """Build sender_id with username for allowlist matching."""
@@ -1932,7 +1807,6 @@ class TelegramChannel(BaseChannel):
     def _enqueue_ordered_update(
         self,
         *,
-        kind: Literal["command", "message"],
         update: Update,
     ) -> None:
         """Stage a Telegram update behind a short per-chat reorder window."""
@@ -1942,7 +1816,6 @@ class TelegramChannel(BaseChannel):
         key = self._queue_key_for_message(message)
         self._inbound_buffers.setdefault(key, []).append(
             _QueuedTelegramUpdate(
-                kind=kind,
                 update=update,
                 sort_key=self._sort_key_for_update(update),
             )
@@ -1964,10 +1837,7 @@ class TelegramChannel(BaseChannel):
                 batch.sort(key=lambda item: item.sort_key)
                 for item in batch:
                     try:
-                        if item.kind == "command":
-                            await self._process_forward_command(item.update)
-                        else:
-                            await self._process_message_update(item.update)
+                        await self._process_message_update(item.update)
                     except Exception as e:
                         self.logger.warning(
                             "Telegram queued update handling failed for {}: {}",
@@ -1984,42 +1854,6 @@ class TelegramChannel(BaseChannel):
             if not self._inbound_buffers.get(key):
                 self._inbound_workers.pop(key, None)
 
-    async def _forward_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Forward slash commands to the bus for unified handling in AgentLoop."""
-        if not update.message or not update.effective_user:
-            return
-        if not self._running:
-            await self._process_forward_command(update)
-            return
-        self._enqueue_ordered_update(kind="command", update=update)
-
-    async def _process_forward_command(self, update: Update) -> None:
-        """Process a queued slash command."""
-        message = update.message
-        user = update.effective_user
-        if message is None or user is None:
-            return
-        sender_id = self._sender_id(user)
-        if not self.is_allowed(sender_id):
-            await self._send_pairing_code_if_private(sender_id, message, user)
-            return
-        self._remember_thread_context(message)
-
-        # Strip @bot_username suffix if present
-        content = message.text or ""
-        if content.startswith("/"):
-            command = content.split(maxsplit=1)[0]
-            content = command.split("@", 1)[0] + content[len(command):]
-        content = self._normalize_telegram_command(content)
-
-        await self._handle_message(
-            sender_id=sender_id,
-            chat_id=str(message.chat_id),
-            content=content,
-            metadata=self._build_message_metadata(message, user),
-            is_dm=message.chat.type == "private",
-        )
-
     async def _on_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle incoming messages (text, photos, voice, documents)."""
         if not update.message or not update.effective_user:
@@ -2027,7 +1861,7 @@ class TelegramChannel(BaseChannel):
         if not self._running:
             await self._process_message_update(update)
             return
-        self._enqueue_ordered_update(kind="message", update=update)
+        self._enqueue_ordered_update(update=update)
 
     async def _process_message_update(self, update: Update) -> None:
         """Process a queued Telegram message update."""

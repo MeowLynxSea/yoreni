@@ -17,7 +17,6 @@
   "inlineTokens": {
     "title": "Inline tokens · 指令與對話識別",
     "description": "編輯指令與識別碼，查看醒目樣式與色彩。",
-    "options": "SlashCommandText 接收 command；InlineTokenHighlight 接收 color 與內容；SessionHandleLabel 依 id 產生色彩。",
     "command": "指令文字",
     "run": "執行 <command/> 查看狀態。",
     "handle": "對話識別碼",

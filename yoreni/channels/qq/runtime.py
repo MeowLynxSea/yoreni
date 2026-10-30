@@ -441,7 +441,7 @@ class QQChannel(BaseChannel):
         # (Telegram/Discord edit their notice; WebSocket projects it as status).
         # QQ's C2C/group API has no edit or recall endpoint, so by default the
         # automatic lifecycle is quiet by default (#5784). Explicit opt-in
-        # restores it; manual /compact always retains its requested feedback.
+        # restores it; requested feedback is retained.
         if (
             isinstance(msg.event, ContextCompactionEvent)
             and not (msg.event.notify or self.show_compaction_notices)

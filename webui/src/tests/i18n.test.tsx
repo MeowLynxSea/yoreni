@@ -22,23 +22,6 @@ import {
 const QUICK_ACTION_KEYS = ["plan", "analyze", "brainstorm", "code", "summarize", "more"];
 const IMAGE_QUICK_ACTION_KEYS = ["icon", "sticker", "poster", "product", "portrait", "edit"];
 const HERO_GREETING_KEYS = ["workOn", "start", "build", "tackle"];
-const SLASH_COMMAND_KEYS = [
-  "new",
-  "compact",
-  "stop",
-  "restart",
-  "status",
-  "model",
-  "history",
-  "dream",
-  "dream_log",
-  "dream_restore",
-  "dream_prompt",
-  "goal",
-  "trigger",
-  "help",
-  "pairing",
-];
 const SETTINGS_NAV_KEYS = [
   "overview",
   "appearance",
@@ -568,23 +551,6 @@ describe("webui i18n", () => {
         extra: [],
         interpolationMismatches: [],
       });
-    }
-  });
-
-  it("keeps slash commands localized for every registered locale", () => {
-    for (const resource of Object.values(resources)) {
-      const slash = resource.common.thread.composer.slash;
-      expect(slash.badges.current).toBeTruthy();
-      expect(slash.badges.recent).toBeTruthy();
-      expect(slash.details.goalActive).toBeTruthy();
-      expect(slash.details.goalReady).toBeTruthy();
-      expect(slash.details.history).toBeTruthy();
-      expect(slash.details.stopRunning).toBeTruthy();
-      for (const key of SLASH_COMMAND_KEYS) {
-        const command = slash.commands[key as keyof typeof slash.commands];
-        expect(command.title).toBeTruthy();
-        expect(command.description).toBeTruthy();
-      }
     }
   });
 

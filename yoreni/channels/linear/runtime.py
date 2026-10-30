@@ -14,7 +14,7 @@ from typing import Any, cast
 from urllib.parse import urlparse
 
 from yoreni.bus.delivery import ChannelNotReadyError
-from yoreni.bus.events import InboundMessage, OutboundMessage
+from yoreni.bus.events import OutboundMessage
 from yoreni.bus.outbound_events import ContextCompactionEvent, ProgressEvent, RetryWaitEvent
 from yoreni.bus.queue import MessageBus
 from yoreni.channels.base import BaseChannel
@@ -406,7 +406,9 @@ class LinearChannel(BaseChannel):
         prompt_content = _prompt_text(
             payload, session, activity, action, issue_context=issue_context,
         )
-        content = "/stop" if signal == "stop" else prompt_content
+        if signal == "stop":
+            return
+        content = prompt_content
         if not content:
             if signal in {"auth", "continue", "select"}:
                 content = _signal_text(signal, activity)
@@ -447,19 +449,6 @@ class LinearChannel(BaseChannel):
             # failures take the normal error path and never publish an agent turn.
             if not await client.list_members(organization_id, user_id=sender_id):
                 raise LinearPayloadError("sender is not active in an accessible Linear team")
-        if signal == "stop":
-            if not self.is_allowed(authorization_id):
-                return
-            await self.bus.publish_inbound(
-                InboundMessage(
-                    channel=self.name,
-                    sender_id=sender_id,
-                    chat_id=agent_session_id,
-                    content=content,
-                    metadata=metadata,
-                )
-            )
-            return
         media: list[str] = []
         context_delivered = False
         if self.is_allowed(authorization_id):
@@ -473,7 +462,7 @@ class LinearChannel(BaseChannel):
             media, attachment_warnings = await self._download_prompt_media(
                 organization_id, content, delivery_id
             )
-            if issue_context and prompt_content and not content.startswith("/"):
+            if issue_context and prompt_content:
                 if self._issue_contexts.get(agent_session_id) == issue_context:
                     content = _prompt_text(payload, session, activity, action)
                 context_delivered = True
@@ -604,7 +593,7 @@ def _prompt_text(
     else:
         value = activity.get("body") or activity.get("content")
         text = _text_from_value(value) or _text_from_value(session.get("comment"))
-        if not text or text.startswith("/"):
+        if not text:
             return text
     return "\n\n".join(part for part in (issue_context, text) if part)
 

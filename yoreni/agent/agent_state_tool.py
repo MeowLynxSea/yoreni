@@ -29,7 +29,7 @@ class AgentStateTool(Tool):
             "Read or update your durable preferences and task state. "
             "Updates replace the state and require the revision returned by read. "
             "On conflict, read the latest state and merge your changes. "
-            "Preserve goal and model control fields; use goal tools and /model to change them."
+            "Preserve goal and model control fields; use goal tools and the model settings to change them."
         )
 
     @property
@@ -55,7 +55,7 @@ class AgentStateTool(Tool):
             if any(state.get(key) != current.state.get(key) for key in _CONTROL_KEYS):
                 return ToolResult.error(
                     "Preserve goal and model control fields. Use create_goal/update_goal "
-                    "for sustained goals and /model for model selection."
+                    "for sustained goals and the model settings for model selection."
                 )
             identity = await asyncio.to_thread(self.store.update, revision, state)
         else:

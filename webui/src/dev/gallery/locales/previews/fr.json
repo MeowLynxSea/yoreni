@@ -17,7 +17,6 @@
   "inlineTokens": {
     "title": "Inline tokens · Commandes et identifiants de session",
     "description": "Modifiez les commandes et identifiants pour observer la mise en évidence et les couleurs stables.",
-    "options": "SlashCommandText reçoit command ; InlineTokenHighlight reçoit color et le contenu. SessionHandleLabel déduit sa couleur de id.",
     "command": "Texte de commande",
     "run": "Exécutez <command/> pour vérifier l’état.",
     "handle": "Identifiant de session",

@@ -17,7 +17,6 @@
   "inlineTokens": {
     "title": "Inline tokens · Lệnh và định danh phiên",
     "description": "Sửa lệnh và định danh để xem phần tô sáng và màu ổn định của phiên.",
-    "options": "SlashCommandText nhận command; InlineTokenHighlight nhận color và nội dung. SessionHandleLabel xác định màu từ id.",
     "command": "Văn bản lệnh",
     "run": "Chạy <command/> để kiểm tra trạng thái.",
     "handle": "Định danh phiên",

@@ -8,7 +8,6 @@ from yoreni.pairing.store import (
     format_pairing_reply,
     generate_code,
     get_approved,
-    handle_pairing_command,
     is_approved,
     list_pending,
     record_delivery,
@@ -16,9 +15,8 @@ from yoreni.pairing.store import (
     revoke_channel,
 )
 
-# Metadata keys used by channels and commands to tag pairing-related messages.
+# Metadata key used by channels to tag pairing-related messages.
 PAIRING_CODE_META_KEY = "_pairing_code"
-PAIRING_COMMAND_META_KEY = "_pairing_command"
 
 __all__ = [
     "approve_code",
@@ -28,12 +26,10 @@ __all__ = [
     "format_pairing_reply",
     "generate_code",
     "get_approved",
-    "handle_pairing_command",
     "is_approved",
     "list_pending",
     "record_delivery",
     "revoke",
     "revoke_channel",
     "PAIRING_CODE_META_KEY",
-    "PAIRING_COMMAND_META_KEY",
 ]

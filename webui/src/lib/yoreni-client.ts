@@ -151,14 +151,14 @@ export class YoreniClient {
   transcribeAudio(dataUrl: string, options?: { durationMs?: number; timeoutMs?: number }) {
     return this.request<string>({ type: "transcribe_audio", data_url: dataUrl, duration_ms: options?.durationMs }, options?.timeoutMs ?? 120000);
   }
-  async submit(content: string, media: DraftAttachment[] = [], options: { eventId?: string; workspaceScope?: WorkspaceScopePayload; quote?: string; cliApps?: unknown[]; mcpPresets?: unknown[]; userShell?: boolean } = {}): Promise<string> {
+  async submit(content: string, media: DraftAttachment[] = [], options: { eventId?: string; workspaceScope?: WorkspaceScopePayload; quote?: string; cliApps?: unknown[]; mcpPresets?: unknown[] } = {}): Promise<string> {
     const socket = this.socket;
     const capability = this.upload;
     const references = await uploadAttachments(media, capability, typeof window === "undefined" ? this.options.url : window.location.href,
       () => this.socket === socket && socket?.readyState === 1 && this.upload === capability);
     const eventId = options.eventId ?? crypto.randomUUID();
     const body = { type: "message", event_id: eventId, content, media: references,
-      workspace_scope: options.workspaceScope, quote: options.quote, cli_apps: options.cliApps, mcp_presets: options.mcpPresets, user_shell: options.userShell };
+      workspace_scope: options.workspaceScope, quote: options.quote, cli_apps: options.cliApps, mcp_presets: options.mcpPresets };
     return new Promise<string>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(eventId);

@@ -93,7 +93,7 @@ def test_storage_and_security_do_not_depend_on_adapters(module: str, rule: str) 
     "dependency",
     [
         "yoreni.bus.outbound_events.ProgressEvent",
-        "yoreni.command.router",
+        "yoreni.runtime_context",
         "yoreni.pairing.events.PairingChanged",
         "yoreni.webui.outbound_wire.project_notification",
     ],
@@ -189,8 +189,8 @@ def test_existing_runtime_and_composition_dependencies_remain_allowed(
         ),
         (
             "yoreni/channels/websocket/runtime.py",
-            "import importlib as modules\nmodules.import_module('yoreni.command.router')",
-            "websocket-transport", "yoreni.command.router", 2,
+            "import importlib as modules\nmodules.import_module('yoreni.runtime_context')",
+            "websocket-transport", "yoreni.runtime_context", 2,
         ),
         (
             "yoreni/agent/tools/shell.py", "from ...config.schema import Base as ConfigBase",

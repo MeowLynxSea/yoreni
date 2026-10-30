@@ -30,7 +30,9 @@ describe("user message quotes", () => {
     });
   });
 
-  it("does not place quoted context ahead of slash commands", () => {
-    expect(formatQuotedUserMessage("/model", "selected answer excerpt")).toBe("/model");
+  it("includes quoted context for slash-prefixed text", () => {
+    expect(formatQuotedUserMessage("/model", "selected answer excerpt")).toBe(
+      "> [!QUOTE]\n> selected answer excerpt\n\n/model",
+    );
   });
 });

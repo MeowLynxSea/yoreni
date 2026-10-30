@@ -451,7 +451,7 @@
       "newPresetHelp": "Salve um modelo e seus ajustes para reutilizar.",
       "presets": "Predefinições de modelo",
       "presetName": "Nome da predefinição",
-      "presetNameHelp": "Os nomes devem ser únicos; também são usados por /model.",
+      "presetNameHelp": "Os nomes devem ser únicos.",
       "presetNameDuplicate": "Já existe uma predefinição com este nome.",
       "presetNamePlaceholder": "ex.: Escrita rápida",
       "advancedOptions": "Opções avançadas",
@@ -1766,85 +1766,6 @@
         "noInput": "Não foi detectada entrada do microfone.",
         "noDevice": "Nenhum microfone encontrado. Conecte um e tente novamente.",
         "failed": "Não foi possível transcrever o áudio."
-      },
-      "slash": {
-        "ariaLabel": "Comandos de barra",
-        "label": "comandos",
-        "navigateHint": "↑↓ Navegar",
-        "selectHint": "Enter/Tab Selecionar",
-        "closeHint": "Esc Fechar",
-        "badges": {
-          "current": "Atual",
-          "recent": "Recente"
-        },
-        "details": {
-          "goalActive": "Objetivo em execução",
-          "goalReady": "Iniciar um objetivo sustentado",
-          "history": "Mostrar mensagens recentes",
-          "stopRunning": "Executando agora"
-        },
-        "commands": {
-          "new": {
-            "title": "Nova conversa",
-            "description": "Reinicie este tópico e comece um novo."
-          },
-          "compact": {
-            "title": "Compactar contexto",
-            "description": "Compacte o contexto e continue a conversa."
-          },
-          "stop": {
-            "title": "Parar tarefa",
-            "description": "Pare a tarefa ativa nesta conversa."
-          },
-          "restart": {
-            "title": "Reiniciar yoreni",
-            "description": "Reinicie o processo yoreni."
-          },
-          "status": {
-            "title": "Mostrar status",
-            "description": "Confira o status de execução, provedores e canais."
-          },
-          "model": {
-            "title": "Modelo",
-            "description": "Veja ou troque o preset de modelo atual."
-          },
-          "history": {
-            "title": "Histórico da conversa",
-            "description": "Mostre as últimas N mensagens salvas."
-          },
-          "dream": {
-            "title": "Executar Dream",
-            "description": "Organize a memória agora."
-          },
-          "dream_log": {
-            "title": "Log Dream",
-            "description": "Veja as alterações da última execução do Dream."
-          },
-          "dream_restore": {
-            "title": "Restaurar memória",
-            "description": "Restaure um snapshot anterior da memória Dream."
-          },
-          "dream_prompt": {
-            "title": "Ajustes do Dream",
-            "description": "Defina como Dream organiza a memória deste espaço."
-          },
-          "goal": {
-            "title": "Objetivo de longa duração",
-            "description": "Peça ao assistente para continuar trabalhando neste objetivo."
-          },
-          "trigger": {
-            "title": "Gatilho CLI",
-            "description": "Crie um gatilho CLI para esta conversa."
-          },
-          "help": {
-            "title": "Mostrar ajuda",
-            "description": "Mostre os comandos de barra disponíveis."
-          },
-          "pairing": {
-            "title": "Pareamento",
-            "description": "Gerencie solicitações de pareamento."
-          }
-        }
       },
       "mentions": {
         "ariaLabel": "Aplicativos",

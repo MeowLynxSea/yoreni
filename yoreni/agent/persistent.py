@@ -12,7 +12,6 @@ import json
 import time
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 from filelock import FileLock, Timeout
@@ -36,7 +35,6 @@ from yoreni.agent.tools.message import capture_message_deliveries
 from yoreni.agent.tools.registry import ToolRegistry
 from yoreni.bus.events import INBOUND_META_TURN_ID, InboundMessage, OutboundMessage
 from yoreni.bus.outbound_events import StreamDeltaEvent, StreamEndEvent
-from yoreni.command.router import CommandContext, command_text
 from yoreni.cron.events import cron_run_id
 from yoreni.events import AgentEvent, EventSink
 from yoreni.runtime_context import (
@@ -271,8 +269,7 @@ class PersistentAgent:
         run_id = await asyncio.to_thread(self.store.admit, event)
         # User interactions share recent context; background work has its own
         # lane and acquires resource leases only while executing effects.
-        priority = event.metadata.get("_dispatch_command") and self.loop.commands.is_priority(event.content)
-        lane = "control" if priority else "interaction" if event.kind == "user" else f"run:{run_id}"
+        lane = "interaction" if event.kind == "user" else f"run:{run_id}"
         async with resource_lock(self.store, f"event:{run_id}"):
             async with resource_lock(self.store, lane):
                 record = await asyncio.to_thread(self.store.read_run, run_id)
@@ -316,36 +313,6 @@ class PersistentAgent:
         loop = self.loop
         identity = await asyncio.to_thread(self.store.identity)
         checkpoint = record["checkpoint"]
-        if event.kind == "user" and event.metadata.get("_dispatch_command"):
-            if checkpoint and checkpoint["phase"] == "command":
-                raise RuntimeError(
-                    "Command execution was interrupted and its effects may have completed. "
-                    "Check the effects, then cancel this Run before submitting a new Event."
-                )
-            msg = InboundMessage(
-                event.channel, event.principal, event.chat_id, event.content,
-                media=list(event.media), metadata={**event.metadata, "run_id": run_id},
-            )
-            raw = command_text(msg)
-            command = loop.commands.command_name(raw)
-            if command is not None:
-                if not event.ephemeral:
-                    await asyncio.to_thread(self.store.start, run_id, [])
-                    if command != "/goal":
-                        await asyncio.to_thread(self.store.checkpoint, run_id, {"phase": "command"})
-                ctx = CommandContext(msg=msg, raw=raw, loop=loop, is_user_turn=True)
-                result = await (
-                    loop.commands.dispatch_priority(ctx) if loop.commands.is_priority(raw)
-                    else loop.commands.dispatch(ctx)
-                )
-                if isinstance(result, OutboundMessage):
-                    command_outcome: RunOutcome = {"content": result.content, "stop_reason": "completed"}
-                    if not event.ephemeral:
-                        await asyncio.to_thread(self.store.finish, run_id, [], command_outcome)
-                    result.metadata.update({"agent_run_id": run_id, "run_id": run_id})
-                    return result
-                if isinstance(result, InboundMessage):
-                    event = replace(event, content=result.content, metadata=result.metadata)
         if runtime is None:
             preset = identity.state.get("model_preset")
             runtime = (

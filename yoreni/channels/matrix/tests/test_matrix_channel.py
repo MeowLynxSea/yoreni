@@ -1283,7 +1283,7 @@ async def test_on_message_keeps_matrix_threads_independent() -> None:
 
     await channel._on_message(room, _thread_event("Plan the wedding", "$reply1", "$root1"))
     await channel._on_message(room, _thread_event("Pick a gift", "$reply2", "$root1"))
-    await channel._on_message(room, _thread_event("/new", "$reply3", "$root2"))
+    await channel._on_message(room, _thread_event("Start a new subject", "$reply3", "$root2"))
 
     assert [message["chat_id"] for message in handled] == [
         "!room:matrix.org",
@@ -1295,7 +1295,7 @@ async def test_on_message_keeps_matrix_threads_independent() -> None:
         "$root1",
         "$root2",
     ]
-    assert handled[2]["content"] == "/new"
+    assert handled[2]["content"] == "Start a new subject"
 
 
 @pytest.mark.asyncio
@@ -3093,29 +3093,9 @@ def _listen_event(body: str, *, mentioned: bool = False, msgtype: str = "m.text"
     return event
 
 
-@pytest.mark.parametrize("command", ["/status", "/model other", "/help extra", "/goal"])
-@pytest.mark.asyncio
-async def test_listen_control_command_preserves_context_for_next_question(command: str) -> None:
-    bus = MessageBus()
-    channel = MatrixChannel(_make_config(group_policy="listen"), bus)
-    room = SimpleNamespace(room_id="!room:matrix.org", member_count=3)
-    await channel._on_message(room, _listen_event("the picnic is on Sunday"))
-
-    await channel._on_message(room, _listen_event(command, mentioned=True))
-    command_input = await bus.consume_inbound()
-    assert command_input.content == command
-    assert RUNTIME_CONTEXT_INPUT_META not in command_input.metadata
-
-    await channel._on_message(room, _listen_event("what did we decide?", mentioned=True))
-    question = await bus.consume_inbound()
-    blocks = question.metadata[RUNTIME_CONTEXT_INPUT_META]
-    assert "the picnic is on Sunday" in blocks[0].content
-    assert "!room:matrix.org" not in channel._listen_buffers
-
-
 @pytest.mark.parametrize("content", ["/goal prepare a picnic plan", "/tmp/notes.md"])
 @pytest.mark.asyncio
-async def test_listen_agent_input_keeps_context_for_goal_and_slash_prefixed_text(content: str) -> None:
+async def test_listen_agent_input_keeps_context_for_prefixed_text(content: str) -> None:
     bus = MessageBus()
     channel = MatrixChannel(_make_config(group_policy="listen"), bus)
     room = SimpleNamespace(room_id="!room:matrix.org", member_count=3)
@@ -3126,21 +3106,6 @@ async def test_listen_agent_input_keeps_context_for_goal_and_slash_prefixed_text
     assert question.content == content
     assert "the picnic is on Sunday" in question.metadata[RUNTIME_CONTEXT_INPUT_META][0].content
     assert "!room:matrix.org" not in channel._listen_buffers
-
-
-@pytest.mark.asyncio
-async def test_listen_new_command_clears_discussion_without_attaching_it() -> None:
-    bus = MessageBus()
-    channel = MatrixChannel(_make_config(group_policy="listen"), bus)
-    room = SimpleNamespace(room_id="!room:matrix.org", member_count=3)
-    await channel._on_message(room, _listen_event("old discussion"))
-
-    await channel._on_message(room, _listen_event("/new", mentioned=True))
-    command_input = await bus.consume_inbound()
-    assert RUNTIME_CONTEXT_INPUT_META not in command_input.metadata
-    await channel._on_message(room, _listen_event("new question", mentioned=True))
-    question = await bus.consume_inbound()
-    assert RUNTIME_CONTEXT_INPUT_META not in question.metadata
 
 
 @pytest.mark.asyncio
@@ -3168,27 +3133,6 @@ async def test_listen_media_directory_error_preserves_context_for_next_question(
     assert "@alice:matrix.org: discussion 4\n" in block.content
     assert "@alice:matrix.org: discussion 33" in block.content
     assert "!room:matrix.org" not in channel._listen_buffers
-
-
-@pytest.mark.asyncio
-async def test_listen_media_control_command_preserves_discussion(monkeypatch) -> None:
-    bus = MessageBus()
-    channel = MatrixChannel(_make_config(group_policy="listen"), bus)
-    marker = "[attachment: picture.png - download failed]"
-    monkeypatch.setattr(channel, "_fetch_media_attachment", AsyncMock(return_value=(None, marker)))
-    room = SimpleNamespace(room_id="!room:matrix.org", member_count=3)
-    await channel._on_message(room, _listen_event("the picnic is on Sunday"))
-
-    await channel._on_media_message(room, _listen_event("/help", mentioned=True, msgtype="m.image"))
-    command_input = await bus.consume_inbound()
-    assert command_input.content == f"/help\n{marker}"
-    assert RUNTIME_CONTEXT_INPUT_META not in command_input.metadata
-
-    await channel._on_message(room, _listen_event("what did we decide?", mentioned=True))
-    question = await bus.consume_inbound()
-    assert "the picnic is on Sunday" in question.metadata[RUNTIME_CONTEXT_INPUT_META][0].content
-
-
 
 
 @pytest.mark.asyncio

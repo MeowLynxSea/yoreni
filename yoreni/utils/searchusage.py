@@ -1,4 +1,4 @@
-"""Web search provider usage fetchers for /status command."""
+"""Web search provider usage fetchers for runtime status output."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ class SearchUsageInfo:
     crawl_used: int | None = None
 
     def format(self) -> str:
-        """Return a human-readable multi-line string for /status output."""
+        """Return a human-readable multi-line string for status output."""
         lines: list[str] = [f"🔍 Web Search: {self.provider}"]
 
         if not self.supported:

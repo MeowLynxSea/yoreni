@@ -14,9 +14,7 @@ import { CodeBlock } from "@/components/CodeBlock";
 import { FallbackResponseSources } from "@/components/ResponseSourceBadge";
 import { ImageGallery } from "@/components/ImageGallery";
 import { InlineImageProvider, useInlineImages } from "@/components/InlineImageContext";
-import { INLINE_REFERENCE_HIGHLIGHT_COLOR, InlineTokenHighlight } from "@/components/InlineTokenHighlight";
 import { MarkdownText } from "@/components/MarkdownText";
-import { SlashCommandText } from "@/components/SlashCommandText";
 import { ContextCompactionNotice } from "@/components/thread/ContextCompactionNotice";
 import { UserMessageText } from "@/components/UserMessageText";
 import { HoverHint } from "@/components/ui/tooltip";
@@ -24,12 +22,10 @@ import { cn } from "@/lib/utils";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { formatMessageEndTime } from "@/lib/format-time";
 import { toMediaAttachment } from "@/lib/media";
-import { matchingSlashCommand } from "@/lib/slash-command";
 import { parseQuotedUserMessage } from "@/lib/user-message-quote";
 import type {
   CliAppInfo,
   McpPresetInfo,
-  SlashCommand,
   UICliAppAttachment,
   UIMcpPresetAttachment,
   UIImage,
@@ -45,7 +41,6 @@ interface MessageBubbleProps {
   temporary?: boolean;
   cliApps?: CliAppInfo[];
   mcpPresets?: McpPresetInfo[];
-  slashCommands?: SlashCommand[];
   onOpenFilePreview?: (path: string) => void;
   /** Context-menu trigger positioned against this message's visual block. */
   contextMenu?: ReactNode;
@@ -371,7 +366,6 @@ export function MessageBubble({
   temporary = false,
   cliApps = [],
   mcpPresets = [],
-  slashCommands = [],
   onOpenFilePreview,
   contextMenu,
 }: MessageBubbleProps) {
@@ -404,26 +398,7 @@ export function MessageBubble({
     const showDeliveryStatus =
       message.deliveryStatus === "sending" || message.deliveryStatus === "failed";
     const quotedContext = parsedMessage.quotedContext;
-    const slashCommand = matchingSlashCommand(userContent, slashCommands);
-    const bangPrefix = /^(\s*)!/.exec(userContent);
-    const messageText = bangPrefix ? (
-      <>
-        {bangPrefix[1]}
-        <InlineTokenHighlight testId="message-shell-prefix" className="font-normal" color={INLINE_REFERENCE_HIGHLIGHT_COLOR}>
-          <span className="opacity-90">!</span>
-        </InlineTokenHighlight>
-        {userContent.slice(bangPrefix[0].length)}
-      </>
-    ) : slashCommand ? (
-      <>
-        <SlashCommandText command={slashCommand.command} />
-        <UserMessageText
-          text={userContent.slice(slashCommand.command.length)}
-          cliApps={mentionCliApps}
-          mcpPresets={mentionMcpPresets}
-        />
-      </>
-    ) : (
+    const messageText = (
       <UserMessageText
         text={userContent}
         cliApps={mentionCliApps}

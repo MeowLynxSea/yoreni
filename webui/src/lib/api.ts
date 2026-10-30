@@ -1,24 +1,10 @@
 
-import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, FilePreviewPayload, FileReferenceMetadata, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, SlashCommand, SlashCommandLifecycle, TranscriptionSettingsUpdate, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
+import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, FilePreviewPayload, FileReferenceMetadata, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
 
 const API_READ_TIMEOUT_MS = 20_000;
 const API_MUTATION_TIMEOUT_MS = 20_000;
 const PACKAGE_MUTATION_TIMEOUT_MS = 150_000;
-const SLASH_COMMAND_LIFECYCLES = new Set<SlashCommandLifecycle>([
-  "side_channel",
-  "finalize_active_turn",
-  "stop_active_turn",
-  "agent_turn",
-  "agent_turn_with_args",
-]);
-
-function isSlashCommandLifecycle(value: unknown): value is SlashCommandLifecycle {
-  return (
-    typeof value === "string"
-    && SLASH_COMMAND_LIFECYCLES.has(value as SlashCommandLifecycle)
-  );
-}
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -701,40 +687,6 @@ export async function updateMcpServerTools(
     "settings.mcp.tools",
     { name, enabled_tools: enabledTools },
   );
-}
-
-export async function listSlashCommands(
-  token: string,
-  base: string = "",
-): Promise<SlashCommand[]> {
-  type Row = {
-    command: string;
-    title: string;
-    description: string;
-    icon: string;
-    arg_hint?: string;
-    lifecycle?: unknown;
-    accepts_args?: unknown;
-  };
-  const body = await request<{ commands: Row[] }>(
-    `${base}/api/commands`,
-    token,
-    undefined,
-    API_READ_TIMEOUT_MS,
-  );
-  return body.commands
-    .flatMap((command) => {
-      if (!isSlashCommandLifecycle(command.lifecycle)) return [];
-      return [{
-        command: command.command,
-        title: command.title,
-        description: command.description,
-        icon: command.icon,
-        argHint: command.arg_hint ?? "",
-        lifecycle: command.lifecycle,
-        acceptsArgs: command.accepts_args === true,
-      }];
-    });
 }
 
 function modelGenerationSettingsPayload(

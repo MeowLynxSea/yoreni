@@ -17,7 +17,6 @@
   "inlineTokens": {
     "title": "Inline tokens · 명령과 세션 식별자",
     "description": "명령과 식별자를 편집하여 강조 표시와 일관된 세션 색상을 확인합니다.",
-    "options": "SlashCommandText는 command를, InlineTokenHighlight는 color와 내용을 받습니다. SessionHandleLabel은 id로 색상을 정합니다.",
     "command": "명령 텍스트",
     "run": "<command/> 명령으로 상태를 확인합니다.",
     "handle": "세션 식별자",

@@ -6,7 +6,6 @@ import json
 from typing import Any, Mapping, cast
 
 GOAL_STATE_KEY = "goal_state"
-GOAL_COMMAND = "/goal"
 MAX_GOAL_OBJECTIVE_CHARS = 4000
 _MAX_OBJECTIVE_WS = 600
 
@@ -23,12 +22,8 @@ def sustained_goal_active(metadata: Mapping[str, Any] | None) -> bool:
 
 
 def explicit_goal_requested(message_metadata: Mapping[str, Any] | None) -> bool:
-    """True when this turn was explicitly started by the ``/goal`` command."""
-    if not message_metadata:
-        return False
-    if message_metadata.get("goal_requested") is True:
-        return True
-    return str(message_metadata.get("original_command") or "").strip() == GOAL_COMMAND
+    """True when this turn was explicitly started as a sustained goal."""
+    return bool(message_metadata and message_metadata.get("goal_requested") is True)
 
 
 def sustained_goal_turn(

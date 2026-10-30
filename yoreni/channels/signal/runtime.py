@@ -867,8 +867,7 @@ class SignalChannel(BaseChannel):
                 timestamp=timestamp,
             )
 
-            is_command = bool(message_text and message_text.strip().startswith("/"))
-            if not is_command and not self._should_respond_in_group(message_text, mentions):
+            if not self._should_respond_in_group(message_text, mentions):
                 self.logger.info(
                     "Ignoring group message (require_mention: {})",
                     self.config.group.require_mention,

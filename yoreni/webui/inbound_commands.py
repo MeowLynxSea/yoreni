@@ -15,10 +15,9 @@ from loguru import logger
 from websockets.asyncio.server import ServerConnection
 
 from yoreni.agent.state import PERSONAL_CHAT_ID
-from yoreni.bus.events import INBOUND_META_TURN_ID, INBOUND_META_USER_SHELL, InboundMessage
+from yoreni.bus.events import INBOUND_META_TURN_ID, InboundMessage
 from yoreni.channels.websocket.attachment_policy import validate_attachment_batch
 from yoreni.channels.websocket.attachment_store import AttachmentUploadError
-from yoreni.command.builtin import USER_SHELL_COMMAND
 from yoreni.runtime_context import WEBUI_QUOTE_METADATA, normalize_webui_quote
 from yoreni.security.workspace_access import WORKSPACE_SCOPE_METADATA_KEY, WorkspaceScopeError
 from yoreni.webui.attachments import inspect_local_attachment
@@ -175,9 +174,6 @@ class WebUICommandRouter:
             quote = normalize_webui_quote(envelope.get("quote"))
             if quote:
                 metadata[WEBUI_QUOTE_METADATA] = quote
-            if envelope.get("user_shell") is True and content.startswith("!"):
-                metadata[INBOUND_META_USER_SHELL] = True
-                content = f"{USER_SHELL_COMMAND} {content[1:].lstrip()}"
             if self.gateway.accept_input is None:
                 raise RuntimeError("Agent runtime unavailable")
             # Commit validated upload ownership before durable Event admission.

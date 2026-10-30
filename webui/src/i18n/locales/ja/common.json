@@ -808,7 +808,7 @@
       "newPresetHelp": "モデルと設定を保存して再利用します。",
       "presets": "モデルプリセット",
       "presetName": "プリセット名",
-      "presetNameHelp": "名前は重複できません。/model でも使用します。",
+      "presetNameHelp": "名前は一意である必要があります。",
       "presetNameDuplicate": "同じ名前のプリセットがすでに存在します。",
       "presetNamePlaceholder": "例：文章作成用",
       "advancedOptions": "詳細オプション",
@@ -1766,85 +1766,6 @@
         "noInput": "マイク入力が検出されませんでした。",
         "noDevice": "マイクが見つかりません。接続して再試行してください。",
         "failed": "音声を文字起こしできませんでした。"
-      },
-      "slash": {
-        "ariaLabel": "スラッシュコマンド",
-        "label": "コマンド",
-        "navigateHint": "↑↓ 選択",
-        "selectHint": "Enter/Tab 入力",
-        "closeHint": "Esc 閉じる",
-        "commands": {
-          "new": {
-            "title": "新しいチャット",
-            "description": "現在のトピックをリセットして、新しく始めます。"
-          },
-          "compact": {
-            "title": "コンテキストを圧縮",
-            "description": "コンテキストを圧縮し、会話を続けます。"
-          },
-          "stop": {
-            "title": "タスクを停止",
-            "description": "このチャットで実行中のタスクを停止します。"
-          },
-          "restart": {
-            "title": "yoreni を再起動",
-            "description": "yoreni のプロセスを再起動します。"
-          },
-          "status": {
-            "title": "ステータスを表示",
-            "description": "実行、プロバイダー、チャンネルの状態を確認します。"
-          },
-          "model": {
-            "title": "モデル",
-            "description": "現在のモデルプリセットを確認・切り替えます。"
-          },
-          "history": {
-            "title": "会話の履歴",
-            "description": "保存済みメッセージの直近 N 件を表示します。"
-          },
-          "dream": {
-            "title": "Dream を実行",
-            "description": "メモリーを今すぐ整理します。"
-          },
-          "dream_log": {
-            "title": "Dream ログ",
-            "description": "前回の Dream の変更を確認します。"
-          },
-          "dream_restore": {
-            "title": "メモリを復元",
-            "description": "以前の Dream メモリースナップショットに戻します。"
-          },
-          "dream_prompt": {
-            "title": "Dream 設定",
-            "description": "このワークスペースのメモリーを Dream が整理する方法を設定します。"
-          },
-          "goal": {
-            "title": "長期目標",
-            "description": "アシスタントがこの目標に向けて作業を続けます。"
-          },
-          "trigger": {
-            "title": "CLI トリガー",
-            "description": "このチャット用の CLI トリガーを作成します。"
-          },
-          "help": {
-            "title": "ヘルプを表示",
-            "description": "使用できるスラッシュコマンドを表示します。"
-          },
-          "pairing": {
-            "title": "ペアリング",
-            "description": "連携のリクエストを管理します。"
-          }
-        },
-        "badges": {
-          "current": "現在",
-          "recent": "最近"
-        },
-        "details": {
-          "goalActive": "目標が実行中",
-          "goalReady": "継続的な目標を開始",
-          "history": "最近のメッセージを表示",
-          "stopRunning": "実行中"
-        }
       },
       "encoding": "処理中…",
       "remove": "添付を削除",

@@ -17,7 +17,6 @@
   "inlineTokens": {
     "title": "Inline tokens · Commands and session handles",
     "description": "Edit commands and handles to see highlighting and stable session colors.",
-    "options": "SlashCommandText takes command; InlineTokenHighlight takes color and content. SessionHandleLabel derives its color from id.",
     "command": "Command text",
     "run": "Run <command/> to check the status.",
     "handle": "Session handle",

@@ -436,7 +436,7 @@ export function ModelsSettings({
         title={tx("settings.models.presetName", "Preset name")}
         description={tx(
           "settings.models.presetNameHelp",
-          "Used everywhere, including /model commands. Names must be unique.",
+          "Names must be unique.",
         )}
       >
         <div

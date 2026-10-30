@@ -17,7 +17,7 @@ import { useLocalPreferences } from "@/hooks/useLocalPreferences";
 import { fmtDateTime, formatMessageHoverTime } from "@/lib/format-time";
 import { projectActivityTimeline, type TurnUnit } from "@/lib/activity-timeline";
 import { cn } from "@/lib/utils";
-import type { CliAppInfo, McpPresetInfo, RetryStatus, SlashCommand, UIMessage } from "@/lib/types";
+import type { CliAppInfo, McpPresetInfo, RetryStatus, UIMessage } from "@/lib/types";
 
 interface ThreadMessagesProps {
   messages: UIMessage[];
@@ -36,7 +36,6 @@ interface ThreadMessagesProps {
   hiddenUserMessageCount?: number;
   cliApps?: CliAppInfo[];
   mcpPresets?: McpPresetInfo[];
-  slashCommands?: SlashCommand[];
   forkBoundaryMessageCount?: number | null;
   traceDetailScope?: string | null;
   onLoadTraceDetails?: (refs: string[]) => void | Promise<void>;
@@ -94,7 +93,6 @@ export function ThreadMessages({
   hiddenUserMessageCount = 0,
   cliApps = [],
   mcpPresets = [],
-  slashCommands = [],
   forkBoundaryMessageCount = null,
   traceDetailScope = null,
   onLoadTraceDetails,
@@ -279,7 +277,6 @@ export function ThreadMessages({
             temporary={temporary}
             cliApps={cliApps}
             mcpPresets={mcpPresets}
-            slashCommands={slashCommands}
             traceDetailScope={traceDetailScope}
             onLoadTraceDetails={onLoadTraceDetails}
             onOpenFilePreview={onOpenFilePreview}
@@ -381,7 +378,6 @@ interface ThreadDisplayUnitProps {
   temporary: boolean;
   cliApps: CliAppInfo[];
   mcpPresets: McpPresetInfo[];
-  slashCommands: SlashCommand[];
   traceDetailScope: string | null;
   onLoadTraceDetails?: (refs: string[]) => void | Promise<void>;
   onOpenFilePreview?: (path: string) => void;
@@ -582,7 +578,6 @@ const ThreadDisplayUnit = memo(function ThreadDisplayUnit({
   temporary,
   cliApps,
   mcpPresets,
-  slashCommands,
   traceDetailScope,
   onLoadTraceDetails,
   onOpenFilePreview,
@@ -751,7 +746,6 @@ const ThreadDisplayUnit = memo(function ThreadDisplayUnit({
               temporary={temporary}
               cliApps={cliApps}
               mcpPresets={mcpPresets}
-              slashCommands={slashCommands}
               onOpenFilePreview={onOpenFilePreview}
               contextMenu={unit.message.role === "user" && !mobileActions ? blockMenu : undefined}
             />
@@ -798,7 +792,6 @@ function threadDisplayUnitPropsEqual(
     && previous.temporary === next.temporary
     && previous.cliApps === next.cliApps
     && previous.mcpPresets === next.mcpPresets
-    && previous.slashCommands === next.slashCommands
     && previous.traceDetailScope === next.traceDetailScope
     && previous.onLoadTraceDetails === next.onLoadTraceDetails
     && previous.onOpenFilePreview === next.onOpenFilePreview

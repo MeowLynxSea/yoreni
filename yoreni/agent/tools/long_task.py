@@ -35,12 +35,11 @@ from yoreni.utils.prompt_templates import render_template
 
 _GOAL_ACTIONS = ("complete", "cancel", "block", "replace")
 _CREATE_UNAVAILABLE_ERROR = (
-    "Error: create_goal is unavailable for this turn. Ask the user to submit the complete "
-    "objective as `/goal <task>`."
+    "Error: create_goal is unavailable for this turn. Ask the user to start a goal."
 )
 _REPLACE_UNAVAILABLE_ERROR = (
-    "Error: replacing the goal is unavailable for this turn. Ask the user to submit the "
-    "replacement objective as `/goal <task>`."
+    "Error: replacing the goal is unavailable for this turn. Ask the user to start "
+    "a replacement goal."
 )
 
 

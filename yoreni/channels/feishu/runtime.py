@@ -1251,7 +1251,7 @@ class FeishuChannel(BaseChannel):
     def _strip_leading_bot_mention(
         self, text: str, mentions: list[MentionEvent] | None
     ) -> str:
-        """Remove a required leading bot mention before slash command routing."""
+        """Remove a required leading bot mention before agent routing."""
         if not mentions or not text:
             return text
 

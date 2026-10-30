@@ -117,7 +117,6 @@ def test_sustained_goal_active_true_when_active():
 
 
 
-def test_explicit_goal_requested_only_reads_command_metadata():
+def test_explicit_goal_requested_reads_goal_metadata():
     assert explicit_goal_requested({}) is False
-    message_meta = {"original_command": "/goal", "goal_requested": True}
-    assert explicit_goal_requested(message_meta) is True
+    assert explicit_goal_requested({"goal_requested": True}) is True

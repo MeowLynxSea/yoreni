@@ -17,7 +17,6 @@ OUTBOUND_META_AGENT_UI = "_agent_ui"
 # Internal-only inbound metadata minted by trusted transports and runtime
 # services. Never accept these keys verbatim from an untrusted client.
 INBOUND_META_RUNTIME_CONTROL = "_runtime_control"
-INBOUND_META_USER_SHELL = "_user_shell"
 
 # Transport-provided turn correlation; the persisted spelling is retained for clients.
 INBOUND_META_TURN_ID = "webui_turn_id"

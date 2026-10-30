@@ -534,8 +534,7 @@ class SlackChannel(BaseChannel):
             if marker:
                 file_markers.append(marker)
 
-        is_slash = text.strip().startswith("/")
-        content = text if is_slash else await self._with_thread_context(
+        content = await self._with_thread_context(
             text,
             chat_id=chat_id,
             thread_ts=thread_ts,

@@ -17,7 +17,6 @@
   "inlineTokens": {
     "title": "Inline tokens · コマンドとセッション識別子",
     "description": "コマンドや識別子を編集して、強調表示とセッション固有の色を確認できます。",
-    "options": "SlashCommandText は command、InlineTokenHighlight は color と内容を受け取ります。SessionHandleLabel は id から色を決定します。",
     "command": "コマンドのテキスト",
     "run": "<command/> を実行して状態を確認します。",
     "handle": "セッション識別子",

@@ -65,8 +65,6 @@ from yoreni.bus.events import OutboundMessage
 from yoreni.bus.outbound_events import ProgressEvent
 from yoreni.bus.queue import MessageBus
 from yoreni.channels.base import BaseChannel
-from yoreni.command.builtin import BUILTIN_COMMAND_SPECS
-from yoreni.command.router import normalize_command_text
 from yoreni.config.network import NetworkConfig
 from yoreni.config.paths import get_data_dir, get_media_dir
 from yoreni.config_base import Base
@@ -1180,25 +1178,10 @@ class MatrixChannel(BaseChannel):
         if dropped:
             self._listen_dropped[room_id] = dropped
 
-    def _listen_context(self, room_id: str, content: str) -> list[RuntimeContextBlock] | None:
-        """Read pending discussion for agent input, leaving control commands untouched."""
+    def _listen_context(self, room_id: str) -> list[RuntimeContextBlock] | None:
+        """Read pending discussion for agent input."""
         buffer = self._listen_buffers.get(room_id)
         if not buffer:
-            return None
-        normalized = normalize_command_text(content)
-        parts = normalized.split(maxsplit=1)
-        command = next(
-            (spec for spec in BUILTIN_COMMAND_SPECS if parts and spec.command == parts[0].lower()),
-            None,
-        )
-        if command is not None and not (
-            command.lifecycle == "agent_turn"
-            or (
-                command.lifecycle == "agent_turn_with_args"
-                and normalized.lower().startswith(f"{command.command} ")
-                and bool(normalized[len(command.command):].strip())
-            )
-        ):
             return None
         dropped = self._listen_dropped.get(room_id, 0)
         notice = f"[{dropped} earlier messages not shown]\n" if dropped else ""
@@ -1213,10 +1196,10 @@ class MatrixChannel(BaseChannel):
         ]
 
     def _consume_listen_context(
-        self, room_id: str, content: str, context: list[RuntimeContextBlock] | None,
+        self, room_id: str, context: list[RuntimeContextBlock] | None,
     ) -> None:
-        """Clear handed-off discussion or an explicit room-session reset."""
-        if context or normalize_command_text(content).lower() == "/new":
+        """Clear handed-off discussion after it is attached to a turn."""
+        if context:
             self._listen_buffers.pop(room_id, None)
             self._listen_dropped.pop(room_id, None)
 
@@ -1499,7 +1482,7 @@ class MatrixChannel(BaseChannel):
         await self._start_typing_keepalive(room.room_id)
         try:
             metadata = self._base_metadata(room, event)
-            listen_context = self._listen_context(room.room_id, event.body) if listen_mode else None
+            listen_context = self._listen_context(room.room_id) if listen_mode else None
             if listen_context:
                 metadata[RUNTIME_CONTEXT_INPUT_META] = listen_context
             await self._handle_message(
@@ -1508,7 +1491,7 @@ class MatrixChannel(BaseChannel):
                 is_dm=self._is_direct_room(room),
             )
             if listen_mode:
-                self._consume_listen_context(room.room_id, event.body, listen_context)
+                self._consume_listen_context(room.room_id, listen_context)
         except Exception:
             await self._stop_typing_keepalive(room.room_id, clear_typing=True)
             raise
@@ -1555,7 +1538,7 @@ class MatrixChannel(BaseChannel):
             meta["attachments"] = []
             if attachment:
                 meta["attachments"] = [attachment]
-            listen_context = self._listen_context(room.room_id, content) if listen_mode else None
+            listen_context = self._listen_context(room.room_id) if listen_mode else None
             if listen_context:
                 meta[RUNTIME_CONTEXT_INPUT_META] = listen_context
             await self._handle_message(
@@ -1566,7 +1549,7 @@ class MatrixChannel(BaseChannel):
                 is_dm=self._is_direct_room(room),
             )
             if listen_mode:
-                self._consume_listen_context(room.room_id, content, listen_context)
+                self._consume_listen_context(room.room_id, listen_context)
         except Exception:
             await self._stop_typing_keepalive(room.room_id, clear_typing=True)
             raise

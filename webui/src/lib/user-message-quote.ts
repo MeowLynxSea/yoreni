@@ -12,7 +12,7 @@ function normalizeNewlines(value: string): string {
 export function formatQuotedUserMessage(content: string, quotedContext?: string | null): string {
   const body = content.trim();
   const quote = normalizeNewlines(quotedContext ?? "").trim();
-  if (!quote || body.startsWith("/")) return body;
+  if (!quote) return body;
 
   const blockquote = quote
     .split("\n")

@@ -298,7 +298,7 @@ def _read_trigger_cli_message(message: str | None) -> str:
 
 @app.command()
 def trigger(
-    trigger_id: str = typer.Argument(..., help="Trigger ID returned by /trigger"),
+    trigger_id: str = typer.Argument(..., help="Trigger ID"),
     message: str | None = typer.Argument(None, help="Message to deliver; stdin is used when omitted"),
     workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace directory"),
     config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),

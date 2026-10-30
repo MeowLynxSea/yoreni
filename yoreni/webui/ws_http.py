@@ -1,7 +1,7 @@
 """HTTP API handler extracted from WebSocketChannel.
 
 Handles all non-WebSocket HTTP routes: bootstrap, Agent actions, settings,
-media, commands, sidebar state, static file serving, and token management.
+media, sidebar state, static file serving, and token management.
 
 Also houses shared HTTP utility functions used by both this module and
 ``websocket.py`` to avoid circular imports.
@@ -26,7 +26,6 @@ from websockets.http11 import Response
 
 from yoreni.agent.persistent import recoverable_runs
 from yoreni.agent.state import AgentStore
-from yoreni.command.builtin import builtin_command_palette
 from yoreni.cron.events import is_bound_cron_job
 from yoreni.cron.types import CronJob, CronSchedule
 from yoreni.runtime_admission import RuntimeMaintenanceError
@@ -925,8 +924,6 @@ class GatewayHTTPHandler:
     ) -> Response | None:
         if got == "/api/agent/file-preview":
             return self._handle_file_preview(request)
-        if got == "/api/commands":
-            return self._handle_commands(request)
         if got == "/api/workspaces/favorite":
             return self._handle_workspace_favorite(connection, request)
         if got == "/api/workspaces/resolve-project":
@@ -962,11 +959,6 @@ class GatewayHTTPHandler:
                 return _http_error(500, "failed to save reminder preference")
             return _http_json_response({"show": show})
         return None
-
-    def _handle_commands(self, request: WsRequest) -> Response:
-        if not self.check_api_token(request):
-            return _http_error(401, "Unauthorized")
-        return _http_json_response({"commands": builtin_command_palette()})
 
     def _handle_workspaces(self, connection: Any, request: WsRequest) -> Response:
         if not self.check_api_token(request):

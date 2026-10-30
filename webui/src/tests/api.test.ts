@@ -29,7 +29,6 @@ import {
   fetchWorkspaces,
   importMcpConfig,
   installMarketplaceSkill,
-  listSlashCommands,
   loginProviderOAuth,
   logoutProviderOAuth,
   migrateModelConfigurations,
@@ -941,83 +940,6 @@ describe("webui API helpers", () => {
     await expect(fetchWorkspaces("tok")).resolves.toEqual(payload);
     expect(fetch).toHaveBeenCalledWith(
       "/api/workspaces",
-      expect.objectContaining({
-        headers: { Authorization: "Bearer tok" },
-      }),
-    );
-  });
-
-  it("maps slash command metadata from the commands endpoint", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        commands: [
-          {
-            command: "/stop",
-            title: "Stop current task",
-            description: "Cancel the active task.",
-            icon: "square",
-            lifecycle: "stop_active_turn",
-            accepts_args: false,
-          },
-          {
-            command: "/restart",
-            title: "Restart yoreni",
-            description: "Restart the bot process.",
-            icon: "rotate-cw",
-            lifecycle: "side_channel",
-            accepts_args: false,
-          },
-          {
-            command: "/history",
-            title: "Show conversation history",
-            description: "Print the last N messages.",
-            icon: "history",
-            arg_hint: "[n]",
-            lifecycle: "side_channel",
-            accepts_args: true,
-          },
-          {
-            command: "/legacy",
-            title: "Legacy row",
-            description: "Old metadata should not be guessed.",
-            icon: "circle-help",
-          },
-        ],
-      }),
-    } as Response);
-
-    await expect(listSlashCommands("tok")).resolves.toEqual([
-      {
-        command: "/stop",
-        title: "Stop current task",
-        description: "Cancel the active task.",
-        icon: "square",
-        argHint: "",
-        lifecycle: "stop_active_turn",
-        acceptsArgs: false,
-      },
-      {
-        command: "/restart",
-        title: "Restart yoreni",
-        description: "Restart the bot process.",
-        icon: "rotate-cw",
-        argHint: "",
-        lifecycle: "side_channel",
-        acceptsArgs: false,
-      },
-      {
-        command: "/history",
-        title: "Show conversation history",
-        description: "Print the last N messages.",
-        icon: "history",
-        argHint: "[n]",
-        lifecycle: "side_channel",
-        acceptsArgs: true,
-      },
-    ]);
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/commands",
       expect.objectContaining({
         headers: { Authorization: "Bearer tok" },
       }),

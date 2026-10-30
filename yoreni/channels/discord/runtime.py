@@ -18,7 +18,6 @@ from yoreni.bus.events import OutboundMessage
 from yoreni.bus.outbound_events import ContextCompactionEvent, ProgressEvent
 from yoreni.bus.queue import MessageBus
 from yoreni.channels.base import BaseChannel
-from yoreni.command.builtin import build_help_text
 from yoreni.config.network import NetworkConfig
 from yoreni.config.paths import get_media_dir
 from yoreni.config_base import Base
@@ -28,7 +27,6 @@ DISCORD_AVAILABLE = importlib.util.find_spec("discord") is not None
 if TYPE_CHECKING:
     import aiohttp
     import discord
-    from discord import app_commands
     from discord.abc import Messageable
 
 if DISCORD_AVAILABLE:
@@ -84,16 +82,15 @@ if DISCORD_AVAILABLE:
             super().__init__(intents=intents, proxy=proxy, proxy_auth=proxy_auth)
             self._channel = channel
             self.tree = app_commands.CommandTree(self)
-            self._register_app_commands()
 
         async def on_ready(self) -> None:
             self._channel._bot_user_id = str(self.user.id) if self.user else None
             self._channel.logger.info("bot connected as user {}", self._channel._bot_user_id)
             try:
-                synced = await self.tree.sync()
-                self._channel.logger.info("app commands synced: {}", len(synced))
+                # Clear commands registered by older versions.
+                await self.tree.sync()
             except Exception as e:
-                self._channel.logger.warning("app command sync failed: {}", e)
+                self._channel.logger.warning("app command cleanup failed: {}", e)
 
         async def on_message(self, message: discord.Message) -> None:
             if self._channel._client is not self or not self._channel.is_running:
@@ -108,152 +105,6 @@ if DISCORD_AVAILABLE:
                 self._channel._forget_channel(after)
             else:
                 self._channel._remember_channel(after)
-
-        async def _reply_ephemeral(self, interaction: discord.Interaction, text: str) -> bool:
-            """Send an ephemeral interaction response and report success."""
-            try:
-                await interaction.response.send_message(text, ephemeral=True)
-                return True
-            except Exception as e:
-                self._channel.logger.warning("interaction response failed: {}", e)
-                return False
-
-        async def _resolve_interaction_channel(
-            self,
-            interaction: discord.Interaction,
-        ) -> Any | None:
-            channel_id = interaction.channel_id
-            if channel_id is None:
-                return None
-            channel = getattr(interaction, "channel", None) or self.get_channel(channel_id)
-            if channel is None:
-                try:
-                    channel = await self.fetch_channel(channel_id)
-                except Exception as e:
-                    self._channel.logger.warning("interaction channel {} unavailable: {}", channel_id, e)
-                    return None
-            self._channel._remember_channel(channel)
-            return channel
-
-        async def _interaction_channel_allowed(
-            self,
-            interaction: discord.Interaction,
-            channel: Any | None,
-        ) -> bool:
-            allow_channels = self._channel.config.allow_channels
-            if not allow_channels:
-                return True
-            if channel is None:
-                channel_id = interaction.channel_id
-                return channel_id is not None and str(channel_id) in allow_channels
-            channel_ids = self._channel._channel_allow_keys(channel)
-            return not channel_ids.isdisjoint(allow_channels)
-
-        async def _forward_slash_command(
-            self,
-            interaction: discord.Interaction,
-            command_text: str,
-        ) -> None:
-            sender_id = str(interaction.user.id)
-            channel_id = interaction.channel_id
-
-            if channel_id is None:
-                self._channel.logger.warning("slash command missing channel_id: {}", command_text)
-                return
-
-            if not self._channel.is_allowed(sender_id):
-                await self._reply_ephemeral(interaction, "You are not allowed to use this bot.")
-                return
-
-            channel = await self._resolve_interaction_channel(interaction)
-            if not await self._interaction_channel_allowed(interaction, channel):
-                await self._reply_ephemeral(interaction, "This channel is not allowed for this bot.")
-                return
-
-            await self._reply_ephemeral(interaction, f"Processing {command_text}...")
-
-            metadata: dict[str, Any] = {
-                "interaction_id": str(interaction.id),
-                "guild_id": str(interaction.guild_id) if interaction.guild_id else None,
-                "is_slash_command": True,
-            }
-            if channel is not None:
-                parent_channel_id = self._channel._channel_parent_key(channel)
-                if parent_channel_id is not None:
-                    metadata["parent_channel_id"] = parent_channel_id
-                    metadata["context_chat_id"] = parent_channel_id
-                    metadata["thread_id"] = str(channel_id)
-
-            await self._channel._handle_message(
-                sender_id=sender_id,
-                chat_id=str(channel_id),
-                content=command_text,
-                metadata=metadata,
-            )
-
-        def _register_app_commands(self) -> None:
-            commands = (
-                ("new", "Stop current task and start a new conversation", "/new"),
-                ("stop", "Stop the current task", "/stop"),
-                ("restart", "Restart the bot", "/restart"),
-                ("status", "Show bot status", "/status"),
-                ("history", "Show recent conversation messages", "/history"),
-            )
-
-            for name, description, command_text in commands:
-
-                @self.tree.command(name=name, description=description)
-                async def command_handler(
-                    interaction: discord.Interaction,
-                    _command_text: str = command_text,
-                ) -> None:
-                    await self._forward_slash_command(interaction, _command_text)
-
-            @self.tree.command(name="model", description="Show or switch runtime model preset")
-            @app_commands.describe(preset="Optional model preset name, such as default")
-            async def model_command(
-                interaction: discord.Interaction,
-                preset: str | None = None,
-            ) -> None:
-                preset = (preset or "").strip()
-                command_text = f"/model {preset}" if preset else "/model"
-                await self._forward_slash_command(interaction, command_text)
-
-            @self.tree.command(name="trigger", description="Create a named local trigger for this chat")
-            @app_commands.describe(name="Trigger name")
-            async def trigger_command(
-                interaction: discord.Interaction,
-                name: str,
-            ) -> None:
-                name = name.strip()
-                command_text = f"/trigger {name}" if name else "/trigger"
-                await self._forward_slash_command(interaction, command_text)
-
-            @self.tree.command(name="help", description="Show available commands")
-            async def help_command(interaction: discord.Interaction) -> None:
-                sender_id = str(interaction.user.id)
-                if not self._channel.is_allowed(sender_id):
-                    await self._reply_ephemeral(interaction, "You are not allowed to use this bot.")
-                    return
-                channel = await self._resolve_interaction_channel(interaction)
-                if not await self._interaction_channel_allowed(interaction, channel):
-                    await self._reply_ephemeral(interaction, "This channel is not allowed for this bot.")
-                    return
-                await self._reply_ephemeral(interaction, build_help_text())
-
-            @self.tree.error
-            async def on_app_command_error(
-                interaction: discord.Interaction,
-                error: app_commands.AppCommandError,
-            ) -> None:
-                command_name = interaction.command.qualified_name if interaction.command else "?"
-                self._channel.logger.warning(
-                    "app command failed user={} channel={} cmd={} error={}",
-                    interaction.user.id,
-                    interaction.channel_id,
-                    command_name,
-                    error,
-                )
 
         async def send_outbound(self, msg: OutboundMessage) -> None:
             """Send a yoreni outbound message using Discord transport rules."""

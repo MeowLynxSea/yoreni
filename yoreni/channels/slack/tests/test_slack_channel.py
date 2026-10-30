@@ -719,7 +719,7 @@ async def test_channel_thread_reply_keeps_thread_ts() -> None:
 
 
 @pytest.mark.asyncio
-async def test_slack_slash_command_skips_thread_context() -> None:
+async def test_slack_slash_prefixed_text_includes_thread_context() -> None:
     channel = SlackChannel(SlackConfig(enabled=True, allow_from=[]), MessageBus())
     channel._bot_user_id = "UBOT"
     channel._with_thread_context = AsyncMock(return_value="wrapped")  # type: ignore[method-assign]
@@ -742,9 +742,9 @@ async def test_slack_slash_command_skips_thread_context() -> None:
 
     await channel._on_socket_request(client, req)
 
-    channel._with_thread_context.assert_not_awaited()
+    channel._with_thread_context.assert_awaited_once()
     channel._handle_message.assert_awaited_once()
-    assert channel._handle_message.await_args.kwargs["content"] == "/restart"
+    assert channel._handle_message.await_args.kwargs["content"] == "wrapped"
 
 
 @pytest.mark.asyncio

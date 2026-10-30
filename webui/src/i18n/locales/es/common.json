@@ -808,7 +808,7 @@
       "newPresetHelp": "Guarda un modelo y sus ajustes para reutilizarlos.",
       "presets": "Preajustes de modelo",
       "presetName": "Nombre del preajuste",
-      "presetNameHelp": "Los nombres deben ser únicos; también se usan en /model.",
+      "presetNameHelp": "Los nombres deben ser únicos.",
       "presetNameDuplicate": "Ya existe un preajuste con este nombre.",
       "presetNamePlaceholder": "p. ej., Escritura rápida",
       "advancedOptions": "Opciones avanzadas",
@@ -1766,85 +1766,6 @@
         "noInput": "No se detectó entrada del micrófono.",
         "noDevice": "No se encontró ningún micrófono. Conéctalo y vuelve a intentarlo.",
         "failed": "No se pudo transcribir el audio."
-      },
-      "slash": {
-        "ariaLabel": "Comandos slash",
-        "label": "comandos",
-        "navigateHint": "↑↓ Navegar",
-        "selectHint": "Enter/Tab Insertar",
-        "closeHint": "Esc Cerrar",
-        "commands": {
-          "new": {
-            "title": "Nuevo chat",
-            "description": "Reinicia este tema y empieza otro."
-          },
-          "compact": {
-            "title": "Compactar contexto",
-            "description": "Compacta el contexto y sigue conversando."
-          },
-          "stop": {
-            "title": "Detener tarea",
-            "description": "Detén la tarea activa de este chat."
-          },
-          "restart": {
-            "title": "Reiniciar yoreni",
-            "description": "Reinicia el proceso yoreni."
-          },
-          "status": {
-            "title": "Mostrar estado",
-            "description": "Consulta el estado de ejecución, proveedores y canales."
-          },
-          "model": {
-            "title": "Modelo",
-            "description": "Consulta o cambia el preajuste de modelo actual."
-          },
-          "history": {
-            "title": "Historial del chat",
-            "description": "Muestra los últimos N mensajes guardados."
-          },
-          "dream": {
-            "title": "Ejecutar Dream",
-            "description": "Organiza la memoria ahora."
-          },
-          "dream_log": {
-            "title": "Registro Dream",
-            "description": "Consulta los cambios de la última ejecución de Dream."
-          },
-          "dream_restore": {
-            "title": "Restaurar memoria",
-            "description": "Restaura una instantánea anterior de memoria de Dream."
-          },
-          "dream_prompt": {
-            "title": "Ajustes Dream",
-            "description": "Define cómo organiza Dream la memoria de este espacio."
-          },
-          "goal": {
-            "title": "Objetivo a largo plazo",
-            "description": "Haz que el asistente siga trabajando en este objetivo."
-          },
-          "trigger": {
-            "title": "Activador CLI",
-            "description": "Crea un activador CLI para este chat."
-          },
-          "help": {
-            "title": "Mostrar ayuda",
-            "description": "Muestra los comandos de barra disponibles."
-          },
-          "pairing": {
-            "title": "Emparejamiento",
-            "description": "Gestiona las solicitudes de vinculación."
-          }
-        },
-        "badges": {
-          "current": "Actual",
-          "recent": "Reciente"
-        },
-        "details": {
-          "goalActive": "El objetivo está en curso",
-          "goalReady": "Iniciar un objetivo sostenido",
-          "history": "Mostrar mensajes recientes",
-          "stopRunning": "En ejecución"
-        }
       },
       "encoding": "Procesando…",
       "remove": "Quitar adjunto",

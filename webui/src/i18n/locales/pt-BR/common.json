@@ -2061,7 +2061,9 @@
     "skill": "Habilidade: {{name}}",
     "automationSourceFallback": "Automação",
     "automationTriggered": "Acionada automaticamente",
-    "askAboutSelection": "Perguntar sobre seleção",
+    "quoteMessage": "Citar",
+    "quotedMessage": "Mensagem citada",
+    "jumpToQuoted": "Ir para a mensagem citada",
     "forkFromHere": "Nova conversa daqui",
     "fallbackResponse": "Esta resposta usa um modelo alternativo: {{preset}}.",
     "copyReply": "Copiar",
@@ -2081,7 +2083,6 @@
     },
     "readFullMessage": "Ler a mensagem completa",
     "fullMessageTitle": "Mensagem",
-    "replyingTo": "Em resposta a",
     "reactionFromAgent": "O agente reagiu com este emoji",
     "htmlPreview": "Pré-visualizar página HTML",
     "openHtmlInTab": "Abrir {{name}} em uma nova aba"

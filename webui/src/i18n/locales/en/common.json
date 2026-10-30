@@ -2061,7 +2061,9 @@
     "skill": "Skill: {{name}}",
     "automationSourceFallback": "Automation",
     "automationTriggered": "Triggered automatically",
-    "askAboutSelection": "Ask about selection",
+    "quoteMessage": "Quote",
+    "quotedMessage": "Quoted message",
+    "jumpToQuoted": "Go to quoted message",
     "forkFromHere": "New chat from here",
     "fallbackResponse": "This reply switched to a fallback model, answered by {{preset}}.",
     "copyReply": "Copy",
@@ -2081,7 +2083,6 @@
     },
     "readFullMessage": "Read full message",
     "fullMessageTitle": "Message",
-    "replyingTo": "In reply to",
     "reactionFromAgent": "Agent reacted with this emoji",
     "htmlPreview": "Preview HTML page",
     "openHtmlInTab": "Open {{name}} in a new tab"

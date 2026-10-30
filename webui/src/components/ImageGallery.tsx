@@ -8,10 +8,12 @@ import type { UIImage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** A bounded, quiet preview; the viewer still contains every delivered image. */
-export function ImageGallery({ images, align = "left", size = "large" }: {
+export function ImageGallery({ images, align = "left", size = "large", fill = false }: {
   images: UIImage[];
   align?: "left" | "right";
   size?: "compact" | "large";
+  /** Crop previews to their frame instead of letterboxing them. */
+  fill?: boolean;
 }) {
   const { t } = useTranslation();
   const [index, setIndex] = useState<number | null>(null);
@@ -70,7 +72,7 @@ export function ImageGallery({ images, align = "left", size = "large" }: {
         const remaining = images.length - visible.length;
         const overflow = position === visible.length - 1 && remaining > 0;
         return <ImageThumbnail key={`${image.url ?? image.name}-${position}`}
-          image={image} size={size} frame={frame}
+          image={image} size={size} frame={frame} fill={fill}
           onLoad={(value) => { if (image.url) remember(image.url, value); }}
           onError={() => { if (image.url) remember(image.url, null); }}
           label={overflow ? t("lightbox.viewAll", { count: images.length }) : undefined}
@@ -83,10 +85,11 @@ export function ImageGallery({ images, align = "left", size = "large" }: {
   </>;
 }
 
-export function ImageThumbnail({ image, size = "large", frame, onOpen, label, overlay, onLoad, onError }: {
+export function ImageThumbnail({ image, size = "large", frame, fill = false, onOpen, label, overlay, onLoad, onError }: {
   image: UIImage;
   size?: "compact" | "large";
   frame?: ImageDimensions & { left: number; top: number };
+  fill?: boolean;
   onOpen?: () => void;
   label?: string;
   overlay?: string;
@@ -96,7 +99,8 @@ export function ImageThumbnail({ image, size = "large", frame, onOpen, label, ov
   const { t } = useTranslation();
   const [failed, setFailed] = useState(false);
   const classes = cn(
-    "relative block max-w-full shrink-0 overflow-hidden rounded-control bg-muted/25 ring-1 ring-inset ring-border/60",
+    "relative block max-w-full shrink-0 overflow-hidden rounded-control bg-muted/25",
+    !fill && "ring-1 ring-inset ring-border/60",
     !frame && (size === "large" ? "w-[min(100%,28rem)]" : "w-48"),
   );
   const style: CSSProperties | undefined = frame ? { ...frame, position: "absolute" } : undefined;
@@ -108,7 +112,11 @@ export function ImageThumbnail({ image, size = "large", frame, onOpen, label, ov
       onLoad?.({ width: naturalWidth, height: naturalHeight });
     }}
     onError={() => { setFailed(true); onError?.(); }}
-    className={cn("block w-full object-contain text-transparent", frame ? "h-full" : "h-auto max-h-[22rem]")} />
+    className={cn(
+      "block w-full text-transparent",
+      fill ? "object-cover" : "object-contain",
+      frame ? "h-full" : "h-auto max-h-[22rem]",
+    )} />
     : <span className={cn("flex items-center justify-center gap-2 px-3 text-xs text-muted-foreground", frame ? "h-full" : "min-h-24 py-5")}
       aria-label={image.name ? `${unavailable}: ${image.name}` : unavailable} title={image.name}>
       <ImageIcon className="h-4 w-4 shrink-0" aria-hidden />

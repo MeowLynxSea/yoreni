@@ -17,7 +17,19 @@ describe("user message quotes", () => {
     );
     expect(parseQuotedUserMessage(content)).toEqual({
       quotedContext: "first quoted line\n\nsecond quoted line",
+      quotedMessageId: null,
       content: "What does this mean?",
+    });
+  });
+
+  it("keeps the row a passage came from so the quote can point back at it", () => {
+    const content = formatQuotedUserMessage("And here?", "quoted line", "8f3a-1b2c");
+
+    expect(content).toBe("> [!QUOTE] 8f3a-1b2c\n> quoted line\n\nAnd here?");
+    expect(parseQuotedUserMessage(content)).toEqual({
+      quotedContext: "quoted line",
+      quotedMessageId: "8f3a-1b2c",
+      content: "And here?",
     });
   });
 
@@ -26,6 +38,7 @@ describe("user message quotes", () => {
 
     expect(parseQuotedUserMessage(manualBlockquote)).toEqual({
       quotedContext: null,
+      quotedMessageId: null,
       content: manualBlockquote,
     });
   });

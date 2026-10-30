@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AgentFrame } from "@/lib/yoreni-client";
 import { toMediaAttachment } from "@/lib/media";
-import type { ToolProgressEvent, UIMessage } from "@/lib/types";
+import type { ToolProgressEvent, UIMessage, UIMediaWireAttachment } from "@/lib/types";
 import { fetchPersonalAgent, type AgentHistoryRun } from "@/lib/api";
 import { useClient } from "@/providers/ClientProvider";
 import type { DraftAttachment } from "../../../packages/client-events/attachments";
@@ -31,17 +31,8 @@ function runKey(frame: AgentFrame): string {
   return frame.run_id ?? frame.turn_id ?? "notification";
 }
 
-const QUOTE_PREVIEW_CHARS = 160;
-
-/** One-line excerpt of a message, used when the Agent replies without quoting it. */
-function quotePreview(text: string): string | undefined {
-  const trimmed = text.trim();
-  if (!trimmed) return undefined;
-  return trimmed.length > QUOTE_PREVIEW_CHARS ? `${trimmed.slice(0, QUOTE_PREVIEW_CHARS)}…` : trimmed;
-}
-
-function historyMedia(media: { url: string; name: string }[] | undefined) {
-  return (media ?? []).map((item) => toMediaAttachment({ url: item.url, name: item.name }));
+function historyMedia(media: UIMediaWireAttachment[] | undefined) {
+  return (media ?? []).map((item) => toMediaAttachment(item));
 }
 
 /** Replay durable conversation rows in arrival order.
@@ -85,9 +76,6 @@ function historyMessages(runs: AgentHistoryRun[]): UIMessage[] {
       if (entry.event === "message") {
         if (!entry.id) continue;
         const media = historyMedia(entry.media_urls);
-        const replied = entry.reply_to
-          ? messages.find((message) => message.id === entry.reply_to)
-          : undefined;
         messages.push({
           id: entry.id,
           turnId: run.id,
@@ -97,10 +85,9 @@ function historyMessages(runs: AgentHistoryRun[]): UIMessage[] {
           source: run.kind === "user" ? undefined : { kind: run.kind, label: run.source },
           turnPhase: "complete",
           delivered: true,
+          ...(entry.rich ? { rich: true } : {}),
           ...(entry.reply_to ? { replyTo: entry.reply_to } : {}),
-          ...(entry.quote || quotePreview(replied?.content ?? "")
-            ? { quote: entry.quote || quotePreview(replied?.content ?? "") }
-            : {}),
+          ...(entry.quote ? { quote: entry.quote } : {}),
           ...(media.length ? { media } : {}),
         });
         continue;
@@ -207,10 +194,8 @@ export function projectAgentFrame(messages: UIMessage[], frame: AgentFrame): UIM
     // A delivered message is a durable conversation row that owns its bubble;
     // the same ID may already be present from history replay.
     const media = historyMedia(frame.media_urls);
-    const replied = frame.reply_to
-      ? messages.find((message) => message.id === frame.reply_to)
-      : undefined;
-    const quote = frame.quote || quotePreview(replied?.content ?? "");
+    // Only an explicit excerpt shows a quote; a bare reply stays a reply.
+    const quote = frame.quote;
     const delivered: UIMessage = {
       id: frame.id,
       turnId: run,
@@ -220,6 +205,7 @@ export function projectAgentFrame(messages: UIMessage[], frame: AgentFrame): UIM
       isStreaming: false,
       turnPhase: "complete",
       delivered: true,
+      ...(frame.rich ? { rich: true } : {}),
       ...(frame.reply_to ? { replyTo: frame.reply_to } : {}),
       ...(quote ? { quote } : {}),
       ...(media.length ? { media } : {}),
@@ -246,7 +232,7 @@ export function projectAgentFrame(messages: UIMessage[], frame: AgentFrame): UIM
     createdAt: old?.createdAt ?? Date.now(), isStreaming: streaming,
     ...(reasoning ? { reasoning: (old?.reasoning ?? "") + (frame.text ?? ""), reasoningStreaming: streaming } : {}),
     ...(trace ? { traces: [...old?.traces ?? [], ...frame.text ? [frame.text] : []], toolEvents: frame.tool_events ?? old?.toolEvents, fileEdits: frame.edits ?? old?.fileEdits } : {}),
-    ...(frame.media_urls ? { media: frame.media_urls.map((media) => ({ ...media, kind: media.kind === "video" ? "video" : media.kind === "image" ? "image" : "file" })) } : {}),
+    ...(frame.media_urls ? { media: historyMedia(frame.media_urls) } : {}),
   };
   if (!["message", "delta", "stream_end", "reasoning_delta", "reasoning_end", "file_edit"].includes(frame.event)) return messages;
   return index >= 0 ? messages.map((entry, position) => position === index ? message : entry) : [...messages, message];

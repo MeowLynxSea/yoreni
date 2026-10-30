@@ -37,12 +37,26 @@ export interface UIImage {
   name?: string;
 }
 
-export type UIMediaKind = "image" | "video" | "html" | "file";
+export type UIMediaKind = "image" | "video" | "html" | "file" | "link";
+
+/** One attachment as the backend sends it; link cards carry page metadata. */
+export interface UIMediaWireAttachment {
+  url: string;
+  name: string;
+  kind?: string;
+  title?: string;
+  description?: string;
+  site?: string;
+}
 
 export interface UIMediaAttachment {
   kind: UIMediaKind;
   url?: string;
   name?: string;
+  /** Link cards: the page title, description, and site the backend read. */
+  title?: string;
+  description?: string;
+  site?: string;
 }
 
 interface UIMessageSource { kind: "cron" | "local_trigger" | "trigger" | string; label?: string; }
@@ -157,6 +171,8 @@ export interface UIMessage {
   quote?: string;
   /** Emoji the Agent stamped on this message, in arrival order. */
   reactions?: string[];
+  /** A card of files the Agent delivered, drawn without a chat bubble. */
+  rich?: boolean;
   /** Ephemeral delivery lifecycle for optimistic user messages. */
   deliveryStatus?: MessageDeliveryStatus;
   /** Structured rejection reason shown with a failed optimistic message. */

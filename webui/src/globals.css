@@ -1047,8 +1047,7 @@
   padding-inline-end: max(0.75rem, calc((100% - var(--content-column-width)) / 2));
 }
 
-.message-block-menu-trigger,
-.message-block-hover-time {
+.message-block-menu-trigger {
   pointer-events: none;
   opacity: 0;
 }
@@ -1057,16 +1056,9 @@
   top: calc((1rem + var(--text-reading-size) * var(--cjk-line-height) - var(--message-block-control-size)) / 2);
 }
 
-[data-user-text-bubble] > .message-block-hover-time {
-  top: calc((1rem + var(--text-reading-size) * var(--cjk-line-height) + var(--message-block-control-size)) / 2);
-}
-
 [data-context-block-active] .message-block-menu-trigger,
 [data-message-context-menu-open] .message-block-menu-trigger,
-.message-block-menu-trigger:focus-visible,
-[data-context-block-active] .message-block-hover-time,
-[data-message-context-menu-open] .message-block-hover-time,
-.message-block-hover-time:focus-visible {
+.message-block-menu-trigger:focus-visible {
   pointer-events: auto;
   opacity: 1;
 }
@@ -2111,6 +2103,25 @@
 
 .message-enter {
   animation: message-rise 420ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* A quote jump lands on its source message and lets the eye settle there. */
+@keyframes message-quote-target {
+  0% { outline-color: hsl(var(--foreground) / 0.34); }
+  100% { outline-color: transparent; }
+}
+
+[data-quote-target] {
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  animation: message-quote-target 1.4s ease-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-quote-target] {
+    outline-color: hsl(var(--foreground) / 0.28);
+    animation: none;
+  }
 }
 
 /* A run still working with no answer yet: three quiet dots under the last message. */

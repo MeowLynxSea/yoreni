@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type Ref } from "react";
-import { ArrowUp, ChevronDown, Mic, Paperclip, Square, X } from "lucide-react";
+import { ArrowUp, ChevronDown, Mic, Paperclip, Quote, Square, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,9 @@ import type { SendAttachment, SendOptions } from "@/lib/agent-input";
 import type { LocalAttachment } from "../../../../packages/client-events/attachments";
 import type { WebUIIngressLimits } from "@/lib/types";
 import type { ModelPresetOption } from "./ModelPresetBadge";
+
+/** Matches the quote strip's collapse transition so it unmounts after the last frame. */
+const QUOTE_STRIP_EXIT_MS = 200;
 
 interface Props {
   onSend: (content: string, attachments?: SendAttachment[], options?: SendOptions) => boolean | void | Promise<boolean | void>;
@@ -35,21 +38,46 @@ interface Props {
   onInspectAttachment?: (path: string) => Promise<LocalAttachment>;
   ingressLimits?: WebUIIngressLimits | null;
   surfaceRef?: Ref<HTMLDivElement>;
+  /** Text the next message will quote; shown above the input until it is sent or dropped. */
+  quotedContext?: string | null;
+  onClearQuote?: () => void;
   /** Restore and keep the unsent text across reloads and route changes. */
   persistDraft?: boolean;
 }
 
 /** The composer owns its text and attachments; execution belongs to the Agent. */
-export function ThreadComposer({ onSend, onStop, disabled = false, isStreaming = false, placeholder, inputAriaLabel, variant = "thread", onTranscribeAudio, ingressLimits, surfaceRef, modelLabel, modelPreset, modelPresets, onModelPresetChange, onModelBadgeClick, persistDraft = false }: Props) {
+export function ThreadComposer({ onSend, onStop, disabled = false, isStreaming = false, placeholder, inputAriaLabel, variant = "thread", onTranscribeAudio, ingressLimits, surfaceRef, modelLabel, modelPreset, modelPresets, onModelPresetChange, onModelBadgeClick, persistDraft = false, quotedContext, onClearQuote }: Props) {
   const { t } = useTranslation();
   const [value, setValue] = useState(() => (persistDraft ? readComposerDraft() : ""));
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const files = useRef<HTMLInputElement>(null);
   const attachments = useAttachedImages({ ingressLimits });
   useEffect(() => {
     if (persistDraft) writeComposerDraft(value);
   }, [persistDraft, value]);
+  // The quote strip grows and shrinks with the composer instead of snapping the
+  // layout. It stays mounted through the collapse so the text keeps its shape.
+  const [quoteMounted, setQuoteMounted] = useState(quotedContext != null);
+  const [quoteExpanded, setQuoteExpanded] = useState(false);
+  const [quotePreview, setQuotePreview] = useState(quotedContext ?? "");
+  // Quoting is a prelude to typing, so the caret belongs in the input already.
+  useEffect(() => {
+    if (!quotedContext) return;
+    setQuotePreview(quotedContext);
+    setQuoteMounted(true);
+    // Paint the collapsed row once so the next frame can animate it open.
+    const frame = requestAnimationFrame(() => setQuoteExpanded(true));
+    inputRef.current?.focus({ preventScroll: true });
+    return () => cancelAnimationFrame(frame);
+  }, [quotedContext]);
+  useEffect(() => {
+    if (quotedContext) return;
+    setQuoteExpanded(false);
+    const timer = window.setTimeout(() => setQuoteMounted(false), QUOTE_STRIP_EXIT_MS);
+    return () => window.clearTimeout(timer);
+  }, [quotedContext]);
   const appendTranscript = useCallback((text: string) => setValue((current) => current ? `${current}\n${text}` : text), []);
   const voice = useVoiceRecorder({ disabled, onClearError: () => setError(null), onError: (key) => setError(t(`thread.composer.voice.errors.${key}`)), onTranscript: appendTranscript, onTranscribeAudio });
   const send = async () => {
@@ -74,7 +102,26 @@ export function ThreadComposer({ onSend, onStop, disabled = false, isStreaming =
     )}
     onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); void attachments.enqueue(Array.from(event.dataTransfer.files)); }}>
     {attachments.images.length > 0 && <div className="mb-1 flex flex-wrap gap-2 px-1 pt-1">{attachments.images.map((image) => <div key={image.id} className="flex max-w-full items-center gap-1.5 rounded-full border border-white/60 bg-white/45 py-1 pl-3 pr-1 text-xs text-foreground backdrop-blur-md dark:border-white/10 dark:bg-white/[0.06]"><span className="max-w-48 truncate">{image.file.name}</span><Button variant="ghost" size="icon" className="h-5 w-5 rounded-full" aria-label={t("thread.composer.remove")} onClick={() => attachments.remove(image.id)}><X className="h-3 w-3" /></Button></div>)}</div>}
-    <Textarea value={value} disabled={disabled} aria-label={inputAriaLabel ?? t("thread.composer.inputAria")}
+    {quoteMounted ? <div data-composer-quote data-state={quoteExpanded ? "open" : "closed"}
+      aria-hidden={quoteExpanded ? undefined : true}
+      className={cn(
+        "grid text-[12px] leading-5 transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none",
+        quoteExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+      )}>
+      <div className="min-h-0 overflow-hidden">
+        <div className="mx-1 mb-1 flex items-start gap-2 rounded-control border border-border/60 bg-muted/35 px-2.5 py-1.5 text-muted-foreground">
+          <Quote className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
+          <p className="line-clamp-2 min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]">{quotePreview}</p>
+          <button type="button" tabIndex={quoteExpanded ? undefined : -1}
+            onClick={() => { inputRef.current?.focus({ preventScroll: true }); onClearQuote?.(); }}
+            aria-label={t("thread.composer.removeQuotedContext")}
+            className="-me-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <X className="h-3 w-3" strokeWidth={2} aria-hidden />
+          </button>
+        </div>
+      </div>
+    </div> : null}
+    <Textarea ref={inputRef} value={value} disabled={disabled} aria-label={inputAriaLabel ?? t("thread.composer.inputAria")}
       placeholder={placeholder ?? t(variant === "hero" ? "thread.composer.placeholderHero" : "thread.composer.placeholderThread")}
       className={cn(
         "max-h-64 resize-none border-0 bg-transparent px-3 pt-2.5 text-composer shadow-none placeholder:text-muted-foreground/75 focus-visible:ring-0",

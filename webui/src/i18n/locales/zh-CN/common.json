@@ -2061,7 +2061,9 @@
     "skill": "技能：{{name}}",
     "automationSourceFallback": "自动化",
     "automationTriggered": "自动触发",
-    "askAboutSelection": "询问选文",
+    "quoteMessage": "引用",
+    "quotedMessage": "被引用的消息",
+    "jumpToQuoted": "跳转到被引用的消息",
     "forkFromHere": "另开对话",
     "fallbackResponse": "本条回复已切换至备用模型，由 {{preset}} 回答。",
     "copyReply": "复制",
@@ -2081,7 +2083,6 @@
     },
     "readFullMessage": "阅读完整消息",
     "fullMessageTitle": "消息",
-    "replyingTo": "回复的消息",
     "reactionFromAgent": "助手对此消息的回应",
     "htmlPreview": "预览 HTML 页面",
     "openHtmlInTab": "在新标签页打开 {{name}}"

@@ -1881,7 +1881,9 @@
     "openLink": "Mở liên kết: {{label}}",
     "openAttachment": "Mở {{name}}",
     "skill": "Kỹ năng: {{name}}",
-    "askAboutSelection": "Hỏi về nội dung chọn",
+    "quoteMessage": "Trích dẫn",
+    "quotedMessage": "Tin nhắn được trích dẫn",
+    "jumpToQuoted": "Đi tới tin nhắn được trích dẫn",
     "forkFromHere": "Trò chuyện mới từ đây",
     "fallbackResponse": "Phản hồi này đã chuyển sang mô hình dự phòng, do {{preset}} trả lời.",
     "copyReply": "Sao chép",
@@ -2081,7 +2083,6 @@
     "automationTriggered": "Tự động kích hoạt",
     "readFullMessage": "Đọc toàn bộ tin nhắn",
     "fullMessageTitle": "Tin nhắn",
-    "replyingTo": "Trả lời",
     "reactionFromAgent": "Tác nhân đã bày tỏ cảm xúc này",
     "htmlPreview": "Xem trước trang HTML",
     "openHtmlInTab": "Mở {{name}} trong tab mới"

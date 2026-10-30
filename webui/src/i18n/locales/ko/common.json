@@ -1881,7 +1881,9 @@
     "openLink": "링크 열기: {{label}}",
     "openAttachment": "{{name}} 열기",
     "skill": "스킬: {{name}}",
-    "askAboutSelection": "선택한 내용 질문",
+    "quoteMessage": "인용",
+    "quotedMessage": "인용한 메시지",
+    "jumpToQuoted": "인용한 메시지로 이동",
     "forkFromHere": "여기서 새 대화",
     "fallbackResponse": "이 응답은 대체 모델로 전환되어 {{preset}}이(가) 답변합니다.",
     "copyReply": "복사",
@@ -2081,7 +2083,6 @@
     "automationTriggered": "자동 실행됨",
     "readFullMessage": "전체 메시지 읽기",
     "fullMessageTitle": "메시지",
-    "replyingTo": "답장 대상",
     "reactionFromAgent": "에이전트가 남긴 반응",
     "htmlPreview": "HTML 페이지 미리보기",
     "openHtmlInTab": "새 탭에서 {{name}} 열기"

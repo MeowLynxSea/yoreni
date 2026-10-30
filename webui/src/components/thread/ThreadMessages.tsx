@@ -8,14 +8,13 @@ import {
   completedActivityDurationMs,
   formatActivityDuration,
 } from "@/components/thread/AgentActivityCluster";
-import { AssistantSelectionAction } from "@/components/thread/AssistantSelectionAction";
+import { MessageActionLayer } from "@/components/thread/MessageActionLayer";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useLocalPreferences } from "@/hooks/useLocalPreferences";
-import { fmtDateTime, formatMessageHoverTime } from "@/lib/format-time";
 import { projectActivityTimeline, type TurnUnit } from "@/lib/activity-timeline";
+import { messageCopyText } from "@/lib/message-text";
 import { cn } from "@/lib/utils";
 import type { CliAppInfo, McpPresetInfo, RetryStatus, UIMessage } from "@/lib/types";
 
@@ -104,6 +103,10 @@ export function ThreadMessages({
   const { t } = useTranslation();
   const { activityMode } = useLocalPreferences();
   const messageListRef = useRef<HTMLDivElement>(null);
+  const messageText = useCallback((messageId: string) => {
+    const message = messages.find((entry) => entry.id === messageId);
+    return message ? messageCopyText(message, t) : null;
+  }, [messages, t]);
   const mobileActions = useMediaQuery("(max-width: 767px)");
   const units = useMemo(
     () => buildDisplayUnits(messages),
@@ -183,10 +186,13 @@ export function ThreadMessages({
 
   return (
     <div ref={messageListRef} className="flex w-full flex-col">
-      <AssistantSelectionAction
-        containerRef={messageListRef}
-        onQuoteSelection={onQuoteSelection}
-      />
+      {onQuoteSelection ? (
+        <MessageActionLayer
+          containerRef={messageListRef}
+          messageText={messageText}
+          onQuote={(selection) => onQuoteSelection(selection.text)}
+        />
+      ) : null}
       {[
         preludeIndex > 0 ? <Fragment key="top-inset">{inset}</Fragment> : null,
         units.length === 0 ? renderPrelude(null) : null,
@@ -435,12 +441,6 @@ function MessageBlockMenu({
   const contextActiveRef = useRef(contextActive);
   contextActiveRef.current = contextActive;
   const label = t("message.actions");
-  const timestamp = message.role === "assistant" && Number.isFinite(message.completedAt)
-    ? message.completedAt
-    : message.createdAt;
-  // Re-evaluated when this message becomes active, including after an overnight idle.
-  const shortTime = mobileActions ? "" : formatMessageHoverTime(timestamp);
-  const fullTime = shortTime ? fmtDateTime(timestamp) : "";
   const actions = <MessageBlockMenuActions
     message={message}
     isTurnStreaming={isTurnStreaming}
@@ -496,21 +496,6 @@ function MessageBlockMenu({
           </span>
         </button>
       </PopoverTrigger>
-      {shortTime && fullTime && typeof timestamp === "number" ? (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <time data-message-hover-time dateTime={new Date(timestamp).toISOString()}
-                tabIndex={0} aria-label={fullTime}
-                className="message-block-hover-time absolute start-[calc(-1*var(--message-block-trigger-offset)-2px)] top-[var(--message-block-control-size)] z-10 w-[calc(var(--message-block-control-size)+4px)] truncate rounded-mark text-center text-[10px] leading-4 tabular-nums text-muted-foreground outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none">
-                {shortTime}
-              </time>
-            </TooltipTrigger>
-            <TooltipContent side="right" align="start" collisionPadding={12}
-              data-message-context-menu-block={contextBlockKey}>{fullTime}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      ) : null}
       <PopoverContent
         ref={contentRef}
         data-message-block-menu

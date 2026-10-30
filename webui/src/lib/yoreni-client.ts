@@ -1,6 +1,6 @@
 import { uploadAttachments, uploadCapability, type DraftAttachment, type UploadCapability } from "../../../packages/client-events/attachments";
 import { createHostWebSocket } from "./runtime";
-import type { ConnectionStatus, WorkspaceScopePayload } from "./types";
+import type { ConnectionStatus, UIMediaWireAttachment, WorkspaceScopePayload } from "./types";
 
 export interface AgentFrame {
   event: string;
@@ -17,12 +17,14 @@ export interface AgentFrame {
   message?: string;
   detail?: string;
   error?: { status?: number; message?: string } | string;
-  media_urls?: { url: string; name: string; kind?: string }[];
+  media_urls?: UIMediaWireAttachment[];
   /** Durable conversation row ID of a delivered Agent message. */
   id?: string;
   /** Conversation row a delivered Agent message answers. */
   reply_to?: string;
   quote?: string;
+  /** Delivered files form a card instead of a message bubble. */
+  rich?: boolean;
   /** Emoji reaction target and value. */
   target?: string;
   emoji?: string;

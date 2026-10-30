@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Disclosure } from "@/components/ui/disclosure";
 import { ChevronDown } from "lucide-react";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -15,6 +15,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { MessageBubble } from "@/components/MessageBubble";
 import { SettingsIndex } from "@/components/settings/SettingsIndex";
 import { isSettingsSectionKey } from "@/components/settings/contracts";
+import { MessageActionLayer, type MessageQuoteSelection } from "@/components/thread/MessageActionLayer";
 import { ThreadComposer } from "@/components/thread/ThreadComposer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,8 +24,13 @@ import { ThemeControlProvider, useTheme, useThemeControl } from "@/hooks/useThem
 import { useAppViewport } from "@/hooks/useAppViewport";
 import { useReadingTypography } from "@/hooks/useReadingTypography";
 import { BootstrapAuthRequiredError, clearSavedSecret, consumeUrlBootstrapSecret, deriveWsUrl, fetchBootstrap, loadSavedSecret, saveSecret } from "@/lib/bootstrap";
+import type { SendAttachment } from "@/lib/agent-input";
+import { formatMessageGroupTime } from "@/lib/format-time";
 import { readHomeView, writeHomeView, type HomeView } from "@/lib/local-ui-state";
+import { messageTimeGroups } from "@/lib/message-groups";
+import { messageCopyText } from "@/lib/message-text";
 import { createRuntimeHost } from "@/lib/runtime";
+import { formatQuotedUserMessage } from "@/lib/user-message-quote";
 import { YoreniClient } from "@/lib/yoreni-client";
 import type { BootstrapResponse } from "@/lib/types";
 import { ClientProvider, useClient } from "@/providers/ClientProvider";
@@ -290,21 +296,71 @@ function HistorySkeleton() {
   );
 }
 
+function MessageTimeDivider({ timestamp }: { timestamp: number }) {
+  const label = formatMessageGroupTime(timestamp);
+  if (!label) return null;
+  return (
+    <div data-message-time-divider className="flex justify-center">
+      <span className="text-[11px] leading-4 tabular-nums text-muted-foreground/70">{label}</span>
+    </div>
+  );
+}
+
 function ChatView({ greeting, run, model, onOpenSettings }: {
   greeting: string;
   run: ReturnType<typeof useAgentRun>;
   model: string | null;
   onOpenSettings?: () => void;
 }) {
+  const { t } = useTranslation();
   const viewport = useRef<HTMLDivElement>(null);
+  const thread = useRef<HTMLDivElement>(null);
   const following = useRef(true);
+  const highlightTimer = useRef<number | null>(null);
+  const [quote, setQuote] = useState<MessageQuoteSelection | null>(null);
+  const [quoteTarget, setQuoteTarget] = useState<string | null>(null);
   const running = run.active || run.sending;
   const loadingHistory = !run.historyLoaded && run.messages.length === 0;
   const empty = run.messages.length === 0 && !loadingHistory && !running;
+  const groups = useMemo(() => messageTimeGroups(run.messages), [run.messages]);
   useEffect(() => { if (following.current && viewport.current) viewport.current.scrollTop = viewport.current.scrollHeight; }, [run.messages, running]);
+  useEffect(() => () => {
+    if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current);
+  }, []);
+  const messageText = useCallback((messageId: string) => {
+    const message = run.messages.find((entry) => entry.id === messageId);
+    return message ? messageCopyText(message, t) : null;
+  }, [run.messages, t]);
+  const jumpToQuote = useCallback((targetId: string | null, text: string) => {
+    const root = thread.current;
+    if (!root) return;
+    const nodes = Array.from(root.querySelectorAll<HTMLElement>("[data-message-id]"));
+    const wanted = text.replace(/\s+/g, " ").trim().slice(0, 24);
+    const target = (targetId ? nodes.find((node) => node.dataset.messageId === targetId) : undefined)
+      ?? (wanted
+        ? nodes.find((node) => (node.textContent ?? "").replace(/\s+/g, " ").includes(wanted))
+        : undefined);
+    if (!target) return;
+    target.scrollIntoView({ block: "center", behavior: "smooth" });
+    const landed = target.dataset.messageId ?? null;
+    setQuoteTarget(landed);
+    if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current);
+    highlightTimer.current = window.setTimeout(() => setQuoteTarget(null), 1_400);
+  }, []);
+  const send = async (content: string, attachments?: SendAttachment[]) => {
+    const pending = quote;
+    const composed = pending ? formatQuotedUserMessage(content, pending.text, pending.messageId) : content;
+    await run.send(composed, attachments?.map((item) => item.media));
+    if (pending) setQuote(null);
+  };
   return (
     <main className="relative flex min-h-0 flex-1 flex-col">
       <AgentRecovery />
+      <MessageActionLayer
+        containerRef={thread}
+        messageText={messageText}
+        onQuote={setQuote}
+      />
       <div className={cn("flex min-h-0 flex-1 flex-col", empty && "justify-center")}>
         {loadingHistory ? (
           <HistorySkeleton />
@@ -323,8 +379,20 @@ function ChatView({ greeting, run, model, onOpenSettings }: {
             }}
             className="thread-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain"
           >
-            <div data-testid="thread-message-region" className="mx-auto flex min-h-full w-full max-w-[44rem] flex-col justify-end gap-6 px-5 pb-10 pt-10 sm:px-6 sm:pb-12">
-              {run.messages.map((message) => <MessageBubble key={message.id} message={message} />)}
+            <div ref={thread} data-testid="thread-message-region" className="mx-auto flex min-h-full w-full max-w-[47.5rem] flex-col justify-end gap-6 px-5 pb-10 pt-10 sm:px-6 sm:pb-12 md:px-[3.25rem]">
+              {groups.map((group) => (
+                <Fragment key={group.key}>
+                  <MessageTimeDivider timestamp={group.startedAt} />
+                  {group.messages.map((message) => (
+                    <MessageBubble
+                      key={message.id}
+                      message={message}
+                      onJumpToQuote={jumpToQuote}
+                      quoteTarget={quoteTarget === message.id}
+                    />
+                  ))}
+                </Fragment>
+              ))}
               {running ? <AgentRunIndicator key="agent-run" activity={run.activity} className="-mt-3" /> : null}
             </div>
           </div>
@@ -337,13 +405,15 @@ function ChatView({ greeting, run, model, onOpenSettings }: {
               </p>
             ) : null}
             <ThreadComposer
-              onSend={(content, attachments) => run.send(content, attachments?.map((item) => item.media))}
+              onSend={send}
               onStop={() => { void run.stop(); }}
               isStreaming={run.active}
               variant={empty ? "hero" : "thread"}
               persistDraft
               modelLabel={model}
               onModelBadgeClick={onOpenSettings}
+              quotedContext={quote?.text ?? null}
+              onClearQuote={() => setQuote(null)}
             />
           </div>
         </div>

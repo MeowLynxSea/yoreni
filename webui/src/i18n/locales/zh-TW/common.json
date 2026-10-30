@@ -2078,10 +2078,11 @@
     "cliRunFailed": "失敗",
     "automationSourceFallback": "自動化",
     "automationTriggered": "已自動觸發",
-    "askAboutSelection": "詢問選文",
+    "quoteMessage": "引用",
+    "quotedMessage": "被引用的訊息",
+    "jumpToQuoted": "跳至被引用的訊息",
     "readFullMessage": "閱讀完整訊息",
     "fullMessageTitle": "訊息",
-    "replyingTo": "回覆的訊息",
     "reactionFromAgent": "助理對此訊息的回應",
     "htmlPreview": "預覽 HTML 頁面",
     "openHtmlInTab": "在新分頁開啟 {{name}}"

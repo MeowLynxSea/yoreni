@@ -1881,7 +1881,9 @@
     "openLink": "リンクを開く: {{label}}",
     "openAttachment": "開く: {{name}}",
     "skill": "スキル: {{name}}",
-    "askAboutSelection": "選択した内容を質問",
+    "quoteMessage": "引用",
+    "quotedMessage": "引用したメッセージ",
+    "jumpToQuoted": "引用元のメッセージへ移動",
     "forkFromHere": "ここから別チャット",
     "fallbackResponse": "この返信では代替モデルに切り替わり、{{preset}} が回答しています。",
     "copyReply": "コピー",
@@ -2081,7 +2083,6 @@
     "automationTriggered": "自動実行",
     "readFullMessage": "メッセージ全文を読む",
     "fullMessageTitle": "メッセージ",
-    "replyingTo": "返信先",
     "reactionFromAgent": "エージェントが付けたリアクション",
     "htmlPreview": "HTML ページをプレビュー",
     "openHtmlInTab": "{{name}} を新しいタブで開く"

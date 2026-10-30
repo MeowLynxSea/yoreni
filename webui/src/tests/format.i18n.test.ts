@@ -4,7 +4,7 @@ import { setAppLanguage } from "@/i18n";
 import {
   fmtDateTime,
   formatMessageEndTime,
-  formatMessageHoverTime,
+  formatMessageHoverTimeParts,
   formatTurnLatency,
   relativeTime,
 } from "@/lib/format-time";
@@ -114,16 +114,23 @@ describe("localized format helpers", () => {
     expect(minutePlus).toContain("s");
   });
 
-  it("uses a short 24-hour clock today and localized month/day for every other date", () => {
+  it("stacks a short 24-hour clock under a localized date for every day but today", () => {
     const now = new Date(2026, 8, 24, 16, 0);
-    expect(formatMessageHoverTime(new Date(2026, 8, 24, 14, 32).getTime(), "zh-CN", now)).toBe("14:32");
-    expect(formatMessageHoverTime(new Date(2026, 8, 24, 0, 5).getTime(), "en", now)).toBe("00:05");
-    expect(formatMessageHoverTime(new Date(2026, 8, 23, 14, 32).getTime(), "zh-CN", now)).toBe("9/23");
-    expect(formatMessageHoverTime(new Date(2026, 8, 23).getTime(), "fr", now)).toBe(
+    expect(formatMessageHoverTimeParts(new Date(2026, 8, 24, 14, 32).getTime(), "zh-CN", now))
+      .toEqual({ date: "", time: "14:32", full: fmtDateTime(new Date(2026, 8, 24, 14, 32).getTime(), "zh-CN") });
+    expect(formatMessageHoverTimeParts(new Date(2026, 8, 24, 0, 5).getTime(), "en", now)?.time)
+      .toBe("00:05");
+    expect(formatMessageHoverTimeParts(new Date(2026, 8, 23, 14, 32).getTime(), "zh-CN", now)?.date)
+      .toBe("9/23");
+    expect(formatMessageHoverTimeParts(new Date(2026, 8, 23).getTime(), "fr", now)?.date).toBe(
       new Intl.DateTimeFormat("fr", { month: "numeric", day: "numeric" }).format(new Date(2026, 8, 23)),
     );
-    expect(formatMessageHoverTime(new Date(2025, 8, 22).getTime(), "zh-CN", now)).toBe("9/22");
-    expect(formatMessageHoverTime(new Date(2026, 8, 25).getTime(), "zh-CN", now)).toBe("9/25");
+    // A different year needs the year to stay unambiguous.
+    expect(formatMessageHoverTimeParts(new Date(2025, 8, 22).getTime(), "zh-CN", now)?.date)
+      .toBe(new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "numeric", day: "numeric" })
+        .format(new Date(2025, 8, 22)));
+    expect(formatMessageHoverTimeParts(new Date(2026, 8, 25).getTime(), "zh-CN", now)?.date)
+      .toBe("9/25");
   });
 
   it.each([
@@ -132,12 +139,12 @@ describe("localized format helpers", () => {
     [new Date(2026, 2, 9, 0, 30), new Date(2026, 2, 8, 0, 15)],
     [new Date(2026, 10, 2, 0, 30), new Date(2026, 10, 1, 23, 55)],
   ])("compares local calendar days across month/year and DST boundaries (%s)", (now, previousDay) => {
-    expect(formatMessageHoverTime(previousDay.getTime(), "en", now)).toBe(
+    expect(formatMessageHoverTimeParts(previousDay.getTime(), "en", now)?.date).toContain(
       new Intl.DateTimeFormat("en", { month: "numeric", day: "numeric" }).format(previousDay),
     );
   });
 
   it.each([null, undefined, NaN, Infinity, 9e15])("omits invalid hover time %s", (value) => {
-    expect(formatMessageHoverTime(value)).toBe("");
+    expect(formatMessageHoverTimeParts(value)).toBeNull();
   });
 });

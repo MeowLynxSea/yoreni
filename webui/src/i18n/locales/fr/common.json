@@ -1881,7 +1881,9 @@
     "openLink": "Ouvrir le lien : {{label}}",
     "openAttachment": "Ouvrir {{name}}",
     "skill": "Compétence : {{name}}",
-    "askAboutSelection": "Questionner la sélection",
+    "quoteMessage": "Citer",
+    "quotedMessage": "Message cité",
+    "jumpToQuoted": "Aller au message cité",
     "forkFromHere": "Nouvelle discussion ici",
     "fallbackResponse": "Cette réponse utilise un modèle de secours : {{preset}}.",
     "copyReply": "Copier",
@@ -2081,7 +2083,6 @@
     "automationTriggered": "Déclenché automatiquement",
     "readFullMessage": "Lire le message complet",
     "fullMessageTitle": "Message",
-    "replyingTo": "En réponse à",
     "reactionFromAgent": "L’agent a réagi avec cet emoji",
     "htmlPreview": "Aperçu de la page HTML",
     "openHtmlInTab": "Ouvrir {{name}} dans un nouvel onglet"

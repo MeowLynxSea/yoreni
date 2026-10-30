@@ -712,7 +712,7 @@ describe("ThreadMessages", () => {
     } as unknown as Selection);
 
     document.dispatchEvent(new Event("selectionchange"));
-    const action = await screen.findByRole("button", { name: "Ask about selection" });
+    const action = await screen.findByRole("menuitem", { name: "Quote" });
     fireEvent.click(action);
 
     await waitFor(() => expect(onQuoteSelection).toHaveBeenCalledWith("selected answer"));

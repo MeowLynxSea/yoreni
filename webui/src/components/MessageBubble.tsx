@@ -13,12 +13,11 @@ import {
   CircleAlert,
   Clock3,
   Copy,
-  CornerUpLeft,
-  Quote,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { AttachmentTile } from "@/components/AttachmentTile";
+import { LinkCard } from "@/components/LinkCard";
 import { CodeBlock } from "@/components/CodeBlock";
 import { FallbackResponseSources } from "@/components/ResponseSourceBadge";
 import { HtmlAttachment } from "@/components/HtmlAttachment";
@@ -26,13 +25,15 @@ import { ImageGallery } from "@/components/ImageGallery";
 import { InlineImageProvider, useInlineImages } from "@/components/InlineImageContext";
 import { MarkdownText } from "@/components/MarkdownText";
 import { ContextCompactionNotice } from "@/components/thread/ContextCompactionNotice";
+import { QuotedMessageLink } from "@/components/thread/QuotedMessageLink";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { UserMessageText } from "@/components/UserMessageText";
 import { HoverHint } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { copyTextToClipboard } from "@/lib/clipboard";
-import { formatMessageEndTime } from "@/lib/format-time";
+import { formatMessageEndTime, formatMessageHoverTimeParts } from "@/lib/format-time";
 import { toMediaAttachment } from "@/lib/media";
+import { messageCopyText } from "@/lib/message-text";
 import { parseQuotedUserMessage } from "@/lib/user-message-quote";
 import type {
   CliAppInfo,
@@ -55,6 +56,10 @@ interface MessageBubbleProps {
   onOpenFilePreview?: (path: string) => void;
   /** Context-menu trigger positioned against this message's visual block. */
   contextMenu?: ReactNode;
+  /** Scroll the transcript to the message a quote came from. */
+  onJumpToQuote?: (targetId: string | null, quote: string) => void;
+  /** True just after a jump landed on this message, so it can flash once. */
+  quoteTarget?: boolean;
 }
 
 function ForkArrowIcon({ className }: { className?: string }) {
@@ -108,19 +113,10 @@ function useMessageCopy(content: string) {
   return { copied, label, onCopy };
 }
 
-function messageCopyContent(message: UIMessage, t: (key: string) => string) {
-  if (message.renderAs === "text") return message.content;
-  return message.role === "assistant" && message.compactReply === "empty"
-    ? t("thread.compaction.empty")
-    : message.role === "assistant" && message.compactReply === "failed"
-      ? t("thread.compaction.failed")
-      : message.content;
-}
-
 /** The same copy behavior in the desktop menu and the mobile reply footer. */
 export function MessageCopyButton({ message, className }: { message: UIMessage; className?: string }) {
   const { t } = useTranslation();
-  const content = messageCopyContent(message, t);
+  const content = messageCopyText(message, t);
   const { copied, label, onCopy } = useMessageCopy(content);
   if (!content.trim()) return null;
   return <HoverHint content={label} side="top" align="center"><button type="button" data-message-block-copy-action
@@ -135,6 +131,15 @@ export function MessageCopyButton({ message, className }: { message: UIMessage; 
     {copied ? <Check className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
       : <Copy className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />}
   </button></HoverHint>;
+}
+
+/** The time a reader associates with the turn: when they sent it, or when the Agent finished. */
+function messageTimeAnchor(message: UIMessage): number {
+  return message.role === "assistant"
+    && typeof message.completedAt === "number"
+    && Number.isFinite(message.completedAt)
+    ? message.completedAt
+    : message.createdAt;
 }
 
 interface MessageBlockMenuActivity {
@@ -161,21 +166,15 @@ export function MessageBlockMenuActions({
   sheet = false,
 }: MessageBlockMenuActionsProps) {
   const { t } = useTranslation();
-  const content = messageCopyContent(message, t);
+  const content = messageCopyText(message, t);
   const hasText = content.trim().length > 0;
   const showFork = message.role === "assistant"
     && !message.isStreaming
     && !isTurnStreaming
     && hasText
     && onForkFromHere !== undefined;
-  const timestamp = message.role === "assistant"
-    && typeof message.completedAt === "number"
-    && Number.isFinite(message.completedAt)
-    ? message.completedAt
-    : message.createdAt;
-  const timestampLabel = typeof timestamp === "number" && Number.isFinite(timestamp)
-    ? formatMessageEndTime(timestamp)
-    : "";
+  const timestamp = messageTimeAnchor(message);
+  const timestampLabel = formatMessageEndTime(timestamp);
   const automationSourceLabel = message.role === "assistant"
     && ["cron", "local_trigger", "trigger"].includes(message.source?.kind ?? "")
     ? message.source?.label?.trim() || t("message.automationSourceFallback")
@@ -389,11 +388,48 @@ function trimmedMessage(content: string): string {
   return content.slice(0, end).trimEnd();
 }
 
-/** Scroll the replied-to row into view; both message roles share this anchor. */
-function revealMessage(messageId: string): void {
-  if (typeof document === "undefined") return;
-  const node = document.querySelector(`[data-message-id="${messageId}"]`);
-  node?.scrollIntoView({ block: "center", behavior: "smooth" });
+/**
+ * The send time, revealed beside the message on hover: the Agent's on the left,
+ * the reader's on the right, stacked date over clock like a chat client. The
+ * label refreshes when the message is entered again so an overnight session
+ * does not keep calling yesterday "today".
+ */
+function MessageHoverTime({ timestamp, align }: { timestamp: number; align: "start" | "end" }) {
+  const [now, setNow] = useState(() => new Date());
+  const ref = useRef<HTMLTimeElement>(null);
+  useEffect(() => {
+    const element = ref.current;
+    const owner = element?.closest("[data-thread-display-unit]") ?? element?.closest("[data-message-id]");
+    if (!owner) return;
+    const refresh = () => setNow(new Date());
+    owner.addEventListener("pointerenter", refresh);
+    return () => owner.removeEventListener("pointerenter", refresh);
+  }, []);
+  const parts = formatMessageHoverTimeParts(timestamp, undefined, now);
+  if (!parts) return null;
+  return (
+    <HoverHint side={align === "start" ? "left" : "right"} align="center" content={parts.full}>
+      <time
+        ref={ref}
+        data-message-hover-time
+        dateTime={new Date(timestamp).toISOString()}
+        aria-label={parts.full}
+        tabIndex={0}
+        onFocus={() => setNow(new Date())}
+        className={cn(
+          "pointer-events-none absolute top-1/2 z-10 hidden -translate-y-1/2 select-none flex-col",
+          "whitespace-nowrap text-[10px] leading-[1.45] tabular-nums text-muted-foreground/60",
+          "opacity-0 transition-opacity duration-150 motion-reduce:transition-none",
+          "focus-visible:opacity-100 focus-visible:outline-none group-hover/message:opacity-100",
+          "group-focus-within/message:opacity-100 md:flex",
+          align === "start" ? "end-full me-3 items-end text-end" : "start-full ms-3 items-start text-start",
+        )}
+      >
+        {parts.date ? <span>{parts.date}</span> : null}
+        <span>{parts.time}</span>
+      </time>
+    </HoverHint>
+  );
 }
 
 /** Reactions sit on the bubble's bottom corner, the way a chat app shows them. */
@@ -427,49 +463,6 @@ function MessageReactions({
         </span>
       ))}
     </span>
-  );
-}
-
-function ReplyContext({
-  quote,
-  replyTo,
-  align,
-}: {
-  quote: string;
-  replyTo?: string;
-  align: "left" | "right";
-}) {
-  const { t } = useTranslation();
-  const label = t("message.replyingTo");
-  const content = (
-    <>
-      <CornerUpLeft className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-      <span className="line-clamp-2 min-w-0 whitespace-pre-wrap text-reading-small [overflow-wrap:anywhere]">
-        {quote}
-      </span>
-    </>
-  );
-  const className = cn(
-    "flex w-fit max-w-full min-w-0 items-start gap-2 rounded-control",
-    "border border-border/60 bg-muted/30 px-3 py-2 text-left text-muted-foreground",
-    align === "right" && "ml-auto",
-  );
-  if (!replyTo) {
-    return <blockquote className={className} aria-label={label}>{content}</blockquote>;
-  }
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={() => revealMessage(replyTo)}
-      className={cn(
-        className,
-        "transition-colors hover:bg-muted/50 hover:text-foreground",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-      )}
-    >
-      {content}
-    </button>
   );
 }
 
@@ -550,6 +543,8 @@ export function MessageBubble({
   mcpPresets = [],
   onOpenFilePreview,
   contextMenu,
+  onJumpToQuote,
+  quoteTarget = false,
 }: MessageBubbleProps) {
   const { t } = useTranslation();
   const mentionCliApps = useMemo(
@@ -590,25 +585,31 @@ export function MessageBubble({
     return (
       <div
         data-message-id={message.id}
-        className="message-enter group relative ml-auto flex w-fit max-w-[min(85%,36rem)] flex-col items-end gap-1.5"
+        className="message-enter group/message relative ml-auto flex w-fit max-w-[min(85%,36rem)] flex-col items-end gap-1.5"
       >
+        <MessageHoverTime timestamp={message.createdAt} align="end" />
+        {quotedContext ? (
+          <QuotedMessageLink
+            quote={quotedContext}
+            targetId={parsedMessage.quotedMessageId}
+            onJump={onJumpToQuote}
+            align="end"
+            className="me-1 -mb-0.5"
+          />
+        ) : null}
         {!hasText ? contextMenu : null}
         {hasImages ? <ImageGallery images={images} align="right" size="compact" /> : null}
         {!hasImages && hasMedia ? (
           <MessageMedia media={media} align="right" pending={message.deliveryStatus === "sending"} />
         ) : null}
         {!hasText ? <MessageReactions reactions={message.reactions} side="right" /> : null}
-        {quotedContext ? (
-          <UserQuotedContext
-            text={quotedContext}
-            label={t("thread.composer.quotedContext")}
-          />
-        ) : null}
         {hasText ? (
           <div data-user-text-bubble className="relative ml-auto w-fit max-w-full min-w-0">
             {contextMenu}
             <p
               data-theme-surface
+              data-message-selectable="true"
+              data-quote-target={quoteTarget || undefined}
               data-temporary-message={temporary ? "true" : undefined}
               className={cn(
                 "ml-auto w-fit max-w-full min-w-0 rounded-[1.35rem] px-4 py-2.5",
@@ -635,31 +636,80 @@ export function MessageBubble({
     );
   }
 
-  const assistantContent = messageCopyContent(message, t);
+  const assistantContent = messageCopyText(message, t);
   const media = message.media ?? [];
   if (assistantContent.trim().length === 0 && media.length === 0) {
     // A pre-token or tool-only slot has no answer of its own; the run indicator
     // carries the waiting state instead of an empty sheet that flashes away.
     return null;
   }
+  if (message.rich) {
+    // Files are their own card: a speech bubble around them would read as
+    // something the Agent said rather than something it handed over.
+    return (
+      <div
+        data-assistant-message
+        data-message-id={message.id}
+        className="message-enter group/message relative w-full text-reading"
+      >
+        <MessageHoverTime timestamp={messageTimeAnchor(message)} align="start" />
+        {contextMenu}
+        {message.quote ? (
+          <div className="mb-1 ms-1 flex">
+            <QuotedMessageLink
+              quote={message.quote}
+              targetId={message.replyTo ?? null}
+              onJump={onJumpToQuote}
+            />
+          </div>
+        ) : null}
+        <InlineImageProvider>
+          <figure
+            data-rich-card
+            data-quote-target={quoteTarget || undefined}
+            className="flex w-full max-w-[28rem] flex-col gap-2"
+          >
+            {media.length > 0 ? <MessageMedia media={media} align="left" fill /> : null}
+            {assistantContent.trim().length > 0 ? (
+              <figcaption className="whitespace-pre-wrap text-caption text-muted-foreground">
+                {assistantContent}
+              </figcaption>
+            ) : null}
+          </figure>
+        </InlineImageProvider>
+        <MessageReactions reactions={message.reactions} side="left" />
+      </div>
+    );
+  }
   return (
     <div
       data-assistant-message
       data-message-id={message.id}
       className={cn(
-        "message-enter group/assistant relative w-full text-reading",
+        "message-enter group/message relative w-full text-reading",
         message.isStreaming && "assistant-caret",
       )}
     >
+      <MessageHoverTime timestamp={messageTimeAnchor(message)} align="start" />
       {contextMenu}
-      <div className="app-surface-glass rounded-[1.6rem] px-5 py-4 sm:px-6 sm:py-5">
+      {message.quote ? (
+        <div className="mb-1 ms-1 flex min-w-0">
+          <QuotedMessageLink
+            quote={message.quote}
+            targetId={message.replyTo ?? null}
+            onJump={onJumpToQuote}
+          />
+        </div>
+      ) : null}
+      <div
+        data-quote-target={quoteTarget || undefined}
+        className="app-surface-glass rounded-[1.6rem] px-5 py-4 sm:px-6 sm:py-5"
+      >
         <InlineImageProvider>
-          {message.quote ? (
-            <div className="mb-3">
-              <ReplyContext quote={message.quote} replyTo={message.replyTo} align="left" />
-            </div>
-          ) : null}
-          <div data-assistant-selectable={message.isStreaming ? undefined : "true"}>
+          <div
+            data-message-selectable={message.isStreaming ? undefined : "true"}
+            data-assistant-selectable={message.isStreaming ? undefined : "true"}
+          >
             {message.renderAs === "text" ? (
               <CodeBlock language="text" code={assistantContent} highlight={false} ansi={false} />
             ) : message.delivered ? (
@@ -684,25 +734,6 @@ export function MessageBubble({
       </div>
       <MessageReactions reactions={message.reactions} side="left" />
     </div>
-  );
-}
-
-function UserQuotedContext({ text, label }: { text: string; label: string }) {
-  return (
-    <blockquote
-      data-theme-surface
-      data-theme-ink
-      className={cn(
-        "ml-auto flex w-fit max-w-full min-w-0 items-start gap-2 rounded-control",
-        "border border-border/60 bg-muted/35 px-3 py-2 text-left text-muted-foreground",
-      )}
-      aria-label={label}
-    >
-      <Quote className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-      <p className="min-w-0 line-clamp-3 whitespace-pre-wrap text-reading-small [overflow-wrap:anywhere]">
-        {text}
-      </p>
-    </blockquote>
   );
 }
 
@@ -773,21 +804,27 @@ function MessageMedia({
   media,
   align,
   pending = false,
+  fill = false,
 }: {
   media: UIMediaAttachment[];
   align: "left" | "right";
   pending?: boolean;
+  /** Reach the container edge: no outer margin, previews cropped to their frame. */
+  fill?: boolean;
 }) {
   const inlineImages = useInlineImages();
   if (media.length === 0) return null;
   const images: UIImage[] = [];
   const seen = new Set<string>();
+  const links: UIMediaAttachment[] = [];
   const videos: UIMediaAttachment[] = [];
   const pages: UIMediaAttachment[] = [];
   const files: UIMediaAttachment[] = [];
   for (const item of media) {
     const normalized = toMediaAttachment(item);
-    if (normalized.kind === "image") {
+    if (normalized.kind === "link") {
+      links.push(normalized);
+    } else if (normalized.kind === "image") {
       if (normalized.url && (inlineImages.has(normalized.url) || seen.has(normalized.url))) continue;
       if (normalized.url) seen.add(normalized.url);
       images.push({ url: normalized.url, name: normalized.name });
@@ -799,19 +836,27 @@ function MessageMedia({
       files.push(normalized);
     }
   }
-  if (images.length === 0 && videos.length === 0 && pages.length === 0 && files.length === 0) {
+  if (
+    links.length === 0
+    && images.length === 0
+    && videos.length === 0
+    && pages.length === 0
+    && files.length === 0
+  ) {
     return null;
   }
 
   return (
     <div
       className={cn(
-        "mt-2 flex min-w-0 max-w-full flex-col gap-2",
+        "flex min-w-0 max-w-full flex-col gap-2",
+        !fill && "mt-2",
         align === "right" ? "items-end" : "items-start",
       )}
     >
+      {links.map((item, i) => <LinkCard key={`link-${i}`} link={item} />)}
       {images.length > 0 ? (
-        <ImageGallery images={images} align={align} size={align === "left" ? "large" : "compact"} />
+        <ImageGallery images={images} align={align} size={align === "left" ? "large" : "compact"} fill={fill} />
       ) : null}
       {pages.map((item, i) => (
         <HtmlAttachment key={`html-${i}`} attachment={item} className="my-0 w-[min(100%,32rem)]" />

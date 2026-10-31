@@ -1,11 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { RuntimeSettings } from "@/components/settings/system/RuntimeSettings";
 import { RUNTIME_CONFIG_FIELDS, RUNTIME_CONFIG_GROUPS } from "@/components/settings/system/runtime-config-fields";
 import runtimeConfigKeys from "../../../tests/webui/fixtures/runtime-config-keys.json";
 import { TimezonePicker } from "@/components/settings/shared/TimezonePicker";
-import { DEFAULT_AGENT_SETTINGS_DRAFT } from "@/components/settings/models/ModelsSettings";
 import type { SettingsPayload } from "@/lib/types";
 import { installSettingsViewTestHooks, jsonResponse, renderSettingsView, requestMutationMock, settingsPayload } from "@/tests/settings-test-utils";
 
@@ -41,17 +39,6 @@ describe("Runtime configuration settings", () => {
     const visibilityOnly = "tools.cli_apps.enable";
     expect(RUNTIME_CONFIG_GROUPS.find((group) => group.id === "cli")?.enabledBy).toBe(visibilityOnly);
     expect([...paths, visibilityOnly].sort()).toEqual([...runtimeConfigKeys].sort());
-  });
-
-  it("keeps local services available when tool families are disabled", () => {
-    const payload = runtimeSettings();
-    renderSettingsView({ initialSection: "advanced", initialSettings: {
-      ...payload, runtime_config: {
-        ...payload.runtime_config, "tools.exec.enable": false,
-        "tools.web.enable": false, "tools.cli_apps.enable": false,
-      },
-    } });
-    expect(screen.getByRole("switch", { name: "Local services" })).toBeVisible();
   });
 
   it("places common settings in their feature pages and reserves advanced for low-frequency controls", () => {
@@ -125,43 +112,25 @@ describe("Runtime configuration settings", () => {
     expect(requestMutationMock).toHaveBeenLastCalledWith("settings.runtime_config.update", {
       values: { "tools.exec.allowed_env_keys": ["TERM", "COLORTERM"] },
     }, 20_000);
-    requestMutationMock.mockResolvedValueOnce({ ...payload, requires_restart: true,
+    requestMutationMock.mockResolvedValueOnce({ ...payload, requires_restart: false,
       runtime_config: { ...payload.runtime_config, "tools.exec.allowed_env_keys": ["TERM", "COLORTERM"] } });
     fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(await screen.findByText("Saved. Restart to apply changes.")).toBeVisible();
+    expect(screen.queryByText("Saved. Restart to apply changes.")).not.toBeInTheDocument();
     fireEvent.click(trigger);
     expect(within(screen.getByRole("dialog")).getByRole("textbox")).toHaveValue("TERM\nCOLORTERM");
   });
 
-  it("starts the API with newly saved advanced settings", async () => {
-    const payload = runtimeSettings();
-    payload.api = { ...payload.api, host: "192.168.1.7", port: 8900, timeout: 77.5, api_key_hint: "set" };
-    const action = vi.fn();
-    render(<RuntimeSettings form={DEFAULT_AGENT_SETTINGS_DRAFT} settings={payload}
-      requiresRestartPending={false} apiService={{
-        installed: true, running: false, managed: false, host: "127.0.0.1", port: 8900,
-        timeout: 120, endpoint: "http://127.0.0.1:8900/v1", command: "yoreni serve",
-        api_key_hint: "set",
-      }} apiServiceLoading={false} apiServiceAction={null} apiServiceError={null}
-      capabilitiesLoading={false} capabilityAction={null} capabilityError={null}
-      onApiServiceAction={action} onInstallCapability={() => {}} />);
-    fireEvent.click(screen.getByRole("button", { name: "Start API server" }));
-    expect(action).toHaveBeenCalledWith("start", {
-      host: "192.168.1.7", port: 8900, timeout: 77.5, apiKey: undefined,
-    });
-  });
-
   it("saves only edited fields using the existing settings footer", async () => {
     const payload = runtimeSettings();
-    requestMutationMock.mockResolvedValue({ ...payload, requires_restart: true,
+    requestMutationMock.mockResolvedValue({ ...payload, requires_restart: false,
       runtime_config: { ...payload.runtime_config, "tools.exec.timeout": 90 } });
     renderSettingsView({ initialSection: "advanced", initialSettings: payload });
     fireEvent.change(screen.getByRole("spinbutton", { name: "Custom runtime (seconds)" }), { target: { value: "90" } });
     await waitFor(() => expect(requestMutationMock).toHaveBeenCalledWith(
       "settings.runtime_config.update", { values: { "tools.exec.timeout": 90 } }, 20_000,
     ));
-    expect(await screen.findByText("Saved. Restart to apply changes.")).toBeInTheDocument();
+    expect(screen.queryByText("Saved. Restart to apply changes.")).not.toBeInTheDocument();
   });
 
   it("keeps a loaded custom runtime editable when typing through a preset", async () => {

@@ -7,9 +7,6 @@ import {
   memoryFormFromPayload,
 } from "@/components/settings/capabilities/MemorySettings";
 import {
-  networkSafetyFormFromPayload,
-} from "@/components/settings/capabilities/SecuritySettings";
-import {
   DEFAULT_TRANSCRIPTION_SETTINGS,
   transcriptionFormFromPayload,
 } from "@/components/settings/capabilities/TranscriptionSettings";
@@ -110,12 +107,12 @@ export function useSettingsController({
   } = modelState;
   const capabilityState = useCapabilitySettingsState(initialSettings);
   const {
-    imageGenerationForm, memoryForm, networkSafetyForm,
-    setImageGenerationForm, setMemoryForm, setNetworkSafetyForm, setTranscriptionForm, setWebSearchForm,
+    imageGenerationForm, memoryForm,
+    setImageGenerationForm, setMemoryForm, setTranscriptionForm, setWebSearchForm,
     transcriptionForm, webSearchForm,
   } = capabilityState;
-  const draftsRef = useRef({ form, imageGenerationForm, memoryForm, networkSafetyForm, transcriptionForm, webSearchForm });
-  draftsRef.current = { form, imageGenerationForm, memoryForm, networkSafetyForm, transcriptionForm, webSearchForm };
+  const draftsRef = useRef({ form, imageGenerationForm, memoryForm, transcriptionForm, webSearchForm });
+  draftsRef.current = { form, imageGenerationForm, memoryForm, transcriptionForm, webSearchForm };
   const systemState = useSystemSettingsState();
   const featureCatalog = systemState.yoreniFeatures?.features ?? [];
 
@@ -148,7 +145,6 @@ export function useSettingsController({
         setImageGenerationForm(imageGenerationFormFromPayload(payload));
         setMemoryForm(memoryFormFromPayload(payload));
         setTranscriptionForm(transcriptionFormFromPayload(payload));
-        setNetworkSafetyForm(networkSafetyFormFromPayload(payload));
       }
       if (payload.restart_required_sections) {
         setPendingRestartSections(pendingRestartSectionsFromPayload(payload));
@@ -214,7 +210,6 @@ export function useSettingsController({
           applyPayload(payload, {
             preserveAgentForm: current.form !== requestDrafts.form,
             preserveCapabilityForms: current.imageGenerationForm !== requestDrafts.imageGenerationForm ||
-              current.networkSafetyForm !== requestDrafts.networkSafetyForm ||
               current.transcriptionForm !== requestDrafts.transcriptionForm || current.webSearchForm !== requestDrafts.webSearchForm,
           });
           setError(null);
@@ -354,13 +349,6 @@ export function useSettingsController({
     );
   }, [memoryForm, settings]);
 
-  const networkSafetyDirty = useMemo(() => {
-    if (!settings) return false;
-    const currentLocalServiceAccess =
-      settings.advanced.webui_allow_local_service_access ?? settings.advanced.allow_local_preview_access ?? true;
-    return networkSafetyForm.webuiAllowLocalServiceAccess !== currentLocalServiceAccess;
-  }, [networkSafetyForm, settings]);
-
   const configuredModelProviderOptions = useMemo(
     () =>
       settings?.providers
@@ -385,7 +373,6 @@ export function useSettingsController({
         applyPayload(payload, {
           preserveAgentForm: current.form !== requestDrafts.form,
           preserveCapabilityForms: current.imageGenerationForm !== requestDrafts.imageGenerationForm ||
-            current.networkSafetyForm !== requestDrafts.networkSafetyForm ||
             current.transcriptionForm !== requestDrafts.transcriptionForm || current.webSearchForm !== requestDrafts.webSearchForm,
         });
         setPendingRestartSections(EMPTY_PENDING_RESTART_SECTIONS);
@@ -432,10 +419,8 @@ export function useSettingsController({
     state: systemState,
     featureCatalog,
     client,
-    token,
     getToken,
     t,
-    applyPayload,
     maybeRestartHostEngine,
     setPendingRestartSections,
     refreshAutomations,
@@ -468,7 +453,6 @@ export function useSettingsController({
   });
   const modelEdits = useEditCompletion(form, modelDirty, modelActions.saveModelSettings,
     !modelState.modelPresetCreating && !!form.model.trim(), modelActions.modelEditIdentity);
-  const safetyEdits = useEditCompletion(networkSafetyForm, networkSafetyDirty, capabilityActions.saveNetworkSafetySettings);
   const imageEdits = useEditCompletion(imageGenerationForm, imageGenerationDirty, capabilityActions.saveImageGenerationSettings,
     !imageGenerationForm.enabled || Boolean(settings?.image_generation.providers.find(
       (provider) => provider.name === imageGenerationForm.provider,
@@ -486,7 +470,6 @@ export function useSettingsController({
     capabilityState,
     capabilityActions,
     modelEdits,
-    safetyEdits,
     imageEdits,
     memoryEdits,
     transcriptionEdits,
@@ -504,7 +487,6 @@ export function useSettingsController({
     loading,
     localPrefs,
     modelDirty,
-    networkSafetyDirty,
     pendingRestartSections,
     remoteBrowserAccess,
     restartViaSettingsSurface,

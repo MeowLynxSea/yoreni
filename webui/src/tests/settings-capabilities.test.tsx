@@ -279,44 +279,6 @@ describe("Settings capabilities", () => {
     await waitFor(() => expect(customProviderInput).toHaveValue("private/image-v2"));
   });
 
-  it("saves network safety without exposing technical SSRF copy", async () => {
-    const payload = settingsPayload();
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url === "/api/settings") return jsonResponse(payload);
-      if (url === "/api/settings/cli-apps") {
-        return jsonResponse({ apps: [], installed_count: 0 });
-      }
-      if (url === "/api/settings/mcp-presets") {
-        return jsonResponse({ presets: [], installed_count: 0 });
-      }
-      return { ok: false, status: 404, json: async () => ({}) } as Response;
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    requestMutationMock.mockResolvedValueOnce({
-      ...payload,
-      advanced: { ...payload.advanced, webui_allow_local_service_access: false },
-      requires_restart: true,
-      restart_required_sections: ["runtime"],
-    });
-
-    renderSettingsView({ initialSection: "advanced" });
-
-    expect(await screen.findByText("Web safety")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("switch", { name: "Local services" }));
-
-    await waitFor(() =>
-      expect(requestMutationMock).toHaveBeenCalledWith(
-        "settings.network_safety.update",
-        {
-          webui_allow_local_service_access: false,
-        },
-        20_000,
-      ),
-    );
-  });
-
   it("saves the web proxy switch separately from the shared address in Advanced", async () => {
     let payload = { ...settingsPayload(), runtime_config: {
       "tools.web.enable": false, "tools.web.use_proxy": false,
@@ -481,30 +443,6 @@ describe("Settings capabilities", () => {
     ));
   });
 
-  it("uses native host safety copy on the native surface", async () => {
-    const payload = {
-      ...settingsPayload(),
-      surface: "native" as const,
-      runtime_surface: "native" as const,
-    };
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (input: RequestInfo | URL) => {
-        const url = String(input);
-        if (url === "/api/settings") return jsonResponse(payload);
-        if (url === "/api/settings/cli-apps") return jsonResponse({ apps: [], installed_count: 0 });
-        if (url === "/api/settings/mcp-presets") return jsonResponse({ presets: [], installed_count: 0 });
-        return { ok: false, status: 404, json: async () => ({}) } as Response;
-      }),
-    );
-
-    renderSettingsView({ initialSection: "advanced" });
-
-    expect(await screen.findByText("App safety")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Local services" }));
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("Allow Full Access shell commands to reach services on this Mac.");
-  });
-
   it("keeps a newer focused transcription draft through automatic native restart", async () => {
     const payload = {
       ...settingsPayload(), surface: "native" as const, runtime_surface: "native" as const,
@@ -552,61 +490,5 @@ describe("Settings capabilities", () => {
     await act(async () => finishRestart("fresh-token"));
     expect(language).toHaveValue("ja");
     expect(requestMutationMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("refreshes settings with a fresh token after native engine restart", async () => {
-    const payload = {
-      ...settingsPayload(),
-      surface: "native" as const,
-      runtime_surface: "native" as const,
-      runtime_capabilities: {
-        can_restart_engine: true,
-        can_open_logs: true,
-        can_export_diagnostics: true,
-      },
-    };
-    const restartedPayload = {
-      ...payload,
-      advanced: { ...payload.advanced, webui_allow_local_service_access: false },
-      requires_restart: true,
-      restart_required_sections: ["runtime"],
-    };
-    const refreshedPayload = {
-      ...restartedPayload,
-      requires_restart: false,
-      restart_required_sections: [],
-    };
-    const restartEngine = vi.fn(async () => "fresh-token");
-    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      const auth = (init?.headers as Record<string, string> | undefined)?.Authorization;
-      if (url === "/api/settings" && auth === "Bearer fresh-token") {
-        return jsonResponse(refreshedPayload);
-      }
-      if (url === "/api/settings") return jsonResponse(payload);
-      if (url === "/api/settings/cli-apps") return jsonResponse({ apps: [], installed_count: 0 });
-      if (url === "/api/settings/mcp-presets") return jsonResponse({ presets: [], installed_count: 0 });
-      return { ok: false, status: 404, json: async () => ({}) } as Response;
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    requestMutationMock.mockResolvedValueOnce(restartedPayload);
-
-    renderSettingsView({
-      initialSection: "advanced",
-      onNativeEngineRestart: restartEngine,
-    });
-
-    expect(await screen.findByText("App safety")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("switch", { name: "Local services" }));
-
-    await waitFor(() => expect(restartEngine).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/settings",
-        expect.objectContaining({
-          headers: { Authorization: "Bearer fresh-token" },
-        }),
-      ),
-    );
   });
 });

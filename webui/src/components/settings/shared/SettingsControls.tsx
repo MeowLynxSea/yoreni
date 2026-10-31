@@ -254,7 +254,7 @@ export function RestartSettingsFooter({
   autoSave = false,
   dirty,
   saving,
-  pendingRestart,
+  pendingRestart = false,
   disabled = false,
   message,
   dirtyMessage,
@@ -269,7 +269,7 @@ export function RestartSettingsFooter({
   autoSave?: boolean;
   dirty: boolean;
   saving: boolean;
-  pendingRestart: boolean;
+  pendingRestart?: boolean;
   disabled?: boolean;
   message?: string;
   dirtyMessage?: string;

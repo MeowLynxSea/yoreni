@@ -1,5 +1,5 @@
 
-import type { ApiServicePayload, AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemorySettingsUpdate, OnboardingSnapshot, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, NetworkSafetySettingsUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
+import type { AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemorySettingsUpdate, OnboardingSnapshot, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
 
 const API_READ_TIMEOUT_MS = 20_000;
@@ -455,33 +455,6 @@ export async function fetchYoreniFeatures(
     undefined,
     API_READ_TIMEOUT_MS,
   );
-}
-
-export async function fetchApiService(token: string, base: string = ""): Promise<ApiServicePayload> {
-  return request<ApiServicePayload>(`${base}/api/settings/api-service`, token);
-}
-
-export async function startApiService(
-  transport: WebUIMutationTransport,
-  values: { host: string; port: number; timeout: number; apiKey?: string },
-): Promise<ApiServicePayload> {
-  return mutation<ApiServicePayload>(
-    transport,
-    "settings.api_service.start",
-    {
-      host: values.host,
-      port: values.port,
-      timeout: values.timeout,
-      ...(values.apiKey !== undefined ? { api_key: values.apiKey } : {}),
-    },
-    PACKAGE_MUTATION_TIMEOUT_MS,
-  );
-}
-
-export async function stopApiService(
-  transport: WebUIMutationTransport,
-): Promise<ApiServicePayload> {
-  return mutation<ApiServicePayload>(transport, "settings.api_service.stop");
 }
 
 export async function enableYoreniFeature(
@@ -943,19 +916,6 @@ export async function updateWebSearchSettings(
       ...(update.useJinaReader !== undefined
         ? { use_jina_reader: update.useJinaReader }
         : {}),
-    },
-  );
-}
-
-export async function updateNetworkSafetySettings(
-  transport: WebUIMutationTransport,
-  update: NetworkSafetySettingsUpdate,
-): Promise<SettingsPayload> {
-  return mutation<SettingsPayload>(
-    transport,
-    "settings.network_safety.update",
-    {
-      webui_allow_local_service_access: update.webuiAllowLocalServiceAccess,
     },
   );
 }

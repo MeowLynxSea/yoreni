@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ToggleButton } from "@/components/ui/toggle-button";
@@ -84,7 +84,7 @@ export function useRuntimeConfigSettings(
         const maximum = field.kind === "duration" ? settings.advanced.exec_max_runtime_limit : field.max;
         const parsed = Number(raw);
         if (String(raw).trim() === "" || !Number.isFinite(parsed)
-          || (field.path !== "api.timeout" && !Number.isInteger(parsed))
+          || !Number.isInteger(parsed)
           || (field.min !== undefined && parsed < field.min)
           || (maximum !== undefined && parsed > maximum)) {
           setErrors((prev) => ({ ...prev, [group]: t("settings.runtimeConfig.numberError") }));
@@ -152,7 +152,7 @@ export function useRuntimeConfigSettings(
 export type RuntimeConfigController = ReturnType<typeof useRuntimeConfigSettings>;
 
 export function RuntimeConfigSettings({
-  page, settings, state, onRestart, isRestarting, remoteBrowserAccess, children, embedded = false,
+  page, settings, state, onRestart, isRestarting, remoteBrowserAccess, embedded = false,
 }: {
   page: RuntimeConfigPage;
   settings: SettingsPayload;
@@ -160,14 +160,12 @@ export function RuntimeConfigSettings({
   onRestart?: () => void;
   isRestarting: boolean;
   remoteBrowserAccess: boolean;
-  children?: ReactNode;
   embedded?: boolean;
 }) {
   const { t } = useTranslation();
   const tr = (key: string) => t(`settings.runtimeConfig.${key}`);
   if (!settings.runtime_config) return <div className="settings-stack">
     <p className="settings-editor text-[13px] leading-5 text-muted-foreground">{tr("unavailable")}</p>
-    {children}
   </div>;
   const groups = RUNTIME_CONFIG_GROUPS.filter((group) => group.page === page);
   const restartPending = settings.restart_required_sections?.includes("runtime")
@@ -178,7 +176,6 @@ export function RuntimeConfigSettings({
         onRestart={onRestart} isRestarting={isRestarting} /> : null}
       {groups.map((group) => {
         if (group.enabledBy && state.value(group.enabledBy) === false) return null;
-        if (group.id === "chat") return <div key={group.id}>{children}</div>;
         const fields = RUNTIME_CONFIG_FIELDS.filter((field) => field.group === group.id);
         const dirty = fields.filter(state.visible).some(state.dirty);
         const title = tr(`groups.${group.id}.title`);
@@ -250,7 +247,7 @@ export function RuntimeConfigSettings({
                                 onChange={(next) => state.change(field, next === "__none__" ? "" : next)} />
                             ) : (
                               <Input {...common} type={field.kind === "number" ? "number" : "text"}
-                                min={field.min} max={field.max} step={field.path === "api.timeout" ? "any" : 1}
+                                min={field.min} max={field.max} step={1}
                                 value={String(current)} className="h-9 rounded-full text-[13px]" autoComplete="off"
                                 onChange={(event) => state.change(field, event.target.value)} />
                             )}

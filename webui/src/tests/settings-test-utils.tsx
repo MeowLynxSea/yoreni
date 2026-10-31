@@ -64,12 +64,6 @@ export function settingsPayload(): SettingsPayload {
       search: { max_results: 5, timeout: 30 },
       fetch: { use_jina_reader: true },
     },
-    api: {
-      host: "127.0.0.1",
-      port: 8900,
-      timeout: 120,
-      api_key_hint: null,
-    },
     observability: {
       provider: "langfuse",
       configured: false,
@@ -117,7 +111,6 @@ export function settingsPayload(): SettingsPayload {
     },
     advanced: {
       restrict_to_workspace: false,
-      webui_allow_local_service_access: true,
       private_service_protection_enabled: true,
       ssrf_whitelist_count: 0,
       mcp_server_count: 0,

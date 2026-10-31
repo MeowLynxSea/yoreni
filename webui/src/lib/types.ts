@@ -716,12 +716,6 @@ export interface SettingsPayload {
       use_jina_reader: boolean;
     };
   };
-  api?: {
-    host: string;
-    port: number;
-    timeout: number;
-    api_key_hint?: string | null;
-  };
   observability?: {
     provider: "langfuse" | string;
     configured: boolean;
@@ -902,8 +896,6 @@ export interface SettingsPayload {
       summary: string;
     };
     ssrf_whitelist_count: number;
-    webui_allow_local_service_access: boolean;
-    allow_local_preview_access?: boolean;
     private_service_protection_enabled: boolean;
     mcp_server_count: number;
     exec_enabled: boolean;
@@ -930,20 +922,6 @@ export interface SettingsPayload {
     chat_apps_url: string;
     latest_url?: string;
   };
-}
-
-export interface ApiServicePayload {
-  installed: boolean;
-  running: boolean;
-  managed: boolean;
-  host: string;
-  port: number;
-  timeout: number;
-  api_key_hint?: string | null;
-  endpoint: string;
-  command: string;
-  log_path?: string | null;
-  last_action?: "started" | "stopped" | string;
 }
 
 interface AppPackageRef {
@@ -1348,10 +1326,6 @@ export interface WebSearchSettingsUpdate {
   maxResults?: number;
   timeout?: number;
   useJinaReader?: boolean;
-}
-
-export interface NetworkSafetySettingsUpdate {
-  webuiAllowLocalServiceAccess: boolean;
 }
 
 export interface ImageGenerationSettingsUpdate {

@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import { AdvancedSettings, networkSafetyFormFromPayload } from "@/components/settings/capabilities/SecuritySettings";
 import { ImageGenerationSettings, imageGenerationFormFromPayload } from "@/components/settings/capabilities/ImageGenerationSettings";
 import { TranscriptionSettings, transcriptionFormFromPayload } from "@/components/settings/capabilities/TranscriptionSettings";
 import { WebSettings, webSearchDraftState, webSearchFormFromPayload } from "@/components/settings/capabilities/WebSettings";
@@ -64,7 +63,7 @@ export const settings: SettingsPayload = {
     max_duration_sec: 120, max_upload_mb: 25, providers: [{ name: "groq", label: "Groq", configured: true }] },
   runtime: { config_path: "config.json", workspace_path: "workspace", gateway_host: "127.0.0.1", gateway_port: 8765,
     heartbeat: { enabled: true, interval_s: 1800 }, dream: { schedule: "0 3 * * *" } },
-  advanced: { restrict_to_workspace: true, ssrf_whitelist_count: 0, webui_allow_local_service_access: true,
+  advanced: { restrict_to_workspace: true, ssrf_whitelist_count: 0,
     private_service_protection_enabled: true, mcp_server_count: 0,
     exec_enabled: true, exec_path_prepend_set: false, exec_path_append_set: false },
   requires_restart: false,
@@ -258,7 +257,7 @@ function WebPreview() {
           base_url: form.baseUrl, max_results: form.maxResults ?? current.web_search.max_results, timeout: form.timeout ?? current.web_search.timeout },
         web: { ...current.web, fetch: { use_jina_reader: form.useJinaReader ?? current.web.fetch.use_jina_reader } },
       })); setForm((current) => ({ ...current, apiKey: "" })); setKeyEditing(false);
-    }} showBrandLogos={false} requiresRestartPending={false} olostepInstalling={false} capabilityError={null} />
+    }} showBrandLogos={false} olostepInstalling={false} capabilityError={null} />
     <p role="status" className="mt-4 text-xs text-muted-foreground">{t(dirty ? "controls.web.unsaved" : "controls.common.savedPreview")}</p></>;
 }
 
@@ -278,14 +277,8 @@ function VoicePreview() {
   const { form, setForm, dirty, save } = usePreviewForm(transcriptionFormFromPayload(settings));
   const [providerAction, setProviderAction] = useState(false);
   return <><TranscriptionSettings settings={settings} form={form} dirty={dirty} saving={false} onChangeForm={setForm}
-    onSave={save} showBrandLogos={false} requiresRestartPending={false} onOpenProviders={() => setProviderAction(true)} />
+    onSave={save} showBrandLogos={false} onOpenProviders={() => setProviderAction(true)} />
     <FormStatus dirty={dirty} />{providerAction ? <p className="mt-2 text-xs text-muted-foreground">{t("controls.common.providerAction")}</p> : null}</>;
-}
-
-function SafetyPreview() {
-  const { form, setForm, dirty, save } = usePreviewForm(networkSafetyFormFromPayload(settings));
-  return <><AdvancedSettings form={form} dirty={dirty} saving={false} requiresRestartPending={false}
-    isNativeHostSurface={false} onChangeForm={setForm} onSave={save} /><FormStatus dirty={dirty} /></>;
 }
 
 const channel: YoreniFeatureInfo = {
@@ -429,9 +422,6 @@ export const settingsExamples: ComponentExample[] = [
   { title: "controls.voice.title", files: ["capabilities/TranscriptionSettings"], Preview: VoicePreview,
     description: "controls.voice.description", options: "controls.voice.options",
     code: '<TranscriptionSettings settings={settings} form={form} dirty={dirty} onChangeForm={setForm} onSave={save} {...actions} />' },
-  { title: "controls.safety.title", files: ["capabilities/SecuritySettings"], Preview: SafetyPreview,
-    description: "controls.safety.description", options: "controls.safety.options",
-    code: '<AdvancedSettings form={form} dirty={dirty} saving={false} requiresRestartPending={false} isNativeHostSurface={false} onChangeForm={setForm} onSave={save} />' },
   { title: "controls.channelCatalog.title", files: ["channels/ChannelCatalogRow", "channels/ChannelIdentity", "channels/ChannelHelpMenu"], Preview: ChannelCatalogPreview,
     description: "controls.channelCatalog.description", options: "controls.channelCatalog.options",
     code: '<ChannelCatalogRow feature={feature} showBrandLogos={false} actionKey={null} onSelect={select} onAction={act} />' },

@@ -12,7 +12,6 @@ import { SettingsSectionSkeleton } from "@/components/settings/shared/SettingsSe
 import { SkillsCatalogSettings } from "@/components/settings/SkillsCatalogSettings";
 import { ImageGenerationSettings } from "@/components/settings/capabilities/ImageGenerationSettings";
 import { MemorySettings } from "@/components/settings/capabilities/MemorySettings";
-import { AdvancedSettings } from "@/components/settings/capabilities/SecuritySettings";
 import { TranscriptionSettings } from "@/components/settings/capabilities/TranscriptionSettings";
 import { WebSettings } from "@/components/settings/capabilities/WebSettings";
 import {
@@ -126,7 +125,6 @@ export function SettingsPage({
     localPrefs,
     memoryDirty,
     modelDirty,
-    networkSafetyDirty,
     pendingRestartSections: controllerPendingRestartSections,
     remoteBrowserAccess,
     restartViaSettingsSurface,
@@ -151,7 +149,6 @@ export function SettingsPage({
   }, []);
   const editOwners = new Map<SettingsSectionKey, EditCompletion[]>([
     ["models", [controller.modelEdits]],
-    ["advanced", [controller.safetyEdits]],
     ["capabilities", [controller.imageEdits, controller.transcriptionEdits, controller.webEdits]],
   ]);
   const latestEditOwners = useRef(editOwners);
@@ -206,23 +203,7 @@ export function SettingsPage({
   const runtimeConfiguration = (page: RuntimeConfigPage, embedded = false) => settings && (
     <RuntimeConfigSettings page={page} settings={settings} state={controller.runtimeConfigState} embedded={embedded}
       onRestart={showSidebar ? undefined : restartViaSettingsSurface} isRestarting={restartInProgress}
-      remoteBrowserAccess={remoteBrowserAccess}>
-      {page === "advanced" ? (
-        <AdvancedSettings
-          editCompletion={controller.safetyEdits}
-          error={capabilityState.capabilityErrors.safety}
-          form={capabilityState.networkSafetyForm}
-          dirty={networkSafetyDirty}
-          saving={capabilityState.networkSafetySaving}
-          isNativeHostSurface={(settings.surface ?? settings.runtime_surface) === "native"}
-          onChangeForm={capabilityState.setNetworkSafetyForm}
-          onSave={capabilityActions.saveNetworkSafetySettings}
-          onRestart={restartViaSettingsSurface}
-          isRestarting={restartInProgress}
-          requiresRestartPending={pendingRestartSections.runtime}
-        />
-      ) : null}
-    </RuntimeConfigSettings>
+      remoteBrowserAccess={remoteBrowserAccess} />
   );
 
   const channelsSettings = () => (
@@ -261,15 +242,10 @@ export function SettingsPage({
         onRestart={showSidebar ? undefined : restartViaSettingsSurface}
         isRestarting={restartInProgress}
         requiresRestartPending={pendingRestartSections.runtime}
-        apiService={systemState.apiService}
-        apiServiceLoading={systemState.apiServiceLoading}
-        apiServiceAction={systemState.apiServiceAction}
-        apiServiceError={systemState.apiServiceError}
         langfuseFeature={featureCatalog.find((feature) => feature.name === "langfuse")}
         capabilitiesLoading={systemState.yoreniFeaturesLoading}
         capabilityAction={systemState.yoreniFeatureAction}
         capabilityError={systemState.yoreniFeaturesError}
-        onApiServiceAction={systemActions.handleApiServiceAction}
         onInstallCapability={(name) => void systemActions.installCapabilities([name])}
       />
     </div>
@@ -486,9 +462,6 @@ export function SettingsPage({
             onSave={capabilityActions.saveTranscriptionSettings}
             onOpenProviders={configureCapabilityProviders}
             showBrandLogos={localPrefs.brandLogos}
-            onRestart={restartViaSettingsSurface}
-            isRestarting={restartInProgress}
-            requiresRestartPending={pendingRestartSections.browser}
           />
         );
       case "browser":
@@ -518,9 +491,6 @@ export function SettingsPage({
               onReset={capabilityActions.resetWebSearchDraft}
               onSave={capabilityActions.saveWebSearch}
               showBrandLogos={localPrefs.brandLogos}
-              onRestart={restartViaSettingsSurface}
-              isRestarting={restartInProgress}
-              requiresRestartPending={pendingRestartSections.browser}
               olostepFeature={featureCatalog.find((feature) => feature.name === "olostep")}
               olostepInstalling={systemState.yoreniFeatureAction === "enable:olostep"}
               capabilityError={systemState.yoreniFeaturesError}
@@ -545,9 +515,6 @@ export function SettingsPage({
               saving={capabilityState.memorySaving}
               onChangeForm={capabilityState.setMemoryForm}
               onSave={capabilityActions.saveMemorySettings}
-              onRestart={restartViaSettingsSurface}
-              isRestarting={restartInProgress}
-              requiresRestartPending={pendingRestartSections.runtime}
             >
               {runtimeConfiguration("memory", true)}
             </MemorySettings>

@@ -61,9 +61,6 @@ export function TranscriptionSettings({
   onSave,
   onOpenProviders,
   showBrandLogos,
-  onRestart,
-  isRestarting,
-  requiresRestartPending,
 }: {
   embedded?: boolean;
   editCompletion?: EditCompletion;
@@ -76,9 +73,6 @@ export function TranscriptionSettings({
   onSave: () => void;
   onOpenProviders: () => void;
   showBrandLogos: boolean;
-  onRestart?: () => void;
-  isRestarting?: boolean;
-  requiresRestartPending: boolean;
 }) {
   const { t } = useTranslation();
   const localEdits = useEditCompletion(form, dirty, onSave, !editCompletion);
@@ -182,12 +176,7 @@ export function TranscriptionSettings({
           autoSave
           dirty={dirty}
           saving={saving}
-          pendingRestart={requiresRestartPending}
-          dirtyMessage={tx("settings.status.restartAfterSaving", "Save changes, then restart yoreni to apply them.")}
-          pendingMessage={tx("settings.status.savedRestartApply", "Saved. Restart to apply changes.")}
           onSave={onSave}
-          onRestart={onRestart}
-          isRestarting={isRestarting}
         />
       </SettingsGroup>
     </section>

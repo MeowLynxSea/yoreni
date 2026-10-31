@@ -9,10 +9,6 @@ import {
   memoryFormFromPayload,
 } from "@/components/settings/capabilities/MemorySettings";
 import {
-  DEFAULT_NETWORK_SAFETY_FORM,
-  networkSafetyFormFromPayload,
-} from "@/components/settings/capabilities/SecuritySettings";
-import {
   DEFAULT_TRANSCRIPTION_FORM,
   transcriptionFormFromPayload,
 } from "@/components/settings/capabilities/TranscriptionSettings";
@@ -23,19 +19,17 @@ import {
 import type {
   ImageGenerationSettingsUpdate,
   MemorySettingsUpdate,
-  NetworkSafetySettingsUpdate,
   SettingsPayload,
   TranscriptionSettingsUpdate,
   WebSearchSettingsUpdate,
 } from "@/lib/types";
 
 export function useCapabilitySettingsState(initialSettings: SettingsPayload | null) {
-  const [capabilityErrors, setCapabilityErrors] = useState<Partial<Record<"image" | "voice" | "web" | "memory" | "safety", string>>>({});
+  const [capabilityErrors, setCapabilityErrors] = useState<Partial<Record<"image" | "voice" | "web" | "memory", string>>>({});
   const [webSearchSaving, setWebSearchSaving] = useState(false);
   const [imageGenerationSaving, setImageGenerationSaving] = useState(false);
   const [transcriptionSaving, setTranscriptionSaving] = useState(false);
   const [memorySaving, setMemorySaving] = useState(false);
-  const [networkSafetySaving, setNetworkSafetySaving] = useState(false);
   const [webSearchForm, setWebSearchForm] = useState<WebSearchSettingsUpdate>(() =>
     initialSettings ? webSearchFormFromPayload(initialSettings) : DEFAULT_WEB_SEARCH_FORM,
   );
@@ -50,9 +44,6 @@ export function useCapabilitySettingsState(initialSettings: SettingsPayload | nu
   const [memoryForm, setMemoryForm] = useState<MemorySettingsUpdate>(
     () => initialSettings ? memoryFormFromPayload(initialSettings) : DEFAULT_MEMORY_FORM,
   );
-  const [networkSafetyForm, setNetworkSafetyForm] = useState<NetworkSafetySettingsUpdate>(() =>
-    initialSettings ? networkSafetyFormFromPayload(initialSettings) : DEFAULT_NETWORK_SAFETY_FORM,
-  );
   const [webSearchKeyVisible, setWebSearchKeyVisible] = useState(false);
   const [webSearchKeyEditing, setWebSearchKeyEditing] = useState(false);
 
@@ -63,14 +54,10 @@ export function useCapabilitySettingsState(initialSettings: SettingsPayload | nu
     imageGenerationSaving,
     memoryForm,
     memorySaving,
-    networkSafetyForm,
-    networkSafetySaving,
     setImageGenerationForm,
     setImageGenerationSaving,
     setMemoryForm,
     setMemorySaving,
-    setNetworkSafetyForm,
-    setNetworkSafetySaving,
     setTranscriptionForm,
     setTranscriptionSaving,
     setWebSearchForm,

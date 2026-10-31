@@ -2,7 +2,6 @@ import type { Dispatch, SetStateAction } from "react";
 import type { TFunction } from "i18next";
 
 import type {
-  ApplySettingsPayload,
   MaybeRestartHostEngine,
   PendingRestartSections,
 } from "@/components/settings/contracts";
@@ -14,8 +13,6 @@ import {
   completeMcpOAuth,
   disableYoreniFeature,
   enableYoreniFeature,
-  fetchYoreniFeatures,
-  fetchSettings,
   fetchMcpOAuthStatus,
   fetchMcpPresets,
   importMcpConfig,
@@ -24,8 +21,6 @@ import {
   runMcpPresetAction,
   saveCustomMcpServer,
   startMcpOAuth,
-  startApiService,
-  stopApiService,
   updateAutomation,
   updateMcpServerTools,
 } from "@/lib/api";
@@ -69,10 +64,8 @@ interface SystemSettingsActionsOptions {
   state: SystemSettingsState;
   featureCatalog: YoreniFeatureInfo[];
   client: YoreniClient;
-  token: string;
   getToken: () => string;
   t: TFunction;
-  applyPayload: ApplySettingsPayload;
   maybeRestartHostEngine: MaybeRestartHostEngine;
   setPendingRestartSections: Dispatch<SetStateAction<PendingRestartSections>>;
   refreshAutomations: (showLoading?: boolean) => Promise<void>;
@@ -82,16 +75,13 @@ export function createSystemSettingsActions({
   state,
   featureCatalog,
   client,
-  token,
   getToken,
   t,
-  applyPayload,
   maybeRestartHostEngine,
   setPendingRestartSections,
   refreshAutomations,
 }: SystemSettingsActionsOptions) {
   const {
-    apiServiceAction,
     customMcpForm,
     mcpConfigImport,
     mcpOAuthCallbackUrl,
@@ -100,9 +90,6 @@ export function createSystemSettingsActions({
     mcpOAuthPopupRef,
     yoreniFeatureActionRef,
     yoreniFeatures,
-    setApiService,
-    setApiServiceAction,
-    setApiServiceError,
     setAutomationAction,
     setAutomationPendingDelete,
     setAutomationPendingEdit,
@@ -167,29 +154,6 @@ export function createSystemSettingsActions({
       return false;
     } finally {
       endYoreniFeatureAction(key);
-    }
-  };
-
-  const handleApiServiceAction = async (
-    action: "start" | "stop",
-    values?: { host: string; port: number; timeout: number; apiKey?: string },
-  ) => {
-    if (apiServiceAction) return;
-    setApiServiceAction(action);
-    setApiServiceError(null);
-    try {
-      const payload = action === "start"
-        ? await startApiService(client, values!)
-        : await stopApiService(client);
-      setApiService(payload);
-      const refreshed = await fetchYoreniFeatures(token);
-      setYoreniFeatures(refreshed);
-      const nextSettings = await fetchSettings(token);
-      applyPayload(nextSettings);
-    } catch (err) {
-      setApiServiceError((err as Error).message);
-    } finally {
-      setApiServiceAction(null);
     }
   };
 
@@ -699,7 +663,6 @@ export function createSystemSettingsActions({
   };
 
   return {
-    handleApiServiceAction,
     handleAutomationAction,
     handleAutomationEdit,
     handleCliAppAction,

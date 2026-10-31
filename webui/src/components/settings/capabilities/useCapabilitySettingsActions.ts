@@ -14,7 +14,6 @@ import type {
 import {
   updateImageGenerationSettings,
   updateMemorySettings,
-  updateNetworkSafetySettings,
   updateTranscriptionSettings,
   updateWebSearchSettings,
 } from "@/lib/api";
@@ -23,7 +22,6 @@ import type { ImageGenerationSettingsUpdate, SettingsPayload, WebSearchSettingsU
 import { imageGenerationFormFromPayload } from "@/components/settings/capabilities/ImageGenerationSettings";
 import { memoryFormFromPayload } from "@/components/settings/capabilities/MemorySettings";
 import { transcriptionFormFromPayload } from "@/components/settings/capabilities/TranscriptionSettings";
-import { networkSafetyFormFromPayload } from "@/components/settings/capabilities/SecuritySettings";
 
 interface CapabilitySettingsActionsOptions {
   state: CapabilitySettingsState;
@@ -49,10 +47,8 @@ export function useCapabilitySettingsActions({
   const {
     imageGenerationForm,
     memoryForm,
-    networkSafetyForm,
     setImageGenerationSaving,
     setMemorySaving,
-    setNetworkSafetySaving,
     setTranscriptionSaving,
     setWebSearchForm,
     setWebSearchKeyEditing,
@@ -64,7 +60,7 @@ export function useCapabilitySettingsActions({
   } = state;
   const latestWebSearchForm = useRef(webSearchForm);
   latestWebSearchForm.current = webSearchForm;
-  const setError = (section: "image" | "voice" | "web" | "memory" | "safety", message?: string) =>
+  const setError = (section: "image" | "voice" | "web" | "memory", message?: string) =>
     state.setCapabilityErrors((prev) => ({ ...prev, [section]: message }));
 
   const persistImageSettings = async (values: ImageGenerationSettingsUpdate) => {
@@ -111,9 +107,6 @@ export function useCapabilitySettingsActions({
       const payload = await updateTranscriptionSettings(client, transcriptionForm);
       applyPayload(payload, { preserveAgentForm: true, preserveCapabilityForms: true });
       state.setTranscriptionForm((current) => current === transcriptionForm ? transcriptionFormFromPayload(payload) : current);
-      if (!payload.restart_required_sections && payload.requires_restart) {
-        setPendingRestartSections((prev) => ({ ...prev, browser: true }));
-      }
       await maybeRestartHostEngine(payload);
       setError("voice");
       return true;
@@ -137,9 +130,6 @@ export function useCapabilitySettingsActions({
       const payload = await updateMemorySettings(client, memoryForm);
       applyPayload(payload, { preserveAgentForm: true, preserveCapabilityForms: true });
       state.setMemoryForm((current) => current === memoryForm ? memoryFormFromPayload(payload) : current);
-      if (!payload.restart_required_sections && payload.requires_restart) {
-        setPendingRestartSections((prev) => ({ ...prev, runtime: true }));
-      }
       await maybeRestartHostEngine(payload);
       setError("memory");
       return true;
@@ -148,28 +138,6 @@ export function useCapabilitySettingsActions({
       return false;
     } finally {
       setMemorySaving(false);
-    }
-  };
-
-  const saveNetworkSafetySettings = async () => {
-    if (!settings) return false;
-    setError("safety");
-    setNetworkSafetySaving(true);
-    try {
-      const payload = await updateNetworkSafetySettings(client, networkSafetyForm);
-      applyPayload(payload, { preserveAgentForm: true, preserveCapabilityForms: true });
-      state.setNetworkSafetyForm((current) => current === networkSafetyForm ? networkSafetyFormFromPayload(payload) : current);
-      if (!payload.restart_required_sections && payload.requires_restart) {
-        setPendingRestartSections((prev) => ({ ...prev, runtime: true }));
-      }
-      await maybeRestartHostEngine(payload);
-      setError("safety");
-      return true;
-    } catch (err) {
-      setError("safety", (err as Error).message);
-      return false;
-    } finally {
-      setNetworkSafetySaving(false);
     }
   };
 
@@ -186,9 +154,6 @@ export function useCapabilitySettingsActions({
     setWebSearchSaving(true);
     try {
       if (provider.name === "olostep" && !(await installCapabilities(["olostep"]))) return false;
-      const webFetchRestartRequired =
-        (webSearchForm.useJinaReader ?? settings.web.fetch.use_jina_reader) !==
-        settings.web.fetch.use_jina_reader;
       const update: WebSearchSettingsUpdate = {
         provider: webSearchForm.provider,
         maxResults: webSearchForm.maxResults,
@@ -204,9 +169,6 @@ export function useCapabilitySettingsActions({
       if (provider.credential === "base_url") update.baseUrl = baseUrl;
       const payload = await updateWebSearchSettings(client, update);
       applyPayload(payload, { preserveAgentForm: true, preserveCapabilityForms: true });
-      if (!payload.restart_required_sections && (payload.requires_restart || webFetchRestartRequired)) {
-        setPendingRestartSections((prev) => ({ ...prev, browser: true }));
-      }
       await maybeRestartHostEngine(payload);
       setWebSearchForm((prev) => prev !== webSearchForm ? prev : ({
         provider: payload.web_search.provider,
@@ -264,7 +226,6 @@ export function useCapabilitySettingsActions({
     saveImageGenerationSettings,
     saveImageRequestSettings,
     saveMemorySettings,
-    saveNetworkSafetySettings,
     saveTranscriptionSettings,
     saveWebSearch,
   };

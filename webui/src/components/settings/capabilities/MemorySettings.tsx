@@ -83,9 +83,6 @@ export function MemorySettings({
   saving,
   onChangeForm,
   onSave,
-  onRestart,
-  isRestarting,
-  requiresRestartPending,
   children,
 }: {
   embedded?: boolean;
@@ -97,9 +94,6 @@ export function MemorySettings({
   saving: boolean;
   onChangeForm: Dispatch<SetStateAction<MemorySettingsUpdate>>;
   onSave: () => void;
-  onRestart?: () => void;
-  isRestarting?: boolean;
-  requiresRestartPending: boolean;
   children?: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -335,12 +329,7 @@ export function MemorySettings({
           autoSave
           dirty={dirty}
           saving={saving}
-          pendingRestart={requiresRestartPending}
-          dirtyMessage={tx("settings.status.restartAfterSaving", "Save changes, then restart yoreni to apply them.")}
-          pendingMessage={tx("settings.status.savedRestartApply", "Saved. Restart to apply changes.")}
           onSave={onSave}
-          onRestart={onRestart}
-          isRestarting={isRestarting}
         />
       </SettingsGroup>
     </section>

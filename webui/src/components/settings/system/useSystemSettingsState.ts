@@ -7,7 +7,6 @@ import {
   type CustomMcpForm,
 } from "@/components/settings/system/AppsSettings";
 import type {
-  ApiServicePayload,
   AutomationsPayload,
   CliAppsPayload,
   McpOAuthFlowPayload,
@@ -45,10 +44,6 @@ export function useSystemSettingsState() {
   const [mcpOAuthCallbackUrl, setMcpOAuthCallbackUrl] = useState("");
   const [mcpOAuthCompleting, setMcpOAuthCompleting] = useState(false);
   const [mcpOAuthCallbackError, setMcpOAuthCallbackError] = useState<string | null>(null);
-  const [apiService, setApiService] = useState<ApiServicePayload | null>(null);
-  const [apiServiceLoading, setApiServiceLoading] = useState(false);
-  const [apiServiceAction, setApiServiceAction] = useState<"start" | "stop" | null>(null);
-  const [apiServiceError, setApiServiceError] = useState<string | null>(null);
   const [appsQuery, setAppsQuery] = useState("");
   const [automationsFilter, setAutomationsFilter] = useState<AutomationFilter>("all");
   const [cliAppsMessage, setCliAppsMessage] = useState<string | null>(null);
@@ -69,10 +64,6 @@ export function useSystemSettingsState() {
   const [mcpConfigImport, setMcpConfigImport] = useState("");
 
   return {
-    apiService,
-    apiServiceAction,
-    apiServiceError,
-    apiServiceLoading,
     appsKindFilter,
     appsQuery,
     automationAction,
@@ -110,10 +101,6 @@ export function useSystemSettingsState() {
     yoreniFeatures,
     yoreniFeaturesError,
     yoreniFeaturesLoading,
-    setApiService,
-    setApiServiceAction,
-    setApiServiceError,
-    setApiServiceLoading,
     setAppsKindFilter,
     setAppsQuery,
     setAutomationAction,

@@ -91,9 +91,6 @@ export function WebSettings({
   onReset,
   onSave,
   showBrandLogos,
-  onRestart,
-  isRestarting,
-  requiresRestartPending,
   olostepFeature,
   olostepInstalling,
   capabilityError,
@@ -115,9 +112,6 @@ export function WebSettings({
   onReset: () => void;
   onSave: () => void;
   showBrandLogos: boolean;
-  onRestart?: () => void;
-  isRestarting?: boolean;
-  requiresRestartPending: boolean;
   olostepFeature?: YoreniFeatureInfo;
   olostepInstalling: boolean;
   capabilityError: string | null;
@@ -128,7 +122,7 @@ export function WebSettings({
   const selectedProvider =
     settings.web_search.providers.find((provider) => provider.name === form.provider) ??
     settings.web_search.providers[0];
-  const { hasExistingSecret, dirty, jinaReaderDirty, missingCredential } = webSearchDraftState(settings, form);
+  const { hasExistingSecret, dirty, missingCredential } = webSearchDraftState(settings, form);
   const effectiveJinaReader = form.useJinaReader ?? settings.web.fetch.use_jina_reader;
   const showKeyInput = webSearchProviderAcceptsApiKey(selectedProvider) && (!hasExistingSecret || keyEditing);
 
@@ -286,23 +280,16 @@ export function WebSettings({
             saveLabel={t("settings.yoreniFeatures.installConfirmAction")}
             dirty={dirty}
             saving={saving}
-            pendingRestart={requiresRestartPending}
             disabled={missingCredential}
             message={
               missingCredential
                 ? t("settings.byok.webSearch.missingCredential")
-                : error || (!embedded && requiresRestartPending && !dirty
-                  ? tx("settings.status.savedRestartApply", "Saved. Restart to apply changes.")
-                  : jinaReaderDirty
-                    ? tx("settings.status.restartAfterSaving", "Save changes, then restart yoreni to apply them.")
-                    : dirty
-                      ? t("settings.byok.webSearch.saveHint")
-                      : undefined)
+                : error || (dirty
+                  ? t("settings.byok.webSearch.saveHint")
+                  : undefined)
             }
             onSave={onSave}
-            onRestart={onRestart}
             onReset={onReset}
-            isRestarting={isRestarting}
           />
         </SettingsGroup>
       </section>

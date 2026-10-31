@@ -40,7 +40,7 @@ import { messageCopyText } from "@/lib/message-text";
 import { createRuntimeHost } from "@/lib/runtime";
 import { formatQuotedUserMessage } from "@/lib/user-message-quote";
 import { YoreniClient } from "@/lib/yoreni-client";
-import type { BootstrapResponse, OnboardingSnapshot } from "@/lib/types";
+import type { BootstrapResponse, OnboardingSnapshot, UIMessage } from "@/lib/types";
 import { ClientProvider, useClient } from "@/providers/ClientProvider";
 
 const SettingsView = lazy(() => import("@/components/settings/SettingsView").then((module) => ({ default: module.SettingsView })));
@@ -353,15 +353,20 @@ function MessageTimeDivider({ timestamp }: { timestamp: number }) {
  * height it measured, so the scroll geometry stays exact: unlike an estimated
  * placeholder, loading an older page never resizes the rows the reader is
  * standing on. The spacer keeps the message ID so quotes and search can still
- * land on it.
+ * land on it. Cards carrying media stay mounted: their height depends on images
+ * that finish loading later, and remounting one would reload it.
  */
-function ThreadMessageRow({ messageId, children }: { messageId: string; children: ReactNode }) {
+function ThreadMessageRow({ messageId, pinned = false, children }: {
+  messageId: string;
+  pinned?: boolean;
+  children: ReactNode;
+}) {
   const rowRef = useRef<HTMLDivElement>(null);
   const heightRef = useRef(0);
   const [rendered, setRendered] = useState(true);
   useEffect(() => {
     const row = rowRef.current;
-    if (!row || typeof IntersectionObserver === "undefined") return;
+    if (!row || pinned || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver((entries) => {
       const entry = entries[entries.length - 1];
       if (!entry) return;
@@ -378,7 +383,7 @@ function ThreadMessageRow({ messageId, children }: { messageId: string; children
     }, { rootMargin: "800px 0px" });
     observer.observe(row);
     return () => observer.disconnect();
-  }, []);
+  }, [pinned]);
   return (
     <div
       ref={rowRef}
@@ -389,6 +394,24 @@ function ThreadMessageRow({ messageId, children }: { messageId: string; children
       {rendered ? children : null}
     </div>
   );
+}
+
+/**
+ * Rows that draw nothing still take the transcript's row gap, so an in-flight
+ * run would turn every activity step into a blank band. This mirrors what
+ * `MessageBubble` renders, which returns null for exactly these messages.
+ */
+function rendersInTranscript(message: UIMessage): boolean {
+  if (message.kind === "trace") return false;
+  if (message.kind === "compaction" && message.compaction) return true;
+  if (message.role !== "assistant") return true;
+  return message.content.trim().length > 0
+    || message.compactReply !== undefined
+    || (message.media?.length ?? 0) > 0;
+}
+
+function carriesMedia(message: UIMessage): boolean {
+  return Boolean(message.rich || message.media?.length || message.images?.length);
 }
 
 function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocusHandled }: {
@@ -409,7 +432,10 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
   const running = run.active || run.sending;
   const loadingHistory = !run.historyLoaded && run.messages.length === 0;
   const empty = run.messages.length === 0 && !loadingHistory && !running;
-  const groups = useMemo(() => messageTimeGroups(run.messages), [run.messages]);
+  const groups = useMemo(
+    () => messageTimeGroups(run.messages.filter(rendersInTranscript)),
+    [run.messages],
+  );
   useEffect(() => { if (following.current && viewport.current) viewport.current.scrollTop = viewport.current.scrollHeight; }, [run.messages, running]);
   useEffect(() => () => {
     if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current);
@@ -485,7 +511,11 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
                 <Fragment key={group.key}>
                   <MessageTimeDivider timestamp={group.startedAt} />
                   {group.messages.map((message) => (
-                    <ThreadMessageRow key={message.id} messageId={message.id}>
+                    <ThreadMessageRow
+                      key={message.id}
+                      messageId={message.id}
+                      pinned={carriesMedia(message)}
+                    >
                       <MessageBubble
                         message={message}
                         onJumpToQuote={jumpToQuote}

@@ -569,7 +569,7 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
     <AmbientBackground />
     <div className="relative z-10 flex h-full min-h-0 w-full text-foreground">
       <HomePanel open={homeOpen} />
-      <div className={cn("relative flex min-h-0 flex-1 flex-col", homeOpen && "hidden md:flex")}>
+      <div className={cn("relative flex min-h-0 min-w-0 flex-1 flex-col", homeOpen && "hidden md:flex")}>
       <div className="h-16 shrink-0" aria-hidden />
       <div className="app-route-view flex min-h-0 flex-1 flex-col">
       <Routes>

@@ -1,4 +1,5 @@
 import {
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -449,7 +450,7 @@ function MessageReactions({
 }
 
 /** Render user turns as compact bubbles and assistant turns as document-like prose. */
-export function MessageBubble({
+function MessageBubbleView({
   message,
   temporary = false,
   cliApps = [],
@@ -525,7 +526,7 @@ export function MessageBubble({
               data-quote-target={quoteTarget || undefined}
               data-temporary-message={temporary ? "true" : undefined}
               className={cn(
-                "ml-auto w-fit max-w-full min-w-0 rounded-[1.35rem] px-4 py-2.5",
+                "thread-message-body ml-auto w-fit max-w-full min-w-0 rounded-[1.35rem] px-4 py-2.5",
                 "text-left text-reading whitespace-pre-wrap [overflow-wrap:anywhere]",
                 temporary
                   ? "border border-dashed border-muted-foreground/40 bg-transparent"
@@ -643,7 +644,7 @@ export function MessageBubble({
       ) : null}
       <div
         data-quote-target={quoteTarget || undefined}
-        className="app-surface-glass rounded-[1.6rem] px-5 py-4 sm:px-6 sm:py-5"
+        className="thread-message-body app-surface-glass rounded-[1.6rem] px-5 py-4 sm:px-6 sm:py-5"
       >
         <InlineImageProvider>
           <div
@@ -664,6 +665,9 @@ export function MessageBubble({
     </div>
   );
 }
+
+/** A transcript row only rerenders when its own message or focus state changes. */
+export const MessageBubble = memo(MessageBubbleView);
 
 function mergeMcpMentionPresets(
   presets: McpPresetInfo[],

@@ -14,7 +14,9 @@ export function DisplayMath({ children }: { children: ReactNode }) {
       content.current.style.setProperty("--math-tag-width", tagWidth);
     }
     const width = content.current.offsetWidth;
-    const scale = width ? Math.min(1, frame.current.clientWidth / width) : 1;
+    // A hidden frame reports zero width; never scale the formula away while unmeasured.
+    const available = frame.current.clientWidth;
+    const scale = width && available ? Math.min(1, available / width) : 1;
     const height = content.current.offsetHeight * scale;
     setLayout(previous => previous.scale === scale && previous.height === height ? previous : { scale, height });
   }, []);
@@ -29,7 +31,7 @@ export function DisplayMath({ children }: { children: ReactNode }) {
   useLayoutEffect(update, [children, update]);
   return <span ref={frame} className="math-fit" style={{ height: layout.height || undefined }}
     data-math-scale={layout.scale}>
-    <span ref={content} className="math-fit-content" style={{ transform: `translateX(-50%) scale(${layout.scale})` }}>
+    <span ref={content} className="math-fit-content" style={{ transform: `scale(${layout.scale})` }}>
       <span className="katex-display">{children}</span>
     </span>
   </span>;

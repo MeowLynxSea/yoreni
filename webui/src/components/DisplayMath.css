@@ -1,19 +1,18 @@
 .math-fit {
-  position: relative;
   display: block;
   width: 100%;
   min-width: 0;
   margin-block: 0.45em 0.5em;
 }
 
+/* The formula stays in flow so a fit-content message measures its real width. */
 .math-fit-content {
-  position: absolute;
-  top: 0;
-  left: 50%;
+  display: block;
   width: max-content;
   min-width: 100%;
+  margin-inline: auto;
   padding-block: 0.1em;
-  transform-origin: top center;
+  transform-origin: top left;
 }
 
 .math-fit .katex-display {

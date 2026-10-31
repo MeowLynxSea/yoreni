@@ -72,6 +72,20 @@ it("recalculates width and occupied height when a streaming formula grows", asyn
   expect(frame.textContent).toBe("completed equation");
 });
 
+it("keeps the formula visible when its container has not been measured yet", async () => {
+  availableWidth = 0;
+  const { container } = render(<DisplayMath><span>unmeasured equation</span></DisplayMath>);
+  await act(async () => { await document.fonts.ready; });
+  const frame = container.querySelector<HTMLElement>(".math-fit")!;
+  expect(frame.style.height).toBe("80px");
+  expect(container.querySelector<HTMLElement>(".math-fit-content")!.style.transform).toContain("scale(1)");
+
+  availableWidth = 400;
+  act(() => { resize(); });
+  expect(frame.style.height).toBe("40px");
+  expect(container.querySelector<HTMLElement>(".math-fit-content")!.style.transform).toContain("scale(0.5)");
+});
+
 it("keeps observation and unchanged tag spacing stable across streaming rerenders", async () => {
   availableWidth = 400;
   const setProperty = vi.spyOn(CSSStyleDeclaration.prototype, "setProperty");

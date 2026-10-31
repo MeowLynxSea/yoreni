@@ -643,7 +643,8 @@
       "mcp": "MCP",
       "apps": "앱",
       "automations": "자동화",
-      "skills": "스킬"
+      "skills": "스킬",
+      "accounts": "계정"
     },
     "sections": {
       "interface": "인터페이스",
@@ -2517,5 +2518,60 @@
       "cancel": "취소",
       "switchDirectory": "디렉터리 전환"
     }
+  },
+  "auth": {
+    "title": "인증이 필요합니다",
+    "cancel": "취소",
+    "connect": "연결",
+    "continueInBrowser": "브라우저에서 계속",
+    "secureNote": "자격 증명은 Yoreni로 바로 전송되며 대화에 나타나지 않습니다."
+  },
+  "accounts": {
+    "title": "계정",
+    "description": "Agent가 로그인을 요청하면 계정이 여기에 표시됩니다. 자격 증명은 이 컴퓨터에만 남고 모델 프롬프트에는 들어가지 않습니다.",
+    "loading": "계정을 불러오는 중…",
+    "disconnect": "연결 해제",
+    "tabs": {
+      "all": "전체",
+      "connected": "연결됨",
+      "login": "로그인",
+      "api_key": "API 키"
+    },
+    "status": {
+      "connected": "연결됨",
+      "expired": "만료됨",
+      "revoked": "해지됨"
+    },
+    "services": {
+      "api_key": {
+        "name": "API 키",
+        "description": "단일 토큰으로 인증하는 서비스"
+      },
+      "basic_auth": {
+        "name": "사용자 이름과 비밀번호",
+        "description": "계정으로 로그인하는 사이트"
+      }
+    },
+    "empty": {
+      "title": "아직 계정이 없습니다",
+      "description": "Agent가 서비스가 필요하면 대화에서 권한을 요청합니다. 연결된 계정이 여기에 표시됩니다."
+    }
+  },
+  "computer": {
+    "title": "Yoreni의 컴퓨터",
+    "take": "제어권 가져오기",
+    "release": "제어권 돌려주기",
+    "youControl": "당신이 제어하고 있습니다",
+    "agentControls": "Yoreni가 컴퓨터를 사용 중입니다",
+    "connecting": "데스크톱에 연결하는 중…",
+    "disconnected": "데스크톱 연결이 끊어졌습니다.",
+    "offline": "Yoreni 컴퓨터가 실행 중이 아닙니다.",
+    "authFailed": "데스크톱 연결이 거부되었습니다.",
+    "reconnect": "다시 연결",
+    "fullscreen": "전체 화면",
+    "paste": "클립보드 붙여넣기",
+    "clipboardDenied": "클립보드 접근이 거부되었습니다.",
+    "close": "닫기",
+    "loading": "컴퓨터를 확인하는 중…"
   }
 }

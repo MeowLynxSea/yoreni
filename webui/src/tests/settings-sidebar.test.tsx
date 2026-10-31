@@ -110,7 +110,7 @@ describe("Settings navigation on mobile", () => {
     screen.getByRole("button", { name: "Settings: Models" }).focus();
     await user.keyboard("{ArrowDown}");
     expect(screen.getByRole("menuitem", { name: "Overview" })).toHaveFocus();
-    await user.keyboard("{ArrowDown}{ArrowDown}{Enter}");
+    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{Enter}");
     await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Settings: Appearance" })).toHaveFocus();
   });

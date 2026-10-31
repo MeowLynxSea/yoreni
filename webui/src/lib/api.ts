@@ -1333,3 +1333,64 @@ export async function disconnectCredential(
 ): Promise<void> {
   await mutation(transport, "credentials.delete", { account_id: accountId });
 }
+
+// -- Sandbox computer ----------------------------------------------------
+
+export interface SandboxControlSnapshot {
+  owner: "agent" | "pausing" | "user";
+  epoch: number;
+  controller: string | null;
+  since_ms: number;
+  reason: string | null;
+}
+
+export interface SandboxStatusPayload {
+  sandbox: {
+    backend: string;
+    box_id: string | null;
+    name: string;
+    state: string;
+    workspace: string;
+    health: { running: boolean; desktop_ready: boolean; browser_ready: boolean; detail: string };
+    started_at_ms: number | null;
+    detail: string;
+  };
+  control: SandboxControlSnapshot;
+  desktop: { enabled: boolean; browser: boolean; viewer_path: string };
+}
+
+export interface DesktopSessionPayload {
+  ticket: string;
+  controller_id: string;
+  path: string;
+  expires_in: number;
+  control: SandboxControlSnapshot;
+}
+
+export async function fetchSandboxStatus(token: string): Promise<SandboxStatusPayload> {
+  return request<SandboxStatusPayload>("/api/sandbox/status", token, undefined, API_READ_TIMEOUT_MS);
+}
+
+export async function createDesktopSession(token: string): Promise<DesktopSessionPayload> {
+  return request<DesktopSessionPayload>(
+    "/api/sandbox/desktop/session",
+    token,
+    undefined,
+    API_READ_TIMEOUT_MS,
+  );
+}
+
+export async function setDesktopControl(
+  transport: WebUIMutationTransport,
+  controllerId: string,
+  action: "take" | "release",
+): Promise<SandboxControlSnapshot> {
+  // Control changes travel over the authenticated WebSocket: the gateway's
+  // HTTP POST path belongs to the upload bridge and rejects unknown routes.
+  const payload = await mutation<{ control: SandboxControlSnapshot }>(
+    transport,
+    `sandbox.control.${action}`,
+    { controller: controllerId },
+  );
+  return payload.control;
+}

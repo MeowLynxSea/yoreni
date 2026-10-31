@@ -643,7 +643,8 @@
       "mcp": "MCP",
       "apps": "Aplicaciones",
       "automations": "Automatizaciones",
-      "skills": "Habilidades"
+      "skills": "Habilidades",
+      "accounts": "Cuentas"
     },
     "sections": {
       "interface": "Interfaz",
@@ -2517,5 +2518,60 @@
       "cancel": "Cancelar",
       "switchDirectory": "Cambiar directorio"
     }
+  },
+  "auth": {
+    "title": "Se requiere autenticación",
+    "cancel": "Cancelar",
+    "connect": "Conectar",
+    "continueInBrowser": "Continuar en el navegador",
+    "secureNote": "Las credenciales se envían directamente a Yoreni y nunca aparecen en el chat."
+  },
+  "accounts": {
+    "title": "Cuentas",
+    "description": "Las cuentas aparecen aquí cuando el agente te pide iniciar sesión. Las credenciales se quedan en este equipo y nunca entran en el prompt del modelo.",
+    "loading": "Cargando cuentas…",
+    "disconnect": "Desconectar",
+    "tabs": {
+      "all": "Todas",
+      "connected": "Conectadas",
+      "login": "Inicios de sesión",
+      "api_key": "Claves de API"
+    },
+    "status": {
+      "connected": "Conectada",
+      "expired": "Caducada",
+      "revoked": "Revocada"
+    },
+    "services": {
+      "api_key": {
+        "name": "Clave de API",
+        "description": "Servicio autenticado con un único token"
+      },
+      "basic_auth": {
+        "name": "Usuario y contraseña",
+        "description": "Sitio que inicia sesión con una cuenta"
+      }
+    },
+    "empty": {
+      "title": "Aún no hay cuentas",
+      "description": "Cuando el agente necesite un servicio, pedirá autorización en la conversación. Las cuentas conectadas aparecen aquí."
+    }
+  },
+  "computer": {
+    "title": "El ordenador de Yoreni",
+    "take": "Tomar el control",
+    "release": "Devolver el control",
+    "youControl": "Tienes el control",
+    "agentControls": "Yoreni está usando el ordenador",
+    "connecting": "Conectando con el escritorio…",
+    "disconnected": "La conexión con el escritorio se ha cortado.",
+    "offline": "El ordenador de Yoreni no está en marcha.",
+    "authFailed": "Se ha rechazado la conexión con el escritorio.",
+    "reconnect": "Volver a conectar",
+    "fullscreen": "Pantalla completa",
+    "paste": "Pegar portapapeles",
+    "clipboardDenied": "Se ha denegado el acceso al portapapeles.",
+    "close": "Cerrar",
+    "loading": "Comprobando el ordenador…"
   }
 }

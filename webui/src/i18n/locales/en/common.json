@@ -2556,5 +2556,22 @@
       "title": "No accounts yet",
       "description": "When the agent needs a service, it will ask for authorization in the conversation. Connected accounts show up here."
     }
+  },
+  "computer": {
+    "title": "Yoreni's computer",
+    "take": "Take control",
+    "release": "Return control",
+    "youControl": "You are in control",
+    "agentControls": "Yoreni is using the computer",
+    "connecting": "Connecting to the desktop...",
+    "disconnected": "The desktop stream disconnected.",
+    "offline": "The Yoreni computer is not running.",
+    "authFailed": "The desktop connection was rejected.",
+    "reconnect": "Reconnect",
+    "fullscreen": "Fullscreen",
+    "paste": "Paste clipboard",
+    "clipboardDenied": "Clipboard access was denied.",
+    "close": "Close",
+    "loading": "Checking the computer..."
   }
 }

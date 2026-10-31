@@ -643,7 +643,8 @@
       "mcp": "MCP",
       "apps": "應用程式",
       "automations": "自動任務",
-      "skills": "技能"
+      "skills": "技能",
+      "accounts": "帳戶"
     },
     "sections": {
       "interface": "介面",
@@ -2517,5 +2518,60 @@
       "cancel": "取消",
       "switchDirectory": "切換目錄"
     }
+  },
+  "auth": {
+    "title": "需要驗證",
+    "cancel": "取消",
+    "connect": "連線",
+    "continueInBrowser": "在瀏覽器中繼續",
+    "secureNote": "憑證會直接傳送給 Yoreni，不會出現在對話中。"
+  },
+  "accounts": {
+    "title": "帳戶",
+    "description": "當 Agent 請你登入時，帳戶會顯示在這裡。憑證只留在這台電腦上，不會進入模型提示。",
+    "loading": "正在載入帳戶…",
+    "disconnect": "中斷連線",
+    "tabs": {
+      "all": "全部",
+      "connected": "已連線",
+      "login": "登入",
+      "api_key": "API 金鑰"
+    },
+    "status": {
+      "connected": "已連線",
+      "expired": "已過期",
+      "revoked": "已撤銷"
+    },
+    "services": {
+      "api_key": {
+        "name": "API 金鑰",
+        "description": "以單一權杖驗證的服務"
+      },
+      "basic_auth": {
+        "name": "使用者名稱與密碼",
+        "description": "使用帳戶登入的網站"
+      }
+    },
+    "empty": {
+      "title": "還沒有帳戶",
+      "description": "當 Agent 需要某項服務時，會直接在對話中要求授權。連線後的帳戶會顯示在這裡。"
+    }
+  },
+  "computer": {
+    "title": "Yoreni 的電腦",
+    "take": "接管控制",
+    "release": "交還控制",
+    "youControl": "你正在控制",
+    "agentControls": "Yoreni 正在使用這台電腦",
+    "connecting": "正在連線到桌面…",
+    "disconnected": "桌面連線已中斷。",
+    "offline": "Yoreni 的電腦沒有在執行。",
+    "authFailed": "桌面連線被拒絕。",
+    "reconnect": "重新連線",
+    "fullscreen": "全螢幕",
+    "paste": "貼上剪貼簿",
+    "clipboardDenied": "剪貼簿存取被拒絕。",
+    "close": "關閉",
+    "loading": "正在檢查電腦…"
   }
 }

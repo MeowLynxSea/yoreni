@@ -160,10 +160,17 @@ export default defineConfig(({ mode }) => {
         // Vite's HTML scan does not follow the lazy Worker entry. Discovering
         // these imports on first render would reload the page and lose UI state.
         "pele/lazy", "saxes", "css-tree/parser", "css-tree/walker", "css-tree/generator",
+        // The desktop viewer imports this only when it connects. Letting Vite
+        // discover it mid-session re-optimizes deps and fails with 504.
+        "@novnc/novnc",
       ],
+      // noVNC probes WebCodecs with top-level await while importing.
+      esbuildOptions: { target: "es2022" },
     },
     worker: { format: "es" },
     build: {
+      // noVNC's RFB client uses top-level await when probing WebCodecs.
+      target: "es2022",
       outDir: path.resolve(__dirname, "../yoreni/web/dist"),
       emptyOutDir: true,
       manifest: "asset-manifest.json",

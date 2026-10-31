@@ -1,4 +1,4 @@
-import { ArrowLeft, House, Search } from "lucide-react";
+import { ArrowLeft, House, Monitor, Search } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -12,6 +12,8 @@ type AppHeaderProps = {
   theme: "light" | "dark";
   onToggleTheme: () => void;
   onOpenSearch: () => void;
+  onOpenComputer?: () => void;
+  onComputerButtonRef?: React.RefObject<HTMLButtonElement>;
   homeView?: HomeView;
   onHomeViewChange?: (view: HomeView) => void;
 };
@@ -20,6 +22,8 @@ export function AppHeader({
   theme,
   onToggleTheme,
   onOpenSearch,
+  onOpenComputer,
+  onComputerButtonRef,
   homeView,
   onHomeViewChange,
 }: AppHeaderProps) {
@@ -134,6 +138,18 @@ export function AppHeader({
       </div>
 
       <div className="ml-auto flex items-center gap-1">
+        {onOpenComputer ? (
+          <button
+            ref={onComputerButtonRef}
+            type="button"
+            onClick={onOpenComputer}
+            aria-label={t("computer.title")}
+            title={t("computer.title")}
+            className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 dark:hover:bg-white/[0.06]"
+          >
+            <Monitor className="h-5 w-5" strokeWidth={1.7} aria-hidden />
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onOpenSearch}

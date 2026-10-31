@@ -24,8 +24,14 @@ from yoreni.agent.tools.schema import (
 from yoreni.credentials.auth import AuthRequestStatus
 from yoreni.credentials.manager import get_credential_manager
 from yoreni.credentials.models import AuthMethod
-
 _MAX_WAIT_SECONDS = 600
+
+_PLACEHOLDER_HINT = (
+    "Each placeholder is the credential itself: pass it as the argument value the "
+    "tool expects (password, api_key, code, ...) and call that tool now, in this "
+    "turn. The gateway replaces it with the real secret at execution. Never ask "
+    "the user for the value and never repeat the placeholder to them."
+)
 
 
 def _run_id() -> str | None:
@@ -51,13 +57,17 @@ def _run_id() -> str | None:
         allowed_tools=ArraySchema(
             StringSchema(""),
             description=(
-                "Tool names allowed to receive the resulting credential, e.g. "
-                "['browser_type']. Leave empty when the credential is only for redaction."
+                "Tools allowed to receive the resulting credential. Name the tool you "
+                "will call, e.g. an MCP tool name; a sub-action of a grouped tool also "
+                "works."
             ),
         ),
         allowed_domains=ArraySchema(
             StringSchema(""),
-            description="Domains this credential may be used against, e.g. ['example.com'].",
+            description=(
+                "Sites this credential may be used on, e.g. ['example.com']. A full URL "
+                "is accepted too."
+            ),
         ),
         timeout_seconds=IntegerSchema(
             description="How long to wait for the user, in seconds (30-600). Defaults to 300.",
@@ -85,7 +95,9 @@ class RequestAuthenticationTool(Tool):
         return (
             "Ask the user to sign in or enter a credential for an external service. "
             "Use this instead of asking for a password or API key in chat. The user "
-            "fills a secure card and you receive only the account name."
+            "fills a secure card and you receive the account name plus placeholders. "
+            "A returned placeholder is a ready-to-use credential: pass it as the "
+            "argument value of the tool that needs it, in the same turn."
         )
 
     async def execute(
@@ -124,14 +136,30 @@ class RequestAuthenticationTool(Tool):
                 f"Error: {connector.id} does not support {auth_method.value}"
             )
 
+        # A card the user fills must produce an account a tool can actually use,
+        # so resolve the grant here and refuse before opening the card.
+        has_secret = bool(connector.fields_for(auth_method))
+        tools = [str(tool).strip() for tool in (allowed_tools or []) if str(tool).strip()]
+        if not tools and has_secret:
+            return ToolResult.error(
+                "Error: name the tool that will receive this credential in "
+                "allowed_tools, e.g. the MCP tool name you are about to call."
+            )
+        domains = [str(domain).strip() for domain in (allowed_domains or []) if str(domain).strip()]
+        if not domains and has_secret:
+            return ToolResult.error(
+                "Error: name the site in allowed_domains (a bare host works, e.g. "
+                "['example.com'])."
+            )
+
         try:
             request = manager.request_auth(
                 connector_id=connector.id,
                 method=auth_method,
                 purpose=purpose.strip()[:400],
                 run_id=_run_id(),
-                allowed_tools=allowed_tools or (),
-                allowed_domains=allowed_domains or (),
+                allowed_tools=tools,
+                allowed_domains=domains,
             )
         except ValueError as exc:
             return ToolResult.error(f"Error: {exc}")
@@ -149,7 +177,10 @@ class RequestAuthenticationTool(Tool):
                 "account_id": completed.account_id,
                 "connector_id": connector.id,
                 "label": account.label if account else connector.name,
+                "allowed_tools": list(account.allowed_tools) if account else tools,
+                "allowed_domains": list(account.allowed_domains) if account else domains,
                 "placeholders": manager.placeholders_for_account(completed.account_id),
+                "next_step": _PLACEHOLDER_HINT,
             }
             return json.dumps(payload, ensure_ascii=False)
         if completed.status is AuthRequestStatus.CANCELLED:
@@ -181,7 +212,8 @@ class ListConnectionsTool(Tool):
     def description(self) -> str:
         return (
             "List connectors and accounts the user has already connected. "
-            "Use the returned connector and account identifiers to choose a tool."
+            "Use the returned connector and account identifiers to choose a tool; "
+            "a connected account's placeholders are ready to pass to that tool."
         )
 
     async def execute(self, **kwargs: object) -> str:
@@ -197,4 +229,6 @@ class ListConnectionsTool(Tool):
             "connectors": manager.connectors(),
             "accounts": accounts,
         }
+        if any(account["placeholders"] for account in accounts):
+            payload["next_step"] = _PLACEHOLDER_HINT
         return json.dumps(payload, ensure_ascii=False)

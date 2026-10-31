@@ -296,6 +296,16 @@ class Tool(ABC):
         """Return optional per-turn prompt context owned by this tool."""
         return None
 
+    def credential_destination(self, params: dict[str, Any]) -> str | None:
+        """Return the target this call will act on, when it is not in the arguments.
+
+        A browser acts on the page it is already showing, so it reports that URL
+        and a credential can be verified against it. Tools without a target of
+        their own keep the default and must name one in their arguments.
+        """
+        _ = params
+        return None
+
     @abstractmethod
     async def execute(self, **kwargs: Any) -> Any:
         """Run the tool; return content, or ``ToolResult.error(...)`` for failures."""

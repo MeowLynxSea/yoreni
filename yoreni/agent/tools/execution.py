@@ -206,7 +206,10 @@ async def _execute_tool_call(
     await hook.before_execute_tool(context, tool_call, tool, hook_params)
     if tool is not None:
         credential_error = _restore_credentials(
-            tool_call.name, cast(dict[str, Any], params), run_id,
+            tool_call.name,
+            cast(dict[str, Any], params),
+            run_id,
+            destination=tool.credential_destination(cast(dict[str, Any], params)),
         )
         if credential_error is not None:
             event = {
@@ -216,8 +219,8 @@ async def _execute_tool_call(
             }
             return with_tool_error_hint(
                 f"Error: credential use denied for {tool_call.name}: {credential_error}. "
-                "Request the account through an authentication request instead of "
-                "inserting the placeholder into this tool."
+                "Fix the call as described, or request the account again through an "
+                "authentication request instead of asking the user for the value."
             ), event
     try:
         with (
@@ -296,13 +299,17 @@ def _restore_credentials(
     tool_name: str,
     params: dict[str, Any],
     run_id: str | None,
+    *,
+    destination: str | None = None,
 ) -> str | None:
     """Restore allowed placeholders in place; return a denial reason otherwise."""
     from yoreni.credentials.manager import get_credential_manager
     from yoreni.credentials.policy import CredentialUseDeniedError
 
     try:
-        restored = get_credential_manager().restore_arguments(tool_name, params, run_id=run_id)
+        restored = get_credential_manager().restore_arguments(
+            tool_name, params, run_id=run_id, destination=destination,
+        )
     except CredentialUseDeniedError as exc:
         return str(exc)
     except Exception:

@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 
+import { EmojiText } from "@/components/EmojiText";
 import { HoverHint } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +37,7 @@ export function QuotedMessageLink({
       content={
         <>
           <span className="block max-h-[5.5rem] overflow-hidden whitespace-pre-wrap break-words text-[12px] leading-5">
-            {quote}
+            <EmojiText text={quote} />
           </span>
           <span className="mt-1 block text-[11px] text-muted-foreground">
             {t("message.jumpToQuoted")}
@@ -83,7 +84,7 @@ export function QuotedMessageLink({
             "group-hover/quote:border-border group-hover/quote:bg-muted/40 group-hover/quote:text-foreground",
           )}
         >
-          {excerpt}
+          <EmojiText text={excerpt} />
         </span>
       </button>
     </HoverHint>

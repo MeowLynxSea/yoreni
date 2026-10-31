@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { LoadingRing } from "@/components/ui/loading-ring";
 import type { ChatSearchHit, ChatSearchLocalResult } from "@/lib/chat-search";
 import { formatMessageGroupTime } from "@/lib/format-time";
+import { EmojiText } from "@/components/EmojiText";
 import { cn } from "@/lib/utils";
 
 type SearchTier = "exact" | "fuzzy" | "semantic";
@@ -44,23 +45,23 @@ export interface ChatSearchProps {
 }
 
 function HighlightedSnippet({ text, spans }: { text: string; spans: Array<[number, number]> }) {
-  if (spans.length === 0) return <>{text}</>;
+  if (spans.length === 0) return <EmojiText text={text} />;
   const parts: ReactNode[] = [];
   let cursor = 0;
   for (const [start, end] of spans) {
     if (start < cursor || end <= start) continue;
-    if (start > cursor) parts.push(text.slice(cursor, start));
+    if (start > cursor) parts.push(<EmojiText key={`t:${cursor}`} text={text.slice(cursor, start)} />);
     parts.push(
       <mark
         key={`${start}:${end}`}
         className="rounded-[3px] bg-[#bf5a42]/15 px-0.5 text-foreground"
       >
-        {text.slice(start, end)}
+        <EmojiText text={text.slice(start, end)} />
       </mark>,
     );
     cursor = end;
   }
-  parts.push(text.slice(cursor));
+  parts.push(<EmojiText key={`t:${cursor}`} text={text.slice(cursor)} />);
   return <>{parts}</>;
 }
 

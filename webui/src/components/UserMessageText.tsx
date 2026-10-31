@@ -4,6 +4,7 @@ import {
   CapabilityMentionToken,
   splitCapabilityMentionSegments,
 } from "@/components/CliAppMentionText";
+import { EmojiText } from "@/components/EmojiText";
 import { SkillReferenceToken, withSkillReferences } from "@/components/SkillReferenceText";
 import type { CliAppInfo, McpPresetInfo } from "@/lib/types";
 
@@ -23,7 +24,11 @@ export function UserMessageText({
     <>
       {segments.map((segment, index) => {
         if (segment.kind === "text") {
-          return <Fragment key={`text-${index}`}>{segment.text}</Fragment>;
+          return (
+            <Fragment key={`text-${index}`}>
+              <EmojiText text={segment.text} />
+            </Fragment>
+          );
         }
         if (segment.kind === "skill") return (
           <SkillReferenceToken

@@ -29,6 +29,7 @@ import { ContextCompactionNotice } from "@/components/thread/ContextCompactionNo
 import { QuotedMessageLink } from "@/components/thread/QuotedMessageLink";
 import { UserMessageText } from "@/components/UserMessageText";
 import { HoverHint } from "@/components/ui/tooltip";
+import { EmojiText } from "@/components/EmojiText";
 import { cn } from "@/lib/utils";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { formatMessageEndTime, formatMessageHoverTimeParts } from "@/lib/format-time";
@@ -442,7 +443,7 @@ function MessageReactions({
           aria-label={t("message.reactionFromAgent")}
           className="select-none text-[18px] leading-none animate-in zoom-in-50 duration-150 motion-reduce:animate-none"
         >
-          {emoji}
+          <EmojiText text={emoji} />
         </span>
       ))}
     </span>

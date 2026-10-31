@@ -22,6 +22,7 @@ import type { UIMediaKind } from "@/lib/types";
 
 import { DisplayMath } from "@/components/DisplayMath";
 import { AttachmentTile } from "@/components/AttachmentTile";
+import { rehypeEmojiArtwork } from "@/components/markdown-emoji";
 import { MarkdownCodeBlock } from "@/components/markdown-diagrams/MarkdownCodeBlock";
 import { MarkdownCodeContext } from "@/components/markdown-diagrams/context";
 import { WebLink } from "@/components/WebLink";
@@ -527,7 +528,7 @@ export default function MarkdownTextRenderer({
     return () => { cancelled = true; };
   }, [needsMath, mathPlugin]);
   const rehypePlugins = useMemo<NonNullable<StreamdownProps["rehypePlugins"]>>(
-    () => needsMath && mathPlugin ? [mathPlugin] : [],
+    () => [rehypeEmojiArtwork(), ...(needsMath && mathPlugin ? [mathPlugin] : [])],
     [needsMath, mathPlugin],
   );
   const components = useMemo<Components>(

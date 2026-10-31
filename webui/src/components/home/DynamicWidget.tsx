@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useThemeValue } from "@/hooks/useTheme";
 import { fetchWidget, refreshWidget } from "@/lib/api";
 import type { DynamicWidgetSnapshot, DynamicWidgetSummary } from "@/lib/types";
+import { EmojiText } from "@/components/EmojiText";
 import { cn } from "@/lib/utils";
 import { useClient } from "@/providers/ClientProvider";
 
@@ -34,8 +35,8 @@ function StatView({ data }: { data: Record<string, unknown> }) {
   return (
     <div>
       <p className="display-serif text-[1.9rem] leading-none text-foreground">{String(value)}</p>
-      {label ? <p className="mt-1.5 text-[13px] leading-5 text-foreground/80">{label}</p> : null}
-      {detail ? <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground">{detail}</p> : null}
+      {label ? <p className="mt-1.5 text-[13px] leading-5 text-foreground/80"><EmojiText text={label} /></p> : null}
+      {detail ? <p className="mt-0.5 text-[12px] leading-5 text-muted-foreground"><EmojiText text={detail} /></p> : null}
     </div>
   );
 }
@@ -119,7 +120,7 @@ function TableView({ data }: { data: Record<string, unknown> }) {
 
 function TextView({ data }: { data: Record<string, unknown> }) {
   if (typeof data.text !== "string" || !data.text) return null;
-  return <p className="whitespace-pre-wrap text-[13px] leading-6 text-foreground/90">{data.text}</p>;
+  return <p className="whitespace-pre-wrap text-[13px] leading-6 text-foreground/90"><EmojiText text={data.text} /></p>;
 }
 
 const TONE_TEXT = {
@@ -173,7 +174,7 @@ function MetricsView({ data }: { data: Record<string, unknown> }) {
     >
       {items.map((item, index) => (
         <div key={index} className="min-w-0 rounded-2xl bg-foreground/[0.05] px-3.5 py-3">
-          <p className="truncate text-[12px] leading-5 text-muted-foreground">{item.label}</p>
+          <p className="truncate text-[12px] leading-5 text-muted-foreground"><EmojiText text={item.label} /></p>
           <p
             className={cn(
               "mt-0.5 truncate text-[1.35rem] leading-tight tabular-nums text-foreground",
@@ -225,10 +226,10 @@ function ProgressView({ data }: { data: Record<string, unknown> }) {
           <li key={index}>
             <div className="flex items-baseline justify-between gap-3">
               <span className="min-w-0 truncate text-[13px] leading-5 text-foreground/90">
-                {row.label}
+                <EmojiText text={row.label} />
               </span>
               <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">
-                {row.detail ?? `${percent}%`}
+                {row.detail ? <EmojiText text={row.detail} /> : `${percent}%`}
               </span>
             </div>
             <div
@@ -265,7 +266,7 @@ function FactsView({ data }: { data: Record<string, unknown> }) {
             index > 0 && "border-t border-border/50",
           )}
         >
-          <dt className="min-w-0 truncate text-[12px] leading-5 text-muted-foreground">{item.label}</dt>
+          <dt className="min-w-0 truncate text-[12px] leading-5 text-muted-foreground"><EmojiText text={item.label} /></dt>
           <dd
             className={cn(
               "min-w-0 truncate text-[13px] leading-5 tabular-nums text-foreground/90",
@@ -309,14 +310,14 @@ function ChartView({ data }: { data: Record<string, unknown> }) {
     <div className="flex gap-1.5 text-[10px] leading-4 text-muted-foreground">
       {points.map((point, index) => (
         <span key={index} className="min-w-0 flex-1 truncate text-center">
-          {point.label}
+          <EmojiText text={point.label} />
         </span>
       ))}
     </div>
   ) : (
     <div className="flex justify-between gap-3 text-[10px] leading-4 text-muted-foreground">
-      <span className="truncate">{first.label}</span>
-      <span className="truncate">{last.label}</span>
+      <span className="truncate"><EmojiText text={first.label} /></span>
+      <span className="truncate"><EmojiText text={last.label} /></span>
     </div>
   );
 

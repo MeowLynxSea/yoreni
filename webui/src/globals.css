@@ -516,6 +516,17 @@
     @apply mb-0;
   }
 
+  /* Bundled emoji artwork sits on the text baseline at roughly one em. */
+  .emoji-image {
+    display: inline-block;
+    width: 1.15em;
+    height: 1.15em;
+    margin: 0 0.04em;
+    vertical-align: -0.2em;
+    border-radius: 0;
+    object-fit: contain;
+  }
+
   /* Override Tailwind Typography's built-in colors with our design tokens
      so assistant messages use the same --foreground as user messages. */
   .markdown-content {

@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./globals.css";
 import { initializeI18n } from "./i18n";
+import { loadEmojiArtwork } from "./lib/emoji-art";
 
 // `crypto.randomUUID` is only defined in secure contexts (HTTPS or localhost).
 // LAN access over plain HTTP leaves it undefined, which crashes components that
@@ -34,7 +35,7 @@ async function renderWebui(container: HTMLElement) {
       link.rel = "stylesheet";
       if (link.sheet) ready();
     }));
-  await Promise.all([initializeI18n(), ...styles]);
+  await Promise.all([initializeI18n(), loadEmojiArtwork(), ...styles]);
   /* StrictMode disabled: dev double-invokes state updaters; delta accumulation must stay pure — see useYoreniStream. */
   ReactDOM.createRoot(container).render(<App />);
 }

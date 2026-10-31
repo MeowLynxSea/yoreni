@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type Ref } from "react";
 import { ArrowUp, ChevronDown, Mic, Paperclip, Quote, Square, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { EmojiText } from "@/components/EmojiText";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAttachedImages, ACCEPT_ATTR } from "@/hooks/useAttachedImages";
@@ -111,7 +112,7 @@ export function ThreadComposer({ onSend, onStop, disabled = false, isStreaming =
       <div className="min-h-0 overflow-hidden">
         <div className="mx-1 mb-1 flex items-start gap-2 rounded-control border border-border/60 bg-muted/35 px-2.5 py-1.5 text-muted-foreground">
           <Quote className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
-          <p className="line-clamp-2 min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]">{quotePreview}</p>
+          <p className="line-clamp-2 min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]"><EmojiText text={quotePreview} /></p>
           <button type="button" tabIndex={quoteExpanded ? undefined : -1}
             onClick={() => { inputRef.current?.focus({ preventScroll: true }); onClearQuote?.(); }}
             aria-label={t("thread.composer.removeQuotedContext")}

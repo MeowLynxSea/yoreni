@@ -83,6 +83,13 @@ class GoalStateSyncEvent(AgentEvent):
 
 
 @dataclass(frozen=True)
+class MemoryBackfillEvent(AgentEvent):
+    """Progress of the memory update task, or an inactive snapshot."""
+
+    state: dict[str, Any]
+
+
+@dataclass(frozen=True)
 class WidgetChangedEvent(AgentEvent):
     """A Home widget definition, its data, or its deletion changed."""
 

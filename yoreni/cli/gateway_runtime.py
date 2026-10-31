@@ -524,6 +524,13 @@ def _run_claimed_gateway(
     if agent.memory.config.enabled:
         _recover_memory_state()
 
+    async def _publish_memory_backfill(state: dict[str, Any]) -> None:
+        from yoreni.webui.run_events import publish_memory_backfill
+
+        await publish_memory_backfill(bus, state)
+
+    agent.memory.backfill.on_change = _publish_memory_backfill
+
     async def agent_action(action: str, payload: dict[str, Any]) -> dict[str, Any]:
         run_id = payload["run_id"]
         record = await asyncio.to_thread(agent.agent.store.read_run, run_id)
@@ -557,6 +564,16 @@ def _run_claimed_gateway(
         )
         return {"ids": ids}
 
+    async def memory_backfill_action(action: str, payload: dict[str, Any]) -> dict[str, Any]:
+        backfill = agent.memory.backfill
+        if action == "snapshot":
+            return await asyncio.to_thread(backfill.snapshot)
+        if action == "pause":
+            return await backfill.pause()
+        if action == "resume":
+            return await backfill.resume()
+        raise ValueError(f"unknown memory update action: {action}")
+
     # Every tool that speaks into a chat needs the channel delivery path, and
     # the heartbeat suppresses all of them so its output goes through the gate.
     def _delivery_tools() -> list[OutboundChatTool]:
@@ -587,7 +604,7 @@ def _run_claimed_gateway(
                 extracted = await memory.extract_pending(
                     runtime, limit=config.memory.extraction_batch,
                 )
-                embedded = await memory.embed_missing()
+                embedded = await memory.backfill.step()
                 from yoreni.memory.dream import DreamConsolidator
 
                 outcome = await DreamConsolidator(
@@ -825,6 +842,7 @@ def _run_claimed_gateway(
         webui_skill_state_action=_webui_skill_state_action,
         webui_agent_action=agent_action,
         webui_chat_search_action=chat_search_action,
+        webui_memory_backfill_action=memory_backfill_action,
         webui_accept_input=_webui_accept_input,
         config_path=Path(config_path),
     )
@@ -976,6 +994,8 @@ def _run_claimed_gateway(
             # supersede an old recoverable turn instead of racing its queue.
             await cron.start()
             await widget_service.start()
+            if agent.memory.config.enabled:
+                await agent.memory.backfill.start()
             async def _run_agent() -> None:
                 try:
                     await bus.admission.wait_until_open()
@@ -1069,6 +1089,7 @@ def _run_claimed_gateway(
                     with suppress(asyncio.CancelledError):
                         await shutdown_task
                 cron.stop()
+                await agent.memory.backfill.stop()
                 await widget_service.aclose()
                 # A gateway exit interrupts ownership of active turns; it is
                 # not the same as the user stopping a turn.  Keep checkpoints

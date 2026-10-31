@@ -2,6 +2,7 @@
 
 import time
 from contextlib import contextmanager
+from typing import Any
 
 from yoreni.agent.goal_state import goal_state_ws_blob
 from yoreni.agent.state import PERSONAL_CHAT_ID
@@ -9,6 +10,7 @@ from yoreni.agent.tools.context import current_request_context
 from yoreni.bus.outbound_events import (
     GoalStateSyncEvent,
     GoalStatusEvent,
+    MemoryBackfillEvent,
     RuntimeModelUpdatedEvent,
     TurnEndEvent,
     TurnModelUpdatedEvent,
@@ -37,6 +39,14 @@ async def publish_widget_change(bus: MessageBus, change: WidgetChange) -> None:
     await bus.publish_outbound(outbound_message_for_event(
         channel="websocket", chat_id=PERSONAL_CHAT_ID,
         event=WidgetChangedEvent(change.widget_id, change.kind),
+    ))
+
+
+async def publish_memory_backfill(bus: MessageBus, state: dict[str, Any]) -> None:
+    """Push the memory update progress a Home widget renders."""
+    await bus.publish_outbound(outbound_message_for_event(
+        channel="websocket", chat_id=PERSONAL_CHAT_ID,
+        event=MemoryBackfillEvent(state),
     ))
 
 

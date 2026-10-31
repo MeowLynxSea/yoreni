@@ -151,6 +151,7 @@ _WEBUI_MUTATION_PATHS = {
     "webui.home_widgets.update": "/api/webui/home-widgets",
     "webui.widgets.delete": "/api/webui/widgets/delete",
     "webui.widgets.refresh": "/api/webui/widgets/refresh",
+    "memory.backfill.state": "/api/webui/memory-backfill/state",
     "settings.agent.update": "/api/settings/update",
     "settings.model_configuration.create": "/api/settings/model-configurations/create",
     "settings.model_configuration.update": "/api/settings/model-configurations/update",
@@ -345,6 +346,7 @@ class GatewayHTTPHandler:
         skill_state_action: Callable[[set[str]], None] | None = None,
         agent_action: Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
         chat_search_action: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
+        memory_backfill_action: Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
         log: Any = logger,
     ) -> None:
         self.config = config
@@ -363,6 +365,7 @@ class GatewayHTTPHandler:
         self.skill_state_action = skill_state_action
         self.agent_action = agent_action
         self.chat_search_action = chat_search_action
+        self.memory_backfill_action = memory_backfill_action
         self._skill_install_lock = asyncio.Lock()
         self.cron_service = cron_service
         self.local_trigger_store = local_trigger_store
@@ -487,6 +490,7 @@ class GatewayHTTPHandler:
         if path in {
             "/api/webui/widgets/delete",
             "/api/webui/widgets/refresh",
+            "/api/webui/memory-backfill/state",
         }:
             return True
         return path in {
@@ -876,6 +880,25 @@ class GatewayHTTPHandler:
         )
 
 
+    async def _handle_memory_backfill(self, request: WsRequest, mutation: bool) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        handler = self.memory_backfill_action
+        if handler is None:
+            return _http_error(503, "memory updates are unavailable")
+        if not mutation:
+            return _http_json_response(
+                {"memory_backfill": await handler("snapshot", {})},
+                extra_headers=_NO_STORE_HEADERS,
+            )
+        paused = (_query_first(_request_query(request), "paused") or "").strip().lower()
+        if paused not in {"true", "false"}:
+            return _http_error(400, "paused must be true or false")
+        return _http_json_response(
+            {"memory_backfill": await handler("pause" if paused == "true" else "resume", {})},
+            extra_headers=_NO_STORE_HEADERS,
+        )
+
     def _handle_webui_automations(self, request: WsRequest) -> Response:
         if not self.check_api_token(request):
             return _http_error(401, "Unauthorized")
@@ -1065,6 +1088,8 @@ class GatewayHTTPHandler:
             return self._handle_file_preview(request)
         if got == "/api/webui/goal":
             return await self._handle_webui_goal(request)
+        if got in {"/api/webui/memory-backfill", "/api/webui/memory-backfill/state"}:
+            return await self._handle_memory_backfill(request, got.endswith("/state"))
         if got == "/api/webui/home-widgets":
             return self._handle_home_widgets(request)
         if got == "/api/webui/chat-search":

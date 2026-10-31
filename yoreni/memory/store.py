@@ -260,6 +260,10 @@ class FactStore:
                 (key, value),
             )
 
+    def meta_delete(self, key: str) -> None:
+        with self.connection() as db:
+            db.execute("DELETE FROM memory_meta WHERE key=?", (key,))
+
     # -- evidence -----------------------------------------------------------
 
     def insert_evidence(self, items: Iterable[Evidence]) -> int:
@@ -778,6 +782,19 @@ class FactStore:
                 (model, limit),
             ).fetchall()
         return [self._fact_from_row(row) for row in rows]
+
+    def count_missing_vectors(self, model: str) -> int:
+        """How many active facts still lack a vector for this index."""
+        with self.connection() as db:
+            row = db.execute(
+                """SELECT COUNT(*) FROM facts
+                   LEFT JOIN fact_vectors ON fact_vectors.fact_id=facts.id
+                        AND fact_vectors.model=?
+                   WHERE facts.status IN ('active','dormant')
+                     AND fact_vectors.fact_id IS NULL""",
+                (model,),
+            ).fetchone()
+        return 0 if row is None else int(row[0])
 
     # -- retrieval helpers ---------------------------------------------------
 

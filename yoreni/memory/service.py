@@ -17,6 +17,7 @@ from uuid import uuid4
 
 from loguru import logger
 
+from yoreni.memory.backfill import EmbeddingBackfill
 from yoreni.memory.core import MEMORY_PATH, SOUL_PATH, USER_PATH, CoreMemory, CoreSnapshot
 from yoreni.memory.embeddings import (
     EmbeddingClient,
@@ -92,6 +93,7 @@ class MemoryService:
             embedder = EmbeddingClient(settings) if settings is not None else None
         self.embedder = embedder
         self.retriever = Retriever(self.store, embedder)
+        self.backfill = EmbeddingBackfill(self)
         self.extractor = FactExtractor(self.store, max_candidates=config.max_candidates)
         self.git = GitStore(workspace, tracked_files=list(TRACKED_CORE_FILES))
         # Serialises consolidation inside this process; the durable Dream claim
@@ -131,6 +133,7 @@ class MemoryService:
         self.extractor.max_candidates = max(1, config.max_candidates)
         self.embedder = embedder
         self.retriever.embedder = embedder
+        self.backfill.reconcile()
 
     # -- evidence ------------------------------------------------------------
 
@@ -310,6 +313,11 @@ class MemoryService:
         vectors = await self._embed_vectors(facts, texts, embedder=embedder)
         if len(vectors) != len(facts):
             raise EmbeddingError("embedding count does not match fact count")
+        current = self.embedder
+        if current is None or embedding_index_key(current.settings) != index_key:
+            # The endpoint changed while this batch was in flight; filing these
+            # vectors now would attach them to an index nothing queries.
+            return 0
         for fact, vector in zip(facts, vectors):
             self.store.upsert_vector(fact.id, index_key, vector)
         return len(facts)

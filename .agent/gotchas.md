@@ -62,6 +62,6 @@ memory:
   dream_backlog_threshold: 20
 ```
 
-`core_token_budget` and `retrieval_token_budget` bound the always-visible profile and the per-turn memory block. Changing the embedding `model` creates a separate vector set; run `MemoryService.embed_missing()` to backfill before relying on semantic results.
+`core_token_budget` and `retrieval_token_budget` bound the always-visible profile and the per-turn memory block. Changing the embedding `model` creates a separate vector set: `MemoryService.backfill` notices the new index, counts what is missing, and re-embeds it in the background while the Home "Memory update" widget shows progress. The task state lives in `memory_meta`, so a gateway restart resumes from the same place, and a second model change drops the old task instead of carrying its progress over.
 
-The same fields are editable in the WebUI under Settings → Capabilities → Long-term memory. The dialog reuses configured provider credentials by default; an API key entered there is stored in the local config, returned only as a masked hint, and requires a gateway restart like other memory changes.
+The same fields are editable in the WebUI under Settings → Capabilities → Long-term memory. The dialog reuses configured provider credentials by default; an API key entered there is stored in the local config and returned only as a masked hint. Saving applies immediately: the gateway reloads the agent, swaps the embedder, and starts the memory update task when the index changed.

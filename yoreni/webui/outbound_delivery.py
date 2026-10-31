@@ -14,6 +14,7 @@ from yoreni.bus.outbound_events import (
     AgentMessageEvent,
     GoalStateSyncEvent,
     GoalStatusEvent,
+    MemoryBackfillEvent,
     ProgressEvent,
     ReactionEvent,
     RetryWaitEvent,
@@ -100,6 +101,12 @@ class WebUIOutboundDelivery:
             return
         if isinstance(event, GoalStateSyncEvent):
             await self._send({"event": "goal_state", "goal_state": event.goal_state}, msg.metadata)
+            return
+        if isinstance(event, MemoryBackfillEvent):
+            await self._send(
+                {"event": "memory_backfill", "memory_backfill": event.state},
+                msg.metadata,
+            )
             return
         if isinstance(event, GoalStatusEvent):
             await self._send({"event": "goal_status", "status": event.status, "started_at": event.started_at}, msg.metadata)

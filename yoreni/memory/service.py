@@ -25,6 +25,12 @@ from yoreni.memory.embeddings import (
     resolve_embedding_settings,
 )
 from yoreni.memory.extraction import FactExtractor, derive_source_type
+from yoreni.memory.media import (
+    evidence_text_with_images,
+    image_data_url,
+    image_markers,
+    split_tool_content,
+)
 from yoreni.memory.models import (
     DreamError,
     Evidence,
@@ -95,6 +101,18 @@ class MemoryService:
 
         migrate_legacy_memory(self)
 
+    @property
+    def multimodal_embeddings(self) -> bool:
+        """Whether the configured embedder accepts image content."""
+        if self.embedder is None:
+            return False
+        return bool(getattr(self.embedder.settings, "multimodal", False))
+
+    @property
+    def evidence_media_dir(self) -> Path:
+        """Directory that stores images referenced by memory evidence."""
+        return self.store.path.parent / "media"
+
     # -- evidence ------------------------------------------------------------
 
     def record_run(
@@ -109,7 +127,11 @@ class MemoryService:
         Nothing is interpreted here: the raw observations become durable first,
         so a later extraction failure can never lose the conversation.
         """
-        evidence = build_run_evidence(run_id, messages, observed_at=observed_at)
+        evidence = build_run_evidence(
+            run_id, messages, observed_at=observed_at,
+            multimodal=self.multimodal_embeddings,
+            media_dir=self.evidence_media_dir,
+        )
         self._reuse_tool_evidence(run_id, evidence)
         self.store.insert_evidence(evidence)
         if not any(item.kind in {EvidenceKind.USER_MESSAGE, EvidenceKind.TOOL_RESULT}
@@ -125,7 +147,7 @@ class MemoryService:
         self,
         run_id: str,
         tool_name: str,
-        content: str,
+        content: str | Sequence[Any],
         *,
         observed_at: str | None = None,
     ) -> str | None:
@@ -133,9 +155,17 @@ class MemoryService:
 
         The model can cite this evidence id from ``memory_remember`` before the
         Run completes; ``record_run`` later reuses the same rows instead of
-        duplicating them.
+        duplicating them. Multimodal results keep their text and record image
+        references instead of failing the Run.
         """
-        text = content.strip()
+        text, images = split_tool_content(content)
+        if images:
+            text = evidence_text_with_images(
+                text, images,
+                multimodal=self.multimodal_embeddings,
+                directory=self.evidence_media_dir,
+            )
+        text = text.strip()
         if not text:
             return None
         digest = content_hash(text)
@@ -246,13 +276,62 @@ class MemoryService:
         if not facts:
             return 0
         texts = [fts_index_text(fact.subject, fact.predicate, fact.text) for fact in facts]
-        vectors = await self.embedder.embed(texts)
+        vectors = await self._embed_vectors(facts, texts)
         if len(vectors) != len(facts):
             raise EmbeddingError("embedding count does not match fact count")
         index_key = embedding_index_key(self.embedder.settings)
         for fact, vector in zip(facts, vectors):
             self.store.upsert_vector(fact.id, index_key, vector)
         return len(facts)
+
+    async def _embed_vectors(
+        self,
+        facts: list[Fact],
+        texts: list[str],
+    ) -> list[list[float]]:
+        """Embed facts, adding source images when the index is multimodal."""
+        assert self.embedder is not None
+        if not self.multimodal_embeddings:
+            return await self.embedder.embed(texts)
+        images = self._fact_images([fact.id for fact in facts])
+        documents: list[dict[str, Any]] = []
+        for index, fact in enumerate(facts):
+            references = images.get(fact.id) or []
+            document: dict[str, Any] = {"text": texts[index]}
+            if references:
+                document["image"] = references[0] if len(references) == 1 else references
+            documents.append(document)
+        vectors = await self.embedder.embed_documents(documents)
+        missing = [index for index, vector in enumerate(vectors) if not vector]
+        if len(vectors) != len(facts) or missing:
+            raise EmbeddingError("embedding endpoint returned a partial vector set")
+        return vectors
+
+    def _fact_images(self, fact_ids: list[str]) -> dict[str, list[str]]:
+        """Return the image payloads cited by each fact's tool evidence."""
+        sources = self.store.sources_for(fact_ids)
+        evidence_ids = {
+            reference.evidence_id
+            for references in sources.values()
+            for reference in references
+        }
+        if not evidence_ids:
+            return {}
+        evidence = self.store.evidence(evidence_ids)
+        images: dict[str, list[str]] = {}
+        for fact_id, references in sources.items():
+            payloads: list[str] = []
+            for reference in references:
+                item = evidence.get(reference.evidence_id)
+                if item is None or item.kind is not EvidenceKind.TOOL_RESULT:
+                    continue
+                for marker in image_markers(item.content):
+                    payload = image_data_url(marker)
+                    if payload and payload not in payloads:
+                        payloads.append(payload)
+            if payloads:
+                images[fact_id] = payloads
+        return images
 
     # -- retrieval -----------------------------------------------------------
 
@@ -557,6 +636,8 @@ def build_run_evidence(
     messages: Sequence[dict[str, Any]],
     *,
     observed_at: str | None = None,
+    multimodal: bool = False,
+    media_dir: Path | None = None,
 ) -> list[Evidence]:
     """Convert a Run transcript into durable, deterministically identified evidence."""
     timestamp = observed_at or utc_now()
@@ -571,14 +652,13 @@ def build_run_evidence(
             text = content
         elif isinstance(content, list):
             # Multimodal blocks carry base64 payloads that must never enter the
-            # evidence table; the textual path markers are enough.
-            text = "\n".join(
-                str(block["text"])
-                for block in content
-                if isinstance(block, dict)
-                and block.get("type") == "text"
-                and isinstance(block.get("text"), str)
-            )
+            # evidence table; image markers point at the stored copy or record
+            # that the image was dropped.
+            text, images = split_tool_content(content)
+            if images:
+                text = evidence_text_with_images(
+                    text, images, multimodal=multimodal, directory=media_dir,
+                )
         else:
             continue
         text = text.strip()

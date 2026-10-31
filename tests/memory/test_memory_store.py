@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import threading
+from pathlib import Path
 
 import pytest
 
+from yoreni.config.schema import MemoryConfig
+from yoreni.memory.embeddings import EmbeddingClient, EmbeddingSettings
 from yoreni.memory.models import (
     FactKind,
     FactStatus,
@@ -15,7 +18,7 @@ from yoreni.memory.models import (
     dedupe_key,
     utc_now,
 )
-from yoreni.memory.service import build_run_evidence
+from yoreni.memory.service import MemoryService, build_run_evidence
 from yoreni.memory.store import SCHEMA_VERSION, FactStore
 
 
@@ -56,6 +59,47 @@ def test_multimodal_messages_store_text_markers_not_binary_payloads(harness):
     [item] = harness.service.store.evidence_for_run("run-1")
     assert item.content == "[image: /tmp/a.png]\nwhat is this?"
     assert "base64" not in item.content
+
+
+def test_a_tool_result_with_images_keeps_its_text(harness):
+    evidence_id = harness.service.record_tool_result("run-1", "screenshot", [
+        {"type": "text", "text": "panel rendered"},
+        {"type": "image_url", "image_url": {"url": "data:image/png;base64,AAAA"}},
+    ])
+
+    assert evidence_id is not None
+    [item] = harness.service.store.evidence_for_run("run-1")
+    assert item.content == "panel rendered"
+
+
+def test_an_image_only_tool_result_keeps_an_explicit_placeholder(harness):
+    harness.service.record_tool_result("run-1", "screenshot", [
+        {"type": "image_url", "image_url": {"url": "https://example.com/a.png"}},
+    ])
+
+    [item] = harness.service.store.evidence_for_run("run-1")
+    assert item.content == "[image omitted]"
+
+
+def test_multimodal_evidence_stores_the_image_and_references_it(tmp_path):
+    service = MemoryService(
+        tmp_path,
+        MemoryConfig(),
+        embedder=EmbeddingClient(EmbeddingSettings(
+            model="m", api_base="https://embed.example/v1", multimodal=True,
+        )),
+    )
+
+    service.record_tool_result("run-1", "screenshot", [
+        {"type": "text", "text": "panel rendered"},
+        {"type": "image_url", "image_url": {"url": "data:image/png;base64,AAAA"}},
+    ])
+
+    [item] = service.store.evidence_for_run("run-1")
+    marker = item.content.splitlines()[1]
+    path = Path(marker.removeprefix("[image: ").removesuffix("]"))
+    assert path.is_file()
+    assert path.parent == tmp_path / "memory" / "media"
 
 
 def test_evidence_provenance_never_treats_assistant_prose_as_a_tool_result(harness):

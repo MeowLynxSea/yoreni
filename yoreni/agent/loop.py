@@ -515,7 +515,9 @@ class AgentLoop:
         if request.turn_id and self.memory.config.enabled:
             active_run = request.turn_id
 
-            async def record_tool_evidence(tool_name: str, content: str) -> None:
+            async def record_tool_evidence(
+                tool_name: str, content: str | list[dict[str, Any]],
+            ) -> None:
                 await asyncio.to_thread(
                     self.memory.record_tool_result, active_run, tool_name, content,
                 )

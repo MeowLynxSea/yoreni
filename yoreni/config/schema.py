@@ -100,6 +100,7 @@ class EmbeddingConfig(Base):
     api_key: str | None = Field(default=None, repr=False)
     dimensions: int | None = Field(default=None, ge=1, le=8192)
     batch_size: int = Field(default=32, ge=1, le=64)
+    multimodal: bool = False
 
     @model_validator(mode="after")
     def _require_endpoint(self) -> "EmbeddingConfig":

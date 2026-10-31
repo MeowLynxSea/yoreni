@@ -35,22 +35,42 @@ class EmbeddingSettings:
     dimensions: int | None = None
     batch_size: int = 32
     timeout_s: float = REQUEST_TIMEOUT_S
+    multimodal: bool = False
 
     @property
     def signature(self) -> str:
-        dims = "auto" if self.dimensions is None else str(self.dimensions)
-        return f"{self.model}:{dims}"
+        return embedding_signature(self.model, self.dimensions, self.multimodal)
+
+
+def embedding_signature(
+    model: str,
+    dimensions: int | None,
+    multimodal: bool,
+) -> str:
+    """Identify one vector space by model, dimension and accepted modality.
+
+    Text-only indexes keep their historical key so enabling this feature never
+    forces a re-embed of existing facts.
+    """
+    dims = "auto" if dimensions is None else str(dimensions)
+    base = f"{model}:{dims}"
+    return f"{base}:multimodal" if multimodal else base
 
 
 def embedding_index_key(settings: object) -> str:
-    """Identify one embedding index by model and configured dimension.
+    """Identify one embedding index by model, dimension and modality.
 
-    Vectors from a different model or dimension are a different index; mixing
-    them would silently score zero and look like "no match".
+    Vectors from a different model, dimension or modality are a different
+    index; mixing them would silently score zero and look like "no match".
     """
     model = str(getattr(settings, "model", "") or "")
     dimensions = getattr(settings, "dimensions", None)
-    return f"{model}:{int(dimensions) if dimensions is not None else 'auto'}"
+    multimodal = bool(getattr(settings, "multimodal", False))
+    return embedding_signature(
+        model,
+        int(dimensions) if dimensions is not None else None,
+        multimodal,
+    )
 
 
 def resolve_embedding_settings(
@@ -97,6 +117,7 @@ def resolve_embedding_settings(
         api_key=str(api_key) if api_key else None,
         dimensions=int(dimensions) if dimensions is not None else None,
         batch_size=max(1, min(int(getattr(embedding_config, "batch_size", 32) or 32), _MAX_BATCH)),
+        multimodal=bool(getattr(embedding_config, "multimodal", False)),
     )
 
 
@@ -118,7 +139,20 @@ class EmbeddingClient:
         vectors: list[list[float]] = []
         for start in range(0, len(texts), self.settings.batch_size):
             batch = texts[start:start + self.settings.batch_size]
-            vectors.extend(await self._request(batch))
+            vectors.extend(await self._request(batch, expected=len(batch)))
+        return vectors
+
+    async def embed_documents(self, documents: list[dict[str, Any]]) -> list[list[float]]:
+        """Embed content objects such as ``{"text": ..., "image": [...]}``.
+
+        One document yields one vector; the endpoint accepts a list of them.
+        """
+        if not documents:
+            return []
+        vectors: list[list[float]] = []
+        for start in range(0, len(documents), self.settings.batch_size):
+            batch = documents[start:start + self.settings.batch_size]
+            vectors.extend(await self._request(batch, expected=len(batch)))
         return vectors
 
     async def embed_query(self, text: str) -> list[float]:
@@ -127,8 +161,8 @@ class EmbeddingClient:
             raise EmbeddingError("embedding endpoint returned no vector for the query")
         return vectors[0]
 
-    async def _request(self, batch: list[str]) -> list[list[float]]:
-        payload: dict[str, Any] = {"model": self.settings.model, "input": batch}
+    async def _request(self, payload_input: object, *, expected: int) -> list[list[float]]:
+        payload: dict[str, Any] = {"model": self.settings.model, "input": payload_input}
         if self.settings.dimensions is not None:
             payload["dimensions"] = self.settings.dimensions
         headers = {"Content-Type": "application/json"}
@@ -151,7 +185,7 @@ class EmbeddingClient:
         except ValueError as exc:
             raise EmbeddingError("embedding endpoint returned non-JSON output") from exc
         data = body.get("data") if isinstance(body, dict) else None
-        if not isinstance(data, list) or len(data) != len(batch):
+        if not isinstance(data, list) or len(data) != expected:
             raise EmbeddingError("embedding endpoint returned the wrong number of vectors")
         ordered = sorted(
             (cast(dict[str, Any], item) for item in cast(list[Any], data)),
@@ -172,7 +206,7 @@ class EmbeddingClient:
         dims = {len(vector) for vector in vectors}
         if len(dims) != 1:
             raise EmbeddingError("embedding endpoint returned inconsistent dimensions")
-        logger.debug("embedded {} texts with {} (dim {})", len(batch), self.settings.model, dims.pop())
+        logger.debug("embedded {} input(s) with {} (dim {})", expected, self.settings.model, dims.pop())
         return vectors
 
 

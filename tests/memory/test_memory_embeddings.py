@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 
 import httpx
@@ -118,4 +119,33 @@ def test_cosine_similarity_handles_missing_dimensions():
     assert cosine_similarity([1.0, 0.0], [1.0, 0.0]) == pytest.approx(1.0)
     assert cosine_similarity([1.0, 0.0], [0.0, 1.0]) == pytest.approx(0.0)
     assert cosine_similarity([1.0], [1.0, 0.0]) == 0.0
+
+
+def test_multimodal_index_is_separate_from_the_text_index():
+    assert embedding_index_key(SimpleNamespace(model="m", dimensions=8)) == "m:8"
+    assert embedding_index_key(
+        SimpleNamespace(model="m", dimensions=8, multimodal=True)
+    ) == "m:8:multimodal"
+
+
+async def test_documents_are_sent_as_content_objects():
+    seen: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.update(json.loads(request.content))
+        return httpx.Response(200, json={"data": [
+            {"index": 0, "embedding": [1.0, 0.0, 0.0]},
+            {"index": 1, "embedding": [0.0, 1.0, 0.0]},
+        ]})
+
+    vectors = await _client(handler).embed_documents([
+        {"text": "a", "image": "data:image/png;base64,AAAA"},
+        {"text": "b"},
+    ])
+
+    assert seen["input"] == [
+        {"text": "a", "image": "data:image/png;base64,AAAA"},
+        {"text": "b"},
+    ]
+    assert vectors == [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
     assert cosine_similarity([], []) == 0.0

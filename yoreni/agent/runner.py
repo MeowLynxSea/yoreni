@@ -70,7 +70,7 @@ def _raise_if_cancelling() -> None:
 ContinuationCallback = Callable[[], Awaitable[str | None]]
 CheckpointCallback = Callable[[dict[str, Any]], Awaitable[None]]
 InjectionCallback = Callable[[], Awaitable[Iterable[Any] | None]]
-ToolEvidenceCallback = Callable[[str, str], Awaitable[None]]
+ToolEvidenceCallback = Callable[[str, str | list[dict[str, Any]]], Awaitable[None]]
 
 _DEFAULT_ERROR_MESSAGE = "Sorry, I encountered an error calling the AI model."
 _ARREARAGE_ERROR_MESSAGE = (

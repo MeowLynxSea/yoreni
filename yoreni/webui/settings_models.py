@@ -1988,11 +1988,8 @@ class ModelSettingsHandler:
                     request.query,
                 )
                 self._refresh_runtime_config()
-                return SettingsRouteResult.success(
-                    payload,
-                    decorate_restart=True,
-                    restart_section="runtime",
-                )
+                await self.settings.reload_agent()
+                return SettingsRouteResult.success(payload, decorate_restart=True)
 
             if action == "model-update":
                 payload = await asyncio.to_thread(
@@ -2030,6 +2027,7 @@ class ModelSettingsHandler:
                     payload
                 )
                 self._refresh_runtime_config()
+                await self.settings.reload_agent()
                 return SettingsRouteResult.success(
                     payload,
                     decorate_restart=True,

@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from typing import Any, cast, overload
 
+from loguru import logger
 from pydantic import BaseModel, ValidationError
 from pydantic_settings import SettingsError
 
@@ -343,6 +344,10 @@ def _env_replace(match: re.Match[str]) -> str:
 
 def _migrate_config(data: dict[str, Any]) -> dict[str, Any]:
     """Migrate old config formats to current."""
+    # The OpenAI-compatible API server was removed; drop its config block so
+    # existing files keep loading under the strict root schema.
+    if data.pop("api", None) is not None:
+        logger.warning("Dropped the retired api config block")
     # Move tools.exec.restrictToWorkspace → tools.restrictToWorkspace
     tools_value = data.get("tools", {})
     if not isinstance(tools_value, dict):

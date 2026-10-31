@@ -449,3 +449,24 @@ def test_loader_registers_builtin_tools():
     actual = set(registered)
     expected.update({"rg"} if shutil.which("rg") else {"find_files", "grep"})
     assert expected <= actual, f"Missing tools: {expected - actual}"
+
+
+def test_replace_owned_rebuilds_builtin_tools_and_keeps_caller_tools(tmp_path):
+    from yoreni.agent.tools.filesystem import ReadFileTool
+    from yoreni.agent.tools.registry import ToolRegistry
+    from yoreni.config.schema import ToolsConfig
+
+    loader = ToolLoader(test_classes=[ReadFileTool])
+    ctx = ToolContext(config=ToolsConfig(), workspace=str(tmp_path))
+    registry = ToolRegistry()
+    supplied = _MinimalTool()
+    registry.register(supplied)
+
+    loader.load(ctx, registry)
+    first = registry.get("read_file")
+
+    loader.load(ctx, registry, replace_owned=True)
+
+    assert first is not None
+    assert registry.get("read_file") is not first
+    assert registry.get("test_minimal") is supplied

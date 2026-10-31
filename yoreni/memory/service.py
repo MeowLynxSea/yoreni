@@ -113,6 +113,25 @@ class MemoryService:
         """Directory that stores images referenced by memory evidence."""
         return self.store.path.parent / "media"
 
+    def reload_config(
+        self,
+        config: "MemoryConfig",
+        *,
+        providers: "ProvidersConfig | None" = None,
+    ) -> None:
+        """Swap budgets and the embedding endpoint without restarting."""
+        embedder = self.embedder
+        if config.embedding is not None and providers is not None:
+            settings = resolve_embedding_settings(config.embedding, providers)
+            embedder = EmbeddingClient(settings) if settings is not None else None
+        elif config.embedding is None:
+            embedder = None
+        self.config = config
+        self.core.token_budget = max(400, int(config.core_token_budget))
+        self.extractor.max_candidates = max(1, config.max_candidates)
+        self.embedder = embedder
+        self.retriever.embedder = embedder
+
     # -- evidence ------------------------------------------------------------
 
     def record_run(
@@ -259,27 +278,38 @@ class MemoryService:
 
     async def embed_facts(self, fact_ids: Iterable[str]) -> int:
         """Backfill missing vectors for the configured embedding model."""
-        if self.embedder is None:
+        embedder = self.embedder
+        if embedder is None:
             return 0
         ids = list(dict.fromkeys(fact_ids))
         facts = [fact for fact in self.store.facts_by_ids(ids).values()]
-        return await self._embed(facts)
+        return await self._embed(
+            facts,
+            embedder=embedder,
+            index_key=embedding_index_key(embedder.settings),
+        )
 
     async def embed_missing(self, *, limit: int = 64) -> int:
-        if self.embedder is None:
+        embedder = self.embedder
+        if embedder is None:
             return 0
-        facts = self.store.missing_vectors(embedding_index_key(self.embedder.settings), limit)
-        return await self._embed(facts)
+        index_key = embedding_index_key(embedder.settings)
+        facts = self.store.missing_vectors(index_key, limit)
+        return await self._embed(facts, embedder=embedder, index_key=index_key)
 
-    async def _embed(self, facts: list[Fact]) -> int:
-        assert self.embedder is not None
+    async def _embed(
+        self,
+        facts: list[Fact],
+        *,
+        embedder: EmbeddingClient,
+        index_key: str,
+    ) -> int:
         if not facts:
             return 0
         texts = [fts_index_text(fact.subject, fact.predicate, fact.text) for fact in facts]
-        vectors = await self._embed_vectors(facts, texts)
+        vectors = await self._embed_vectors(facts, texts, embedder=embedder)
         if len(vectors) != len(facts):
             raise EmbeddingError("embedding count does not match fact count")
-        index_key = embedding_index_key(self.embedder.settings)
         for fact, vector in zip(facts, vectors):
             self.store.upsert_vector(fact.id, index_key, vector)
         return len(facts)
@@ -288,11 +318,13 @@ class MemoryService:
         self,
         facts: list[Fact],
         texts: list[str],
+        *,
+        embedder: EmbeddingClient,
     ) -> list[list[float]]:
         """Embed facts, adding source images when the index is multimodal."""
-        assert self.embedder is not None
-        if not self.multimodal_embeddings:
-            return await self.embedder.embed(texts)
+        multimodal = bool(getattr(embedder.settings, "multimodal", False))
+        if not multimodal:
+            return await embedder.embed(texts)
         images = self._fact_images([fact.id for fact in facts])
         documents: list[dict[str, Any]] = []
         for index, fact in enumerate(facts):
@@ -301,7 +333,7 @@ class MemoryService:
             if references:
                 document["image"] = references[0] if len(references) == 1 else references
             documents.append(document)
-        vectors = await self.embedder.embed_documents(documents)
+        vectors = await embedder.embed_documents(documents)
         missing = [index for index, vector in enumerate(vectors) if not vector]
         if len(vectors) != len(facts) or missing:
             raise EmbeddingError("embedding endpoint returned a partial vector set")

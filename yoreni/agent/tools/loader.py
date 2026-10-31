@@ -32,6 +32,7 @@ class ToolLoader:
         self._test_classes = test_classes
         self._discovered: list[type[Tool]] | None = None
         self._plugins: dict[str, type[Tool]] | None = None
+        self._owned_by_scope: dict[str, dict[str, Tool]] = {}
 
     def discover(self) -> list[type[Tool]]:
         if self._test_classes is not None:
@@ -89,8 +90,25 @@ class ToolLoader:
         self._plugins = plugins
         return plugins
 
-    def load(self, ctx: ToolContext, registry: ToolRegistry, *, scope: str = "core") -> list[str]:
-        """Load defaults while preserving tools already supplied by the caller."""
+    def load(
+        self,
+        ctx: ToolContext,
+        registry: ToolRegistry,
+        *,
+        scope: str = "core",
+        replace_owned: bool = False,
+    ) -> list[str]:
+        """Load defaults while preserving tools already supplied by the caller.
+
+        ``replace_owned`` rebuilds the built-in tools this loader registered for
+        the same scope, keeping caller-supplied and plugin tools untouched.
+        """
+        owned = self._owned_by_scope.setdefault(scope, {})
+        if replace_owned:
+            for name, tool in list(owned.items()):
+                if registry.get(name) is tool:
+                    registry.unregister(name)
+            owned.clear()
         registered: list[str] = []
         supplied_names = set(registry.tool_names)
         builtin_names: set[str] = set()
@@ -125,12 +143,14 @@ class ToolLoader:
                     registered.append(tool.name)
                     if not is_plugin_source:
                         builtin_names.add(tool.name)
+                        owned[tool.name] = tool
                 except Exception:
                     logger.exception("Failed to register tool: %s", cls_label)
             if not is_plugin_source and "rg" in builtin_names:
                 replaced = (builtin_names & {"grep", "find_files"}) - supplied_names
                 for name in replaced:
                     registry.unregister(name)
+                    owned.pop(name, None)
                 registered = [name for name in registered if name not in replaced]
                 builtin_names.difference_update(replaced)
         return registered

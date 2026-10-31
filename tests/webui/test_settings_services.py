@@ -11,7 +11,7 @@ from yoreni.channels.websocket.runtime import WebSocketConfig
 from yoreni.config.loader import load_config, save_config
 from yoreni.config.schema import Config
 from yoreni.webui.gateway_services import build_gateway_services
-from yoreni.webui.settings_api import settings_payload, update_agent_settings, update_api_settings
+from yoreni.webui.settings_api import settings_payload, update_agent_settings
 from yoreni.webui.settings_services import (
     WebUIOAuthFlowRegistry,
     WebUISettingsServices,
@@ -55,9 +55,9 @@ def test_gateway_settings_services_isolate_config_paths_and_oauth_flows(
     first_path = tmp_path / "first" / "config.json"
     second_path = tmp_path / "second" / "config.json"
     first_config = Config()
-    first_config.api.host = "127.0.0.2"
+    first_config.agents.defaults.tool_hint_max_length = 88
     second_config = Config()
-    second_config.api.host = "127.0.0.3"
+    second_config.agents.defaults.tool_hint_max_length = 99
     save_config(first_config, first_path)
     save_config(second_config, second_path)
 
@@ -68,14 +68,14 @@ def test_gateway_settings_services_isolate_config_paths_and_oauth_flows(
     assert second.settings.config.path == second_path.resolve()
     assert first.http.settings_routes.settings is first.settings
     assert second.http.settings_routes.settings is second.settings
-    assert first.settings.config.load().api.host == "127.0.0.2"
-    assert second.settings.config.load().api.host == "127.0.0.3"
-    assert first.settings.read(settings_payload)["api"]["host"] == "127.0.0.2"
-    assert second.settings.read(settings_payload)["api"]["host"] == "127.0.0.3"
+    assert first.settings.config.load().agents.defaults.tool_hint_max_length == 88
+    assert second.settings.config.load().agents.defaults.tool_hint_max_length == 99
+    assert first.settings.read(settings_payload)["agent"]["tool_hint_max_length"] == 88
+    assert second.settings.read(settings_payload)["agent"]["tool_hint_max_length"] == 99
 
-    first.settings.mutate(update_api_settings, {"port": ["19001"]})
-    assert load_config(first_path).api.port == 19001
-    assert load_config(second_path).api.port != 19001
+    first.settings.mutate(update_agent_settings, {"tool_hint_max_length": ["120"]})
+    assert load_config(first_path).agents.defaults.tool_hint_max_length == 120
+    assert load_config(second_path).agents.defaults.tool_hint_max_length == 99
 
     first_flow = _Flow()
     second_flow = _Flow()
@@ -93,9 +93,9 @@ def test_settings_service_supports_a_new_config_directory(tmp_path: Path) -> Non
     config_path = tmp_path / "new" / "nested" / "config.json"
 
     services = WebUISettingsServices.create(config_path)
-    services.mutate(update_api_settings, {"port": ["19001"]})
+    services.mutate(update_agent_settings, {"tool_hint_max_length": ["120"]})
 
-    assert load_config(config_path).api.port == 19001
+    assert load_config(config_path).agents.defaults.tool_hint_max_length == 120
 
 
 def test_settings_mutations_serialize_read_modify_write(
@@ -129,14 +129,14 @@ def test_settings_mutations_serialize_read_modify_write(
 
     def run_first() -> None:
         try:
-            services.mutate(update_agent_settings, {"timezone": ["Asia/Tokyo"]})
+            services.mutate(update_agent_settings, {"tool_hint_max_length": ["120"]})
         except BaseException as exc:  # noqa: BLE001 - re-raised in the test thread
             errors.append(exc)
 
     def run_second() -> None:
         try:
             second_started.set()
-            services.mutate(update_api_settings, {"host": ["127.0.0.9"]})
+            services.mutate(update_agent_settings, {"tool_hint_max_length": ["130"]})
         except BaseException as exc:  # noqa: BLE001 - re-raised in the test thread
             errors.append(exc)
 
@@ -155,8 +155,7 @@ def test_settings_mutations_serialize_read_modify_write(
     assert not second.is_alive()
     assert not errors
     saved = load_config(config_path)
-    assert saved.agents.defaults.timezone == "Asia/Tokyo"
-    assert saved.api.host == "127.0.0.9"
+    assert saved.agents.defaults.tool_hint_max_length == 130
 
 
 def test_distinct_gateways_serialize_mutations_for_the_same_config(
@@ -200,12 +199,12 @@ def test_distinct_gateways_serialize_mutations_for_the_same_config(
 
     first = threading.Thread(
         target=mutate,
-        args=(first_services, update_agent_settings, {"timezone": ["Asia/Tokyo"]}),
+        args=(first_services, update_agent_settings, {"tool_hint_max_length": ["120"]}),
         name="gateway-first",
     )
     second = threading.Thread(
         target=mutate,
-        args=(second_services, update_api_settings, {"host": ["127.0.0.9"]}),
+        args=(second_services, update_agent_settings, {"tool_hint_max_length": ["130"]}),
         name="gateway-second",
     )
     first.start()
@@ -220,8 +219,7 @@ def test_distinct_gateways_serialize_mutations_for_the_same_config(
     assert not second.is_alive()
     assert not errors
     saved = load_config(config_path)
-    assert saved.agents.defaults.timezone == "Asia/Tokyo"
-    assert saved.api.host == "127.0.0.9"
+    assert saved.agents.defaults.tool_hint_max_length == 130
 
 
 def test_oauth_registry_preserves_expiry_capacity_completion_and_cancel() -> None:

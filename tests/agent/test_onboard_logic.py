@@ -808,37 +808,6 @@ class TestChannelCommonRegistration:
         assert config.channels.feishu["appId"] == "test123"
 
 
-class TestApiServerRegistration:
-    """Tests for API Server menu registration."""
-
-    def test_api_server_in_settings_sections(self):
-        """API Server should be registered in _SETTINGS_SECTIONS."""
-        from yoreni.cli.onboard import _SETTINGS_SECTIONS
-
-        assert "API Server" in _SETTINGS_SECTIONS
-
-    def test_api_server_getter_returns_api(self):
-        """API Server getter should return config.api."""
-        from yoreni.cli.onboard import _SETTINGS_GETTER
-
-        config = Config()
-        result = _SETTINGS_GETTER["API Server"](config)
-        assert result is config.api
-
-    def test_api_server_setter_writes_api(self):
-        """API Server setter should update config.api."""
-        from yoreni.cli.onboard import _SETTINGS_SETTER
-
-        config = Config()
-        from yoreni.config.schema import ApiConfig
-
-        new_api = ApiConfig(host="0.0.0.0", port=9999, api_key="secret")
-        _SETTINGS_SETTER["API Server"](config, new_api)
-        assert config.api.host == "0.0.0.0"
-        assert config.api.port == 9999
-        assert config.api.api_key == "secret"
-
-
 @pytest.fixture
 def prompt_input():
     with create_pipe_input() as pipe:
@@ -1799,36 +1768,6 @@ class TestMainMenuInteraction:
 
         assert result.should_save is True
         assert result.config.channels.send_tool_hints is True
-
-    def test_run_onboard_api_server_edit(self, monkeypatch):
-        """run_onboard should handle [I] API Server through Advanced Settings."""
-        initial_config = Config()
-
-        responses = iter([
-            "[A] Advanced Settings",
-            "[I] API Server",
-            KeyboardInterrupt(),
-            "[S] Save and Exit",
-        ])
-
-        def fake_select_with_back(*_args, **_kwargs):
-            response = next(responses)
-            if isinstance(response, BaseException):
-                raise response
-            return response
-
-        def fake_configure_general_settings(config, section):
-            if section == "API Server":
-                config.api.port = 9999
-
-        monkeypatch.setattr(onboard_wizard, "_show_main_menu_header", lambda: None)
-        monkeypatch.setattr(onboard_wizard, "_select_with_back", fake_select_with_back)
-        monkeypatch.setattr(onboard_wizard, "_configure_general_settings", fake_configure_general_settings)
-
-        result = run_onboard(initial_config=initial_config)
-
-        assert result.should_save is True
-        assert result.config.api.port == 9999
 
     def test_view_summary_calls_pause(self, monkeypatch):
         """Advanced [V] View Summary should pause before returning to the menu."""

@@ -34,7 +34,6 @@ class Violation:
 
 
 _ADAPTERS = (
-    "yoreni.api",
     "yoreni.channels",
     "yoreni.cli",
     "yoreni.gateway",

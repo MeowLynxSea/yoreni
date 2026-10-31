@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol, TypeVar
@@ -200,6 +200,7 @@ class WebUISettingsServices:
     oauth_flows: WebUIOAuthFlowRegistry
     rename_model_preset: Callable[[str, str], int] | None = None
     refresh_runtime_config: Callable[[], None] | None = None
+    reload_agent_config: Callable[[], Awaitable[None]] | None = None
 
     @classmethod
     def create(
@@ -208,13 +209,20 @@ class WebUISettingsServices:
         *,
         rename_model_preset: Callable[[str, str], int] | None = None,
         refresh_runtime_config: Callable[[], None] | None = None,
+        reload_agent_config: Callable[[], Awaitable[None]] | None = None,
     ) -> WebUISettingsServices:
         return cls(
             config=WebUISettingsConfig(config_path),
             oauth_flows=WebUIOAuthFlowRegistry(),
             rename_model_preset=rename_model_preset,
             refresh_runtime_config=refresh_runtime_config,
+            reload_agent_config=reload_agent_config,
         )
+
+    async def reload_agent(self) -> None:
+        """Push the persisted agent configuration into the running gateway."""
+        if self.reload_agent_config is not None:
+            await self.reload_agent_config()
 
     def read(
         self,

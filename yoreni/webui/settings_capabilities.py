@@ -1,8 +1,7 @@
-"""Capability settings domain logic for Web, media, network, and API features."""
+"""Capability settings domain logic for Web, media, and network features."""
 
 from __future__ import annotations
 
-import asyncio
 import os
 import re
 from dataclasses import dataclass
@@ -11,24 +10,17 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable, TypedDict
 from pydantic import ValidationError
 
 from yoreni.agent.tools.web import SEARCH_PROVIDER_OPTIONS
-from yoreni.api.runtime import ApiRuntime, ApiStartOptions
 from yoreni.audio.transcription import resolve_transcription_config
 from yoreni.audio.transcription_registry import (
     resolve_transcription_provider,
     transcription_provider_names,
 )
 from yoreni.config.schema import Config, EmbeddingConfig
-from yoreni.optional_features import (
-    OptionalFeatureError,
-    extra_installed,
-    optional_dependency_groups,
-)
 from yoreni.providers.image_generation import (
     get_image_gen_provider,
     image_gen_provider_names,
 )
 from yoreni.providers.registry import find_by_name
-from yoreni.security.network import is_loopback_host
 from yoreni.webui.request_settings import (
     parse_request_object,
     redact_request_secrets,
@@ -60,20 +52,16 @@ SettingsOperation = Callable[..., dict[str, Any]]
 @dataclass(frozen=True)
 class CapabilitySettingsOperations:
     update_web_search: SettingsOperation
-    update_api: SettingsOperation
     update_image: SettingsOperation
     update_transcription: SettingsOperation
     update_memory: SettingsOperation
-    update_network: SettingsOperation
     yoreni_features_action: SettingsOperation
-    api_runtime: Callable[[], ApiRuntime]
     reload_image: Callable[[], Awaitable[dict[str, Any]]]
 
 
 class CapabilitySettingsPayload(TypedDict):
     web_search: dict[str, Any]
     web: dict[str, Any]
-    api: dict[str, Any]
     observability: dict[str, Any]
     image_generation: dict[str, Any]
     transcription: dict[str, Any]
@@ -220,12 +208,6 @@ def capability_settings_payload(
                 "use_jina_reader": config.tools.web.fetch.use_jina_reader,
             },
         },
-        "api": {
-            "host": config.api.host,
-            "port": config.api.port,
-            "timeout": config.api.timeout,
-            "api_key_hint": mask_secret_hint(config.api.api_key),
-        },
         "observability": {
             "provider": "langfuse",
             "configured": bool(
@@ -265,33 +247,7 @@ def capability_settings_payload(
     }
 
 
-def update_network_safety_settings(
-    config: Config,
-    query: QueryParams,
-) -> bool:
-    raw_allow = (
-        query_first_alias(
-            query,
-            "webui_allow_local_service_access",
-            "webuiAllowLocalServiceAccess",
-        )
-        or query_first_alias(
-            query,
-            "allow_local_preview_access",
-            "allowLocalPreviewAccess",
-        )
-    )
-    if raw_allow is None:
-        raise WebUISettingsError("webui_allow_local_service_access is required")
-
-    allow_local = parse_bool(raw_allow, "webui_allow_local_service_access")
-    if config.tools.webui_allow_local_service_access == allow_local:
-        return False
-    config.tools.webui_allow_local_service_access = allow_local
-    return True
-
-
-def update_web_search_settings(config: Config, query: QueryParams) -> tuple[bool, bool]:
+def update_web_search_settings(config: Config, query: QueryParams) -> bool:
     provider_name = (query_first(query, "provider") or "").strip().lower()
     provider_option = _WEB_SEARCH_PROVIDER_BY_NAME.get(provider_name)
     if provider_option is None:
@@ -301,7 +257,6 @@ def update_web_search_settings(config: Config, query: QueryParams) -> tuple[bool
     web_config = config.tools.web
     previous_provider = search_config.provider
     changed = False
-    restart_required = False
 
     def set_search_value(attr: str, value: object) -> None:
         nonlocal changed
@@ -366,50 +321,8 @@ def update_web_search_settings(config: Config, query: QueryParams) -> tuple[bool
 
     use_jina_reader = query_first_alias(query, "use_jina_reader", "useJinaReader")
     if use_jina_reader is not None:
-        previous_jina_reader = web_config.fetch.use_jina_reader
         set_fetch_value("use_jina_reader", parse_bool(use_jina_reader, "use_jina_reader"))
-        if web_config.fetch.use_jina_reader != previous_jina_reader:
-            restart_required = True
-    return changed, restart_required
-
-
-def update_api_settings(config: Config, query: QueryParams) -> None:
-    """Update the managed OpenAI-compatible API configuration."""
-    api = config.api
-    host = query_first(query, "host")
-    if host is not None:
-        host = host.strip()
-        if not host:
-            raise WebUISettingsError("host is required")
-        api.host = host
-
-    port = query_first(query, "port")
-    if port is not None:
-        try:
-            parsed_port = int(port)
-        except ValueError:
-            raise WebUISettingsError("port must be an integer") from None
-        if parsed_port < 1 or parsed_port > 65535:
-            raise WebUISettingsError("port must be between 1 and 65535")
-        api.port = parsed_port
-
-    timeout = query_first(query, "timeout")
-    if timeout is not None:
-        try:
-            parsed_timeout = float(timeout)
-        except ValueError:
-            raise WebUISettingsError("timeout must be a number") from None
-        if parsed_timeout < 1 or parsed_timeout > 3600:
-            raise WebUISettingsError("timeout must be between 1 and 3600")
-        api.timeout = parsed_timeout
-
-    api_key = query_first_alias(query, "api_key", "apiKey")
-    if api_key is not None:
-        api.api_key = api_key.strip()
-    if not is_loopback_host(api.host) and not api.api_key.strip():
-        raise WebUISettingsError(
-            "an API key is required when the API is available on the network"
-        )
+    return changed
 
 
 def update_image_generation_settings(
@@ -700,6 +613,12 @@ def update_memory_settings(config: Config, query: QueryParams) -> bool:
     except ValidationError as exc:
         message = exc.errors(include_input=False, include_url=False)[0]["msg"]
         raise WebUISettingsError(f"embedding: {message}") from None
+    from yoreni.memory.embeddings import EmbeddingError, resolve_embedding_settings
+
+    try:
+        resolve_embedding_settings(embedding, config.providers)
+    except EmbeddingError as exc:
+        raise WebUISettingsError(f"embedding: {exc}") from None
     if memory.embedding != embedding:
         memory.embedding = embedding
         changed = True
@@ -723,60 +642,9 @@ def _bounded_optional_int(
 def network_safety_payload(config: Config) -> dict[str, Any]:
     """Return the network-related fields embedded in the advanced DTO."""
     return {
-        "webui_allow_local_service_access": config.tools.webui_allow_local_service_access,
-        "allow_local_preview_access": config.tools.webui_allow_local_service_access,
         "private_service_protection_enabled": True,
         "ssrf_whitelist_count": len(config.tools.ssrf_whitelist),
     }
-
-
-def masked_api_secret(value: str) -> str | None:
-    value = value.strip()
-    if not value:
-        return None
-    return f"{value[:3]}...{value[-4:]}" if len(value) > 8 else "configured"
-
-
-def api_runtime_message(message: str) -> str:
-    known = {
-        "api_exited_during_startup": "API server exited during startup. Check its log for details.",
-        "api_stop_timeout": "API server did not stop in time.",
-        "api_state_stale": "API server state was stale; try starting it again.",
-    }
-    if message in known:
-        return known[message]
-    if message.startswith("api_"):
-        return f"API server {message.removeprefix('api_').replace('_', ' ')}"
-    return message.replace("_", " ")
-
-
-def api_service_payload(
-    settings: WebUISettingsServices,
-    runtime: ApiRuntime,
-    *,
-    last_action: str | None = None,
-) -> dict[str, Any]:
-    config = settings.config.load()
-    status = runtime.status()
-    extras = optional_dependency_groups()
-    connect_host = (
-        "127.0.0.1" if config.api.host in {"0.0.0.0", "::"} else config.api.host
-    )
-    payload = {
-        "installed": extra_installed("api", extras.get("api")),
-        "running": status.running,
-        "managed": status.running,
-        "host": config.api.host,
-        "port": config.api.port,
-        "timeout": config.api.timeout,
-        "api_key_hint": masked_api_secret(config.api.api_key),
-        "endpoint": f"http://{connect_host}:{config.api.port}/v1",
-        "command": "yoreni serve",
-        "log_path": str(status.log_path),
-    }
-    if last_action:
-        payload["last_action"] = last_action
-    return payload
 
 
 class CapabilitySettingsHandler:
@@ -786,25 +654,22 @@ class CapabilitySettingsHandler:
         self.settings = settings
         self.logger = logger
 
+    async def _reload_agent(self) -> None:
+        try:
+            await self.settings.reload_agent()
+        except Exception:
+            self.logger.exception("failed to apply settings to the running agent")
+
     async def handle(
         self,
         action: str,
         request: SettingsRequest,
         operations: CapabilitySettingsOperations,
     ) -> SettingsRouteResult:
-        if action == "api-status":
-            return SettingsRouteResult.success(
-                api_service_payload(self.settings, operations.api_runtime())
-            )
-        if action == "api-start":
-            return await self._start_api(request, operations)
-        if action == "api-stop":
-            return await self._stop_api(operations)
-
         mutation = {
             "web-search-update": (
                 operations.update_web_search,
-                "browser",
+                None,
                 False,
             ),
             "transcription-update": (
@@ -814,12 +679,7 @@ class CapabilitySettingsHandler:
             ),
             "memory-update": (
                 operations.update_memory,
-                "runtime",
-                False,
-            ),
-            "network-update": (
-                operations.update_network,
-                "runtime",
+                None,
                 False,
             ),
             "image-update": (
@@ -836,6 +696,8 @@ class CapabilitySettingsHandler:
             payload = self.settings.mutate(operation, request.query)
         except WebUISettingsError as exc:
             return SettingsRouteResult.failure(exc.status, exc.message)
+        if action in {"memory-update", "web-search-update"}:
+            await self._reload_agent()
         if apply_image_reload:
             payload, image_restart_cleared = await self.apply_image_runtime_change(
                 payload,
@@ -873,91 +735,3 @@ class CapabilitySettingsHandler:
                 result.get("message") or "hot reload failed",
             )
         return updated, applied
-
-    async def _start_api(
-        self,
-        request: SettingsRequest,
-        operations: CapabilitySettingsOperations,
-    ) -> SettingsRouteResult:
-        api_key = (request.payload or {}).get("api_key")
-        if api_key is not None and not isinstance(api_key, str):
-            return SettingsRouteResult.failure(
-                400,
-                "API service API key must be a string",
-            )
-        try:
-            await asyncio.to_thread(
-                self.settings.mutate,
-                operations.yoreni_features_action,
-                "enable",
-                {"name": ["api"]},
-                allow_install=self._allow_feature_package_install(request),
-            )
-            self.settings.mutate(operations.update_api, request.query)
-            config = self.settings.config.load()
-            runtime = operations.api_runtime()
-            options = ApiStartOptions(
-                host=config.api.host,
-                port=config.api.port,
-                workspace=str(config.workspace_path),
-                config_path=str(self.settings.config.path),
-            )
-            current = runtime.status()
-            result = await asyncio.to_thread(
-                runtime.restart if current.running else runtime.start_background,
-                options,
-            )
-            if not result.ok:
-                return SettingsRouteResult.failure(
-                    500,
-                    api_runtime_message(result.message),
-                )
-        except (WebUISettingsError, OptionalFeatureError) as exc:
-            return SettingsRouteResult.failure(
-                getattr(exc, "status", 400),
-                getattr(exc, "message", str(exc)),
-            )
-        except Exception as exc:
-            self.logger.exception("failed to start managed API service")
-            return SettingsRouteResult.failure(500, str(exc))
-        return SettingsRouteResult.success(
-            api_service_payload(
-                self.settings,
-                operations.api_runtime(),
-                last_action="started",
-            )
-        )
-
-    async def _stop_api(
-        self,
-        operations: CapabilitySettingsOperations,
-    ) -> SettingsRouteResult:
-        runtime = operations.api_runtime()
-        try:
-            result = await asyncio.to_thread(runtime.stop)
-        except Exception as exc:
-            self.logger.exception("failed to stop managed API service")
-            return SettingsRouteResult.failure(500, str(exc))
-        if not result.ok and result.message != "api_not_running":
-            return SettingsRouteResult.failure(
-                500,
-                api_runtime_message(result.message),
-            )
-        return SettingsRouteResult.success(
-            api_service_payload(
-                self.settings,
-                operations.api_runtime(),
-                last_action="stopped",
-            )
-        )
-
-    def _allow_feature_package_install(self, request: SettingsRequest) -> bool:
-        if request.local_browser:
-            return True
-        try:
-            return bool(
-                self.settings.config.load().tools.webui_allow_remote_package_install
-            )
-        except Exception:
-            self.logger.exception("failed to load remote package install policy")
-            return False

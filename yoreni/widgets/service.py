@@ -65,6 +65,10 @@ class WidgetService:
         self._next_runs: dict[str, int] = {}
         self._task: asyncio.Task[None] | None = None
 
+    def set_sandbox(self, sandbox: str) -> None:
+        """Apply a new exec sandbox policy to future widget runs."""
+        self._runner.set_sandbox(sandbox)
+
     # -- reads -------------------------------------------------------------
 
     def summaries(self) -> list[WidgetSummary]:

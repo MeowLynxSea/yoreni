@@ -202,13 +202,10 @@ def update_agent_settings(
         query,
         oauth_status=_oauth_provider_status,
     )
-    system_changed, restart_required = system.update_agent_system_settings(config, query)
+    system_changed = system.update_agent_system_settings(config, query)
     if model_changed or system_changed:
         _save_settings_config(config, config_path)
-    return settings_payload(
-        requires_restart=restart_required,
-        config_path=config_path,
-    )
+    return settings_payload(config_path=config_path)
 
 
 def create_model_configuration(
@@ -393,41 +390,15 @@ def logout_oauth_provider(
     )
 
 
-def update_network_safety_settings(
-    query: QueryParams,
-    *,
-    config_path: Path | None = None,
-) -> dict[str, Any]:
-    config = _load_settings_config(config_path)
-    changed = capabilities.update_network_safety_settings(config, query)
-    if changed:
-        _save_settings_config(config, config_path)
-    return settings_payload(requires_restart=changed, config_path=config_path)
-
-
 def update_web_search_settings(
     query: QueryParams,
     *,
     config_path: Path | None = None,
 ) -> dict[str, Any]:
     config = _load_settings_config(config_path)
-    changed, restart_required = capabilities.update_web_search_settings(config, query)
+    changed = capabilities.update_web_search_settings(config, query)
     if changed:
         _save_settings_config(config, config_path)
-    return settings_payload(
-        requires_restart=restart_required,
-        config_path=config_path,
-    )
-
-
-def update_api_settings(
-    query: QueryParams,
-    *,
-    config_path: Path | None = None,
-) -> dict[str, Any]:
-    config = _load_settings_config(config_path)
-    capabilities.update_api_settings(config, query)
-    _save_settings_config(config, config_path)
     return settings_payload(config_path=config_path)
 
 
@@ -467,7 +438,7 @@ def update_memory_settings(
     changed = capabilities.update_memory_settings(config, query)
     if changed:
         _save_settings_config(config, config_path)
-    return settings_payload(requires_restart=changed, config_path=config_path)
+    return settings_payload(config_path=config_path)
 
 
 def update_runtime_config_settings(
@@ -477,7 +448,4 @@ def update_runtime_config_settings(
     changed = runtime.update_runtime_config(config, values, local_browser=local_browser)
     if changed:
         _save_settings_config(config, config_path)
-    return settings_payload(
-        requires_restart=changed,
-        config_path=config_path,
-    )
+    return settings_payload(config_path=config_path)

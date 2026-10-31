@@ -4,7 +4,6 @@ import pytest
 
 from yoreni.config.errors import ConfigLoadError
 from yoreni.config.loader import load_config, resolve_config_env_vars
-from yoreni.config.schema import ApiConfig
 
 
 def test_load_config_missing_file_uses_defaults(tmp_path) -> None:
@@ -173,14 +172,13 @@ def test_load_config_malformed_legacy_sections_use_structured_error(
     assert "tools" in str(error)
 
 
-@pytest.mark.parametrize("host", ["0.0.0.0", "::"])
-def test_api_config_requires_key_for_wildcard_hosts(host: str) -> None:
-    with pytest.raises(ValueError, match="api_key is not set"):
-        ApiConfig(host=host)
+def test_retired_api_block_is_dropped(tmp_path) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        json.dumps({"api": {"host": "0.0.0.0", "port": 8900, "api_key": "secret"}}),
+        encoding="utf-8",
+    )
 
+    config = load_config(config_path)
 
-def test_api_config_allows_wildcard_host_with_key() -> None:
-    config = ApiConfig(host="0.0.0.0", api_key="secret")
-
-    assert config.host == "0.0.0.0"
-    assert config.api_key == "secret"
+    assert "api" not in config.model_dump()

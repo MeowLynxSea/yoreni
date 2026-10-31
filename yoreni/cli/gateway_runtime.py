@@ -559,12 +559,13 @@ def _run_claimed_gateway(
 
     # Every tool that speaks into a chat needs the channel delivery path, and
     # the heartbeat suppresses all of them so its output goes through the gate.
-    delivery_tools = [
-        tool for name in ("send_message", "rich_content_message")
-        if isinstance(tool := agent.tools.get(name), OutboundChatTool)
-    ]
-    for delivery_tool in delivery_tools:
-        delivery_tool.set_send_callback(deliver_to_channel)
+    def _delivery_tools() -> list[OutboundChatTool]:
+        return [
+            tool for name in ("send_message", "rich_content_message")
+            if isinstance(tool := agent.tools.get(name), OutboundChatTool)
+        ]
+
+    agent.set_delivery_callback(deliver_to_channel)
 
     # Set cron callback (needs agent)
     async def on_cron_job(job: CronJob) -> str | CronRunResult | None:
@@ -625,7 +626,7 @@ def _run_claimed_gateway(
             # Internal check: funnel all output through the post-run gate so the
             # turn can't deliver directly via send_message and skip it.
             suppress_tokens = [
-                (tool, tool.set_suppress_delivery(True)) for tool in delivery_tools
+                (tool, tool.set_suppress_delivery(True)) for tool in _delivery_tools()
             ]
             try:
                 await mcp_provider.connect()
@@ -689,6 +690,58 @@ def _run_claimed_gateway(
     def _webui_refresh_runtime_config() -> None:
         agent.refresh_runtime_config()
 
+    def _system_cron_signature() -> tuple[Any, ...]:
+        return (
+            config.agents.defaults.dream.model_dump(mode="json"),
+            config.agents.defaults.timezone,
+            config.memory.dream_backlog_threshold,
+            config.memory.dream_backlog_interval_min,
+            config.gateway.heartbeat.model_dump(mode="json"),
+        )
+
+    def _sync_system_cron_jobs() -> None:
+        from yoreni.cron.types import CronJob, CronPayload, CronSchedule
+
+        dream_cfg = config.agents.defaults.dream
+        if dream_cfg.enabled:
+            cron.register_system_job(CronJob(
+                id="dream",
+                name="dream",
+                schedule=dream_cfg.build_schedule(config.agents.defaults.timezone),
+                payload=CronPayload(kind="system_event"),
+            ))
+            if config.memory.dream_backlog_threshold > 0:
+                cron.register_system_job(CronJob(
+                    id="dream_backlog",
+                    name="dream_backlog",
+                    schedule=CronSchedule(
+                        kind="every",
+                        every_ms=config.memory.dream_backlog_interval_min * 60_000,
+                        tz=config.agents.defaults.timezone,
+                    ),
+                    payload=CronPayload(kind="system_event"),
+                ))
+            else:
+                cron.remove_system_job("dream_backlog")
+        else:
+            cron.remove_system_job("dream")
+            cron.remove_system_job("dream_backlog")
+
+        heartbeat = config.gateway.heartbeat
+        if heartbeat.enabled:
+            cron.register_system_job(CronJob(
+                id="heartbeat",
+                name="heartbeat",
+                schedule=CronSchedule(
+                    kind="every",
+                    every_ms=heartbeat.interval_s * 1000,
+                    tz=config.agents.defaults.timezone,
+                ),
+                payload=CronPayload(kind="system_event"),
+            ))
+        else:
+            cron.remove_system_job("heartbeat")
+
     from yoreni.webui.onboarding_api import OnboardingService
     from yoreni.webui.settings_services import WebUISettingsConfig
 
@@ -714,6 +767,45 @@ def _run_claimed_gateway(
             registry=tools,
         )
 
+    def _agent_proxy() -> str | None:
+        try:
+            return config.network.resolve_proxy(config.tools.web.use_proxy)
+        except ValueError:
+            return None
+
+    async def _webui_reload_agent_config() -> None:
+        """Apply a saved settings file to the running gateway without a restart."""
+        from yoreni.config.loader import load_config, resolve_config_env_vars
+
+        path = Path(config_path)
+        fresh = await asyncio.to_thread(
+            lambda: resolve_config_env_vars(load_config(path), config_path=path)
+        )
+        previous_cron = _system_cron_signature()
+        previous_proxy = _agent_proxy()
+        previous_save_dir = config.tools.image_generation.save_dir
+        config.agents = fresh.agents
+        config.tools = fresh.tools
+        config.network = fresh.network
+        config.gateway = fresh.gateway
+        config.memory = fresh.memory
+        config.providers = fresh.providers
+        agent.reload_runtime(config)
+        if _system_cron_signature() != previous_cron:
+            _sync_system_cron_jobs()
+        if widget_service is not None:
+            widget_service.set_sandbox(config.tools.exec.sandbox)
+        channels.apply_runtime_config(config)
+        agent.refresh_runtime_config()
+        proxy_changed = _agent_proxy() != previous_proxy
+        if proxy_changed or config.tools.image_generation.save_dir != previous_save_dir:
+            await _webui_image_generation_reload()
+        if proxy_changed:
+            try:
+                await mcp_provider.reload()
+            except Exception:
+                logger.exception("MCP reload after proxy change failed")
+
     # Create the channel manager that serves the embedded WebUI and channel adapters.
     channels = ChannelManager(
         config,
@@ -723,6 +815,7 @@ def _run_claimed_gateway(
         widget_service=widget_service,
         webui_runtime_model_name=_webui_runtime_model_name,
         webui_refresh_runtime_config=_webui_refresh_runtime_config,
+        webui_reload_agent_config=_webui_reload_agent_config,
         webui_static_dist=webui_static_dist,
         webui_runtime_surface=webui_runtime_surface,
         webui_runtime_capabilities=webui_runtime_capabilities,
@@ -806,47 +899,14 @@ def _run_claimed_gateway(
         _print_gateway_health_endpoint(host, health_port)
         async with server:
             await server.serve_forever()
-    # Register Dream system job (idempotent on restart)
-    from yoreni.cron.types import CronJob, CronPayload, CronSchedule
-    dream_cfg = config.agents.defaults.dream
-    if dream_cfg.enabled:
-        cron.register_system_job(CronJob(
-            id="dream",
-            name="dream",
-            schedule=dream_cfg.build_schedule(config.agents.defaults.timezone),
-            payload=CronPayload(kind="system_event"),
-        ))
-        console.print(f"[green]✓[/green] Dream: {dream_cfg.describe_schedule()}")
-        if config.memory.dream_backlog_threshold > 0:
-            cron.register_system_job(CronJob(
-                id="dream_backlog",
-                name="dream_backlog",
-                schedule=CronSchedule(
-                    kind="every",
-                    every_ms=config.memory.dream_backlog_interval_min * 60_000,
-                    tz=config.agents.defaults.timezone,
-                ),
-                payload=CronPayload(kind="system_event"),
-            ))
+    # Register Dream and Heartbeat system jobs (idempotent on restart)
+    _sync_system_cron_jobs()
+    if config.agents.defaults.dream.enabled:
+        console.print(
+            f"[green]✓[/green] Dream: {config.agents.defaults.dream.describe_schedule()}"
+        )
     else:
         console.print("[yellow]○[/yellow] Dream: disabled")
-        cron.remove_system_job("dream")
-        cron.remove_system_job("dream_backlog")
-
-    # Register Heartbeat system job (idempotent on restart)
-    if hb_cfg.enabled:
-        cron.register_system_job(CronJob(
-            id="heartbeat",
-            name="heartbeat",
-            schedule=CronSchedule(
-                kind="every",
-                every_ms=hb_cfg.interval_s * 1000,
-                tz=config.agents.defaults.timezone,
-            ),
-            payload=CronPayload(kind="system_event"),
-        ))
-    else:
-        cron.remove_system_job("heartbeat")
 
     cron_status = cron.status()
     cron_job_count = cast(int, cron_status["jobs"])

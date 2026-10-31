@@ -55,9 +55,11 @@ class Retriever:
             ]
 
         vector_ranking: list[str] = []
-        if self.embedder is not None:
+        embedder = self.embedder
+        if embedder is not None:
+            index_key = embedding_index_key(embedder.settings)
             try:
-                query_vector = await self.embedder.embed_query(query.query)
+                query_vector = await embedder.embed_query(query.query)
             except Exception as exc:
                 # A failed embedding call must not be reported as an empty
                 # result, which would look like "the user never said that".
@@ -65,7 +67,6 @@ class Retriever:
                     f"semantic retrieval failed: {type(exc).__name__}: {exc}"
                 ) from exc
             scored: list[tuple[float, str]] = []
-            index_key = embedding_index_key(self.embedder.settings)
             for fact, vector in self.store.vector_candidates(
                 index_key, where=where, params=params,
             ):

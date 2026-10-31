@@ -164,10 +164,9 @@ def settings_usage_payload(config: Config) -> dict[str, Any]:
     return llm_usage_payload(timezone_name=config.agents.defaults.timezone)
 
 
-def update_agent_system_settings(config: Config, query: QueryParams) -> tuple[bool, bool]:
+def update_agent_system_settings(config: Config, query: QueryParams) -> bool:
     defaults = config.agents.defaults
     changed = False
-    restart_required = False
 
     timezone = query_first(query, "timezone")
     if timezone is not None:
@@ -183,7 +182,6 @@ def update_agent_system_settings(config: Config, query: QueryParams) -> tuple[bo
             defaults.timezone = timezone
             defaults.timezone_mode = "manual"
             changed = True
-            restart_required = timezone_changed
 
     tool_hint_max_length = query_first_alias(
         query,
@@ -204,8 +202,7 @@ def update_agent_system_settings(config: Config, query: QueryParams) -> tuple[bo
         if defaults.tool_hint_max_length != parsed:
             defaults.tool_hint_max_length = parsed
             changed = True
-            restart_required = True
-    return changed, restart_required
+    return changed
 
 
 def save_channel_config_values(
@@ -433,6 +430,12 @@ class SystemSettingsHandler:
         self._pending_channel_restarts: set[str] = set()
         self._remove_pending_work: Callable[[], None] | None = None
         self._closing_connectors = False
+
+    async def _reload_agent(self) -> None:
+        try:
+            await self.settings.reload_agent()
+        except Exception:
+            self.logger.exception("failed to apply settings to the running agent")
     def _has_pending_connectors(self) -> bool:
         return self._closing_connectors or any(
             not isinstance(connector, ManagedChannelConnector) or connector.has_pending_work
@@ -487,9 +490,8 @@ class SystemSettingsHandler:
                 )
             except WebUISettingsError as exc:
                 return SettingsRouteResult.failure(exc.status, exc.message)
-            return SettingsRouteResult.success(
-                payload, decorate_restart=True, restart_section="runtime",
-            )
+            await self._reload_agent()
+            return SettingsRouteResult.success(payload, decorate_restart=True)
         if action == "cli-list":
             return await self._cli_apps(request, operations)
         if action.startswith("cli-"):

@@ -165,6 +165,9 @@ class WebUIWorkspaceController:
         self._default_workspace = default_workspace
         self._default_restrict_to_workspace = default_restrict_to_workspace
 
+    def set_default_restrict_to_workspace(self, value: bool) -> None:
+        self._default_restrict_to_workspace = value
+
     def default_scope(self) -> WorkspaceScope:
         return default_workspace_scope(
             self._default_workspace,

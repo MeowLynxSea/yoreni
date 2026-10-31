@@ -131,7 +131,7 @@ def test_legacy_webui_timeout_editor_updates_canonical_runtime(tmp_path, runtime
     assert config.idle_timeout == 90
     assert config.idle_action == "terminate"
     assert result["runtime_config"]["tools.exec.timeout"] == runtime
-    assert result["requires_restart"]
+    assert not result["requires_restart"]
     assert json.loads(path.read_text(encoding="utf-8"))["tools"]["exec"]["maxRuntime"] == runtime
 
 

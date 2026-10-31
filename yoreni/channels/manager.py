@@ -108,6 +108,7 @@ class ChannelManager:
         webui_accept_input: Callable[[InboundMessage], Awaitable[str | None]] | None = None,
         webui_runtime_model_name: Callable[[], str | None] | None = None,
         webui_refresh_runtime_config: Callable[[], None] | None = None,
+        webui_reload_agent_config: Callable[[], Awaitable[None]] | None = None,
         webui_static_dist: bool = True,
         webui_runtime_surface: str = "browser",
         webui_runtime_capabilities: dict[str, Any] | None = None,
@@ -136,6 +137,7 @@ class ChannelManager:
         self._webui_accept_input = webui_accept_input
         self._webui_runtime_model_name = webui_runtime_model_name
         self._webui_refresh_runtime_config = webui_refresh_runtime_config
+        self._webui_reload_agent_config = webui_reload_agent_config
         self._webui_static_dist = webui_static_dist
         self._webui_runtime_surface = webui_runtime_surface
         self._webui_runtime_capabilities = dict(webui_runtime_capabilities or {})
@@ -192,6 +194,19 @@ class ChannelManager:
                 default_sections[name] = default
         return default_sections.get(name)
 
+    def apply_runtime_config(self, config: Config) -> None:
+        """Push live channel-facing settings into existing adapters."""
+        self.config = config
+        hint_length = config.agents.defaults.tool_hint_max_length
+        for channel in self.channels.values():
+            channel.tool_hint_max_length = hint_length
+        websocket = self.channels.get("websocket")
+        gateway = getattr(websocket, "gateway", None)
+        if gateway is not None:
+            gateway.workspaces.set_default_restrict_to_workspace(
+                config.tools.restrict_to_workspace
+            )
+
     def _build_channel(
         self,
         cls: type[BaseChannel],
@@ -220,6 +235,7 @@ class ChannelManager:
                 runtime_model_name=self._webui_runtime_model_name,
                 accept_input=self._webui_accept_input,
                 refresh_runtime_config=self._webui_refresh_runtime_config,
+                reload_agent_config=self._webui_reload_agent_config,
                 runtime_surface=self._webui_runtime_surface,
                 runtime_capabilities_overrides=self._webui_runtime_capabilities,
                 cron_service=self._cron_service,

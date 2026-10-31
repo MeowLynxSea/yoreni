@@ -39,7 +39,7 @@ def test_system_domain_owns_runtime_dto_and_agent_updates(tmp_path, monkeypatch)
     monkeypatch.setattr("yoreni.webui.settings_system.COMMIT", "a" * 40)
     config = Config()
 
-    changed, restart_required = update_agent_system_settings(
+    changed = update_agent_system_settings(
         config,
         {
             "timezone": ["Asia/Shanghai"],
@@ -53,7 +53,6 @@ def test_system_domain_owns_runtime_dto_and_agent_updates(tmp_path, monkeypatch)
     )
 
     assert changed is True
-    assert restart_required is True
     assert config.agents.defaults.timezone == "Asia/Shanghai"
     assert config.agents.defaults.timezone_mode == "manual"
     assert config.agents.defaults.tool_hint_max_length == 120

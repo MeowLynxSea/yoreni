@@ -24,7 +24,7 @@ def test_shared_proxy_roundtrip_preserves_independent_feature_switches(tmp_path)
     for proxy in ("http://shared-proxy.example:7890", "http://shared-proxy.example:7891"):
         payload = update_runtime_config_settings({"network.proxy": proxy}, local_browser=True, config_path=path)
         assert payload["runtime_config"]["network.proxy"] == proxy
-        assert payload["requires_restart"]
+        assert not payload["requires_restart"]
         saved = load_config(path)
         assert saved.network.proxy == proxy
         assert saved.tools.web.enable is False
@@ -51,7 +51,6 @@ def test_runtime_patch_persists_and_preserves_other_domains(tmp_path):
     })
     save_config(config, path)
     payload = update_runtime_config_settings({
-        "agents.defaults.max_tool_iterations": 71,
         "agents.defaults.timezone_mode": "manual",
         "agents.defaults.timezone": "Asia/Shanghai",
         "tools.exec.timeout": 0,
@@ -59,15 +58,13 @@ def test_runtime_patch_persists_and_preserves_other_domains(tmp_path):
         "tools.image_generation.save_dir": "images",
     }, local_browser=True, config_path=path)
     saved = load_config(path)
-    assert saved.agents.defaults.max_tool_iterations == 71
     assert saved.agents.defaults.timezone == "Asia/Shanghai"
     assert saved.tools.exec.timeout == 0
     assert saved.tools.exec.allowed_env_keys == ["MY_TOKEN"]
     assert saved.providers.openai.api_key == "${PRIVATE_API_KEY}"
     assert saved.channels.telegram == {"token": "keep-me", "streaming": False}
-    assert payload["requires_restart"]
+    assert not payload["requires_restart"]
     assert payload["runtime_config"]["tools.image_generation.save_dir"] == "images"
-    assert "api.api_key" not in runtime_config_payload(saved)
     assert "PRIVATE_API_KEY" not in json.dumps(runtime_config_payload(saved))
 
 
@@ -76,7 +73,6 @@ def test_runtime_patch_persists_and_preserves_other_domains(tmp_path):
     {"agents.defaults.workspace": "/not-editable-from-settings"},
     {"providers.openai.api_key": "bad"},
     {"tools.exec": {"enable": False}},
-    {"agents.defaults.max_tool_iterations": True},
     {"tools.exec.timeout": -1},
     {"tools.exec.timeout": 86401},
     {"tools.exec.timeout": "60"},
@@ -89,10 +85,7 @@ def test_runtime_patch_persists_and_preserves_other_domains(tmp_path):
     {"agents.defaults.dream.cron": "not a cron"},
     {"agents.defaults.dream.model_override": "missing"},
     {"agents.defaults.timezone_mode": "manual", "agents.defaults.timezone": "Mars/Olympus"},
-    {"gateway.port": 65536},
     {"gateway.heartbeat.interval_s": 0},
-    {"api.host": "192.168.1.2"},
-    {"api.timeout": float("nan")},
     {"tools.image_generation.save_dir": ""},
     {"tools.image_generation.save_dir": "../outside"},
     {"tools.image_generation.save_dir": "C:/outside"},
@@ -104,7 +97,7 @@ def test_invalid_patch_is_atomic(tmp_path, values):
     before = path.read_bytes()
     with pytest.raises(WebUISettingsError):
         update_runtime_config_settings({
-            "agents.defaults.max_tool_iterations": 71, **values,
+            "tools.exec.timeout": 71, **values,
         }, local_browser=True, config_path=path)
     assert path.read_bytes() == before
 
@@ -168,13 +161,6 @@ def test_timezone_auto_and_nullable_fields():
     assert not update_runtime_config(config, {}, local_browser=True)
 
 
-def test_api_changes_require_explicit_restart(tmp_path):
-    path = tmp_path / "config.json"
-    payload = update_runtime_config_settings({"api.timeout": 222.5}, config_path=path)
-    assert payload["api"]["timeout"] == 222.5
-    assert payload["requires_restart"]
-
-
 def test_runtime_payload_matches_shared_catalogue_contract():
     fixture = Path(__file__).with_name("fixtures") / "runtime-config-keys.json"
     paths = json.loads(fixture.read_text(encoding="utf-8"))
@@ -204,4 +190,4 @@ def test_sandbox_backend_persists_with_path_permissions(tmp_path, backend):
     assert saved.sandbox_ro_binds == ["shared/read"]
     assert saved.sandbox_rw_binds == ["shared/write"]
     assert payload["runtime_config"]["tools.exec.sandbox"] == backend
-    assert payload["requires_restart"]
+    assert not payload["requires_restart"]

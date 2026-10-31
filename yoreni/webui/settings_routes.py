@@ -13,7 +13,6 @@ from websockets.http11 import Request as WsRequest
 from websockets.http11 import Response
 
 from yoreni.agent.tools.mcp_oauth import MCP_OAUTH_CALLBACK_PATH
-from yoreni.api.runtime import ApiRuntime, api_runtime_paths
 from yoreni.bus.queue import MessageBus
 from yoreni.channels.registry import load_channel_plugin
 from yoreni.channels.validation import validate_channel_config
@@ -45,12 +44,10 @@ from yoreni.webui.settings_api import (
     settings_payload,
     settings_usage_payload,
     update_agent_settings,
-    update_api_settings,
     update_image_generation_settings,
     update_memory_settings,
     update_model_call_order,
     update_model_configuration,
-    update_network_safety_settings,
     update_provider_settings,
     update_runtime_config_settings,
     update_transcription_settings,
@@ -61,7 +58,6 @@ from yoreni.webui.settings_contracts import (
     SettingsRequest,
     SettingsRouteResult,
 )
-from yoreni.webui.settings_runtime import runtime_config_payload
 from yoreni.webui.settings_services import WebUISettingsServices
 from yoreni.webui.yoreni_features_api import (
     yoreni_feature_instance_target,
@@ -124,13 +120,9 @@ _MODEL_ROUTES = {
 
 _CAPABILITY_ROUTES = {
     "/api/settings/web-search/update": "web-search-update",
-    "/api/settings/api-service": "api-status",
-    "/api/settings/api-service/start": "api-start",
-    "/api/settings/api-service/stop": "api-stop",
     "/api/settings/image-generation/update": "image-update",
     "/api/settings/transcription/update": "transcription-update",
     "/api/settings/memory/update": "memory-update",
-    "/api/settings/network-safety/update": "network-update",
 }
 
 _SYSTEM_ROUTES = {
@@ -169,12 +161,9 @@ _SETTINGS_MUTATION_PATHS = frozenset({
     "/api/settings/provider/oauth-login/complete",
     "/api/settings/provider/oauth-logout",
     "/api/settings/web-search/update",
-    "/api/settings/api-service/start",
-    "/api/settings/api-service/stop",
     "/api/settings/image-generation/update",
     "/api/settings/transcription/update",
     "/api/settings/memory/update",
-    "/api/settings/network-safety/update",
     "/api/settings/cli-apps/install",
     "/api/settings/cli-apps/update",
     "/api/settings/cli-apps/uninstall",
@@ -257,8 +246,6 @@ class WebUISettingsRouter:
         self._mcp_oauth_redirect_uri = mcp_oauth_redirect_uri
         self._mcp_oauth = McpOAuthManager(bus.admission)
         self._restart_sections: set[str] = set()
-        self._restart_baselines: dict[str, dict[str, Any]] = {}
-        self._restart_changes: dict[str, str] = {}
         self._models = model_domain.ModelSettingsHandler(settings, logger, bus.admission)
         self._capabilities = capability_domain.CapabilitySettingsHandler(
             settings,
@@ -309,17 +296,11 @@ class WebUISettingsRouter:
             return await asyncio.to_thread(self._handle_settings_usage)
 
         domain, action = route
-        restart_before = (
-            await asyncio.to_thread(self._restart_values, action)
-            if action in {"runtime-config-update", "image-update", "web-search-update"}
-            else None
-        )
         domain_request = self._domain_request(
             connection,
             request,
             needs_local_browser=(
                 action in {
-                    "api-start",
                     "runtime-config-update",
                     "features-enable",
                     "channel-configure",
@@ -348,35 +329,7 @@ class WebUISettingsRouter:
                 channel_name=(channel_connect[0] if channel_connect else None),
                 connect_action=(channel_connect[1] if channel_connect else None),
             )
-        if restart_before is not None and result.error is None and result.payload is not None:
-            restart_after = await asyncio.to_thread(self._restart_values, action)
-            if result.clear_restart_section:
-                self._restart_baselines.pop(action, None)
-                self._restart_changes.pop(action, None)
-            elif result.payload.get("requires_restart") or action in self._restart_changes:
-                baseline = self._restart_baselines.setdefault(action, {})
-                for key, value in restart_before.items():
-                    if restart_after.get(key) != value:
-                        baseline.setdefault(key, value)
-                for key in list(baseline):
-                    if restart_after.get(key) == baseline[key]:
-                        del baseline[key]
-                if not baseline:
-                    self._restart_baselines.pop(action, None)
-                    self._restart_changes.pop(action, None)
-                elif result.restart_section:
-                    self._restart_changes[action] = result.restart_section
-                # Reversible changes are tracked separately from installation and reload failures.
-                result.payload["requires_restart"] = False
         return self._render_result(result)
-
-    def _restart_values(self, action: str) -> dict[str, Any]:
-        config = self.settings.config.load()
-        if action == "runtime-config-update":
-            return runtime_config_payload(config)
-        if action == "image-update":
-            return config.tools.image_generation.model_dump(mode="json")
-        return {"use_jina_reader": config.tools.web.fetch.use_jina_reader}
 
     @staticmethod
     def is_mutation_path(path: str) -> bool:
@@ -435,7 +388,7 @@ class WebUISettingsRouter:
     ) -> dict[str, Any]:
         if section and payload.get("requires_restart"):
             self._restart_sections.add(section)
-        sections = sorted(self._restart_sections | set(self._restart_changes.values()))
+        sections = sorted(self._restart_sections)
         updated = dict(payload)
         if sections:
             updated["requires_restart"] = True
@@ -506,13 +459,10 @@ class WebUISettingsRouter:
     ) -> capability_domain.CapabilitySettingsOperations:
         return capability_domain.CapabilitySettingsOperations(
             update_web_search=update_web_search_settings,
-            update_api=update_api_settings,
             update_image=update_image_generation_settings,
             update_transcription=update_transcription_settings,
             update_memory=update_memory_settings,
-            update_network=update_network_safety_settings,
             yoreni_features_action=yoreni_features_action,
-            api_runtime=self._api_runtime,
             reload_image=self._reload_image_generation_runtime,
         )
 
@@ -604,9 +554,6 @@ class WebUISettingsRouter:
 
     def _parse_mcp_settings_query(self, request: WsRequest) -> QueryParams:
         return self._query(request)
-
-    def _api_runtime(self) -> ApiRuntime:
-        return ApiRuntime(paths=api_runtime_paths(self.settings.config.path))
 
     def _save_channel_config_values(
         self,

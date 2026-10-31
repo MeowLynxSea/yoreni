@@ -14,8 +14,6 @@ export type RuntimeConfigPage = "memory" | "advanced" | "browser" | "network" | 
 export const RUNTIME_CONFIG_GROUPS: { id: string; page: RuntimeConfigPage; enabledBy?: string }[] = [
   { id: "identity", page: "advanced" },
   { id: "memory", page: "memory" },
-  { id: "chat", page: "advanced" },
-  { id: "execution", page: "advanced" },
   { id: "tools", page: "advanced" },
   { id: "web", page: "browser" },
   { id: "shell", page: "advanced", enabledBy: "tools.exec.enable" },
@@ -24,7 +22,6 @@ export const RUNTIME_CONFIG_GROUPS: { id: string; page: RuntimeConfigPage; enabl
   { id: "safety", page: "advanced" },
   { id: "cli", page: "advanced", enabledBy: "tools.cli_apps.enable" },
   { id: "gateway", page: "advanced" },
-  { id: "api", page: "advanced" },
   { id: "storage", page: "image" },
 ];
 
@@ -32,9 +29,6 @@ export const RUNTIME_CONFIG_FIELDS: RuntimeConfigField[] = [
   { group: "identity", path: "agents.defaults.timezone_mode", kind: "toggle", options: ["manual", "auto"] },
   { group: "identity", path: "agents.defaults.timezone", kind: "text", when: { path: "agents.defaults.timezone_mode", value: "manual" } },
   { group: "memory", path: "agents.defaults.dream.enabled", kind: "boolean" },
-  { group: "execution", path: "agents.defaults.provider_retry_mode", kind: "toggle", options: ["standard", "persistent"] },
-  { group: "execution", path: "agents.defaults.max_tool_iterations", kind: "number", min: 1 },
-  { group: "execution", path: "agents.defaults.max_tool_result_chars", kind: "number", min: 1 },
   { group: "tools", path: "tools.exec.enable", kind: "boolean" },
   { group: "tools", path: "tools.file.enable", kind: "boolean" },
   { group: "web", path: "tools.web.enable", kind: "boolean" },
@@ -58,10 +52,6 @@ export const RUNTIME_CONFIG_FIELDS: RuntimeConfigField[] = [
   { group: "cli", path: "tools.cli_apps.install_timeout", kind: "number", min: 1, max: 3600 },
   { group: "cli", path: "tools.cli_apps.run_timeout", kind: "number", min: 1, max: 600 },
   { group: "cli", path: "tools.cli_apps.catalog_ttl_seconds", kind: "number", min: 60, max: 86400 },
-  { group: "gateway", path: "gateway.host", kind: "text", manual: true },
-  { group: "gateway", path: "gateway.port", kind: "number", min: 1, max: 65535, manual: true },
   { group: "gateway", path: "gateway.restart_mode", kind: "select", options: ["auto", "exec", "spawn", "exit"] },
-  { group: "api", path: "api.host", kind: "text", manual: true },
-  { group: "api", path: "api.timeout", kind: "number", min: 1, max: 3600 },
   { group: "storage", path: "tools.image_generation.save_dir", kind: "text" },
 ];

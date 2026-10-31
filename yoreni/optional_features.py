@@ -873,7 +873,7 @@ def _feature_requires_restart(name: str, *, is_channel: bool) -> bool:
     if is_channel:
         return True
     # These libraries are imported lazily or used by a newly spawned service.
-    return name not in {"api", "documents", "pdf", "olostep"}
+    return name not in {"documents", "pdf", "olostep"}
 
 
 def disable_optional_feature(

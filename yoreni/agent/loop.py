@@ -256,6 +256,10 @@ class AgentLoop:
             core=self.context.core,
         )
         self.tools = tool_registry if tool_registry is not None else ToolRegistry()
+        self._provider_snapshot_loader = provider_snapshot_loader
+        self._tool_loader = None
+        self._runtime_control = None
+        self._delivery_callback: Callable[[OutboundMessage], Any] | None = None
         self._exec_session_manager = ExecSessionManager()
         self.runner = AgentRunner()
         from yoreni.agent.persistent import PersistentAgent
@@ -402,13 +406,22 @@ class AgentLoop:
         self,
         *,
         provider_snapshot_loader: Callable[..., ProviderSnapshot] | None,
+        reload: bool = False,
+        rebuild: bool = True,
     ) -> None:
         """Register the default set of tools via plugin loader."""
         from yoreni.agent.tools.context import ToolContext
         from yoreni.agent.tools.loader import ToolLoader
 
-        runtime_control = AgentRuntimeControl(self)
-        self.register_runtime_context_provider(runtime_control.workspace_context)
+        if self._runtime_control is None:
+            self._runtime_control = AgentRuntimeControl(self)
+            self.register_runtime_context_provider(
+                self._runtime_control.workspace_context
+            )
+        if not rebuild:
+            return
+        if self._tool_loader is None:
+            self._tool_loader = ToolLoader()
         ctx = ToolContext(
             config=self.tools_config,
             network=self.network_config,
@@ -421,13 +434,61 @@ class AgentLoop:
             provider_snapshot_loader=provider_snapshot_loader,
             timezone=self.context.timezone or "UTC",
             workspace_sandbox=self.workspace_scopes.sandbox_status,
-            runtime_control=runtime_control,
+            runtime_control=self._runtime_control,
             widget_service=self.widget_service,
         )
-        loader = ToolLoader()
-        registered = loader.load(ctx, self.tools)
+        registered = self._tool_loader.load(
+            ctx,
+            self.tools,
+            replace_owned=reload,
+        )
+        self._bind_delivery_tools()
 
         logger.info("Registered {} tools: {}", len(registered), registered)
+
+    def set_delivery_callback(
+        self,
+        callback: Callable[[OutboundMessage], Any],
+    ) -> None:
+        """Give rebuilt chat tools the gateway's channel delivery path."""
+        self._delivery_callback = callback
+        self._bind_delivery_tools()
+
+    def _bind_delivery_tools(self) -> None:
+        if self._delivery_callback is None:
+            return
+        from yoreni.agent.tools.chat_delivery import OutboundChatTool
+
+        for name in ("send_message", "rich_content_message"):
+            tool = self.tools.get(name)
+            if isinstance(tool, OutboundChatTool):
+                tool.set_send_callback(self._delivery_callback)
+
+    def reload_runtime(self, config: Config, *, rebuild_tools: bool = True) -> None:
+        """Apply a freshly loaded config to the live agent without a restart."""
+        defaults = config.agents.defaults
+        self.memory.reload_config(config.memory, providers=config.providers)
+        self.tools_config = config.tools
+        self.web_config = config.tools.web
+        self.exec_config = config.tools.exec
+        self.network_config = config.network
+        self.max_iterations = defaults.max_tool_iterations
+        self.max_tool_result_chars = defaults.max_tool_result_chars
+        self.provider_retry_mode = defaults.provider_retry_mode
+        self.restart_mode = config.gateway.restart_mode
+        self.dream_model_preset = defaults.dream.model_override
+        self.restrict_to_workspace = config.tools.restrict_to_workspace
+        self.workspace_scopes = dataclasses.replace(
+            self.workspace_scopes,
+            default_restrict_to_workspace=self.restrict_to_workspace,
+        )
+        self.context.timezone = defaults.timezone
+        self._register_default_tools(
+            provider_snapshot_loader=self._provider_snapshot_loader,
+            reload=True,
+            rebuild=rebuild_tools,
+        )
+        self.runtime_resolver.invalidate()
 
 
     def register_runtime_context_provider(

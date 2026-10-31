@@ -32,12 +32,14 @@ def _router(
     image_generation_reload: Callable[[], Awaitable[dict[str, object]]] | None = None,
     rename_model_preset: Callable[[str, str], int] | None = None,
     refresh_runtime_config: Callable[[], None] | None = None,
+    reload_agent_config: Callable[[], Awaitable[None]] | None = None,
 ) -> WebUISettingsRouter:
     return WebUISettingsRouter(
         settings=WebUISettingsServices.create(
             config_path or get_config_path(),
             rename_model_preset=rename_model_preset,
             refresh_runtime_config=refresh_runtime_config,
+            reload_agent_config=reload_agent_config,
         ),
         bus=MessageBus(),
         logger=SimpleNamespace(exception=lambda *_args: None, warning=lambda *_args: None),
@@ -757,9 +759,10 @@ async def test_runtime_config_route_authentication_validation_and_restart(tmp_pa
     assert load_config(config_path).tools.exec.timeout == 19
     body = json.loads(result.body)
     assert body["runtime_config"]["tools.exec.timeout"] == 19
-    assert body["restart_required_sections"] == ["runtime"]
+    assert body["requires_restart"] is False
+    assert body["restart_required_sections"] == []
     refreshed = await router.dispatch(None, SimpleNamespace(path="/api/settings", headers=Headers()), "/api/settings")
-    assert json.loads(refreshed.body)["restart_required_sections"] == ["runtime"]
+    assert json.loads(refreshed.body)["restart_required_sections"] == []
 
 
 async def test_memory_settings_route_persists_embedding_and_redacts_the_key(tmp_path):
@@ -788,78 +791,25 @@ async def test_memory_settings_route_persists_embedding_and_redacts_the_key(tmp_
     assert config.memory.embedding.api_key == "local-secret"
 
 
-async def test_runtime_settings_only_save_without_refreshing_or_rebinding(tmp_path, monkeypatch):
-    refresh = MagicMock()
-    runtime = MagicMock()
-    monkeypatch.setattr(WebUISettingsRouter, "_api_runtime", lambda _self: runtime)
-    router = _router(config_path=tmp_path / "config.json", refresh_runtime_config=refresh)
+async def test_runtime_settings_apply_without_restart(tmp_path):
+    reload_agent = AsyncMock()
+    router = _router(
+        config_path=tmp_path / "config.json",
+        reload_agent_config=reload_agent,
+    )
     path = "/api/settings/runtime-config/update"
     response = await router.dispatch(None, _mutation_request(path, {
-        "values": {"agents.defaults.dream.enabled": False, "api.timeout": 45},
+        "values": {"agents.defaults.dream.enabled": False},
     }), path)
     assert response.status_code == 200
-    assert json.loads(response.body)["requires_restart"]
-    refresh.assert_not_called()
-    runtime.restart.assert_not_called()
-
-
-async def test_reverting_runtime_switch_clears_restart_but_preserves_other_changes(tmp_path):
-    router = _router(config_path=tmp_path / "config.json")
-    config = router.settings.config.load()
-    original_memory = config.agents.defaults.dream.enabled
-    original_web = config.tools.web.enable
-    path = "/api/settings/runtime-config/update"
-
-    async def update(values):
-        response = await router.dispatch(None, _mutation_request(path, {"values": values}), path)
-        assert response.status_code == 200
-        return json.loads(response.body)
-
-    assert (await update({"agents.defaults.dream.enabled": not original_memory}))["requires_restart"]
-    await update({"tools.web.enable": not original_web})
-    assert (await update({"agents.defaults.dream.enabled": original_memory}))["requires_restart"]
-    reverted = await update({"tools.web.enable": original_web})
-    assert reverted["requires_restart"] is False
-    assert reverted["restart_required_sections"] == []
-    refreshed = await router.dispatch(None, SimpleNamespace(path="/api/settings", headers=Headers()), "/api/settings")
-    assert json.loads(refreshed.body)["requires_restart"] is False
-
-
-async def test_reverting_web_reader_preserves_unrelated_restart_reason(tmp_path):
-    router = _router(config_path=tmp_path / "config.json")
-    config = router.settings.config.load()
-    original_reader = config.tools.web.fetch.use_jina_reader
-    original_timeout = config.api.timeout
-    path = "/api/settings/web-search/update"
-    first = await router.dispatch(None, _mutation_request(path, {
-        "provider": "duckduckgo", "use_jina_reader": not original_reader,
-    }), path)
-    assert first.status_code == 200
-    assert json.loads(first.body)["restart_required_sections"] == ["browser"]
-
-    runtime_path = "/api/settings/runtime-config/update"
-    changed = await router.dispatch(None, _mutation_request(runtime_path, {
-        "values": {"api.timeout": original_timeout + 1},
-    }), runtime_path)
-    assert changed.status_code == 200
-    assert set(json.loads(changed.body)["restart_required_sections"]) == {"browser", "runtime"}
-
-    restored = await router.dispatch(None, _mutation_request(path, {
-        "provider": "duckduckgo", "use_jina_reader": original_reader,
-    }), path)
-    assert restored.status_code == 200
-    assert json.loads(restored.body)["restart_required_sections"] == ["runtime"]
-    refreshed = await router.dispatch(None, SimpleNamespace(path="/api/settings", headers=Headers()), "/api/settings")
-    assert json.loads(refreshed.body)["restart_required_sections"] == ["runtime"]
-    reverted = await router.dispatch(None, _mutation_request(runtime_path, {
-        "values": {"api.timeout": original_timeout},
-    }), runtime_path)
-    assert reverted.status_code == 200
-    assert json.loads(reverted.body)["restart_required_sections"] == []
+    payload = json.loads(response.body)
+    assert payload["requires_restart"] is False
+    assert payload["restart_required_sections"] == []
+    reload_agent.assert_awaited_once()
 
 
 @pytest.mark.parametrize("enabled", [False, True])
-async def test_image_switch_round_trip_clears_restart(tmp_path, enabled):
+async def test_image_switch_keeps_restart_when_hot_reload_fails(tmp_path, enabled):
     from yoreni.config.loader import save_config
     from yoreni.config.schema import Config
 
@@ -875,10 +825,9 @@ async def test_image_switch_round_trip_clears_restart(tmp_path, enabled):
     router.logger.warning = MagicMock()
     path = "/api/settings/image-generation/update"
     changed = await router.dispatch(None, _mutation_request(path, {"enabled": not enabled}), path)
-    assert json.loads(changed.body)["requires_restart"] is True
-    reverted = await router.dispatch(None, _mutation_request(path, {"enabled": enabled}), path)
-    assert json.loads(reverted.body)["requires_restart"] is False
-    assert json.loads(reverted.body)["restart_required_sections"] == []
+    payload = json.loads(changed.body)
+    assert payload["requires_restart"] is True
+    assert payload["restart_required_sections"] == ["image"]
 
 
 @pytest.mark.asyncio

@@ -37,6 +37,9 @@ class WidgetRunner:
     def __init__(self, *, sandbox: str = "") -> None:
         self._sandbox = sandbox.strip()
 
+    def set_sandbox(self, sandbox: str) -> None:
+        self._sandbox = sandbox.strip()
+
     async def run(
         self,
         definition: WidgetDefinition,

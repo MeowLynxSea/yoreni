@@ -758,7 +758,7 @@ def test_generic_plugin_validation_enforces_composite_requirements(
 
 def test_webui_save_rejects_duplicate_feishu_ids_without_writing(monkeypatch, tmp_path):
     from yoreni.config import loader
-    from yoreni.webui.settings_api import WebUISettingsError
+    from yoreni.webui.settings_contracts import WebUISettingsError
     from yoreni.webui.settings_routes import WebUISettingsRouter
     from yoreni.webui.settings_services import WebUISettingsServices
 
@@ -2646,10 +2646,8 @@ def test_optional_dependency_metadata_for_enable():
 
     assert "boto3>=1.43.0" not in data["project"]["dependencies"]
     assert deps["bedrock"] == ["boto3>=1.43.0", "botocore>=1.43.0,<2.0.0"]
-    # The built-in remote WebUI proxy now needs aiohttp even without channels.
-    # Keep the historical API extra installable for existing deployment commands.
+    # The built-in remote WebUI proxy needs aiohttp even without channels.
     assert "aiohttp>=3.14.3,<4.0.0" in required
-    assert deps["api"] == ["aiohttp>=3.9.0,<4.0.0"]
     for dep_name in (
         "dingtalk-stream",
         "lark-oapi",

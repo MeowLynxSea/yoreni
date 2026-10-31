@@ -56,7 +56,7 @@ RULES = (
       "yoreni/webui/workspaces.py", "yoreni/webui/skills_api.py",
       "yoreni/webui/cli_apps_api.py", "yoreni/webui/mcp_presets_api.py",
       "yoreni/webui/recovery.py", "yoreni/webui/forking.py", "yoreni/session/*", "yoreni/events.py",
-      "yoreni/bus/events.py", "yoreni/api/*", "yoreni/channels/websocket/*.py"),
+      "yoreni/bus/events.py", "yoreni/channels/websocket/*.py"),
      PYTHON | WEBUI, "shared backend client protocol, transport or session representation"),
     (("yoreni/webui/*",), PYTHON | WEBUI, "WebUI backend"),
     (("yoreni/bun.py",

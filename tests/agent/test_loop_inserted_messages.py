@@ -11,7 +11,9 @@ from yoreni.agent.state import AgentInput
 from yoreni.bus.events import INBOUND_META_TURN_ID, InboundMessage
 
 
-def _active_turn(loop, chat_id: str = "yoreni") -> tuple[str, TurnInjections]:
+def _active_turn(
+    loop, chat_id: str = "yoreni", scope: str = "global",
+) -> tuple[str, TurnInjections]:
     store = loop.agent.store
     run_id = store.admit(AgentInput(
         source="websocket", content="start", principal="owner", event_id="msg-1",
@@ -19,14 +21,21 @@ def _active_turn(loop, chat_id: str = "yoreni") -> tuple[str, TurnInjections]:
     ))
     store.start(run_id, [])
     inbox = TurnInjections()
-    loop._interactions[("websocket", chat_id)] = _Interaction(run_id, "websocket", chat_id, inbox)
+    loop._interactions[("websocket", chat_id, scope)] = _Interaction(
+        run_id, "websocket", chat_id, inbox,
+    )
     return run_id, inbox
 
 
-def _message(content: str, *, event_id: str, chat_id: str = "yoreni") -> InboundMessage:
+def _message(
+    content: str, *, event_id: str, chat_id: str = "yoreni", project_id: str | None = None,
+) -> InboundMessage:
+    metadata = {INBOUND_META_TURN_ID: event_id}
+    if project_id is not None:
+        metadata["project_id"] = project_id
     return InboundMessage(
         "websocket", "owner", chat_id, content,
-        metadata={INBOUND_META_TURN_ID: event_id},
+        metadata=metadata,
     )
 
 
@@ -53,6 +62,20 @@ async def test_message_for_another_chat_starts_its_own_run(tmp_path) -> None:
 
     event = loop.agent.input_from_message(_message("other chat", event_id="msg-3", chat_id="elsewhere"))
     accepted = await loop._insert_message(event, _message("other chat", event_id="msg-3", chat_id="elsewhere"))
+
+    assert accepted is None
+    assert inbox.pending.empty()
+    assert loop.agent.store.webui_history()[-1]["id"] == run_id
+
+
+@pytest.mark.asyncio
+async def test_project_message_does_not_join_the_main_turn(tmp_path) -> None:
+    loop = make_loop(tmp_path)
+    project = loop.projects.create(name="Yororen")
+    run_id, inbox = _active_turn(loop)
+
+    sent = _message("project work", event_id="msg-5", project_id=project.id)
+    accepted = await loop._insert_message(loop.agent.input_from_message(sent), sent)
 
     assert accepted is None
     assert inbox.pending.empty()

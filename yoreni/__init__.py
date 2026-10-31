@@ -47,7 +47,7 @@ def _resolve_version() -> str:
         return _pkg_version("yoreni")
     except PackageNotFoundError:
         # Source checkouts often import yoreni without installed dist-info.
-        return _read_pyproject_version() or "0.4.0"
+        return _read_pyproject_version() or "0.1.0"
 
 
 __version__ = _resolve_version()

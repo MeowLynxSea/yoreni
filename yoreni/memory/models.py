@@ -607,6 +607,8 @@ class Evidence:
     created_at: str = ""
     tool_name: str | None = None
     suppressed: bool = False
+    # Conversation that produced it: ``global`` or ``project:<id>``.
+    scope: str = "global"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -622,6 +624,7 @@ class Evidence:
             "observed_at": self.observed_at,
             "tool_name": self.tool_name,
             "suppressed": self.suppressed,
+            "scope": self.scope,
         }
 
 @dataclass(frozen=True, slots=True)

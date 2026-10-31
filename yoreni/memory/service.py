@@ -143,6 +143,7 @@ class MemoryService:
         messages: Sequence[dict[str, Any]],
         *,
         observed_at: str | None = None,
+        scope: str = "global",
     ) -> RunEvidenceSummary:
         """Persist a completed Run's evidence and queue fact extraction.
 
@@ -153,6 +154,7 @@ class MemoryService:
             run_id, messages, observed_at=observed_at,
             multimodal=self.multimodal_embeddings,
             media_dir=self.evidence_media_dir,
+            scope=normalize_scope(scope),
         )
         self._reuse_tool_evidence(run_id, evidence)
         self.store.insert_evidence(evidence)
@@ -172,6 +174,7 @@ class MemoryService:
         content: str | Sequence[Any],
         *,
         observed_at: str | None = None,
+        scope: str = "global",
     ) -> str | None:
         """Persist one tool result while the Run is still active.
 
@@ -207,6 +210,7 @@ class MemoryService:
             observed_at=observed_at or utc_now(),
             created_at=utc_now(),
             tool_name=tool_name or None,
+            scope=normalize_scope(scope),
         )
         self.store.insert_evidence([item])
         return item.id
@@ -513,6 +517,7 @@ class MemoryService:
         fact_id: str | None = None,
         query: str | None = None,
         limit: int = 5,
+        scope: str | None = None,
     ) -> dict[str, Any]:
         """Delete matching facts, their indexes and their source text."""
         del run_id  # The request is already durable as the Run's evidence.
@@ -527,6 +532,7 @@ class MemoryService:
         elif query:
             hits = await self.search(
                 query,
+                scope=scope,
                 statuses=(FactStatus.ACTIVE, FactStatus.DISPUTED, FactStatus.DORMANT),
                 limit=limit,
             )
@@ -569,6 +575,38 @@ class MemoryService:
                 "may contain earlier source text; delete that directory to remove them."
             ),
         }
+
+    def delete_project_scope(
+        self, scope: str, *, run_ids: Sequence[str] = (),
+    ) -> dict[str, Any]:
+        """Remove one project's own knowledge, keeping global memory intact.
+
+        Only facts filed under the project scope are deleted. Evidence cited by
+        a surviving global fact is kept so a promoted fact stays verifiable;
+        the rest of the deleted Runs' evidence leaves with the project. Core
+        memory is scrubbed with the same semantics as an explicit forget.
+        """
+        if normalize_scope(scope) == "global":
+            raise MemoryError("global memory cannot be deleted as a project scope")
+        texts: list[str] = []
+        deleted: list[str] = []
+        for fact_id in self.store.facts_in_scope(normalize_scope(scope)):
+            fact = self.store.fact(fact_id)
+            if fact is None:
+                continue
+            texts.append(fact.text)
+            deleted.extend(version.id for version in self.store.versions_for(fact))
+            self.store.delete_fact(fact_id, purge_evidence=False)
+        core_changed: list[str] = []
+        for text in texts:
+            core_changed.extend(self.core.scrub(text))
+        if core_changed:
+            try:
+                self.git.auto_commit(f"memory: delete project scope {scope}")
+            except GitStoreError as exc:
+                logger.error("project deletion removed facts but core commit failed: {}", exc)
+        evidence = self.store.purge_run_evidence(list(run_ids))
+        return {"facts": len(deleted), "evidence": evidence, "core_files": sorted(set(core_changed))}
 
     def fact_detail(self, fact_id: str) -> dict[str, Any] | None:
         return self.retriever.fact_detail(fact_id)
@@ -678,6 +716,7 @@ def build_run_evidence(
     observed_at: str | None = None,
     multimodal: bool = False,
     media_dir: Path | None = None,
+    scope: str = "global",
 ) -> list[Evidence]:
     """Convert a Run transcript into durable, deterministically identified evidence."""
     timestamp = observed_at or utc_now()
@@ -735,6 +774,7 @@ def build_run_evidence(
             observed_at=timestamp,
             created_at=created,
             tool_name=tool_name,
+            scope=scope,
         ))
     return evidence
 

@@ -200,11 +200,14 @@ class DreamConsolidator:
         ]
         if not rows and not disputed:
             return None
+        # Core memory is shared by every project, so a project's own knowledge
+        # never reaches consolidation. Its cursor still advances past those
+        # rows: they are project knowledge, not a backlog waiting to be promoted.
         return DreamBatch(
             cursor_from=cursor,
             cursor_to=rows[-1][0] if rows else cursor,
-            facts=tuple(fact for _rowid, fact in rows),
-            disputed=tuple(disputed),
+            facts=tuple(fact for _rowid, fact in rows if fact.scope == "global"),
+            disputed=tuple(fact for fact in disputed if fact.scope == "global"),
         )
 
     # -- proposal ------------------------------------------------------------

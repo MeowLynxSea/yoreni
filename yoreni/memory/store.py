@@ -15,7 +15,7 @@ import struct
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Generator, Iterable, cast
+from typing import Any, Generator, Iterable, Sequence, cast
 from uuid import uuid4
 
 from yoreni.memory.models import (
@@ -41,7 +41,7 @@ from yoreni.memory.models import (
     utc_now,
 )
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS memory_meta (
@@ -62,9 +62,11 @@ CREATE TABLE IF NOT EXISTS evidence (
     trust TEXT NOT NULL,
     observed_at TEXT,
     suppressed INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    scope TEXT NOT NULL DEFAULT 'global'
 );
 CREATE INDEX IF NOT EXISTS evidence_run ON evidence(run_id);
+CREATE INDEX IF NOT EXISTS evidence_scope ON evidence(scope, run_id);
 
 CREATE TABLE IF NOT EXISTS facts (
     id TEXT PRIMARY KEY,
@@ -244,6 +246,28 @@ class FactStore:
                 "INSERT OR IGNORE INTO memory_meta(key,value) VALUES('schema_version',?)",
                 (str(SCHEMA_VERSION),),
             )
+        elif version < SCHEMA_VERSION:
+            self._migrate(db, version)
+            db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
+            db.execute(
+                "UPDATE memory_meta SET value=? WHERE key='schema_version'",
+                (str(SCHEMA_VERSION),),
+            )
+
+    @staticmethod
+    def _migrate(db: sqlite3.Connection, version: int) -> None:
+        """Bring an existing database forward without rewriting its facts."""
+        if version < 2:
+            columns = {
+                str(row["name"]) for row in db.execute("PRAGMA table_info(evidence)").fetchall()
+            }
+            if "scope" not in columns:
+                db.execute(
+                    "ALTER TABLE evidence ADD COLUMN scope TEXT NOT NULL DEFAULT 'global'"
+                )
+            db.execute(
+                "CREATE INDEX IF NOT EXISTS evidence_scope ON evidence(scope, run_id)"
+            )
 
     # -- meta ---------------------------------------------------------------
 
@@ -277,13 +301,13 @@ class FactStore:
                 cursor = db.execute(
                     """INSERT OR IGNORE INTO evidence(
                            id,run_id,event_seq,kind,role,tool_name,content,
-                           content_hash,source_type,trust,observed_at,created_at
-                       ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                           content_hash,source_type,trust,observed_at,created_at,scope
+                       ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         item.id, item.run_id, item.event_seq, item.kind.value,
                         item.role, item.tool_name, item.content, item.content_hash,
                         item.source_type.value, item.trust.value, item.observed_at,
-                        utc_now(),
+                        utc_now(), item.scope,
                     ),
                 )
                 if int(cursor.rowcount or 0) == 0:
@@ -334,14 +358,23 @@ class FactStore:
             )
         return int(cursor.rowcount or 0)
 
-    def search_evidence(self, match: str, limit: int) -> list[Evidence]:
+    def search_evidence(
+        self, match: str, limit: int, *, scope: str | None = None,
+    ) -> list[Evidence]:
+        """Search stored observations, optionally within one conversation.
+
+        A project search sees its own episodes and shared global ones, never
+        another project's conversation.
+        """
+        condition = " AND (evidence.scope=? OR evidence.scope='global')" if scope else ""
+        params: tuple[Any, ...] = (match, scope, limit) if scope else (match, limit)
         with self.connection() as db:
             rows = db.execute(
-                """SELECT evidence.* FROM evidence_fts
+                f"""SELECT evidence.* FROM evidence_fts
                    JOIN evidence ON evidence.id=evidence_fts.evidence_id
-                   WHERE evidence_fts MATCH ? AND evidence.suppressed=0
+                   WHERE evidence_fts MATCH ? AND evidence.suppressed=0{condition}
                    ORDER BY bm25(evidence_fts) LIMIT ?""",
-                (match, limit),
+                params,
             ).fetchall()
         return [self._evidence_from_row(row) for row in rows]
 
@@ -361,6 +394,7 @@ class FactStore:
             created_at=str(row["created_at"]),
             tool_name=row["tool_name"],
             suppressed=bool(row["suppressed"]),
+            scope=str(row["scope"] or "global"),
         )
 
     # -- facts --------------------------------------------------------------
@@ -700,6 +734,47 @@ class FactStore:
                 db.execute("DELETE FROM evidence_fts WHERE evidence_id=?", (evidence_id,))
                 purged.append(evidence_id)
         return sorted(purged)
+
+    def facts_in_scope(self, scope: str) -> list[str]:
+        """Return every stored fact ID filed under one non-global scope."""
+        with self.connection() as db:
+            return [
+                str(row["id"])
+                for row in db.execute("SELECT id FROM facts WHERE scope=? ORDER BY id", (scope,)).fetchall()
+            ]
+
+    def purge_run_evidence(self, run_ids: Sequence[str]) -> int:
+        """Delete evidence and pending extraction for Runs that no longer exist.
+
+        Evidence still cited by a surviving fact is kept: a fact promoted to
+        global memory must stay verifiable after its source project is gone.
+        """
+        ids = list(dict.fromkeys(run_ids))
+        removed = 0
+        if not ids:
+            return 0
+        with self.transaction() as db:
+            for start in range(0, len(ids), 500):
+                chunk = ids[start:start + 500]
+                placeholders = ",".join("?" for _ in chunk)
+                rows = db.execute(
+                    f"SELECT id FROM evidence WHERE run_id IN ({placeholders})", chunk,
+                ).fetchall()
+                for row in rows:
+                    evidence_id = str(row["id"])
+                    cited = db.execute(
+                        "SELECT 1 FROM fact_sources WHERE evidence_id=? LIMIT 1",
+                        (evidence_id,),
+                    ).fetchone()
+                    if cited is not None:
+                        continue
+                    db.execute("DELETE FROM evidence WHERE id=?", (evidence_id,))
+                    db.execute("DELETE FROM evidence_fts WHERE evidence_id=?", (evidence_id,))
+                    removed += 1
+                db.execute(
+                    f"DELETE FROM memory_jobs WHERE run_id IN ({placeholders})", chunk,
+                )
+        return removed
 
     def _drop_indexes(self, db: sqlite3.Connection, fact_id: str) -> None:
         db.execute("DELETE FROM facts_fts WHERE fact_id=?", (fact_id,))

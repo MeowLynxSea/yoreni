@@ -55,7 +55,7 @@ describe("Settings system domains", () => {
 
   it("asks before leaving with pending changes and lets the user restart later", () => {
     const leave = vi.fn();
-    renderSettingsView({ initialSection: "runtime", initialSettings: {
+    renderSettingsView({ initialSection: "advanced", initialSettings: {
       ...settingsPayload(), requires_restart: true, restart_required_sections: ["runtime"],
     }, onBackToChat: leave });
     fireEvent.click(screen.getByRole("button", { name: "Back to chat" }));
@@ -72,7 +72,7 @@ describe("Settings system domains", () => {
 
   it("restarts from the exit prompt", () => {
     const restart = vi.fn();
-    renderSettingsView({ initialSection: "runtime", initialSettings: {
+    renderSettingsView({ initialSection: "advanced", initialSettings: {
       ...settingsPayload(), requires_restart: true,
     }, onRestart: restart });
     fireEvent.click(screen.getByRole("button", { name: "Back to chat" }));
@@ -82,14 +82,14 @@ describe("Settings system domains", () => {
 
   it("leaves directly when no restart is pending", () => {
     const leave = vi.fn();
-    renderSettingsView({ initialSection: "runtime", initialSettings: settingsPayload(), onBackToChat: leave });
+    renderSettingsView({ initialSection: "advanced", initialSettings: settingsPayload(), onBackToChat: leave });
     fireEvent.click(screen.getByRole("button", { name: "Back to chat" }));
     expect(leave).toHaveBeenCalledTimes(1);
   });
 
   it("keeps one restart action and pending notice in the sidebar across settings pages", async () => {
     renderSettingsView({
-      initialSection: "runtime",
+      initialSection: "advanced",
       initialSettings: {
         ...settingsPayload(),
         requires_restart: true,
@@ -98,7 +98,7 @@ describe("Settings system domains", () => {
     });
     const sidebar = screen.getByRole("complementary");
     const restart = within(sidebar).getByRole("button", { name: "Restart" });
-    for (const section of ["Capabilities", "Models", "Advanced", "System"]) {
+    for (const section of ["Capabilities", "Models", "Advanced"]) {
       fireEvent.click(within(sidebar).getByRole("button", { name: section }));
       await waitFor(() => {
         expect(screen.getAllByRole("button", { name: "Restart" })).toEqual([restart]);
@@ -517,7 +517,7 @@ describe("Settings system domains", () => {
       managed: true,
     });
 
-    renderSettingsView({ initialSection: "runtime", initialSettings: base, showSidebar: true });
+    renderSettingsView({ initialSection: "advanced", initialSettings: base, showSidebar: true });
 
     const startButton = await screen.findByRole("button", { name: "Start API server" });
     await waitFor(() => expect(startButton).toBeEnabled());

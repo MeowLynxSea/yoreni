@@ -169,7 +169,7 @@ export function SettingsPage({
   }, []);
   const selectSection = (section: SettingsSectionKey) => {
     const owners = editOwners.get(isCapabilitySection(activeSection) ? "capabilities" : activeSection) ?? [];
-    const channel = activeSection === "channels" ? channelCompletion.current : null;
+    const channel = channelCompletion.current;
     if (!channel && !owners.some((edits) => edits.needsCompletion())) {
       selectSectionNow(section);
       return;
@@ -225,6 +225,56 @@ export function SettingsPage({
     </RuntimeConfigSettings>
   );
 
+  const channelsSettings = () => (
+    <ChannelsSettings
+      onBeforeCloseChange={registerChannelCompletion}
+      onConfigureMcp={(name) => {
+        setMcpSetupName(name);
+        systemState.setAppsKindFilter("mcp");
+        systemState.setAppsQuery(name);
+        selectSection("apps");
+      }}
+      token={token}
+      yoreniFeatures={systemState.yoreniFeatures}
+      loading={systemState.yoreniFeaturesLoading}
+      actionKey={systemState.yoreniFeatureAction}
+      chatAppsDocsUrl={settings?.docs?.chat_apps_url}
+      showBrandLogos={localPrefs.brandLogos}
+      error={systemState.yoreniFeaturesError}
+      requiresRestartPending={pendingRestartSections.runtime}
+      onAction={systemActions.handleYoreniFeatureAction}
+      onFeaturesUpdate={systemState.setYoreniFeatures}
+      onDismissStatus={() => {
+        systemState.setYoreniFeaturesError(null);
+      }}
+      onRestart={restartViaSettingsSurface}
+      isRestarting={restartInProgress}
+    />
+  );
+
+  const advancedSettings = () => (
+    <div className="settings-stack">
+      {runtimeConfiguration("advanced")}
+      <RuntimeSettings
+        form={modelState.form}
+        settings={settings!}
+        onRestart={showSidebar ? undefined : restartViaSettingsSurface}
+        isRestarting={restartInProgress}
+        requiresRestartPending={pendingRestartSections.runtime}
+        apiService={systemState.apiService}
+        apiServiceLoading={systemState.apiServiceLoading}
+        apiServiceAction={systemState.apiServiceAction}
+        apiServiceError={systemState.apiServiceError}
+        langfuseFeature={featureCatalog.find((feature) => feature.name === "langfuse")}
+        capabilitiesLoading={systemState.yoreniFeaturesLoading}
+        capabilityAction={systemState.yoreniFeatureAction}
+        capabilityError={systemState.yoreniFeaturesError}
+        onApiServiceAction={systemActions.handleApiServiceAction}
+        onInstallCapability={(name) => void systemActions.installCapabilities([name])}
+      />
+    </div>
+  );
+
   const renderSettingsSection = (section: SettingsSectionKey, embedded = false): ReactNode => {
     if (!settings) return null;
     switch (section) {
@@ -235,6 +285,7 @@ export function SettingsPage({
           if (field) state.change(field, enabled);
         };
         return (
+          <>
           <section className="settings-stack">
             <div className="settings-section-heading empty:hidden">
               {showSidebar ? <SettingsSectionTitle>{t("settings.nav.capabilities")}</SettingsSectionTitle> : null}
@@ -273,6 +324,12 @@ export function SettingsPage({
             </SettingsFeature>
             {!settings.runtime_config ? <p className="settings-list-inset text-[13px] text-muted-foreground">{t("settings.runtimeConfig.unavailable")}</p> : null}
           </section>
+          <WidgetsSettings />
+          <section className="settings-stack">
+            <SettingsSectionTitle>{t("settings.nav.channels")}</SettingsSectionTitle>
+            {channelsSettings()}
+          </section>
+        </>
         );
       }
       case "profile":
@@ -473,28 +530,8 @@ export function SettingsPage({
           </div>
         );
       case "runtime":
-        return (
-          <div className="settings-stack">
-            {runtimeConfiguration("runtime")}
-            <RuntimeSettings
-              form={modelState.form}
-              settings={settings}
-              onRestart={showSidebar ? undefined : restartViaSettingsSurface}
-              isRestarting={restartInProgress}
-              requiresRestartPending={pendingRestartSections.runtime}
-              apiService={systemState.apiService}
-              apiServiceLoading={systemState.apiServiceLoading}
-              apiServiceAction={systemState.apiServiceAction}
-              apiServiceError={systemState.apiServiceError}
-              langfuseFeature={featureCatalog.find((feature) => feature.name === "langfuse")}
-              capabilitiesLoading={systemState.yoreniFeaturesLoading}
-              capabilityAction={systemState.yoreniFeatureAction}
-              capabilityError={systemState.yoreniFeaturesError}
-              onApiServiceAction={systemActions.handleApiServiceAction}
-              onInstallCapability={(name) => void systemActions.installCapabilities([name])}
-            />
-          </div>
-        );
+      case "advanced":
+        return advancedSettings();
       case "memory":
         return (
           <div className="settings-stack">
@@ -516,8 +553,6 @@ export function SettingsPage({
             </MemorySettings>
           </div>
         );
-      case "advanced":
-        return runtimeConfiguration("advanced");
       default:
         return null;
     }
@@ -531,32 +566,7 @@ export function SettingsPage({
         return <AppearanceSettings themePreference={themePreference} onChangeTheme={onChangeTheme}
           localPrefs={localPrefs} onChangeLocalPrefs={setLocalPrefs} />;
       case "channels":
-        return (
-          <ChannelsSettings
-            onBeforeCloseChange={registerChannelCompletion}
-            onConfigureMcp={(name) => {
-              setMcpSetupName(name);
-              systemState.setAppsKindFilter("mcp");
-              systemState.setAppsQuery(name);
-              selectSection("apps");
-            }}
-            token={token}
-            yoreniFeatures={systemState.yoreniFeatures}
-            loading={systemState.yoreniFeaturesLoading}
-            actionKey={systemState.yoreniFeatureAction}
-            chatAppsDocsUrl={settings?.docs?.chat_apps_url}
-            showBrandLogos={localPrefs.brandLogos}
-            error={systemState.yoreniFeaturesError}
-            requiresRestartPending={pendingRestartSections.runtime}
-            onAction={systemActions.handleYoreniFeatureAction}
-            onFeaturesUpdate={systemState.setYoreniFeatures}
-            onDismissStatus={() => {
-              systemState.setYoreniFeaturesError(null);
-            }}
-            onRestart={restartViaSettingsSurface}
-            isRestarting={restartInProgress}
-          />
-        );
+        return channelsSettings();
       case "apps":
         return (
           <div className="settings-stack">

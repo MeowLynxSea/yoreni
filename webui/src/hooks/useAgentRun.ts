@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { AgentFrame } from "@/lib/yoreni-client";
+import { notificationAppUrl, showBrowserNotification } from "@/lib/browser-notifications";
 import { toMediaAttachment } from "@/lib/media";
+import { playMessageSound } from "@/lib/notification-sound";
 import type { ToolProgressEvent, UIMessage, UIMediaWireAttachment } from "@/lib/types";
 import { fetchPersonalAgent, type AgentHistoryRun } from "@/lib/api";
 import { useClient } from "@/providers/ClientProvider";
@@ -240,11 +243,13 @@ export function projectAgentFrame(messages: UIMessage[], frame: AgentFrame): UIM
 
 export function useAgentRun() {
   const { client, getToken } = useClient();
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [activeRuns, setActiveRuns] = useState<Map<string, string>>(new Map());
   const [activityByRun, setActivityByRun] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const notifiedMessageIds = useRef(new Set<string>());
   // The oldest event sequence the client holds; older pages load from here.
   const oldestSeq = useRef<number | null>(null);
   const olderExhausted = useRef(false);
@@ -284,6 +289,13 @@ export function useAgentRun() {
   }, [getToken]);
   useEffect(() => client.onEvent((frame) => {
     setMessages((current) => projectAgentFrame(current, frame));
+    if (frame.event === "message" && frame.id && frame.kind === undefined
+      && !notifiedMessageIds.current.has(frame.id)) {
+      notifiedMessageIds.current.add(frame.id);
+      playMessageSound();
+      const body = (frame.text ?? "").trim().slice(0, 300) || t("settings.notifications.newMessage");
+      void showBrowserNotification(body, { key: frame.id, url: notificationAppUrl() });
+    }
     const run = runKey(frame);
     if (frame.event === "message") {
       const reason = latestToolReason(frame.tool_events);
@@ -312,7 +324,7 @@ export function useAgentRun() {
     }
     if (frame.event === "error") setError(frame.message ?? (typeof frame.error === "string" ? frame.error : frame.error?.message) ?? "Request failed");
     if (frame.event === "turn_end") void refreshHistory().catch(() => {});
-  }), [client, refreshHistory]);
+  }), [client, refreshHistory, t]);
   useEffect(() => {
     const offReady = client.onReady(() => { void refreshHistory().catch(() => {}); });
     void refreshHistory().catch(() => {});

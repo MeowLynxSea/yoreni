@@ -118,7 +118,6 @@ export function settingsPayload(): SettingsPayload {
     advanced: {
       restrict_to_workspace: false,
       webui_allow_local_service_access: true,
-      webui_default_access_mode: "default",
       private_service_protection_enabled: true,
       ssrf_whitelist_count: 0,
       mcp_server_count: 0,
@@ -166,6 +165,8 @@ export function renderSettingsView(options: SettingsViewTestOptions = {}) {
         handler("open");
         return () => {};
       },
+      onEvent: () => () => {},
+      onReady: () => () => {},
     } as never} token="tok">
       <SettingsView
         themePreference={options.themePreference ?? "light"}

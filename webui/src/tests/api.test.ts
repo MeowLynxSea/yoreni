@@ -648,14 +648,12 @@ describe("webui API helpers", () => {
   it("serializes network safety settings updates", async () => {
     await updateNetworkSafetySettings(mutationTransport, {
       webuiAllowLocalServiceAccess: false,
-      webuiDefaultAccessMode: "full",
     });
 
     expect(requestMutation).toHaveBeenCalledWith(
       "settings.network_safety.update",
       {
         webui_allow_local_service_access: false,
-        webui_default_access_mode: "full",
       },
       20_000,
     );
@@ -921,7 +919,6 @@ describe("webui API helpers", () => {
   it("fetches workspace project state", async () => {
     const payload = {
       schema_version: 1,
-      default_access_mode: "default" as const,
       default_scope: {
         project_path: "/tmp/workspace",
         project_name: "workspace",

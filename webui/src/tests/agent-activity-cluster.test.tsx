@@ -100,18 +100,14 @@ function installReducedMotion() {
 describe("AgentActivityCluster", () => {
   afterEach(() => { localStorage.removeItem(LOCAL_PREFS_STORAGE_KEY); });
 
-  it("honors the activity preference for standalone completed activity with manual overrides", () => {
+  it("honors manual disclosure overrides for completed activity", () => {
     render(<AgentActivityCluster messages={activityMessages()} isTurnStreaming={false} hasBodyBelow={false} />);
     const disclosure = screen.getByRole("button", { name: /Worked/ });
     expect(disclosure).toHaveAttribute("aria-expanded", "false");
-    act(() => { writeLocalPreferences({ ...DEFAULT_LOCAL_PREFS, activityMode: "expanded" }); });
+    fireEvent.click(disclosure);
     expect(disclosure).toHaveAttribute("aria-expanded", "true");
     fireEvent.click(disclosure);
     expect(disclosure).toHaveAttribute("aria-expanded", "false");
-    act(() => { writeLocalPreferences(DEFAULT_LOCAL_PREFS); });
-    expect(disclosure).toHaveAttribute("aria-expanded", "false");
-    act(() => { writeLocalPreferences({ ...DEFAULT_LOCAL_PREFS, activityMode: "expanded" }); });
-    expect(disclosure).toHaveAttribute("aria-expanded", "true");
   });
   it("updates existing activity when the language changes without altering raw values", async () => {
     const query = "release notes";

@@ -389,7 +389,6 @@ export interface UIFileEdit {
 }
 
 export type WorkspaceAccessMode = "restricted" | "full";
-export type WebuiDefaultAccessMode = "default" | "full";
 
 export interface WorkspaceScopePayload {
   project_path: string;
@@ -424,7 +423,6 @@ export interface WorkspaceDirectoriesPayload {
 
 export interface WorkspacesPayload {
   schema_version: number;
-  default_access_mode: WebuiDefaultAccessMode;
   default_scope: WorkspaceScopePayload;
   recent_projects?: ProjectDirectory[];
   favorite_projects?: ProjectDirectory[];
@@ -906,7 +904,6 @@ export interface SettingsPayload {
     ssrf_whitelist_count: number;
     webui_allow_local_service_access: boolean;
     allow_local_preview_access?: boolean;
-    webui_default_access_mode: WebuiDefaultAccessMode;
     private_service_protection_enabled: boolean;
     mcp_server_count: number;
     exec_enabled: boolean;
@@ -1355,7 +1352,6 @@ export interface WebSearchSettingsUpdate {
 
 export interface NetworkSafetySettingsUpdate {
   webuiAllowLocalServiceAccess: boolean;
-  webuiDefaultAccessMode: WebuiDefaultAccessMode;
 }
 
 export interface ImageGenerationSettingsUpdate {

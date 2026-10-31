@@ -2,6 +2,7 @@ import { Component, lazy, Suspense, useContext, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { CodeBlock } from "@/components/CodeBlock";
+import { useLocalPreferences } from "@/hooks/useLocalPreferences";
 import { MarkdownCodeContext } from "./context";
 
 const MermaidBlock = lazy(() => import("./MermaidBlock"));
@@ -14,8 +15,10 @@ class DiagramBoundary extends Component<{ children: ReactNode; fallback: ReactNo
 
 export function MarkdownCodeBlock({ code, language }: { code: string; language?: string }) {
   const { t } = useTranslation();
+  const { codeWrap } = useLocalPreferences();
   const { streaming, highlight } = useContext(MarkdownCodeContext);
-  const source = <CodeBlock language={language || "text"} code={code} className="my-3" highlight={highlight} showLineNumbers={code.includes("\n")} />;
+  const source = <CodeBlock language={language || "text"} code={code} className="my-3" highlight={highlight}
+    showLineNumbers={code.includes("\n")} wrapLongLines={codeWrap} />;
   if (language?.toLowerCase() !== "mermaid") return source;
   const preparing = <div aria-busy={streaming}>{source}</div>;
   if (streaming) return preparing;

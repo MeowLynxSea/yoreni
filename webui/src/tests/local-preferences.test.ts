@@ -30,7 +30,6 @@ describe("local preferences", () => {
     localStorage.setItem(LOCAL_PREFS_STORAGE_KEY, JSON.stringify({
       schemaVersion: 1,
       readingTextSize,
-      activityMode: "expanded",
       codeWrap: false,
       brandLogos: false,
       notificationSound: true,
@@ -39,7 +38,6 @@ describe("local preferences", () => {
     expect(readLocalPreferences()).toEqual({
       ...DEFAULT_LOCAL_PREFS,
       readingTextSize: "standard",
-      activityMode: "expanded",
       codeWrap: false,
       brandLogos: false,
       notificationSound: true,

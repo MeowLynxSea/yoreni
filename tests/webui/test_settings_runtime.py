@@ -76,7 +76,6 @@ def test_runtime_patch_persists_and_preserves_other_domains(tmp_path):
     {"agents.defaults.workspace": "/not-editable-from-settings"},
     {"providers.openai.api_key": "bad"},
     {"tools.exec": {"enable": False}},
-    {"agents.defaults.max_concurrent_subagents": 0},
     {"agents.defaults.max_tool_iterations": True},
     {"tools.exec.timeout": -1},
     {"tools.exec.timeout": 86401},

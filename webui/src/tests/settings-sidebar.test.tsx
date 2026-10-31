@@ -123,9 +123,9 @@ describe("Settings navigation on mobile", () => {
       { keys: "[TouchA>]", target }, { keys: "[/TouchA]", target },
     ]);
     await tap(screen.getByRole("button", { name: "Settings: Models" }));
-    await tap(screen.getByRole("menuitem", { name: "System" }));
+    await tap(screen.getByRole("menuitem", { name: "Advanced" }));
     await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Settings: System" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Settings: Advanced" })).toBeVisible();
   });
 
   it("keeps manual restart in the menu and closes it on selection", async () => {

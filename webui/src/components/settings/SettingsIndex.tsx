@@ -1,4 +1,4 @@
-import { Bell, ChevronRight, LayoutGrid, LogOut, UserRound } from "lucide-react";
+import { Bell, ChevronRight, LogOut, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LucideIcon } from "lucide-react";
 
@@ -7,10 +7,8 @@ import {
   AdvancedIcon,
   AppearanceIcon,
   CapabilitiesIcon,
-  ChannelsIcon,
   ModelsIcon,
   OverviewIcon,
-  SystemIcon,
 } from "@/components/icons/product-icons";
 import type { SettingsSectionKey } from "@/components/settings/contracts";
 
@@ -21,14 +19,11 @@ const SETTINGS_GROUPS: SettingsEntry[][] = [
     { key: "overview", icon: OverviewIcon },
     { key: "profile", icon: UserRound },
     { key: "appearance", icon: AppearanceIcon },
-    { key: "widgets", icon: LayoutGrid },
     { key: "notifications", icon: Bell },
     { key: "models", icon: ModelsIcon },
   ],
   [
     { key: "capabilities", icon: CapabilitiesIcon },
-    { key: "channels", icon: ChannelsIcon },
-    { key: "runtime", icon: SystemIcon },
     { key: "advanced", icon: AdvancedIcon },
     { key: "about", icon: AboutIcon },
   ],

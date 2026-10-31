@@ -29,7 +29,7 @@ const rounds: ComposerRoundUsage[] = [
 
 const projectScope: WorkspaceScopePayload = { project_path: "D:\\Projects\\yoreni", project_name: "yoreni", access_mode: "restricted" };
 const workspaceCatalog: WorkspacesPayload = {
-  schema_version: 1, default_access_mode: "default", default_scope: projectScope,
+  schema_version: 1, default_scope: projectScope,
   recent_projects: [{ name: "yoreni", path: projectScope.project_path }, { name: "design-system", path: "D:\\Projects\\design-system" }],
   favorite_projects: [{ name: "yoreni", path: projectScope.project_path }],
   controls: { can_change_project: true },

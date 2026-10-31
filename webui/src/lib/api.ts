@@ -956,7 +956,6 @@ export async function updateNetworkSafetySettings(
     "settings.network_safety.update",
     {
       webui_allow_local_service_access: update.webuiAllowLocalServiceAccess,
-      webui_default_access_mode: update.webuiDefaultAccessMode,
     },
   );
 }

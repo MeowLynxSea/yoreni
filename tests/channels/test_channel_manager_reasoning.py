@@ -76,10 +76,6 @@ def manager(tmp_path) -> ChannelManager:
 
 def test_websocket_gateway_uses_configured_workspace_restriction(tmp_path, monkeypatch):
     monkeypatch.setattr("yoreni.config.paths.get_data_dir", lambda: tmp_path)
-    monkeypatch.setattr(
-        "yoreni.webui.workspaces.read_webui_default_access_mode",
-        lambda: "default",
-    )
     config = Config.model_validate(
         {
             "agents": {"defaults": {"workspace": str(tmp_path)}},

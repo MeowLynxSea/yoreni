@@ -24,8 +24,6 @@ from yoreni.security.workspace_access import (
 
 WEBUI_WORKSPACE_STATE_SCHEMA_VERSION = 1
 _MAX_STATE_FILE_BYTES = 128 * 1024
-_DEFAULT_ACCESS_MODES = {"default", "full"}
-_LEGACY_RESTRICTED_DEFAULT_ACCESS_MODE = "restricted"
 _WEBUI_SCOPE_CHANNEL = "websocket"
 _MAX_DRAFT_SCOPES = 128
 
@@ -45,7 +43,6 @@ def webui_workspace_state_path() -> Path:
 def default_webui_workspace_state() -> dict[str, Any]:
     return {
         "schema_version": WEBUI_WORKSPACE_STATE_SCHEMA_VERSION,
-        "default_access_mode": "default",
         "updated_at": None,
         "recent_projects": [],
         "favorite_projects": [],
@@ -59,9 +56,6 @@ def normalize_webui_workspace_state(raw: Any) -> dict[str, Any]:
     state = default_webui_workspace_state()
     updated_at = raw.get("updated_at")
     state["updated_at"] = updated_at if isinstance(updated_at, str) else None
-    default_access_mode = raw.get("default_access_mode")
-    if default_access_mode in _DEFAULT_ACCESS_MODES:
-        state["default_access_mode"] = default_access_mode
     for key, limit in (("recent_projects", 20), ("favorite_projects", 40)):
         paths = raw.get(key)
         if isinstance(paths, list):
@@ -131,39 +125,6 @@ def write_webui_workspace_state(raw: dict[str, Any]) -> dict[str, Any]:
     return state
 
 
-def read_webui_default_access_mode() -> str:
-    state = read_webui_workspace_state()
-    mode = state.get("default_access_mode")
-    return mode if mode in _DEFAULT_ACCESS_MODES else "default"
-
-
-def write_webui_default_access_mode(mode: str) -> bool:
-    if mode == _LEGACY_RESTRICTED_DEFAULT_ACCESS_MODE:
-        mode = "default"
-    if mode not in _DEFAULT_ACCESS_MODES:
-        raise ValueError("default access mode must be default or full")
-    state = read_webui_workspace_state()
-    changed = state.get("default_access_mode") != mode
-    if changed:
-        state["default_access_mode"] = mode
-        write_webui_workspace_state(state)
-    return changed
-
-
-def default_scope_for_webui(
-    default_workspace: Path,
-    default_restrict_to_workspace: bool,
-) -> WorkspaceScope:
-    mode = read_webui_default_access_mode()
-    if mode == "default":
-        return default_workspace_scope(
-            default_workspace,
-            default_restrict_to_workspace,
-            source_channel=_WEBUI_SCOPE_CHANNEL,
-        )
-    return build_workspace_scope(default_workspace, mode, source_channel=_WEBUI_SCOPE_CHANNEL)
-
-
 def workspaces_payload(
     *,
     default_workspace: Path,
@@ -171,19 +132,13 @@ def workspaces_payload(
     can_change_project: bool,
 ) -> dict[str, Any]:
     state = read_webui_workspace_state()
-    default_access_mode = state["default_access_mode"]
-    default_scope = (
-        default_workspace_scope(
-            default_workspace,
-            default_restrict_to_workspace,
-            source_channel=_WEBUI_SCOPE_CHANNEL,
-        )
-        if default_access_mode == "default"
-        else build_workspace_scope(default_workspace, default_access_mode, source_channel=_WEBUI_SCOPE_CHANNEL)
+    default_scope = default_workspace_scope(
+        default_workspace,
+        default_restrict_to_workspace,
+        source_channel=_WEBUI_SCOPE_CHANNEL,
     )
     return {
         "schema_version": WEBUI_WORKSPACE_STATE_SCHEMA_VERSION,
-        "default_access_mode": default_access_mode,
         "default_scope": default_scope.payload(),
         "host": {"name": socket.gethostname(), "platform": platform.system()},
         "favorite_projects": [
@@ -211,9 +166,10 @@ class WebUIWorkspaceController:
         self._default_restrict_to_workspace = default_restrict_to_workspace
 
     def default_scope(self) -> WorkspaceScope:
-        return default_scope_for_webui(
+        return default_workspace_scope(
             self._default_workspace,
             self._default_restrict_to_workspace,
+            source_channel=_WEBUI_SCOPE_CHANNEL,
         )
 
 

@@ -4,13 +4,11 @@ import {
   RestartIcon,
   CapabilitiesIcon,
   AppearanceIcon,
-  ChannelsIcon,
-  SystemIcon,
   AdvancedIcon,
   ModelsIcon,
 } from "@/components/icons/product-icons";
 import { useRef, useState } from "react";
-import { Bell, Check, ChevronDown, ChevronLeft, LayoutGrid, LogOut, Loader2, UserRound, type LucideIcon } from "lucide-react";
+import { Bell, Check, ChevronDown, ChevronLeft, LogOut, Loader2, UserRound, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -33,12 +31,9 @@ const SETTINGS_NAV_ITEMS: Array<{ key: SettingsSectionKey; icon: LucideIcon; fal
   { key: "overview", icon: OverviewIcon, fallback: "Overview" },
   { key: "profile", icon: UserRound, fallback: "Profile" },
   { key: "appearance", icon: AppearanceIcon, fallback: "Appearance" },
-  { key: "widgets", icon: LayoutGrid, fallback: "Widgets" },
   { key: "notifications", icon: Bell, fallback: "Notifications" },
   { key: "models", icon: ModelsIcon, fallback: "Models" },
   { key: "capabilities", icon: CapabilitiesIcon, fallback: "Capabilities" },
-  { key: "channels", icon: ChannelsIcon, fallback: "Channels" },
-  { key: "runtime", icon: SystemIcon, fallback: "System" },
   { key: "advanced", icon: AdvancedIcon, fallback: "Advanced" },
   { key: "about", icon: AboutIcon, fallback: "About" },
 ];

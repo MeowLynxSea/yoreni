@@ -71,6 +71,12 @@ export async function enableBrowserNotifications(): Promise<NotificationProblem 
   return workerProblem;
 }
 
+export function notificationAppUrl(): string {
+  // The app has one personal conversation; open its root without copying the
+  // page's query, fragment, userinfo, or any auth token.
+  return `${window.location.origin}/#/`;
+}
+
 export async function showBrowserNotification(body: string, options: {
   key: string;
   url: string;

@@ -50,9 +50,6 @@ from yoreni.webui.settings_models import (
     mask_secret_hint,
     provider_configured_for_settings,
 )
-from yoreni.webui.workspaces import (
-    read_webui_default_access_mode,
-)
 
 if TYPE_CHECKING:
     from yoreni.webui.settings_services import WebUISettingsServices
@@ -271,7 +268,7 @@ def capability_settings_payload(
 def update_network_safety_settings(
     config: Config,
     query: QueryParams,
-) -> tuple[bool, str | None]:
+) -> bool:
     raw_allow = (
         query_first_alias(
             query,
@@ -284,33 +281,14 @@ def update_network_safety_settings(
             "allowLocalPreviewAccess",
         )
     )
-    raw_default_access_mode = query_first_alias(
-        query,
-        "webui_default_access_mode",
-        "webuiDefaultAccessMode",
-    )
-    if raw_allow is None and raw_default_access_mode is None:
-        raise WebUISettingsError(
-            "webui_allow_local_service_access or webui_default_access_mode is required"
-        )
+    if raw_allow is None:
+        raise WebUISettingsError("webui_allow_local_service_access is required")
 
-    changed = False
-    if raw_allow is not None:
-        allow_local = parse_bool(raw_allow, "webui_allow_local_service_access")
-        if config.tools.webui_allow_local_service_access != allow_local:
-            config.tools.webui_allow_local_service_access = allow_local
-            changed = True
-
-    default_access_mode: str | None = None
-    if raw_default_access_mode is not None:
-        default_access_mode = raw_default_access_mode.strip().lower()
-        if default_access_mode == "restricted":
-            default_access_mode = "default"
-        if default_access_mode not in {"default", "full"}:
-            raise WebUISettingsError(
-                "webui_default_access_mode must be default or full"
-            )
-    return changed, default_access_mode
+    allow_local = parse_bool(raw_allow, "webui_allow_local_service_access")
+    if config.tools.webui_allow_local_service_access == allow_local:
+        return False
+    config.tools.webui_allow_local_service_access = allow_local
+    return True
 
 
 def update_web_search_settings(config: Config, query: QueryParams) -> tuple[bool, bool]:
@@ -747,7 +725,6 @@ def network_safety_payload(config: Config) -> dict[str, Any]:
     return {
         "webui_allow_local_service_access": config.tools.webui_allow_local_service_access,
         "allow_local_preview_access": config.tools.webui_allow_local_service_access,
-        "webui_default_access_mode": read_webui_default_access_mode(),
         "private_service_protection_enabled": True,
         "ssrf_whitelist_count": len(config.tools.ssrf_whitelist),
     }

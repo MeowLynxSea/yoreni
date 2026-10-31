@@ -21,8 +21,7 @@ from yoreni.webui import settings_contracts as contracts
 from yoreni.webui import settings_models as models
 from yoreni.webui import settings_runtime as runtime
 from yoreni.webui import settings_system as system
-from yoreni.webui.settings_contracts import QueryParams, WebUISettingsError
-from yoreni.webui.workspaces import write_webui_default_access_mode
+from yoreni.webui.settings_contracts import QueryParams
 
 if TYPE_CHECKING:
     from yoreni.webui.settings_services import WebUIOAuthFlowRegistry
@@ -400,17 +399,9 @@ def update_network_safety_settings(
     config_path: Path | None = None,
 ) -> dict[str, Any]:
     config = _load_settings_config(config_path)
-    changed, default_access_mode = capabilities.update_network_safety_settings(
-        config,
-        query,
-    )
+    changed = capabilities.update_network_safety_settings(config, query)
     if changed:
         _save_settings_config(config, config_path)
-    if default_access_mode is not None:
-        try:
-            write_webui_default_access_mode(default_access_mode)
-        except ValueError as exc:
-            raise WebUISettingsError(str(exc)) from exc
     return settings_payload(requires_restart=changed, config_path=config_path)
 
 

@@ -89,19 +89,16 @@ def test_capability_domain_updates_representative_settings() -> None:
         config,
         {"provider": ["openrouter"], "model": ["openai/whisper-large-v3"]},
     )
-    network_changed, access_mode = update_network_safety_settings(
+    network_changed = update_network_safety_settings(
         config,
-        {
-            "webui_allow_local_service_access": ["false"],
-            "webui_default_access_mode": ["restricted"],
-        },
+        {"webui_allow_local_service_access": ["false"]},
     )
     payload = capability_settings_payload(config, oauth_status=_oauth_status)
 
     assert (web_changed, web_restart) == (True, True)
     assert image_changed is True
     assert transcription_changed is True
-    assert (network_changed, access_mode) == (True, "default")
+    assert network_changed is True
     assert payload["web_search"]["max_results"] == 7
     assert payload["api"]["host"] == "127.0.0.2"
     assert payload["api"]["port"] == 8900

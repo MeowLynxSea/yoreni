@@ -246,7 +246,7 @@ function FoldedAgentActivity({
   detailsId,
 }: AgentActivityClusterProps) {
   const { t } = useTranslation();
-  const { activityMode, fileEditDisplayMode } = useLocalPreferences();
+  const { fileEditDisplayMode } = useLocalPreferences();
   const pageVisible = usePageVisibility();
   const activityMessages = useMemo(() => coalesceActivityMessages(messages), [messages]);
   const fileEditsByMessage = useMemo(
@@ -287,11 +287,8 @@ function FoldedAgentActivity({
   const outerExpanded = expanded ?? (
     userToggledOuter
       ? outerOpenLocal
-      : activityMode === "expanded" || isTurnStreaming || completionHoldOpen || (wasTurnStreaming && !isTurnStreaming)
+      : isTurnStreaming || completionHoldOpen || (wasTurnStreaming && !isTurnStreaming)
   );
-  useEffect(() => {
-    setUserToggledOuter(false);
-  }, [activityMode]);
   const deferredTraceRefs = useMemo(
     () => Array.from(new Set(
       messages

@@ -18,7 +18,7 @@ describe("Settings overview and appearance", () => {
     renderSettingsView({ initialSection: "appearance", initialSettings: settingsPayload(), showSidebar: true });
     fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
     expect(screen.getByRole("switch", { name: "Browser notifications" })).toHaveAttribute("aria-checked", "false");
-    const sound = screen.getByRole("switch", { name: "Completion sound" });
+    const sound = screen.getByRole("switch", { name: "Message sound" });
     expect(sound).toHaveAttribute("aria-checked", "true");
     fireEvent.click(sound);
     expect(readLocalPreferences()).toMatchObject({ browserNotifications: false, notificationSound: false });

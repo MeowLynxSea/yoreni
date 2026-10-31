@@ -43,7 +43,7 @@ describe("Runtime configuration settings", () => {
     expect([...paths, visibilityOnly].sort()).toEqual([...runtimeConfigKeys].sort());
   });
 
-  it("keeps chat permissions and local services available when tool families are disabled", () => {
+  it("keeps local services available when tool families are disabled", () => {
     const payload = runtimeSettings();
     renderSettingsView({ initialSection: "advanced", initialSettings: {
       ...payload, runtime_config: {
@@ -52,17 +52,13 @@ describe("Runtime configuration settings", () => {
       },
     } });
     expect(screen.getByRole("switch", { name: "Local services" })).toBeVisible();
-    expect(screen.getByText("Default access")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Default Permission" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Full Access" })).toBeVisible();
   });
 
   it("places common settings in their feature pages and reserves advanced for low-frequency controls", () => {
     const payload = runtimeSettings();
     payload.image_generation.enabled = true;
-    renderSettingsView({ initialSection: "runtime", initialSettings: payload });
+    renderSettingsView({ initialSection: "advanced", initialSettings: payload });
     expect(document.getElementById("runtime-tools.exec.enable")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Advanced" }));
     expect(document.getElementById("runtime-tools.exec.sandbox")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Capabilities" }));
     fireEvent.click(within(screen.getByRole("region", { name: "Image generation" })).getByRole("button", { name: "Configure" }));
@@ -252,7 +248,7 @@ describe("Runtime configuration settings", () => {
     expect(field).toHaveValue(86400);
     expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(screen.queryByText("Saved.", { exact: true })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    fireEvent.click(screen.getByRole("button", { name: "Capabilities" }));
     fireEvent.click(screen.getByRole("button", { name: "Advanced" }));
     expect(screen.getByRole("spinbutton", { name: "Custom runtime (seconds)" })).toHaveValue(86400);
     expect(screen.getByRole("alert")).toHaveTextContent("1 to 86,400");
@@ -312,14 +308,14 @@ describe("Runtime configuration settings", () => {
     expect(proxy).toHaveAttribute("type", "text");
     expect(proxy).toHaveValue("http://localhost:8080");
     fireEvent.change(proxy, { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    fireEvent.click(screen.getByRole("button", { name: "Capabilities" }));
     fireEvent.click(screen.getByRole("button", { name: "Advanced" }));
     expect(screen.getByLabelText("Shared proxy", { selector: "input" })).toHaveValue("");
     fireEvent.click(within(screen.getByRole("region", { name: "Shared proxy" })).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(requestMutationMock).toHaveBeenCalledWith(
       "settings.runtime_config.update", { values: { "network.proxy": null } }, 20_000,
     ));
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    fireEvent.click(screen.getByRole("button", { name: "Capabilities" }));
     fireEvent.click(screen.getByRole("button", { name: "Advanced" }));
     expect(screen.getByLabelText("Shared proxy", { selector: "input" })).toHaveValue("");
   });
@@ -364,7 +360,7 @@ describe("Runtime configuration settings", () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) =>
       jsonResponse(String(input) === "/api/settings" ? payload : {})));
     requestMutationMock.mockResolvedValue(payload);
-    renderSettingsView({ initialSection: "runtime", initialSettings: payload });
+    renderSettingsView({ initialSection: "advanced", initialSettings: payload });
     fireEvent.click(screen.getByRole("switch", { name: "System timezone" }));
     const field = screen.getByRole("button", { name: "Timezone", expanded: false });
     expect(field).toBeEnabled();

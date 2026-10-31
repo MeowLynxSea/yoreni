@@ -4,7 +4,7 @@ import {
   DEFAULT_LOCAL_PREFS,
   writeLocalPreferences,
 } from "@/lib/local-preferences";
-import { TURN_COMPLETE_SOUND_PATH } from "@/lib/notification-sound";
+import { MESSAGE_SOUND_PATH } from "@/lib/notification-sound";
 
 class MockAudio {
   static instances: MockAudio[] = [];
@@ -25,7 +25,7 @@ function setVisibility(state: DocumentVisibilityState): void {
   });
 }
 
-describe("playTurnCompleteSound", () => {
+describe("playMessageSound", () => {
   beforeEach(() => {
     MockAudio.instances = [];
     vi.stubGlobal("Audio", MockAudio);
@@ -42,8 +42,8 @@ describe("playTurnCompleteSound", () => {
   // Fresh module per test: the module keeps one HTMLAudioElement cached for
   // the page's lifetime, and the cache must not leak across cases.
   async function play(): Promise<void> {
-    const { playTurnCompleteSound } = await import("@/lib/notification-sound");
-    playTurnCompleteSound();
+    const { playMessageSound } = await import("@/lib/notification-sound");
+    playMessageSound();
   }
 
   it.each(["visible", "hidden"] as const)("stays silent by default when %s", async (visibility) => {
@@ -56,7 +56,7 @@ describe("playTurnCompleteSound", () => {
     writeLocalPreferences({ ...DEFAULT_LOCAL_PREFS, notificationSound: true });
     await play();
     expect(MockAudio.instances).toHaveLength(1);
-    expect(MockAudio.instances[0].src).toBe(TURN_COMPLETE_SOUND_PATH);
+    expect(MockAudio.instances[0].src).toBe(MESSAGE_SOUND_PATH);
     expect(MockAudio.instances[0].play).toHaveBeenCalledTimes(1);
   });
 

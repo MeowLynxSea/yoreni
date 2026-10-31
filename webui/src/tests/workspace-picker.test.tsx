@@ -9,7 +9,6 @@ import { workspaceBreadcrumbs, type BrowseWorkspaceDirectories } from "@/lib/wor
 const scope = { project_path: "/srv/workspace", access_mode: "restricted" as const };
 const catalog: WorkspacesPayload = {
   schema_version: 1,
-  default_access_mode: "default",
   default_scope: scope,
   recent_projects: [{ name: "alpha", path: "/srv/alpha" }, { name: "beta", path: "/srv/beta" }],
   host: { name: "dev-server", platform: "Linux" },

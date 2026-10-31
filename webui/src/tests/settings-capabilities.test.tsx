@@ -150,7 +150,7 @@ describe("Settings capabilities", () => {
     payload.image_generation.providers = [{ name: "openrouter", label: "OpenRouter", configured: true }];
     payload.runtime_config = { "tools.web.enable": true, "agents.defaults.dream.enabled": true };
     renderSettingsView({ initialSection: "capabilities", initialSettings: payload });
-    expect(screen.getAllByRole("switch")).toHaveLength(4);
+    expect(screen.getAllByRole("switch")).toHaveLength(6);
     expect(screen.getByRole("button", { name: "Capabilities" })).toHaveAttribute("aria-current", "page");
     const editor = screen.getByRole("button", { name: "Image generation" });
     expect(editor).toHaveAttribute("aria-expanded", "false");
@@ -303,9 +303,6 @@ describe("Settings capabilities", () => {
     renderSettingsView({ initialSection: "advanced" });
 
     expect(await screen.findByText("Web safety")).toBeInTheDocument();
-    expect(screen.getByText("Default access")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Default Permission" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Full Access" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("switch", { name: "Local services" }));
 
@@ -314,7 +311,6 @@ describe("Settings capabilities", () => {
         "settings.network_safety.update",
         {
           webui_allow_local_service_access: false,
-          webui_default_access_mode: "default",
         },
         20_000,
       ),
@@ -363,7 +359,7 @@ describe("Settings capabilities", () => {
     await waitFor(() => expect(requestMutationMock).toHaveBeenLastCalledWith(
       "settings.runtime_config.update", { values: { "network.proxy": address } }, 20_000,
     ));
-    fireEvent.click(screen.getByRole("button", { name: "System" }));
+    fireEvent.click(screen.getByRole("button", { name: "Capabilities" }));
     fireEvent.click(screen.getByRole("button", { name: "Advanced" }));
     expect(screen.getByLabelText("Shared proxy", { selector: "input" })).toHaveValue("http://new-proxy.example:7890");
     expect(screen.getByLabelText("Username")).toHaveValue("user");
@@ -533,6 +529,7 @@ describe("Settings capabilities", () => {
       parentSnapshot = snapshot;
       refreshParent = setSnapshot;
       return <ClientProvider client={{ requestMutation: requestMutationMock, status: "open",
+        onEvent: () => () => {}, onReady: () => () => {},
         onStatus: (handler: (status: "open") => void) => { handler("open"); return () => {}; },
       } as never} token="tok">
         <SettingsView themePreference="light" initialSection="voice" initialSettings={snapshot}

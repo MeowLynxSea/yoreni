@@ -9,16 +9,13 @@ import {
   SettingsSectionTitle,
 } from "@/components/settings/shared/SettingsControls";
 import { ToggleButton } from "@/components/ui/toggle-button";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import type {
   NetworkSafetySettingsUpdate,
   SettingsPayload,
-  WebuiDefaultAccessMode,
 } from "@/lib/types";
 
 export const DEFAULT_NETWORK_SAFETY_FORM: NetworkSafetySettingsUpdate = {
   webuiAllowLocalServiceAccess: true,
-  webuiDefaultAccessMode: "default",
 };
 
 export function networkSafetyFormFromPayload(payload: SettingsPayload): NetworkSafetySettingsUpdate {
@@ -27,14 +24,7 @@ export function networkSafetyFormFromPayload(payload: SettingsPayload): NetworkS
       payload.advanced.webui_allow_local_service_access ??
       payload.advanced.allow_local_preview_access ??
       true,
-    webuiDefaultAccessMode: visibleWebuiDefaultAccessMode(
-      payload.advanced.webui_default_access_mode,
-    ),
   };
-}
-
-export function visibleWebuiDefaultAccessMode(mode: string | null | undefined): WebuiDefaultAccessMode {
-  return mode === "full" ? "full" : "default";
 }
 
 export function AdvancedSettings({
@@ -91,29 +81,6 @@ export function AdvancedSettings({
               }
               ariaLabel={tx("settings.rows.localServiceAccess", "Local Service Access")}
               label={form.webuiAllowLocalServiceAccess ? tx("settings.values.on", "On") : tx("settings.values.off", "Off")}
-            />
-          </SettingsRow>
-          <SettingsRow
-            title={tx("settings.rows.webuiDefaultAccess", "Default access")}
-            description={tx(
-              isNativeHostSurface ? "settings.help.webuiDefaultAccessNative" : "settings.help.webuiDefaultAccess",
-              isNativeHostSurface
-                ? "Used by native chats without a project-specific permission."
-                : "Used by web chats without a project-specific permission.",
-            )}
-          >
-            <SegmentedControl
-              value={form.webuiDefaultAccessMode}
-              options={[
-                { value: "default", label: tx("settings.values.defaultPermission", "Default Permission") },
-                { value: "full", label: tx("settings.values.fullAccess", "Full Access") },
-              ]}
-              onChange={(webuiDefaultAccessMode) =>
-                onChangeForm((prev) => ({
-                  ...prev,
-                  webuiDefaultAccessMode: webuiDefaultAccessMode as WebuiDefaultAccessMode,
-                }))
-              }
             />
           </SettingsRow>
           <RestartSettingsFooter

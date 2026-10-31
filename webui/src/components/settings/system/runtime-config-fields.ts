@@ -9,14 +9,14 @@ export interface RuntimeConfigField {
   max?: number;
 }
 
-export type RuntimeConfigPage = "memory" | "runtime" | "advanced" | "browser" | "network" | "image";
+export type RuntimeConfigPage = "memory" | "advanced" | "browser" | "network" | "image";
 
 export const RUNTIME_CONFIG_GROUPS: { id: string; page: RuntimeConfigPage; enabledBy?: string }[] = [
-  { id: "identity", page: "runtime" },
+  { id: "identity", page: "advanced" },
   { id: "memory", page: "memory" },
   { id: "chat", page: "advanced" },
   { id: "execution", page: "advanced" },
-  { id: "tools", page: "runtime" },
+  { id: "tools", page: "advanced" },
   { id: "web", page: "browser" },
   { id: "shell", page: "advanced", enabledBy: "tools.exec.enable" },
   { id: "network", page: "network" },
@@ -34,9 +34,7 @@ export const RUNTIME_CONFIG_FIELDS: RuntimeConfigField[] = [
   { group: "memory", path: "agents.defaults.dream.enabled", kind: "boolean" },
   { group: "execution", path: "agents.defaults.provider_retry_mode", kind: "toggle", options: ["standard", "persistent"] },
   { group: "execution", path: "agents.defaults.max_tool_iterations", kind: "number", min: 1 },
-  { group: "execution", path: "agents.defaults.max_concurrent_subagents", kind: "number", min: 1 },
   { group: "execution", path: "agents.defaults.max_tool_result_chars", kind: "number", min: 1 },
-  { group: "execution", path: "agents.defaults.tool_hint_max_length", kind: "number", min: 20, max: 500 },
   { group: "tools", path: "tools.exec.enable", kind: "boolean" },
   { group: "tools", path: "tools.file.enable", kind: "boolean" },
   { group: "web", path: "tools.web.enable", kind: "boolean" },

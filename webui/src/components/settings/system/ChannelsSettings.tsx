@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -101,6 +101,7 @@ export function ChannelsSettings({
     },
     [onBeforeCloseChange],
   );
+  useEffect(() => () => onBeforeCloseChange?.(null), [onBeforeCloseChange]);
 
   return (
     <div className="settings-stack">

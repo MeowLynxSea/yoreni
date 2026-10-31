@@ -38,6 +38,7 @@ from yoreni.credentials.models import (
 from yoreni.credentials.policy import (
     CredentialUseDeniedError,
     is_tool_denied,
+    normalize_domains,
     restore_tool_arguments,
 )
 from yoreni.credentials.store import (
@@ -264,12 +265,15 @@ class CredentialManager:
             raise ValueError(
                 "these tools can never receive a credential: " + ", ".join(denied_tools)
             )
-        domains = tuple(
-            dict.fromkeys(
-                str(domain).strip().lower().lstrip(".")
-                for domain in allowed_domains if str(domain).strip()
+        if restorable and not tools:
+            raise ValueError(
+                "a credential that tools may use needs at least one allowed tool"
             )
-        ) or spec.allowed_domains
+        domains = normalize_domains(allowed_domains) or normalize_domains(spec.allowed_domains)
+        if restorable and not domains:
+            raise ValueError(
+                "a credential that tools may use needs at least one allowed domain"
+            )
         now = time.time()
         account = Account(
             id=account_id or new_account_id(),
@@ -318,14 +322,26 @@ class CredentialManager:
         self.vault.suppress_account(account_id)
         if label is not None:
             account.label = label.strip() or account.label
-        if allowed_tools is not None:
-            account.allowed_tools = tuple(dict.fromkeys(str(tool) for tool in allowed_tools if str(tool).strip()))
-        if allowed_domains is not None:
-            account.allowed_domains = tuple(
-                dict.fromkeys(str(domain).strip().lower().lstrip(".") for domain in allowed_domains if str(domain).strip())
+        tools = account.allowed_tools if allowed_tools is None else tuple(
+            dict.fromkeys(str(tool) for tool in allowed_tools if str(tool).strip())
+        )
+        domains = (
+            account.allowed_domains if allowed_domains is None
+            else normalize_domains(allowed_domains)
+        )
+        restorable_now = account.restorable if restorable is None else restorable
+        if restorable_now and not tools:
+            raise ValueError("a credential that tools may use needs at least one allowed tool")
+        if restorable_now and not domains:
+            raise ValueError("a credential that tools may use needs at least one allowed domain")
+        denied_tools = [tool for tool in tools if is_tool_denied(tool)]
+        if denied_tools:
+            raise ValueError(
+                "these tools can never receive a credential: " + ", ".join(denied_tools)
             )
-        if restorable is not None:
-            account.restorable = restorable
+        account.allowed_tools = tools
+        account.allowed_domains = domains
+        account.restorable = restorable_now
         account.updated_at = time.time()
         self.store.save_account(account, stored.payload)
         with self._lock:
@@ -377,12 +393,7 @@ class CredentialManager:
         tools = tuple(
             dict.fromkeys(str(tool) for tool in allowed_tools if str(tool).strip())
         ) or spec.tool_patterns
-        domains = tuple(
-            dict.fromkeys(
-                str(domain).strip().lower().lstrip(".")
-                for domain in allowed_domains if str(domain).strip()
-            )
-        ) or spec.allowed_domains
+        domains = normalize_domains(allowed_domains) or normalize_domains(spec.allowed_domains)
         denied_tools = [tool for tool in tools if is_tool_denied(tool)]
         if denied_tools:
             raise ValueError(
@@ -547,9 +558,12 @@ class CredentialManager:
         params: dict[str, Any],
         *,
         run_id: str | None,
+        destination: str | None = None,
     ) -> dict[str, Any]:
         self._assert_accounts_usable(params)
-        restored = restore_tool_arguments(tool_name, params, self.vault, run_id=run_id)
+        restored = restore_tool_arguments(
+            tool_name, params, self.vault, run_id=run_id, destination=destination,
+        )
         for value in _walk_strings(params):
             for token in self.vault.placeholders_in(value):
                 entry = self.vault.entry_for_token(token)

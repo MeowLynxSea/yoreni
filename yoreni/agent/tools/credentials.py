@@ -24,8 +24,13 @@ from yoreni.agent.tools.schema import (
 from yoreni.credentials.auth import AuthRequestStatus
 from yoreni.credentials.manager import get_credential_manager
 from yoreni.credentials.models import AuthMethod
+from yoreni.credentials.policy import normalize_domain
 
 _MAX_WAIT_SECONDS = 600
+
+# Methods whose value is typed into a page the user is looking at, so the
+# browser is the obvious recipient when the model names no tool.
+_PAGE_METHODS = frozenset({AuthMethod.BASIC, AuthMethod.ONE_TIME_CODE})
 
 _PLACEHOLDER_HINT = (
     "Each placeholder is the credential itself: pass it as the argument value the "
@@ -40,6 +45,17 @@ def _run_id() -> str | None:
     if ctx is None:
         return None
     return ctx.turn_id
+
+
+def _browser_host() -> str | None:
+    """Host of the page the VM browser is showing, when there is one."""
+    try:
+        from yoreni.sandbox.gateway import get_sandbox_gateway
+
+        current = get_sandbox_gateway().browser.current_url
+    except Exception:
+        return None
+    return normalize_domain(current or "") or None
 
 
 @tool_parameters(
@@ -58,13 +74,18 @@ def _run_id() -> str | None:
         allowed_tools=ArraySchema(
             StringSchema(""),
             description=(
-                "Tool names allowed to receive the resulting credential, e.g. "
-                "['browser_type']. Leave empty when the credential is only for redaction."
+                "Tools allowed to receive the resulting credential. Name the tool you "
+                "will call, e.g. ['browser'] or an MCP tool name; a sub-action such as "
+                "'browser_type' also works. Defaults to ['browser'] for basic_auth and "
+                "one_time_code when the user is signing in on a page."
             ),
         ),
         allowed_domains=ArraySchema(
             StringSchema(""),
-            description="Domains this credential may be used against, e.g. ['example.com'].",
+            description=(
+                "Sites this credential may be used on, e.g. ['example.com']. A full URL "
+                "is accepted too. Defaults to the host of the page the browser is showing."
+            ),
         ),
         timeout_seconds=IntegerSchema(
             description="How long to wait for the user, in seconds (30-600). Defaults to 300.",
@@ -133,14 +154,36 @@ class RequestAuthenticationTool(Tool):
                 f"Error: {connector.id} does not support {auth_method.value}"
             )
 
+        # A card the user fills must produce an account a tool can actually use,
+        # so resolve the grant here and refuse before opening the card.
+        has_secret = bool(connector.fields_for(auth_method))
+        page_host = _browser_host()
+        tools = [str(tool).strip() for tool in (allowed_tools or []) if str(tool).strip()]
+        if not tools and has_secret and auth_method in _PAGE_METHODS and page_host:
+            tools = ["browser"]
+        if not tools and has_secret:
+            return ToolResult.error(
+                "Error: name the tool that will receive this credential in "
+                "allowed_tools, e.g. ['browser'] for a page login or the MCP tool "
+                "name you are about to call."
+            )
+        domains = [str(domain).strip() for domain in (allowed_domains or []) if str(domain).strip()]
+        if not domains and page_host:
+            domains = [page_host]
+        if not domains and has_secret:
+            return ToolResult.error(
+                f"Error: name the site in allowed_domains (a bare host works, e.g. "
+                f"['{page_host or 'example.com'}'])."
+            )
+
         try:
             request = manager.request_auth(
                 connector_id=connector.id,
                 method=auth_method,
                 purpose=purpose.strip()[:400],
                 run_id=_run_id(),
-                allowed_tools=allowed_tools or (),
-                allowed_domains=allowed_domains or (),
+                allowed_tools=tools,
+                allowed_domains=domains,
             )
         except ValueError as exc:
             return ToolResult.error(f"Error: {exc}")
@@ -158,6 +201,8 @@ class RequestAuthenticationTool(Tool):
                 "account_id": completed.account_id,
                 "connector_id": connector.id,
                 "label": account.label if account else connector.name,
+                "allowed_tools": list(account.allowed_tools) if account else tools,
+                "allowed_domains": list(account.allowed_domains) if account else domains,
                 "placeholders": manager.placeholders_for_account(completed.account_id),
                 "next_step": _PLACEHOLDER_HINT,
             }

@@ -69,6 +69,18 @@ class BrowserTool(Tool):
     def exclusive(self) -> bool:
         return True
 
+    # Actions that act on the page already open, without naming it themselves.
+    _PAGE_ACTIONS = frozenset({"click", "type", "press", "scroll", "evaluate", "upload"})
+
+    def credential_destination(self, params: dict[str, Any]) -> str | None:
+        """Report the page a credential would be typed into."""
+        if params.get("action") not in self._PAGE_ACTIONS:
+            return None
+        try:
+            return get_sandbox_gateway().browser.current_url
+        except Exception:
+            return None
+
     async def execute(  # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         action: str,

@@ -153,6 +153,96 @@ def test_tool_output_is_redacted_before_it_reaches_context(manager):
     assert manager.vault.token_for(SECRET) in str(result)
 
 
+def test_sub_action_grant_covers_the_grouped_tool(manager):
+    """A grant may name an action ('browser_type') and the tool is 'browser'."""
+    _connect(manager, tools=("browser_type",))
+    token = manager.vault.token_for(SECRET)
+
+    restored = manager.restore_arguments(
+        "browser",
+        {"action": "type", "selector": "#password", "text": token},
+        run_id="run-1",
+        destination="https://example.com/login",
+    )
+
+    assert restored["text"] == SECRET
+
+
+def test_domain_grants_accept_urls_and_ports(manager):
+    _connect(manager, domains=("https://Example.com:8443/login", "*.other.test"))
+    token = manager.vault.token_for(SECRET)
+
+    restored = manager.restore_arguments(
+        "browser",
+        {"action": "type", "selector": "#password", "text": token},
+        run_id="run-1",
+        destination="example.com",
+    )
+    assert restored["text"] == SECRET
+    assert manager.restore_arguments(
+        "browser",
+        {"action": "type", "selector": "#password", "text": token},
+        run_id="run-1",
+        destination="deep.other.test",
+    )["text"] == SECRET
+
+
+def test_tool_reported_destination_replaces_a_missing_url(manager):
+    _connect(manager)
+    token = manager.vault.token_for(SECRET)
+    args = {"action": "type", "selector": "#password", "text": token}
+
+    assert manager.restore_arguments(
+        "browser", dict(args), run_id="run-1", destination="https://example.com/signin",
+    )["text"] == SECRET
+
+    with pytest.raises(CredentialUseDeniedError):
+        manager.restore_arguments(
+            "browser", dict(args), run_id="run-1", destination="https://evil.test/signin",
+        )
+    with pytest.raises(CredentialUseDeniedError):
+        manager.restore_arguments("browser", dict(args), run_id="run-1")
+
+
+def test_restorable_account_requires_tools_and_domains(manager):
+    with pytest.raises(ValueError):
+        manager.connect(
+            "api_key",
+            label="Example",
+            method=AuthMethod.API_KEY,
+            values={"api_key": SECRET},
+            allowed_tools=(),
+            allowed_domains=("example.com",),
+            restorable=True,
+        )
+    with pytest.raises(ValueError):
+        manager.connect(
+            "api_key",
+            label="Example",
+            method=AuthMethod.API_KEY,
+            values={"api_key": SECRET},
+            allowed_tools=("browser",),
+            allowed_domains=(),
+            restorable=True,
+        )
+
+
+def test_browser_reports_the_page_it_will_type_into(monkeypatch):
+    from yoreni.agent.tools import browser as browser_module
+
+    class _Browser:
+        current_url = "https://example.com/login"
+
+    class _Gateway:
+        browser = _Browser()
+
+    monkeypatch.setattr(browser_module, "get_sandbox_gateway", lambda: _Gateway())
+    tool = browser_module.BrowserTool()
+
+    assert tool.credential_destination({"action": "type"}) == "https://example.com/login"
+    assert tool.credential_destination({"action": "navigate", "url": "https://x"}) is None
+
+
 def test_store_never_contains_plaintext_and_rewraps(tmp_path):
     store = CredentialStore(tmp_path / "db.sqlite3", box=SecretBox(b"\x03" * 32))
     manager = CredentialManager(store=store, vault=SecretVault(b"\x04" * 32))

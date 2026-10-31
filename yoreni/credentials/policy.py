@@ -9,6 +9,7 @@ the network) the destination matches the account's allowed domains.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from fnmatch import fnmatchcase
 from typing import Any, cast
 from urllib.parse import urlsplit
@@ -65,13 +66,44 @@ DOMAIN_PARAMS: tuple[str, ...] = (
     "base_url",
 )
 
-# A credential-bearing call must name a destination the account allows. There
-# is no trustworthy way to infer the page a browser tool is already showing, so
-# an omitted URL is a denial rather than an implicit wildcard.
+# A credential-bearing call must name a destination the account allows. Tools
+# that act on a page they already control report that page through
+# ``Tool.credential_destination``; everything else has to put the target in an
+# argument. A call with no knowable target is a denial, not an implicit
+# wildcard.
 
 
 class CredentialUseDeniedError(RuntimeError):
     """Raised when a tool call attempts credential use it is not allowed."""
+
+
+def normalize_domain(value: str) -> str:
+    """Reduce any domain spelling to the host an account is bound to.
+
+    A grant may arrive as ``https://id.example.edu.cn/login``, ``id.example.edu.cn``,
+    ``*.example.edu.cn`` or ``id.example.edu.cn:8443``; only the host matters.
+    """
+    raw = value.strip().lower()
+    if not raw:
+        return ""
+    parsed = urlsplit(raw if "://" in raw else f"//{raw}")
+    try:
+        parsed.port  # noqa: B018 - rejects values whose tail is not a port
+    except ValueError:
+        return ""
+    host = (parsed.hostname or "").strip(".")
+    return host.removeprefix("*.")
+
+
+def normalize_domains(values: Iterable[str]) -> tuple[str, ...]:
+    """Normalize a grant list, splitting comma- or space-separated entries."""
+    hosts: dict[str, None] = {}
+    for value in values:
+        for part in value.replace(",", " ").split():
+            host = normalize_domain(part)
+            if host:
+                hosts.setdefault(host, None)
+    return tuple(hosts)
 
 
 def is_tool_denied(tool_name: str) -> bool:
@@ -81,29 +113,41 @@ def is_tool_denied(tool_name: str) -> bool:
 
 
 def _tool_bound(tool_name: str, entry: SecretEntry) -> bool:
-    return any(
-        pattern == tool_name or fnmatchcase(tool_name, pattern)
-        for pattern in entry.allowed_tools
-    )
+    """Whether a grant covers this tool.
+
+    A grant may name a sub-action of a tool that groups actions, so
+    ``browser_type`` covers ``browser``; that only narrows the grant to one
+    tool, never widens it to another.
+    """
+    tool = tool_name.strip().lower()
+    for pattern in entry.allowed_tools:
+        candidate = pattern.strip().lower()
+        if not candidate:
+            continue
+        if candidate == tool or fnmatchcase(tool, candidate):
+            return True
+        if candidate.startswith((f"{tool}_", f"{tool}.")):
+            return True
+    return False
 
 
 def _host_from_params(params: dict[str, Any]) -> str | None:
     for key in DOMAIN_PARAMS:
         value = params.get(key)
         if isinstance(value, str) and value.strip():
-            raw = value.strip()
-            parsed = urlsplit(raw if "://" in raw else f"https://{raw}")
-            if parsed.hostname:
-                return parsed.hostname.lower()
+            host = normalize_domain(value)
+            if host:
+                return host
     return None
 
 
 def _host_allowed(host: str, domains: tuple[str, ...]) -> bool:
     for domain in domains:
-        candidate = domain.strip().lower().lstrip(".")
+        candidate = normalize_domain(domain)
         if candidate and (host == candidate or host.endswith("." + candidate)):
             return True
     return False
+
 
 
 def _field_allowed(path: str) -> bool:
@@ -132,6 +176,7 @@ def restore_tool_arguments(
     vault: SecretVault,
     *,
     run_id: str | None,
+    destination: str | None = None,
 ) -> dict[str, Any]:
     """Return arguments with placeholders restored, or raise on denial."""
     _ = run_id
@@ -148,11 +193,14 @@ def restore_tool_arguments(
             f"{tool_name} cannot receive credentials; use a bound integration tool"
         )
 
-    host = _host_from_params(params)
+    # The destination comes from the arguments when a tool names one there, and
+    # otherwise from the tool itself (a browser knows the page it will act on).
+    host = _host_from_params(params) or normalize_domain(destination or "") or None
     for path, _value, tokens in placeholders:
         if not _field_allowed(path):
             raise CredentialUseDeniedError(
-                f"credential placeholder is not allowed in argument '{path}'"
+                f"credential placeholder is not allowed in argument '{path}'; "
+                "put it in the field the tool fills (text, value, password, api_key, code)"
             )
         for token in tokens:
             entry = vault.entry_for_token(token)
@@ -160,7 +208,8 @@ def restore_tool_arguments(
                 raise CredentialUseDeniedError("unknown credential placeholder")
             if not entry.restorable or not _tool_bound(tool_name, entry):
                 raise CredentialUseDeniedError(
-                    f"account {entry.account_id} is not bound to {tool_name}"
+                    f"account {entry.account_id} is not bound to {tool_name}; "
+                    f"its grants are {', '.join(entry.allowed_tools) or 'none'}"
                 )
             # Each credential must justify this destination on its own; one
             # account may not lend its domain list to another account. Without
@@ -168,15 +217,18 @@ def restore_tool_arguments(
             # refused instead of assuming the current page is acceptable.
             if not entry.allowed_domains:
                 raise CredentialUseDeniedError(
-                    f"account {entry.account_id} has no allowed destination"
+                    f"account {entry.account_id} has no allowed destination; reconnect "
+                    "it with the site it belongs to"
                 )
             if host is None:
                 raise CredentialUseDeniedError(
-                    f"cannot verify the destination for account {entry.account_id}"
+                    f"cannot verify the destination for account {entry.account_id}; "
+                    f"name it with a url argument ({', '.join(entry.allowed_domains)})"
                 )
             if not _host_allowed(host, entry.allowed_domains):
                 raise CredentialUseDeniedError(
-                    f"account {entry.account_id} is not allowed for this destination"
+                    f"account {entry.account_id} is allowed for "
+                    f"{', '.join(entry.allowed_domains)}, not {host}"
                 )
 
     return cast(dict[str, Any], _restore(params, vault))

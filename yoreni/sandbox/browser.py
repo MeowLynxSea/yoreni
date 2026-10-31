@@ -51,6 +51,18 @@ class BrowserService:
     def connected(self) -> bool:
         return self._browser is not None and self._browser.is_connected()
 
+    @property
+    def current_url(self) -> str | None:
+        """Web URL of the page this service acts on, or None before it connects."""
+        page = self._page
+        if page is None:
+            return None
+        try:
+            url = str(page.url or "")
+        except Exception:
+            return None
+        return url if url.startswith(("http://", "https://")) else None
+
     async def connect(self, cdp_url: str) -> None:
         if self.connected:
             return

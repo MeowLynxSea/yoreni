@@ -42,12 +42,13 @@ const DialogPositionedContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     positionerStyle?: React.CSSProperties;
+    positionerRef?: React.Ref<HTMLDivElement>;
     placement?: "center" | "bottom";
     overlayClassName?: string;
   }
->(({ positionerStyle, placement, overlayClassName, ...props }, ref) => (
+>(({ positionerStyle, positionerRef, placement, overlayClassName, ...props }, ref) => (
   <DialogOverlay forceMount className={overlayClassName}>
-  <div className={cn("fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain", placement !== "bottom" && "p-4")} style={{
+  <div ref={positionerRef} className={cn("fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain", placement !== "bottom" && "p-4")} style={{
     top: "var(--app-viewport-top, 0px)",
     height: "var(--app-viewport-height, 100%)",
     bottom: "auto",
@@ -73,7 +74,7 @@ const DialogContent = React.forwardRef<
   DialogContentProps
 >(({ className, children, showCloseButton = true, overlayClassName, placement = "center", layoutAnchor: explicitLayoutAnchor, centerInLayoutAnchor = false, onOpenAutoFocus, ...props }, ref) => {
   const { t } = useTranslation();
-  const [container, setContainer] = React.useState<HTMLDivElement | null>(null);
+  const [floatingContainer, setFloatingContainer] = React.useState<HTMLDivElement | null>(null);
   const contentNode = React.useRef<HTMLDivElement | null>(null);
   const inheritedLayoutAnchor = React.useContext(DialogLayoutContext);
   const layoutAnchor = explicitLayoutAnchor ?? inheritedLayoutAnchor;
@@ -114,7 +115,6 @@ const DialogContent = React.forwardRef<
   }, [layoutAnchor, placement, centerInLayoutAnchor]);
   const contentRef = React.useCallback((node: HTMLDivElement | null) => {
     contentNode.current = node;
-    setContainer(node);
     if (typeof ref === "function") ref(node);
     else if (ref) ref.current = node;
   }, [ref]);
@@ -122,6 +122,7 @@ const DialogContent = React.forwardRef<
     <DialogPortal>
         <DialogPositionedContent
           positionerStyle={layout}
+          positionerRef={setFloatingContainer}
           placement={placement}
           overlayClassName={overlayClassName}
           ref={contentRef}
@@ -142,7 +143,10 @@ const DialogContent = React.forwardRef<
           )}
           {...props}
         >
-          <FloatingPortalContext.Provider value={container}>
+          {/* Floating surfaces anchor to the positioner rather than the dialog
+              surface: the surface scrolls, clips, and filters its own content,
+              which would cut off popovers anchored near its edges. */}
+          <FloatingPortalContext.Provider value={floatingContainer}>
             {children}
           </FloatingPortalContext.Provider>
           {showCloseButton ? (

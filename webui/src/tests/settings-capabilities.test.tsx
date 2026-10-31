@@ -202,6 +202,14 @@ describe("Settings capabilities", () => {
     ));
   });
 
+  it("floats the web search provider menu outside the scrolling dialog", async () => {
+    const payload = { ...settingsPayload(), runtime_config: { "tools.web.enable": true } };
+    renderSettingsView({ initialSection: "browser", initialSettings: payload });
+    const dialog = await screen.findByRole("dialog", { name: "Web access" });
+    fireEvent.keyDown(within(dialog).getByRole("combobox", { name: "DuckDuckGo" }), { key: "ArrowDown" });
+    expect(dialog).not.toContain(await screen.findByRole("option", { name: "DuckDuckGo" }));
+  });
+
   it("reveals the configured transcription provider and model when enabled", () => {
     const payload: SettingsPayload = { ...settingsPayload(), transcription: {
       enabled: false, provider: "groq", provider_configured: true, model: "whisper-large-v3",

@@ -400,10 +400,11 @@ describe("Automation task list and detail sheet", () => {
     }
 
     await user.click(within(dialog).getByRole("button", { name: "Task information" }));
-    expect(within(dialog).getByText("Weekdays at 09:15")).toBeVisible();
-    expect(within(dialog).getByText("Next run").closest("dl")).toContainElement(within(dialog).getByText("Last run"));
-    expect(within(dialog).getByText("Timezone")).toBeVisible();
-    expect(within(dialog).getByText("Asia/Shanghai")).toBeVisible();
+    const info = screen.getByRole("dialog", { name: "Task information" });
+    expect(within(info).getByText("Weekdays at 09:15")).toBeVisible();
+    expect(within(info).getByText("Next run").closest("dl")).toContainElement(within(info).getByText("Last run"));
+    expect(within(info).getByText("Timezone")).toBeVisible();
+    expect(within(info).getByText("Asia/Shanghai")).toBeVisible();
   });
 
 
@@ -462,9 +463,10 @@ describe("Automation task list and detail sheet", () => {
     fireEvent.click(screen.getByRole("button", { name: /PR watch/ }));
     const dialog = screen.getByRole("dialog", { name: "PR watch" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Task information" }));
-    expect(within(dialog).getByText(summary)).toBeVisible();
-    expect(dialog).not.toHaveTextContent(expr);
-    expect(dialog).not.toHaveTextContent("Linked chat");
+    const info = screen.getByRole("dialog", { name: "Task information" });
+    expect(within(info).getByText(summary)).toBeVisible();
+    expect(info).not.toHaveTextContent(expr);
+    expect(info).not.toHaveTextContent("Linked chat");
   });
 
   it("localizes the monthly summary and retains the expression in the editor", async () => {
@@ -805,7 +807,7 @@ describe("Automation task list and detail sheet", () => {
     expect(disclosure).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(disclosure);
     expect(disclosure).toHaveAttribute("aria-expanded", "true");
-    expect(within(dialog).getByText(task.id)).toBeVisible();
+    expect(within(screen.getByRole("dialog", { name: "Task information" })).getByText(task.id)).toBeVisible();
   });
 
   it.each(["", "  \n  "])("omits the instructions section when a task has no real message: %j", (message) => {

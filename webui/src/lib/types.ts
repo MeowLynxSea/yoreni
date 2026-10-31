@@ -1423,6 +1423,7 @@ export interface UserProfile {
 
 export type OnboardingStep =
   | "token"
+  | "language"
   | "intro"
   | "name"
   | "birthday"

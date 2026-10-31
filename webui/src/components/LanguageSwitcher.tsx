@@ -6,22 +6,14 @@ import { supportedLocales, type SupportedLocale } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export function LanguageSwitcher({ className, collapsed = false }: { className?: string; collapsed?: boolean }) {
+export function LanguageSwitcher({ className }: { className?: string }) {
   const { t } = useTranslation();
   const [pointerFocus, setPointerFocus] = useState(false);
-  const locale = currentLocale();
-  const compactLabel = locale === "zh-CN"
-    ? "中"
-    : locale === "zh-TW"
-      ? "繁"
-      : locale.split("-")[0].toUpperCase();
   return (
     <Select value={currentLocale()} onValueChange={(value) => { void setAppLanguage(value as SupportedLocale); }}>
       <SelectTrigger
         className={cn(
-          collapsed
-            ? "h-9 w-9 min-w-0 justify-center gap-0 rounded-full px-0 [&>svg]:hidden"
-            : "min-w-40 rounded-full",
+          "min-w-40 rounded-full",
           pointerFocus && "focus-visible:ring-0",
           className,
         )}
@@ -31,7 +23,7 @@ export function LanguageSwitcher({ className, collapsed = false }: { className?:
         onKeyDown={() => setPointerFocus(false)}
         onBlur={() => setPointerFocus(false)}
       >
-        {collapsed ? <span className="text-[13px] font-semibold uppercase leading-none">{compactLabel}</span> : <SelectValue />}
+        <SelectValue />
       </SelectTrigger>
       <SelectContent
         onPointerUpCapture={() => setPointerFocus(true)}

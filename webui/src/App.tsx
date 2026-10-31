@@ -13,7 +13,6 @@ import { HomePanel } from "@/components/home/HomePanel";
 import { ProjectsPage } from "@/components/projects/ProjectsPage";
 import { StartupShell } from "@/components/StartupShell";
 import { AgentRecovery } from "@/components/AgentRecovery";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { MessageBubble } from "@/components/MessageBubble";
 import { SettingsIndex } from "@/components/settings/SettingsIndex";
 import { isSettingsSectionKey } from "@/components/settings/contracts";
@@ -86,9 +85,6 @@ function AuthScreen({ failed, onSecret }: { failed: boolean; onSecret: (secret: 
   return (
     <main className="relative flex h-full w-full items-center justify-center overflow-y-auto p-4 sm:p-6">
       <AmbientBackground />
-      <div className="absolute right-4 top-4 z-20">
-        <LanguageSwitcher collapsed className="text-muted-foreground" />
-      </div>
       <section className="message-enter app-surface-glass relative z-10 grid w-full max-w-[62rem] overflow-hidden rounded-[2rem] md:grid-cols-[1.05fr_0.95fr]">
         <div className="relative hidden min-h-[36rem] overflow-hidden md:flex md:flex-col md:justify-between">
           <div className="absolute inset-0 bg-[radial-gradient(80%_70%_at_20%_0%,rgba(255,255,255,0.72),transparent_60%),linear-gradient(155deg,rgba(91,164,173,0.16),rgba(191,90,66,0.13))]" />

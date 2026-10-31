@@ -163,6 +163,11 @@
       "hint": "Chọn điều chỉ bạn biết. Nó chỉ được lưu trên thiết bị này.",
       "footnote": "Yoreni ưu tiên cục bộ. Mật khẩu không rời khỏi thiết bị này."
     },
+    "language": {
+      "eyebrow": "NGÔN NGỮ",
+      "question": "Bạn sẽ dùng ngôn ngữ nào?",
+      "hint": "Chọn ngôn ngữ cho Yoreni. Bạn có thể đổi lại trong phần cài đặt."
+    },
     "intro": {
       "line1": "Yoreni, trợ lý cá nhân luôn ở bên bạn.",
       "line2": "Mình có thể giúp bạn xử lý công việc,",

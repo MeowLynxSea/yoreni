@@ -2,9 +2,8 @@ import { ArrowLeft, House, Search } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { ThemeToggleIcon } from "@/components/icons/ThemeToggleIcon";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { readLastProjectsPath, type HomeView } from "@/lib/local-ui-state";
 import { cn } from "@/lib/utils";
 import { useClient } from "@/providers/ClientProvider";
@@ -153,7 +152,6 @@ export function AppHeader({
         >
           <ThemeToggleIcon theme={theme} className="h-5 w-5" />
         </button>
-        <LanguageSwitcher collapsed className="pointer-events-auto hidden h-11 w-11 text-muted-foreground sm:flex" />
         <NavLink
           to="/settings"
           viewTransition

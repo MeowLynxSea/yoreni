@@ -151,7 +151,7 @@ class OnboardingService:
             self._live_websocket.websocket_requires_token = True
         record = self._state.read()
         if record is None or record.step == "token":
-            self._state.mark_step("intro")
+            self._state.mark_step("language")
         return {"token_set": True}
 
     def save_profile(self, payload: Any) -> dict[str, Any]:

@@ -163,6 +163,11 @@
       "hint": "Choisissez quelque chose que vous êtes seul à connaître. Il est stocké localement sur cet appareil.",
       "footnote": "Yoreni privilégie le local. Votre mot de passe ne quitte jamais cet appareil."
     },
+    "language": {
+      "eyebrow": "LANGUE",
+      "question": "Quelle langue souhaitez-vous utiliser ?",
+      "hint": "Choisissez la langue de Yoreni. Vous pourrez la changer dans les réglages."
+    },
     "intro": {
       "line1": "Yoreni, votre assistant personnel qui reste à vos côtés.",
       "line2": "Je peux vous aider à gérer vos tâches,",

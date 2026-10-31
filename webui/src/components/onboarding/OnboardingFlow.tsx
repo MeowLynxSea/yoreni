@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
 
 import { AmbientBackground } from "@/components/AmbientBackground";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { BirthdayField } from "@/components/profile/BirthdayField";
 import { ChatStyleEditor } from "@/components/profile/ChatStyleEditor";
 import { OnboardingEmbeddingStep } from "@/components/onboarding/OnboardingEmbeddingStep";
@@ -11,6 +10,9 @@ import { OnboardingModelStep } from "@/components/onboarding/OnboardingModelStep
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { currentLocale, setAppLanguage } from "@/i18n";
+import { supportedLocales, type SupportedLocale } from "@/i18n/config";
 import {
   completeOnboarding,
   saveOnboardingProfile,
@@ -18,9 +20,11 @@ import {
   saveOnboardingToken,
 } from "@/lib/api";
 import {
+  ONBOARDING_FLOW,
   isProfileComplete,
   previousStep,
   profileFromWire,
+  stepIndex,
   stepProgress,
 } from "@/lib/onboarding";
 import type { YoreniClient } from "@/lib/yoreni-client";
@@ -30,6 +34,21 @@ import { cn } from "@/lib/utils";
 import "./onboarding.css";
 
 type Busy = "idle" | "saving" | "finishing";
+
+// The question types and erases itself in each supported language so the choice
+// is legible before any language is applied.
+const LANGUAGE_QUESTIONS = [
+  "Which language would you use?",
+  "您使用什么语言？",
+  "您使用什麼語言？",
+  "Quelle langue souhaitez-vous utiliser ?",
+  "どの言語を使いますか？",
+  "어떤 언어를 사용하시겠어요?",
+  "¿Qué idioma vas a usar?",
+  "Qual idioma você vai usar?",
+  "Bạn sẽ dùng ngôn ngữ nào?",
+  "Bahasa apa yang akan Anda gunakan?",
+];
 
 export function OnboardingFlow({
   client,
@@ -54,6 +73,7 @@ export function OnboardingFlow({
   const [busy, setBusy] = useState<Busy>("idle");
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState(client.status === "open");
+  const [language, setLanguage] = useState<SupportedLocale>(() => currentLocale());
   const completeTimer = useRef<number | null>(null);
   const advanceTimer = useRef<number | null>(null);
   const firstDraft = useRef(true);
@@ -117,8 +137,8 @@ export function OnboardingFlow({
     if (!value && tokenSet) {
       setBusy("saving");
       try {
-        await saveOnboardingStep(client, "intro");
-        setStep("intro");
+        await saveOnboardingStep(client, "language");
+        setStep("language");
       } catch (reason) {
         failure(reason);
       } finally {
@@ -142,7 +162,7 @@ export function OnboardingFlow({
       setTokenSet(true);
       setPassword("");
       setConfirmation("");
-      setStep("intro");
+      setStep("language");
     } catch (reason) {
       failure(reason);
     } finally {
@@ -181,7 +201,7 @@ export function OnboardingFlow({
   };
 
   const progress = useMemo(() => stepProgress(step), [step]);
-  const stepNumber = Math.round(progress * 9);
+  const stepNumber = stepIndex(step) + 1;
 
   if (step === "done") {
     return (
@@ -231,10 +251,9 @@ export function OnboardingFlow({
             <span style={{ width: `${Math.max(progress * 100, 4)}%` }} />
           </div>
           <span className="w-10 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground/70">
-            {stepNumber}/9
+            {stepNumber}/{ONBOARDING_FLOW.length}
           </span>
         </div>
-        <LanguageSwitcher collapsed className="shrink-0 text-muted-foreground" />
       </header>
 
       <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col py-8 sm:py-12">
@@ -327,6 +346,49 @@ export function OnboardingFlow({
             <p className="mt-6 text-center text-[11.5px] text-muted-foreground/60">
               {t("onboarding.token.footnote")}
             </p>
+          </section>
+        ) : null}
+
+        {step === "language" ? (
+          <section key="language" className="onboarding-stage mx-auto w-full max-w-xl">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground/70">
+              {t("onboarding.language.eyebrow")}
+            </p>
+            <TypewriterQuestion
+              label={t("onboarding.language.question")}
+              className="display-serif mt-4 min-h-[2.3em] text-[clamp(2rem,5.6vw,3rem)] leading-[1.15] text-foreground/95"
+            />
+            <p className="mt-3 text-[13.5px] leading-6 text-muted-foreground">
+              {t("onboarding.language.hint")}
+            </p>
+            <div className="mt-8 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+              {supportedLocales.map((option) => (
+                <button
+                  key={option.code}
+                  type="button"
+                  lang={option.code}
+                  data-selected={language === option.code}
+                  onClick={() => {
+                    setLanguage(option.code);
+                    void setAppLanguage(option.code);
+                  }}
+                  className={cn(
+                    "onboarding-choice rounded-2xl border px-4 py-3 text-left text-[13.5px] transition-colors",
+                    language === option.code
+                      ? "border-foreground/30 bg-foreground text-background"
+                      : "border-foreground/10 bg-white/45 text-foreground/85 hover:border-foreground/25 dark:border-white/10 dark:bg-white/[0.05]",
+                  )}
+                >
+                  {option.nativeLabel}
+                </button>
+              ))}
+            </div>
+            <StageActions
+              canContinue={canContinue}
+              busy={busy === "saving"}
+              onBack={() => void back()}
+              onSubmit={() => void submit("intro")}
+            />
           </section>
         ) : null}
 
@@ -592,6 +654,43 @@ function QuestionStage({
         </div>
       </form>
     </section>
+  );
+}
+
+function TypewriterQuestion({ label, className }: { label: string; className?: string }) {
+  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const [phrase, setPhrase] = useState(0);
+  const [length, setLength] = useState(0);
+  const [erasing, setErasing] = useState(false);
+  const full = LANGUAGE_QUESTIONS[phrase] ?? "";
+
+  useEffect(() => {
+    if (reducedMotion) return;
+    if (!erasing && length < full.length) {
+      const timer = window.setTimeout(() => setLength((value) => value + 1), 70);
+      return () => window.clearTimeout(timer);
+    }
+    if (!erasing) {
+      const timer = window.setTimeout(() => setErasing(true), 1500);
+      return () => window.clearTimeout(timer);
+    }
+    if (length > 0) {
+      const timer = window.setTimeout(() => setLength((value) => value - 1), 28);
+      return () => window.clearTimeout(timer);
+    }
+    const timer = window.setTimeout(() => {
+      setPhrase((value) => (value + 1) % LANGUAGE_QUESTIONS.length);
+      setErasing(false);
+    }, 320);
+    return () => window.clearTimeout(timer);
+  }, [erasing, full, length, reducedMotion]);
+
+  const text = reducedMotion ? label : full.slice(0, length);
+  return (
+    <h1 className={className} aria-label={label}>
+      <span aria-hidden>{text}</span>
+      <span className="onboarding-typer-caret" aria-hidden />
+    </h1>
   );
 }
 

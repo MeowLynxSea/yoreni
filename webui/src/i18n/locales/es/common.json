@@ -163,6 +163,11 @@
       "hint": "Elige algo que solo tú conozcas. Se guarda localmente en este dispositivo.",
       "footnote": "Yoreni prioriza lo local. Tu contraseña nunca sale de este dispositivo."
     },
+    "language": {
+      "eyebrow": "IDIOMA",
+      "question": "¿Qué idioma vas a usar?",
+      "hint": "Elige el idioma de Yoreni. Puedes cambiarlo cuando quieras en ajustes."
+    },
     "intro": {
       "line1": "Yoreni, tu asistente personal que te acompaña.",
       "line2": "Puedo ayudarte con lo que tengas entre manos,",

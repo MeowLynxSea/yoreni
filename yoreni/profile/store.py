@@ -24,6 +24,7 @@ _ONBOARDING_VERSION = 1
 
 OnboardingStep = Literal[
     "token",
+    "language",
     "intro",
     "name",
     "birthday",
@@ -36,6 +37,7 @@ OnboardingStep = Literal[
 ]
 ONBOARDING_STEPS: tuple[OnboardingStep, ...] = (
     "token",
+    "language",
     "intro",
     "name",
     "birthday",

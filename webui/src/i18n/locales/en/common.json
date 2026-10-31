@@ -163,6 +163,11 @@
       "hint": "Choose something only you know. It is stored locally on this device.",
       "footnote": "Yoreni is local-first. Your password never leaves this device."
     },
+    "language": {
+      "eyebrow": "LANGUAGE",
+      "question": "Which language would you use?",
+      "hint": "Pick the language Yoreni should speak. You can change it anytime in settings."
+    },
     "intro": {
       "line1": "Yoreni, your personal assistant that stays with you.",
       "line2": "I can help you handle what's on your plate,",

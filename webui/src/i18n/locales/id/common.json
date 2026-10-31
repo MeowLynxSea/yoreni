@@ -163,6 +163,11 @@
       "hint": "Pilih sesuatu yang hanya kamu tahu. Hanya disimpan di perangkat ini.",
       "footnote": "Yoreni mengutamakan lokal. Kata sandimu tidak pernah meninggalkan perangkat ini."
     },
+    "language": {
+      "eyebrow": "BAHASA",
+      "question": "Bahasa apa yang akan Anda gunakan?",
+      "hint": "Pilih bahasa untuk Yoreni. Anda bisa menggantinya di pengaturan."
+    },
     "intro": {
       "line1": "Yoreni, asisten pribadimu yang selalu menemani.",
       "line2": "Aku bisa membantumu mengurus berbagai hal,",

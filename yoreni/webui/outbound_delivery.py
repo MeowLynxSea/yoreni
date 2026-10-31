@@ -72,6 +72,11 @@ class WebUIOutboundDelivery:
             body["turn_id"] = metadata[WEBUI_TURN_METADATA_KEY]
         if metadata and isinstance(metadata.get("run_id"), str):
             body["run_id"] = metadata["run_id"]
+        # Frames belong to the conversation that produced them, so a client
+        # showing another project never applies this stream to its transcript.
+        project_id = metadata.get("project_id") if metadata else None
+        if isinstance(project_id, str) and project_id:
+            body["project_id"] = project_id
         raw = json.dumps(body, ensure_ascii=False)
         for connection in self._transport.webui_recipients("authenticated_webui"):
             await self._transport.webui_send_raw(connection, raw)

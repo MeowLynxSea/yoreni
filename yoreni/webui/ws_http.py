@@ -29,6 +29,8 @@ from yoreni.agent.persistent import recoverable_runs
 from yoreni.agent.state import AgentStore
 from yoreni.cron.events import is_bound_cron_job
 from yoreni.cron.types import CronJob, CronSchedule
+from yoreni.projects.scope import GLOBAL_SCOPE
+from yoreni.projects.service import ProjectError, ProjectService
 from yoreni.runtime_admission import RuntimeMaintenanceError
 from yoreni.security.workspace_access import WorkspaceScopeError
 from yoreni.triggers.local_types import LocalTrigger
@@ -148,6 +150,9 @@ _WEBUI_MUTATION_PATHS = {
     "star_prompt.dismiss": "/api/webui/star-prompt/dismiss",
     "workspace.favorite": "/api/workspaces/favorite",
     "workspace.resolve_project": "/api/workspaces/resolve-project",
+    "project.create": "/api/projects/create",
+    "project.update": "/api/projects/update",
+    "project.delete": "/api/projects/delete",
     "webui.home_widgets.update": "/api/webui/home-widgets",
     "webui.widgets.delete": "/api/webui/widgets/delete",
     "webui.widgets.refresh": "/api/webui/widgets/refresh",
@@ -347,6 +352,7 @@ class GatewayHTTPHandler:
         agent_action: Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
         chat_search_action: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
         memory_backfill_action: Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
+        projects: ProjectService | None = None,
         log: Any = logger,
     ) -> None:
         self.config = config
@@ -366,6 +372,7 @@ class GatewayHTTPHandler:
         self.agent_action = agent_action
         self.chat_search_action = chat_search_action
         self.memory_backfill_action = memory_backfill_action
+        self.projects = projects
         self._skill_install_lock = asyncio.Lock()
         self.cron_service = cron_service
         self.local_trigger_store = local_trigger_store
@@ -506,6 +513,9 @@ class GatewayHTTPHandler:
             "/api/webui/star-prompt/dismiss",
             "/api/workspaces/resolve-project",
             "/api/workspaces/favorite",
+            "/api/projects/create",
+            "/api/projects/update",
+            "/api/projects/delete",
         }
 
     @staticmethod
@@ -583,10 +593,28 @@ class GatewayHTTPHandler:
                     return _http_error(400, "invalid before_seq")
                 if before_seq <= 0:
                     return _http_error(400, "invalid before_seq")
-            history = await asyncio.to_thread(store.webui_history, before_seq=before_seq)
+            # One conversation per scope: the main chat and each project page
+            # read only their own Runs.
+            raw_project = _query_first(_request_query(request), "project_id")
+            scope = GLOBAL_SCOPE
+            if raw_project:
+                if self.projects is None:
+                    return _http_error(503, "projects are unavailable")
+                project = await asyncio.to_thread(self.projects.get, raw_project)
+                if project is None:
+                    return _http_error(404, "project not found")
+                scope = project.scope
+            history = await asyncio.to_thread(
+                store.webui_history, before_seq=before_seq, scope=scope,
+            )
+            pending_runs = [
+                run for run in await asyncio.to_thread(recoverable_runs, store)
+                if run["scope"] == scope
+            ]
             return _http_json_response({
                 "id": identity.id, "revision": identity.revision, "state": identity.state,
-                "pending_runs": await asyncio.to_thread(recoverable_runs, store),
+                "scope": scope,
+                "pending_runs": pending_runs,
                 "history": [
                     {
                         **run,
@@ -1103,6 +1131,10 @@ class GatewayHTTPHandler:
         widget_match = re.match(r"^/api/webui/widgets/([A-Za-z0-9_-]{1,64})$", got)
         if widget_match:
             return self._handle_widget_detail(request, widget_match.group(1))
+        if got == "/api/projects":
+            return self._handle_projects(request)
+        if got in {"/api/projects/create", "/api/projects/update", "/api/projects/delete"}:
+            return await self._handle_project_mutation(request, got)
         if got == "/api/workspaces/favorite":
             return self._handle_workspace_favorite(connection, request)
         if got == "/api/workspaces/resolve-project":
@@ -1142,12 +1174,22 @@ class GatewayHTTPHandler:
     async def _handle_chat_search(self, request: WsRequest, *, semantic: bool = False) -> Response:
         if not self.check_api_token(request):
             return _http_error(401, "Unauthorized")
+        params = _request_query(request)
         try:
-            query = normalize_search_query(_query_first(_request_query(request), "q"))
+            query = normalize_search_query(_query_first(params, "q"))
         except ValueError as exc:
             return _http_error(400, str(exc) or "invalid search request")
+        raw_project = _query_first(params, "project_id")
+        scope = GLOBAL_SCOPE
+        if raw_project:
+            if self.projects is None:
+                return _http_error(503, "projects are unavailable")
+            project = await asyncio.to_thread(self.projects.get, raw_project)
+            if project is None:
+                return _http_error(404, "project not found")
+            scope = project.scope
         store = await asyncio.to_thread(AgentStore, self.skills_workspace_path)
-        rows = await asyncio.to_thread(store.conversation_rows)
+        rows = await asyncio.to_thread(store.conversation_rows, scope=scope)
         exact, fuzzy = await asyncio.to_thread(search_conversation, rows, query)
         if not semantic:
             return _http_json_response(
@@ -1259,6 +1301,68 @@ class GatewayHTTPHandler:
             },
             extra_headers=_NO_STORE_HEADERS,
         )
+
+    # -- projects ------------------------------------------------------------
+
+    def _project_payload(self, project: Any) -> dict[str, Any]:
+        assert self.projects is not None
+        payload = project.as_dict()
+        payload["active_runs"] = len(self.projects.store.active_runs(project.scope))
+        return payload
+
+    def _handle_projects(self, request: WsRequest) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        if self.projects is None:
+            return _http_error(503, "projects are unavailable")
+        return _http_json_response(
+            {"projects": [self._project_payload(item) for item in self.projects.list()]},
+            extra_headers=_NO_STORE_HEADERS,
+        )
+
+    async def _handle_project_mutation(self, request: WsRequest, got: str) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        if self.projects is None:
+            return _http_error(503, "projects are unavailable")
+        payload = _mutation_payload(request) or {}
+        try:
+            if got.endswith("/create"):
+                project = await asyncio.to_thread(
+                    self.projects.create,
+                    name=payload.get("name"),
+                    description=payload.get("description") or "",
+                    emoji=payload.get("emoji") or "",
+                )
+            elif got.endswith("/update"):
+                project = await asyncio.to_thread(
+                    self.projects.update,
+                    self._project_id(payload),
+                    name=payload.get("name"),
+                    description=payload.get("description"),
+                    emoji=payload.get("emoji"),
+                )
+            else:
+                return _http_json_response(
+                    await self.projects.delete(self._project_id(payload)),
+                )
+        except KeyError:
+            return _http_error(404, "project not found")
+        except ProjectError as exc:
+            return _http_error(400, str(exc))
+        except OSError:
+            self._log.exception("project storage operation failed")
+            return _http_error(500, "could not update projects")
+        return _http_json_response({"project": self._project_payload(project)})
+
+    def _project_id(self, payload: dict[str, Any]) -> str:
+        raw = payload.get("project_id")
+        if not isinstance(raw, str) or not raw.strip():
+            raise ProjectError("project_id is required")
+        assert self.projects is not None
+        if self.projects.get(raw.strip()) is None:
+            raise KeyError(raw)
+        return raw.strip()
 
     def _handle_workspaces(self, connection: Any, request: WsRequest) -> Response:
         if not self.check_api_token(request):

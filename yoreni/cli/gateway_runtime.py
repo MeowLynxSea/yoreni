@@ -843,6 +843,7 @@ def _run_claimed_gateway(
         webui_agent_action=agent_action,
         webui_chat_search_action=chat_search_action,
         webui_memory_backfill_action=memory_backfill_action,
+        webui_projects=agent.projects,
         webui_accept_input=_webui_accept_input,
         config_path=Path(config_path),
     )

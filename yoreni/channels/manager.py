@@ -41,6 +41,9 @@ from yoreni.channels.registry import channel_default_enabled
 from yoreni.config.schema import Config
 from yoreni.security.workspace_access import WorkspaceScopeResolver
 from yoreni.security.workspace_policy import resolve_allowed_path
+
+if TYPE_CHECKING:
+    from yoreni.projects.service import ProjectService
 from yoreni.utils.restart import (
     RestartNotice,
     consume_restart_notice_from_env,
@@ -122,6 +125,7 @@ class ChannelManager:
         webui_chat_search_action: (
             Callable[[dict[str, Any]], Awaitable[dict[str, Any]]] | None
         ) = None,
+        webui_projects: "ProjectService | None" = None,
         webui_memory_backfill_action: (
             Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]] | None
         ) = None,
@@ -151,6 +155,7 @@ class ChannelManager:
         self._webui_agent_action = webui_agent_action
         self._webui_chat_search_action = webui_chat_search_action
         self._webui_memory_backfill_action = webui_memory_backfill_action
+        self._webui_projects = webui_projects
         self.channels: dict[str, BaseChannel] = {}
         self._channel_owners: dict[str, str] = {}
         self._channel_runtime_specs: dict[str, tuple[str, str]] = {}
@@ -254,6 +259,7 @@ class ChannelManager:
                 agent_action=self._webui_agent_action,
                 chat_search_action=self._webui_chat_search_action,
                 memory_backfill_action=self._webui_memory_backfill_action,
+                projects=self._webui_projects,
                 logger=logger,
             )
             kwargs["gateway"] = gateway

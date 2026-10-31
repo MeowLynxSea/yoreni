@@ -16,6 +16,7 @@ CORE_CAPABILITY = "webui.core.v2"
 BINARY_ATTACHMENTS_CAPABILITY = "webui.attachments.binary.v1"
 AGENT_CAPABILITY = "webui.agent.v1"
 WIDGETS_CAPABILITY = "webui.widgets.v1"
+PROJECTS_CAPABILITY = "webui.projects.v1"
 
 
 class Compatibility(TypedDict):
@@ -34,6 +35,7 @@ def webui_contract() -> dict[str, object]:
             BINARY_ATTACHMENTS_CAPABILITY,
             AGENT_CAPABILITY,
             WIDGETS_CAPABILITY,
+            PROJECTS_CAPABILITY,
         ],
     }
 

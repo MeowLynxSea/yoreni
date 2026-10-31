@@ -14,6 +14,7 @@ from yoreni.channels.websocket.attachment_http import AttachmentHTTP
 from yoreni.channels.websocket.attachment_store import AttachmentStore
 from yoreni.config.loader import get_config_path
 from yoreni.config.paths import get_media_dir
+from yoreni.projects.service import ProjectService
 from yoreni.webui.gateway_endpoint import WebUIGatewayEndpoint
 from yoreni.webui.gateway_tokens import GatewayTokenStore
 from yoreni.webui.ingress_policy import DEFAULT_WEBUI_INGRESS_POLICY, WebUIIngressPolicy
@@ -48,6 +49,7 @@ class GatewayServices:
     widget_service: WidgetService | None
     accept_input: Callable[[InboundMessage], Awaitable[str | None]] | None
     agent_store: AgentStore
+    projects: ProjectService | None
 
 
 def build_gateway_services(
@@ -77,6 +79,7 @@ def build_gateway_services(
     agent_action: Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
     chat_search_action: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
     memory_backfill_action: Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]] | None = None,
+    projects: ProjectService | None = None,
     logger: Any = default_logger,
 ) -> GatewayServices:
     settings = WebUISettingsServices.create(
@@ -131,6 +134,7 @@ def build_gateway_services(
         agent_action=agent_action,
         chat_search_action=chat_search_action,
         memory_backfill_action=memory_backfill_action,
+        projects=projects,
         log=logger,
     )
     endpoint = WebUIGatewayEndpoint(config=config, http=http, tokens=tokens)
@@ -148,4 +152,5 @@ def build_gateway_services(
         widget_service=widget_service,
         accept_input=accept_input,
         agent_store=AgentStore(workspace_path),
+        projects=projects,
     )

@@ -18,6 +18,7 @@ from yoreni.agent.state import PERSONAL_CHAT_ID
 from yoreni.bus.events import INBOUND_META_TURN_ID, InboundMessage
 from yoreni.channels.websocket.attachment_policy import validate_attachment_batch
 from yoreni.channels.websocket.attachment_store import AttachmentUploadError
+from yoreni.projects.scope import PROJECT_ID_METADATA_KEY
 from yoreni.runtime_context import WEBUI_QUOTE_METADATA, normalize_webui_quote
 from yoreni.security.workspace_access import WORKSPACE_SCOPE_METADATA_KEY, WorkspaceScopeError
 from yoreni.webui.attachments import inspect_local_attachment
@@ -69,6 +70,18 @@ class WebUICommandRouter:
         self.request_tasks: dict[tuple[ServerConnection, str], asyncio.Task[None]] = {}
         self.request_operations: dict[str, WebUIRequestOperation] = {}
         self.request_locks: dict[ServerConnection, asyncio.Lock] = {}
+
+    def _project_from_envelope(self, envelope: dict[str, Any]) -> str | None:
+        """Validate the project a message was written in, if it names one."""
+        raw = envelope.get("project_id")
+        if raw is None:
+            return None
+        if not isinstance(raw, str) or not raw.strip():
+            raise ValueError("invalid project id")
+        project_id = raw.strip()
+        if self.gateway.projects is None or self.gateway.projects.get(project_id) is None:
+            raise ValueError("unknown project")
+        return project_id
 
     def workspace_project_selection_available(self, connection: ServerConnection) -> bool:
         return self._http_router.workspace_project_selection_available(connection)
@@ -128,6 +141,7 @@ class WebUICommandRouter:
             scope = await self._workspaces.scope_from_envelope(
                 envelope, can_change_project=self.workspace_project_selection_available(connection),
             )
+            project_id = self._project_from_envelope(envelope)
             attachments = envelope.get("media", [])
             if not isinstance(attachments, list):
                 raise AttachmentUploadError("malformed")
@@ -165,6 +179,8 @@ class WebUICommandRouter:
                 WORKSPACE_SCOPE_METADATA_KEY: scope.metadata(),
                 "_input_digest": digest,
             }
+            if project_id is not None:
+                metadata[PROJECT_ID_METADATA_KEY] = project_id
             cli_apps = normalize_cli_app_mentions(envelope.get("cli_apps"))
             if cli_apps:
                 metadata["cli_apps"] = cli_apps
@@ -180,6 +196,12 @@ class WebUICommandRouter:
             # Rejected messages leave committed media for explicit data management.
             if refs:
                 self._uploads.store.commit(refs, owner=owner)
+            if project_id is not None and paths and self.gateway.projects is not None:
+                # An attachment sent inside a project belongs to that project
+                # directory, not to the shared media store.
+                paths = await asyncio.to_thread(
+                    self.gateway.projects.ingest_uploads, project_id, paths,
+                )
             run_id = await self.gateway.accept_input(InboundMessage(
                 channel="websocket", sender_id=client_id, chat_id=PERSONAL_CHAT_ID,
                 content=content, media=paths, metadata=metadata,

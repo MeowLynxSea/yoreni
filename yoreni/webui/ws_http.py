@@ -97,7 +97,9 @@ from yoreni.webui.http_utils import (
 from yoreni.webui.ingress_policy import WebUIIngressPolicy
 from yoreni.webui.media_gateway import WebUIMediaGateway
 from yoreni.webui.onboarding_api import OnboardingError, OnboardingService
-from yoreni.webui.outbound_wire import encode_history_entries as _encode_history_entries
+from yoreni.webui.outbound_wire import (
+    encode_history_run as _encode_history_run,
+)
 from yoreni.webui.skills_api import (
     SkillManagementError,
     delete_webui_skill,
@@ -611,20 +613,16 @@ class GatewayHTTPHandler:
                 run for run in await asyncio.to_thread(recoverable_runs, store)
                 if run["scope"] == scope
             ]
+            sign_media = self.media.sign_or_stage_media_path
             return _http_json_response({
                 "id": identity.id, "revision": identity.revision, "state": identity.state,
                 "scope": scope,
                 "pending_runs": pending_runs,
                 "history": [
-                    {
-                        **run,
-                        "entries": _encode_history_entries(
-                            run["entries"],
-                            sign_media=lambda media_path: self.media.sign_or_stage_media_path(
-                                Path(media_path),
-                            ),
-                        ),
-                    }
+                    _encode_history_run(
+                        run,
+                        sign_media=lambda media_path: sign_media(Path(media_path)),
+                    )
                     for run in history
                 ],
             }, extra_headers=_NO_STORE_HEADERS)

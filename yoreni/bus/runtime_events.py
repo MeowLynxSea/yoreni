@@ -39,6 +39,7 @@ class UserInputAccepted(AgentEvent):
     context: RuntimeEventContext
     content: str
     message_id: str | None = None
+    media: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -187,6 +188,7 @@ class RuntimeEventPublisher:
                 ),
                 content=msg.content,
                 message_id=message_id,
+                media=tuple(msg.media),
             )
         )
 

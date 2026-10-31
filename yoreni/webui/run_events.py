@@ -75,6 +75,7 @@ def connect_run_events(bus: MessageBus):
                     int(time.time() * 1000),
                     {},
                     message_id=event.message_id,
+                    media=event.media,
                 ),
                 metadata=event.context.metadata,
             ))

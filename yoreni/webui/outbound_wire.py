@@ -170,13 +170,41 @@ def encode_history_entries(
                 "created_at_ms": created,
             })
         elif kind == "user":
-            frames.append({
+            user_frame: dict[str, Any] = {
                 "event": "user_message",
                 "message_id": str(payload.get("id") or ""),
                 "text": str(payload.get("content") or ""),
                 "created_at_ms": created,
-            })
+            }
+            media_paths = [str(item) for item in cast(list[object], payload.get("media") or [])]
+            user_attachments = media_attachments(media_paths, sign_media=sign_media)
+            if user_attachments:
+                user_frame["media_urls"] = user_attachments
+            frames.append(user_frame)
     return frames
+
+
+def encode_history_run(
+    run: Mapping[str, Any],
+    *,
+    sign_media: Callable[[str], Mapping[str, Any] | None],
+) -> dict[str, Any]:
+    """Frame one durable Run and the input that started it for replay."""
+    frame = {key: value for key, value in run.items() if key not in {"media", "entries"}}
+    frame["entries"] = encode_history_entries(
+        cast(Sequence[Mapping[str, Any]], run.get("entries") or []),
+        sign_media=sign_media,
+    )
+    # A user turn's own message is the Event, so its attachments ride on the
+    # Run instead of a conversation row.
+    media_paths = [str(item) for item in cast(list[object], run.get("media") or [])]
+    attachments = (
+        media_attachments(media_paths, sign_media=sign_media)
+        if run.get("kind") == "user" else []
+    )
+    if attachments:
+        frame["media_urls"] = attachments
+    return frame
 
 
 class _ChatWirePayload(TypedDict):
@@ -286,6 +314,7 @@ class UserInputWirePayload(_ChatWirePayload):
     starts_turn: bool
     message_id: NotRequired[str]
     provenance: NotRequired[dict[str, Any]]
+    media_urls: NotRequired[list[dict[str, Any]]]
 
 
 class PairingChangedWirePayload(TypedDict):

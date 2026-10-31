@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from yoreni.agent.state import AgentInput, AgentStore
-from yoreni.webui.outbound_wire import encode_history_entries
+from yoreni.webui.outbound_wire import encode_history_entries, encode_history_run
 
 
 def _sign(path: str) -> dict[str, str] | None:
@@ -106,11 +106,45 @@ def test_unknown_rows_do_not_reach_the_client() -> None:
     ) == []
 
 
+def test_inserted_user_rows_keep_their_attachments() -> None:
+    frames = encode_history_entries(
+        [{
+            "seq": 1, "kind": "user",
+            "payload": {
+                "id": "msg-2", "content": "", "media": ["chart.png", "missing.png"],
+                "created_at_ms": 7,
+            },
+        }],
+        sign_media=_sign,
+    )
+
+    assert frames == [{
+        "event": "user_message", "message_id": "msg-2", "text": "",
+        "created_at_ms": 7,
+        "media_urls": [{"url": "/api/media/sig/chart.png", "name": "chart.png"}],
+    }]
+
+
+def test_a_user_run_replays_its_attachments_without_their_paths() -> None:
+    frame = encode_history_run(
+        {
+            "id": "run-1", "status": "completed", "error": None, "event_seq": 1,
+            "event_id": "msg-1", "created_at_ms": 3, "source": "websocket",
+            "kind": "user", "content": "look", "media": ["chart.png"],
+            "result": None, "activity": [], "projection": 1, "entries": [],
+        },
+        sign_media=_sign,
+    )
+
+    assert frame["media_urls"] == [{"url": "/api/media/sig/chart.png", "name": "chart.png"}]
+    assert "media" not in frame
+
+
 def test_history_carries_the_projection_version_and_ordered_rows(tmp_path) -> None:
     store = AgentStore(tmp_path)
     run_id = store.admit(AgentInput(
         source="websocket", content="hello", principal="owner", event_id="msg-1",
-        channel="websocket", chat_id="yoreni",
+        channel="websocket", chat_id="yoreni", media=("chart.png",),
     ))
     store.start(run_id, [])
     store.append_entry(run_id, "message", {"id": "m-1", "content": "hi", "created_at_ms": 1})
@@ -119,6 +153,7 @@ def test_history_carries_the_projection_version_and_ordered_rows(tmp_path) -> No
 
     run = store.webui_history()[0]
 
+    assert run["media"] == ["chart.png"]
     assert run["projection"] == 1
     assert run["created_at_ms"] > 0
     assert [(entry["kind"], entry["payload"]["id"]) for entry in run["entries"]] == [

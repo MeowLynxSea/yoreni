@@ -121,6 +121,13 @@ class WebUIOutboundDelivery:
                 "event": "user_message", "text": event.content,
                 "created_at_ms": event.created_at_ms,
             }
+            if event.media:
+                attachments = media_attachments(
+                    event.media,
+                    sign_media=lambda entry: self._media.sign_or_stage_media_path(Path(entry)),
+                )
+                if attachments:
+                    user_payload["media_urls"] = attachments
             if event.message_id:
                 user_payload["message_id"] = event.message_id
             await self._send(user_payload, msg.metadata)

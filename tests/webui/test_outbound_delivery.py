@@ -177,3 +177,18 @@ async def test_inserted_user_message_is_pushed_with_its_id() -> None:
         "created_at_ms": 3,
         "message_id": "u2",
     }]
+
+
+@pytest.mark.asyncio
+async def test_user_message_carries_the_attachments_it_was_sent_with() -> None:
+    delivery, transport = _delivery()
+
+    await delivery.send(_message(UserInputEvent(
+        content="", created_at_ms=4, provenance={}, message_id="u3",
+        media=("chart.png", "report.pdf"),
+    )))
+
+    assert transport.frames[0]["media_urls"] == [
+        {"url": "/api/media/chart.png", "name": "chart.png"},
+        {"url": "/api/media/report.pdf", "name": "report.pdf"},
+    ]

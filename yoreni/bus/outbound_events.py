@@ -105,6 +105,7 @@ class UserInputEvent(AgentEvent):
     created_at_ms: int
     provenance: dict[str, Any]
     message_id: str | None = None
+    media: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

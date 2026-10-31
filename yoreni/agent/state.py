@@ -71,6 +71,8 @@ class WebUIRun(TypedDict):
     source: str
     kind: str
     content: str
+    """Attachment paths the Event carried; the WebUI signs them for display."""
+    media: list[str]
     result: RunOutcome | None
     activity: list[RunActivity]
     projection: int
@@ -730,11 +732,17 @@ class AgentStore:
         for row in reversed(rows):
             payload = cast(dict[str, Any], json.loads(row["payload"]))
             raw_result = json.loads(row["result"]) if row["result"] is not None else None
+            raw_media = payload.get("media")
+            media = (
+                [str(item) for item in cast(list[object], raw_media)]
+                if isinstance(raw_media, list) else []
+            )
             result.append(WebUIRun(
                 id=row["id"], status=row["status"], error=row["error"],
                 event_seq=row["seq"], event_id=row["event_id"], source=row["source"],
                 created_at_ms=int(row["created_at_ms"] or 0),
                 kind=str(payload.get("kind", "user")), content=str(payload.get("content", "")),
+                media=media,
                 result=cast(RunOutcome | None, raw_result),
                 activity=pending_run_activity(row["status"], row["checkpoint"]),
                 projection=int(row["projection"] or 0),

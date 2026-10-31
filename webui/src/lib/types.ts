@@ -44,6 +44,7 @@ export interface UIMediaWireAttachment {
   url: string;
   name: string;
   kind?: string;
+  size?: number;
   title?: string;
   description?: string;
   site?: string;
@@ -53,6 +54,8 @@ export interface UIMediaAttachment {
   kind: UIMediaKind;
   url?: string;
   name?: string;
+  /** Delivered files carry the byte size the gateway measured when signing. */
+  size?: number;
   /** Link cards: the page title, description, and site the backend read. */
   title?: string;
   description?: string;

@@ -13,6 +13,7 @@ from websockets.http11 import Response
 from yoreni.config.paths import get_media_dir
 from yoreni.webui.markdown_media import rewrite_local_markdown_images
 from yoreni.webui.media_api import (
+    SignedMediaAttachment,
     serve_signed_media,
     sign_or_stage_media_path,
     signed_media_attachments,
@@ -54,7 +55,7 @@ class WebUIMediaGateway:
             media_dir=self._media_dir,
         )
 
-    def sign_or_stage_media_path(self, path: Path) -> dict[str, str] | None:
+    def sign_or_stage_media_path(self, path: Path) -> SignedMediaAttachment | None:
         return sign_or_stage_media_path(
             path,
             secret=self.secret,

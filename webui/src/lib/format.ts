@@ -9,6 +9,21 @@ export function formatCompactTokenCount(value: number): string {
   return `${Number((value / 1_000_000).toFixed(digits))}M`;
 }
 
+const FILE_SIZE_UNITS = ["B", "KB", "MB", "GB", "TB"] as const;
+
+/** Attachment sizes in one short label that fits a card subtitle (for example, 1.4 MB). */
+export function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return "";
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < FILE_SIZE_UNITS.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  const digits = unit === 0 || value >= 100 ? 0 : 1;
+  return `${Number(value.toFixed(digits))} ${FILE_SIZE_UNITS[unit]}`;
+}
+
 const LOW_INFORMATION_TITLE_PREVIEWS = new Set([
   "hi",
   "hello",

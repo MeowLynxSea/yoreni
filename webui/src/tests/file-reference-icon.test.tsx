@@ -78,7 +78,7 @@ describe("shared file icons", () => {
       expect(tab.querySelector("svg")).toHaveClass("size-3.5");
       expect(tab.querySelector("svg")).not.toHaveClass("translate-y-[0.12em]");
       expect(within(information).getByText(type)).toBeVisible();
-      expect(information.querySelector("svg")).toHaveClass("lucide-file-text");
+      expect(information.querySelector("svg")!.innerHTML).toBe(glyph);
       expect(download.querySelector("svg")).toHaveClass("lucide-download", "size-4");
       expect(download).toHaveAttribute("href", `/download/${path}`);
       expect(download).toHaveAttribute("download", path);

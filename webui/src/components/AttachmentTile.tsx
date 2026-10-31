@@ -7,7 +7,7 @@ import type { UIMediaAttachment } from "@/lib/types";
 import { ImageThumbnail } from "@/components/ImageGallery";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { useRegisterInlineImage } from "@/components/InlineImageContext";
-import { AttachmentCard, AttachmentTypeFace, attachmentCardActionClassName } from "@/components/AttachmentCard";
+import { AttachmentCard, AttachmentFileFace, AttachmentTypeFace, attachmentCardActionClassName } from "@/components/AttachmentCard";
 
 interface AttachmentTileProps {
   attachment: UIMediaAttachment;
@@ -79,16 +79,19 @@ export function AttachmentTile({ attachment, className, inline = false, variant 
   const filePath = attachment.name || attachment.url?.split(/[?#]/, 1)[0] || "";
   const name = attachment.name || label;
   const available = hasUrl && !failed;
+  const rowLayout = attachment.kind === "file";
   const status = available ? undefined : pending ? t("message.delivery.sending") : t("message.attachmentUnavailable");
   const download = available ? <a href={attachment.url} download={name} title={name}
     aria-label={t("message.downloadAttachment", { name })}
-    className={cn(attachmentCardActionClassName, "text-muted-foreground hover:text-foreground")}>
+    className={cn(attachmentCardActionClassName, "text-muted-foreground transition-colors hover:text-foreground")}>
     <Download aria-hidden strokeWidth={1.75} className="size-4" />
   </a> : undefined;
 
-  return <span data-file-attachment className={cn("not-prose inline-flex w-24 max-w-full shrink-0 flex-col gap-1 align-top", className)}>
-    <AttachmentCard name={name} description={status} action={download}>
-      <AttachmentTypeFace name={filePath} kind={attachment.kind} />
+  return <span data-file-attachment className={cn("not-prose inline-flex max-w-full shrink-0 flex-col gap-1 align-top", !rowLayout && "w-24", className)}>
+    <AttachmentCard name={name} description={status} action={download} layout={rowLayout ? "row" : "tile"}>
+      {rowLayout
+        ? <AttachmentFileFace name={filePath} kind={attachment.kind} size={attachment.size} />
+        : <AttachmentTypeFace name={filePath} kind={attachment.kind} />}
     </AttachmentCard>
     {status ? <span className="break-words text-center text-[11px] leading-4 text-muted-foreground">{status}</span> : null}
     {attachment.kind === "video" && failed && !pending ? (

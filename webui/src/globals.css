@@ -2006,6 +2006,25 @@
     0 28px 80px -40px rgb(0 0 0 / 0.7);
 }
 
+/* Attachment and link cards share the Agent message surface they sit on;
+ * only the hairline and a hover step tell them apart from the bubble. */
+.message-attachment-card {
+  background: var(--app-glass);
+  border: 1px solid var(--app-hairline);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.message-attachment-card:hover {
+  background: var(--app-glass-strong);
+  border-color: var(--app-glass-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-attachment-card {
+    transition: none;
+  }
+}
+
 .app-nav-pill {
   background: var(--nav-pill-bg);
   border: 1px solid var(--nav-pill-border);

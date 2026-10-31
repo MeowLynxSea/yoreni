@@ -64,6 +64,7 @@ export function toMediaAttachment(media: {
   url?: string;
   name?: string;
   kind?: string;
+  size?: number;
   title?: string;
   description?: string;
   site?: string;
@@ -74,6 +75,7 @@ export function toMediaAttachment(media: {
     kind: declared === "link" ? "link" : explicitMediaKind(media) ?? declared ?? "file",
     url: media.url,
     name: media.name,
+    ...(typeof media.size === "number" && Number.isFinite(media.size) ? { size: media.size } : {}),
     ...(media.title ? { title: media.title } : {}),
     ...(media.description ? { description: media.description } : {}),
     ...(media.site ? { site: media.site } : {}),

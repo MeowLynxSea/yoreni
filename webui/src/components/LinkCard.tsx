@@ -24,9 +24,7 @@ export function LinkCard({ link, className }: { link: UIMediaAttachment; classNa
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "not-prose flex w-full min-w-0 flex-col gap-1 rounded-control",
-        "border border-border/60 bg-card/45 px-3.5 py-3",
-        "transition-colors hover:border-border hover:bg-card/70",
+        "not-prose message-attachment-card flex w-full min-w-0 flex-col gap-1.5 rounded-control px-4 py-3.5",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         className,
       )}
@@ -35,10 +33,10 @@ export function LinkCard({ link, className }: { link: UIMediaAttachment; classNa
         <span className="truncate text-[11px] font-medium leading-4 text-muted-foreground">{site}</span>
       ) : null}
       <span className="flex min-w-0 items-start gap-1.5">
-        <span className="line-clamp-2 min-w-0 [overflow-wrap:anywhere] text-[14px] font-medium leading-5 text-foreground">
+        <span className="line-clamp-2 min-w-0 [overflow-wrap:anywhere] text-[14px] font-medium leading-6 text-foreground">
           {title}
         </span>
-        <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden strokeWidth={1.75} />
+        <ExternalLink className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden strokeWidth={1.75} />
       </span>
       {link.description ? (
         <span className="line-clamp-2 text-[12px] leading-5 text-muted-foreground">{link.description}</span>

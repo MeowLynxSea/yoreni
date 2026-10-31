@@ -70,22 +70,22 @@ def project_tool_events(events: list[dict[str, Any]]) -> list[dict[str, _JSONVal
 def media_attachments(
     paths: Sequence[str],
     *,
-    sign_media: Callable[[str], dict[str, str] | None],
+    sign_media: Callable[[str], Mapping[str, Any] | None],
     links: Sequence[LinkPreview] = (),
-) -> list[dict[str, str]]:
+) -> list[dict[str, Any]]:
     """Turn delivered media into wire attachments.
 
     External URLs become link cards, using the preview fetched at delivery or
     the host name when a stored row predates previews.
     """
     previews = {link.url: link for link in links}
-    attachments: list[dict[str, str]] = []
+    attachments: list[dict[str, Any]] = []
     seen: set[str] = set()
     for path in paths:
         if not is_http_url(path):
             signed = sign_media(path)
             if signed is not None:
-                attachments.append(signed)
+                attachments.append(dict(signed))
             continue
         if path in seen:
             continue
@@ -129,7 +129,7 @@ def _payload_links(payload: Mapping[str, object]) -> list[LinkPreview]:
 def encode_history_entries(
     entries: Sequence[Mapping[str, Any]],
     *,
-    sign_media: Callable[[str], dict[str, str] | None],
+    sign_media: Callable[[str], Mapping[str, Any] | None],
 ) -> list[dict[str, Any]]:
     """Frame durable conversation rows as the live wire shapes they replay.
 
@@ -234,7 +234,7 @@ class MessageWirePayload(_ChatWirePayload):
     id: NotRequired[str]
     render_as: NotRequired[Literal["text"]]
     media: NotRequired[list[str]]
-    media_urls: NotRequired[list[dict[str, str]]]
+    media_urls: NotRequired[list[dict[str, Any]]]
     reply_to: NotRequired[str]
     quote: NotRequired[str]
     rich: NotRequired[bool]

@@ -123,6 +123,7 @@ def test_replayed_media_keeps_missing_files_in_order_without_download_urls(tmp_p
         patch.setattr(type(first), "read_bytes", lambda *_: pytest.fail("projection read file contents"))
         attachments = project()
     assert [item["name"] for item in attachments] == ["first.json", "missing.txt", "last.pdf"]
+    assert attachments[0]["size"] == len(b'{"synthetic":true}')
     assert attachments[1] == {"kind": "file", "name": "missing.txt", "url": ""}
     sig, payload = attachments[0]["url"].split("/")[-2:]
     assert bytes(gateway.serve_signed_media(sig, payload).body) == b'{"synthetic":true}'

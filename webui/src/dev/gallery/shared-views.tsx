@@ -149,7 +149,7 @@ function AttachmentTilePreview() {
   return <div className="space-y-6">
     <Sample label={t("controls.attachment.image")}><AttachmentTile attachment={{ kind: "image", ...images[1] }} variant="compact" /></Sample>
     <Sample label={t("controls.attachment.video")}><AttachmentTile attachment={{ kind: "video", name: "sample.webm", url: sampleVideo }} /></Sample>
-    <Sample label={t("controls.attachment.file")}><AttachmentTile attachment={{ kind: "file", name: "report.txt", url: "data:text/plain;charset=utf-8,Gallery%20attachment%20example%0A" }} /></Sample>
+    <Sample label={t("controls.attachment.file")}><AttachmentTile attachment={{ kind: "file", name: "report.txt", url: "data:text/plain;charset=utf-8,Gallery%20attachment%20example%0A", size: 24_576 }} /></Sample>
     <Sample label={t("controls.attachment.unavailable")}>
       <div className="flex flex-wrap gap-3">{(["image", "video", "file"] as const).map((kind) =>
         <AttachmentTile key={kind} attachment={{ kind, name: `${kind}-unavailable` }} />)}</div>

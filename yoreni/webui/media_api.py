@@ -31,7 +31,8 @@ from yoreni.webui.http_utils import (
 )
 
 MediaDirProvider = Callable[[str | None], Path]
-SignedMediaPath = Callable[[Path], dict[str, str] | None]
+SignedMediaAttachment = dict[str, str | int]
+SignedMediaPath = Callable[[Path], SignedMediaAttachment | None]
 
 
 def b64url_encode(data: bytes) -> str:
@@ -127,17 +128,32 @@ def sign_media_path(
 
 
 
+def _file_size(path: Path) -> int | None:
+    try:
+        return path.stat().st_size
+    except OSError:
+        return None
+
+
+def _signed_attachment(url: str, name: str, size: int | None) -> SignedMediaAttachment:
+    """Describe one delivered file; the size is omitted when it is unreadable."""
+    attachment: SignedMediaAttachment = {"url": url, "name": name}
+    if size is not None:
+        attachment["size"] = size
+    return attachment
+
+
 def sign_or_stage_media_path(
     path: Path,
     *,
     secret: bytes,
     media_dir: MediaDirProvider = _default_media_dir,
     logger: Any | None = None,
-) -> dict[str, str] | None:
+) -> SignedMediaAttachment | None:
     """Sign an existing media-root path, or stage an arbitrary file before signing."""
     signed = sign_media_path(path, secret=secret, media_dir=media_dir)
     if signed is not None:
-        return {"url": signed, "name": path.name}
+        return _signed_attachment(signed, path.name, _file_size(path))
     staged_tmp: Path | None = None
     try:
         resolved = path.resolve(strict=True)
@@ -168,7 +184,7 @@ def sign_or_stage_media_path(
     signed = sign_media_path(staged, secret=secret, media_dir=media_dir)
     if signed is None:
         return None
-    return {"url": signed, "name": path.name}
+    return _signed_attachment(signed, path.name, source_stat.st_size)
 
 
 def media_attachment_kind(name: str) -> str:
@@ -196,9 +212,12 @@ def signed_media_attachments(
             att = sign_path(path) if path.is_file() else None
         except OSError:
             att = None
-        name = (att.get("name") if att else None) or path.name
-        url = (att.get("url") if att else None) or ""
-        out.append({"kind": media_attachment_kind(name), "url": url, "name": name})
+        name = str((att.get("name") if att else None) or path.name)
+        url = str((att.get("url") if att else None) or "")
+        attachment: dict[str, Any] = {"kind": media_attachment_kind(name), "url": url, "name": name}
+        if att and isinstance(att.get("size"), int):
+            attachment["size"] = att["size"]
+        out.append(attachment)
     return out
 
 

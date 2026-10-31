@@ -49,6 +49,15 @@ describe("attachment download cards", () => {
     expect(unnamed.closest("[data-file-attachment]")).toHaveTextContent("ZIP");
     expect(screen.getByRole("link", { name: "Download LICENSE" }).closest("[data-file-attachment]")).toHaveTextContent("File attachment");
   });
+
+  it("shows a delivered file's name, type, and size together", () => {
+    render(<AttachmentTile attachment={{ kind: "file", name: "年度总结报告-最终版.pdf", url: "/api/media/signed/report", size: 1_468_006 }} />);
+
+    const card = screen.getByRole("link", { name: "Download 年度总结报告-最终版.pdf" }).closest("[data-file-attachment]") as HTMLElement;
+    expect(within(card).getByText("年度总结报告-最终版.pdf")).toBeVisible();
+    expect(card).toHaveTextContent("PDF");
+    expect(card).toHaveTextContent("1.4 MB");
+  });
 });
 
 describe("delivered file type cards", () => {
@@ -60,7 +69,10 @@ describe("delivered file type cards", () => {
         { kind: "file", name: "another-config.json", url: "/api/media/signed/second" },
       ] }} />);
     const cards = container.querySelectorAll("[data-file-attachment]");
-    expect(Array.from(cards).map((card) => card.textContent)).toEqual(["JSON", "JSON"]);
+    expect(cards).toHaveLength(2);
+    expect(within(cards[0] as HTMLElement).getByText("render-config.json")).toBeVisible();
+    expect(cards[0]).toHaveTextContent("JSON");
+    expect(cards[1]).toHaveTextContent("another-config.json");
     const first = within(cards[0] as HTMLElement);
     const download = first.getByRole("link", { name: "Download render-config.json" });
     expect(download).toHaveAttribute("href", "/api/media/signed/first");

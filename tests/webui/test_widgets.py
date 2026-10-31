@@ -6,6 +6,7 @@ import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+import pytest
 from websockets.datastructures import Headers
 from websockets.http11 import Request
 
@@ -19,6 +20,8 @@ from yoreni.widgets.runner import WidgetRunner
 from yoreni.widgets.service import WidgetService
 from yoreni.widgets.store import WidgetStore
 from yoreni.widgets.types import MAX_WIDGETS, WidgetChange, WidgetSpec
+
+pytestmark = pytest.mark.usefixtures("widget_vm")
 
 
 def handler_for(service: WidgetService | None = None) -> GatewayHTTPHandler:

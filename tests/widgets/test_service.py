@@ -16,6 +16,8 @@ from yoreni.widgets.types import (
     WidgetSpec,
 )
 
+pytestmark = pytest.mark.usefixtures("widget_vm")
+
 _COUNTER = """\
 import json
 import pathlib

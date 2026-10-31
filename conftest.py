@@ -22,15 +22,10 @@ def _isolate_tokenizer_warmup(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("yoreni.utils.token_encoding._warmup_thread", Thread())
 
 
-@pytest.fixture(autouse=True)
-def _sandbox_test_gateway() -> Iterator[None]:
-    """Bind the execution plane to a host-backed backend for tests only.
-
-    Production never constructs this backend. It keeps tool contracts testable
-    without a hypervisor while still routing every call through the gateway.
-    """
+def _local_gateway(workspace: str, media_dir: str):
+    """Build a gateway backed by the host for tests only."""
     from yoreni.sandbox.config import SandboxConfig
-    from yoreni.sandbox.gateway import SandboxGateway, set_sandbox_gateway
+    from yoreni.sandbox.gateway import SandboxGateway
 
     tests_dir = str(Path(__file__).parent / "tests")
     if tests_dir not in sys.path:
@@ -41,19 +36,50 @@ def _sandbox_test_gateway() -> Iterator[None]:
         SandboxConfig(
             enabled=True,
             backend="test-local",
-            workspace="/",
-            media_dir="/tmp/yoreni-test-media",
+            workspace=workspace,
+            media_dir=media_dir,
             desktop_enabled=False,
             browser_enabled=False,
         ),
         backend=LocalBackend(),
     )
     gateway._started = True
+    return gateway
+
+
+@pytest.fixture(autouse=True)
+def _sandbox_test_gateway() -> Iterator[None]:
+    """Bind the execution plane to a host-backed backend for tests only.
+
+    Production never constructs this backend. It keeps tool contracts testable
+    without a hypervisor while still routing every call through the gateway.
+    """
+    from yoreni.sandbox.gateway import set_sandbox_gateway
+
+    gateway = _local_gateway("/", "/tmp/yoreni-test-media")
     set_sandbox_gateway(gateway)
     try:
         yield
     finally:
         set_sandbox_gateway(None)
+
+
+@pytest.fixture
+def widget_vm(tmp_path: Path) -> Iterator[None]:
+    """Give widget commands a writable VM workspace for one test.
+
+    Widget scripts run inside the execution workspace, so the default test
+    gateway is replaced by one whose workspace is the test's own directory.
+    """
+    from yoreni.sandbox.gateway import get_sandbox_gateway, set_sandbox_gateway
+
+    previous = get_sandbox_gateway()
+    gateway = _local_gateway(str(tmp_path), str(tmp_path / ".yoreni" / "media"))
+    set_sandbox_gateway(gateway)
+    try:
+        yield
+    finally:
+        set_sandbox_gateway(previous)
 
 
 @pytest.fixture(autouse=True)

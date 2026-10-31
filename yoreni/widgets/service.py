@@ -65,14 +65,6 @@ class WidgetService:
         self._next_runs: dict[str, int] = {}
         self._task: asyncio.Task[None] | None = None
 
-    def set_sandbox(self, sandbox: str) -> None:
-        """Apply a new exec sandbox policy to future widget runs."""
-        self._runner.set_sandbox(sandbox)
-
-    def set_sandbox_enabled(self, enabled: bool) -> None:
-        """Disable host widget commands while the VM owns execution."""
-        self._runner.set_sandbox_enabled(enabled)
-
     # -- reads -------------------------------------------------------------
 
     def summaries(self) -> list[WidgetSummary]:
@@ -234,7 +226,6 @@ class WidgetService:
             result = await self._runner.run(
                 definition,
                 widget_dir=self._store.directory(widget_id),
-                workspace=_workspace_path(definition.workspace),
             )
             envelope = self._store.read_envelope(widget_id)
             previous = envelope[0] if envelope else None
@@ -414,7 +405,3 @@ def _validate_workspace(value: str | None, fallback: Path) -> str:
     if not resolved.is_dir():
         raise WidgetError(f"workspace does not exist: {resolved}")
     return str(resolved)
-
-
-def _workspace_path(value: str | None) -> Path | None:
-    return Path(value) if value else None

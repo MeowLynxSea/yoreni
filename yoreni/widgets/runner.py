@@ -1,14 +1,13 @@
-"""Run a widget's backend command inside its storage directory."""
+"""Run a widget's backend command inside the execution VM."""
 
 from __future__ import annotations
 
-import asyncio
-import os
-import signal
+import posixpath
 import time
-from contextlib import suppress
 from pathlib import Path
 
+from yoreni.sandbox.errors import SandboxError
+from yoreni.sandbox.gateway import SandboxGateway, get_sandbox_gateway
 from yoreni.widgets.types import (
     MAX_STDOUT_BYTES,
     WidgetDefinition,
@@ -17,165 +16,68 @@ from yoreni.widgets.types import (
     parse_stdout_json,
 )
 
-_STDERR_BYTES = 16 * 1024
-_READ_CHUNK = 64 * 1024
-
-
-class _OutputLimitError(Exception):
-    def __init__(self, limit: int) -> None:
-        super().__init__(limit)
-        self.limit = limit
+_WIDGETS_DIR = ".yoreni/widgets"
 
 
 class WidgetRunner:
-    """Execute one widget command with the gateway's exec sandbox policy."""
-
-    def __init__(self, *, sandbox: str = "", sandbox_enabled: bool = False) -> None:
-        self._sandbox = sandbox.strip()
-        self._sandbox_enabled = sandbox_enabled
-
-    def set_sandbox(self, sandbox: str) -> None:
-        self._sandbox = sandbox.strip()
-
-    def set_sandbox_enabled(self, enabled: bool) -> None:
-        self._sandbox_enabled = enabled
+    """Execute one widget command in the VM copy of its storage directory."""
 
     async def run(
         self,
         definition: WidgetDefinition,
         *,
         widget_dir: Path,
-        workspace: Path | None,
     ) -> WidgetRunResult:
         argv = definition.command
         if not argv:
             return WidgetRunResult(error="widget has no command")
-        if self._sandbox_enabled:
-            return WidgetRunResult(
-                error=(
-                    "widget commands are disabled while the sandbox VM owns execution; "
-                    "run the equivalent work with the exec tool inside the VM"
-                )
-            )
         started = time.monotonic()
-        command = self._prepare(argv, widget_dir, workspace)
         try:
-            process = await asyncio.create_subprocess_exec(
-                *command,
-                cwd=str(widget_dir),
-                env=_build_env(widget_dir),
-                stdin=asyncio.subprocess.DEVNULL,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                start_new_session=os.name != "nt",
+            gateway = get_sandbox_gateway()
+            cwd = await _stage(gateway, definition.id, widget_dir)
+            result = await gateway.exec(
+                list(argv),
+                cwd=cwd,
+                env={"HOME": cwd, "TMPDIR": cwd},
+                timeout_s=definition.timeout_seconds,
             )
-        except FileNotFoundError:
-            return WidgetRunResult(
-                error=f"executable not found: {argv[0]}", duration_ms=_elapsed_ms(started),
-            )
-        except OSError as exc:
-            return WidgetRunResult(
-                error=f"could not start command: {exc}", duration_ms=_elapsed_ms(started),
-            )
-
-        stdout_task = asyncio.create_task(_read_capped(process.stdout, MAX_STDOUT_BYTES))
-        stderr_task = asyncio.create_task(_read_capped(process.stderr, _STDERR_BYTES))
-        tasks = [stdout_task, stderr_task]
-        deadline = time.monotonic() + definition.timeout_seconds
-        try:
-            await asyncio.wait_for(
-                asyncio.gather(*tasks), timeout=definition.timeout_seconds,
-            )
-            await asyncio.wait_for(
-                process.wait(), timeout=max(deadline - time.monotonic(), 0.001),
-            )
-        except asyncio.TimeoutError:
-            await _terminate(process)
+        except (SandboxError, OSError) as exc:
+            return WidgetRunResult(error=str(exc), duration_ms=_elapsed_ms(started))
+        duration_ms = _elapsed_ms(started)
+        # The VM enforces the budget itself, so a run that used all of it was
+        # killed rather than finished.
+        if result.timed_out or result.duration_s >= definition.timeout_seconds:
             return WidgetRunResult(
                 error=f"command timed out after {definition.timeout_seconds}s",
-                duration_ms=_elapsed_ms(started),
+                duration_ms=duration_ms,
             )
-        except _OutputLimitError as exc:
-            await _terminate(process)
+        if len(result.stdout.encode("utf-8", "replace")) > MAX_STDOUT_BYTES:
             return WidgetRunResult(
-                error=f"command output exceeded {exc.limit // 1024} KB",
-                duration_ms=_elapsed_ms(started),
+                error=f"command output exceeded {MAX_STDOUT_BYTES // 1024} KB",
+                duration_ms=duration_ms,
             )
-        except asyncio.CancelledError:
-            await _terminate(process)
-            raise
-        finally:
-            for task in tasks:
-                if not task.done():
-                    task.cancel()
-
-        if process.returncode != 0:
-            stderr = stderr_task.result().decode("utf-8", errors="replace").strip()
+        if result.exit_code != 0:
+            stderr = result.stderr.strip()
             suffix = f": {stderr[-400:]}" if stderr else ""
             return WidgetRunResult(
-                error=f"command exited with status {process.returncode}{suffix}",
-                duration_ms=_elapsed_ms(started),
+                error=f"command exited with status {result.exit_code}{suffix}",
+                duration_ms=duration_ms,
             )
-        stdout = stdout_task.result().decode("utf-8", errors="replace")
         try:
-            data = parse_stdout_json(stdout)
+            data = parse_stdout_json(result.stdout)
         except WidgetError as exc:
-            return WidgetRunResult(error=str(exc), duration_ms=_elapsed_ms(started))
-        return WidgetRunResult(data=data, duration_ms=_elapsed_ms(started))
-
-    def _prepare(
-        self, argv: tuple[str, ...], widget_dir: Path, workspace: Path | None,
-    ) -> list[str]:
-        del widget_dir, workspace
-        return list(argv)
+            return WidgetRunResult(error=str(exc), duration_ms=duration_ms)
+        return WidgetRunResult(data=data, duration_ms=duration_ms)
 
 
-async def _read_capped(stream: asyncio.StreamReader | None, limit: int) -> bytes:
-    if stream is None:
-        return b""
-    chunks: list[bytes] = []
-    total = 0
-    while True:
-        chunk = await stream.read(_READ_CHUNK)
-        if not chunk:
-            return b"".join(chunks)
-        total += len(chunk)
-        if total > limit:
-            raise _OutputLimitError(limit)
-        chunks.append(chunk)
-
-
-async def _terminate(process: asyncio.subprocess.Process) -> None:
-    if process.returncode is not None:
-        return
-    try:
-        if os.name != "nt":
-            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-        else:
-            process.kill()
-    except (OSError, ProcessLookupError):
-        with suppress(OSError):
-            process.kill()
-    with suppress(asyncio.TimeoutError):
-        await asyncio.wait_for(process.wait(), timeout=5)
-
-
-def _build_env(widget_dir: Path) -> dict[str, str]:
-    env = {
-        "PATH": os.environ.get("PATH", ""),
-        "HOME": str(widget_dir),
-    }
-    for key in ("LANG", "LC_ALL", "TZ", "SYSTEMROOT", "WINDIR"):
-        value = os.environ.get(key)
-        if value:
-            env[key] = value
-    if os.name == "nt":
-        env["USERPROFILE"] = str(widget_dir)
-        env["TEMP"] = str(widget_dir)
-        env["TMP"] = str(widget_dir)
-    else:
-        env["TMPDIR"] = str(widget_dir)
-    return env
+async def _stage(gateway: SandboxGateway, widget_id: str, widget_dir: Path) -> str:
+    """Copy the widget's files into its own directory inside the VM workspace."""
+    target = posixpath.join(gateway.config.workspace, _WIDGETS_DIR, widget_id)
+    await gateway.mkdir(target)
+    for path in sorted(widget_dir.iterdir()):
+        if path.is_file():
+            await gateway.write_file(posixpath.join(target, path.name), path.read_bytes())
+    return target
 
 
 def _elapsed_ms(started: float) -> int:

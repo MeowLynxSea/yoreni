@@ -479,10 +479,7 @@ def _run_claimed_gateway(
     trigger_store = LocalTriggerStore(config.workspace_path)
     widget_service = WidgetService(
         WidgetStore(get_runtime_subdir("widgets")),
-        runner=WidgetRunner(
-            sandbox=config.tools.exec.sandbox,
-            sandbox_enabled=config.tools.sandbox.enabled,
-        ),
+        runner=WidgetRunner(),
         workspace=config.workspace_path,
         admission=bus.admission,
         on_change=partial(publish_widget_change, bus),
@@ -857,8 +854,6 @@ def _run_claimed_gateway(
         agent.reload_runtime(config)
         if _system_cron_signature() != previous_cron:
             _sync_system_cron_jobs()
-        widget_service.set_sandbox(config.tools.exec.sandbox)
-        widget_service.set_sandbox_enabled(config.tools.sandbox.enabled)
         channels.apply_runtime_config(config)
         agent.refresh_runtime_config()
         proxy_changed = _agent_proxy() != previous_proxy

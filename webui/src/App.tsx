@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { Disclosure } from "@/components/ui/disclosure";
 import { ChevronDown } from "lucide-react";
 import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import { HashRouter, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useParams } from "react-router-dom";
 import { AmbientBackground } from "@/components/AmbientBackground";
@@ -453,6 +453,7 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
   const viewport = useRef<HTMLDivElement>(null);
   const thread = useRef<HTMLDivElement>(null);
   const following = useRef(true);
+  const [atBottom, setAtBottom] = useState(true);
   const highlightTimer = useRef<number | null>(null);
   const [quote, setQuote] = useState<MessageQuoteSelection | null>(null);
   const [quoteTarget, setQuoteTarget] = useState<string | null>(null);
@@ -464,6 +465,13 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
     [run.messages],
   );
   useEffect(() => { if (following.current && viewport.current) viewport.current.scrollTop = viewport.current.scrollHeight; }, [run.messages, running]);
+  const scrollToBottom = useCallback(() => {
+    const element = viewport.current;
+    if (!element) return;
+    following.current = true;
+    setAtBottom(true);
+    element.scrollTo({ top: element.scrollHeight, behavior: "smooth" });
+  }, []);
   useEffect(() => () => {
     if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current);
   }, []);
@@ -541,7 +549,10 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
             ref={viewport}
             onScroll={() => {
               const element = viewport.current;
-              if (element) following.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+              if (!element) return;
+              const bottom = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+              following.current = bottom;
+              setAtBottom(bottom);
             }}
             className="thread-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain"
           >
@@ -569,7 +580,26 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
           </div>
         )}
         <div className={cn("shrink-0", empty ? "px-5 pb-8 sm:pb-10" : "px-4 pb-4 sm:px-6 sm:pb-6")}>
-          <div className={cn("message-enter mx-auto w-full [animation-delay:90ms]", empty ? "max-w-[42rem]" : "max-w-[44rem]")}>
+          <div className={cn("message-enter relative mx-auto w-full [animation-delay:90ms]", empty ? "max-w-[42rem]" : "max-w-[44rem]")}>
+            {!empty && !loadingHistory ? (
+              <button
+                type="button"
+                aria-label={t("thread.scrollToBottom")}
+                title={t("thread.scrollToBottom")}
+                tabIndex={atBottom ? -1 : 0}
+                onClick={scrollToBottom}
+                className={cn(
+                  "absolute bottom-full right-0 z-10 mb-3 grid h-9 w-9 place-items-center rounded-full",
+                  "border border-border/60 bg-background/90 text-muted-foreground backdrop-blur",
+                  "shadow-[0_6px_20px_-8px_rgba(24,36,58,0.45)] transition-[opacity,color] hover:text-foreground",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "motion-reduce:transition-none",
+                  atBottom && "pointer-events-none opacity-0",
+                )}
+              >
+                <ArrowDown className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+              </button>
+            ) : null}
             {run.error ? (
               <p role="alert" className="mx-auto mb-2 w-fit rounded-full bg-destructive/10 px-3 py-1.5 text-[12px] text-destructive">
                 {run.error}

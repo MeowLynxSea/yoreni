@@ -239,7 +239,7 @@ class DreamConsolidator:
                 messages=messages,
                 model=runtime.model,
                 temperature=0.0,
-                max_tokens=4_000,
+                max_tokens=runtime.generation.max_tokens,
                 reasoning_effort=runtime.generation.reasoning_effort,
                 tools=_DREAM_TOOLS,
             )

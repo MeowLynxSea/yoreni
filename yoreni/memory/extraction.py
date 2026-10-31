@@ -115,7 +115,7 @@ class FactExtractor:
                 messages=[{"role": "user", "content": prompt}],
                 model=runtime.model,
                 temperature=0.0,
-                max_tokens=2000,
+                max_tokens=runtime.generation.max_tokens,
                 reasoning_effort=runtime.generation.reasoning_effort,
             )
             if response.finish_reason == "error":

@@ -42,7 +42,7 @@ def test_future_optional_protocol_range_can_still_include_current_client():
 
 
 def test_recovery_targets_the_correct_machine():
-    future = {**webui_contract(), "min_protocol": 2, "max_protocol": 2}
+    future = {**webui_contract(), "min_protocol": 3, "max_protocol": 3}
     assert compatibility_error(assess_webui_contract(future)) == "client_update_required"
     missing = {**webui_contract(), "capabilities": []}
     assert compatibility_error(assess_webui_contract(missing)) == "host_update_required"
@@ -50,5 +50,5 @@ def test_recovery_targets_the_correct_machine():
 
 def test_unknown_optional_capabilities_do_not_break_connection():
     value = webui_contract()
-    value["capabilities"] = ["webui.core.v1", "a-future-optional-feature"]
+    value["capabilities"] = ["webui.core.v2", "a-future-optional-feature"]
     assert assess_webui_contract(value)["status"] == "compatible"

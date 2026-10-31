@@ -656,6 +656,12 @@ class WebSocketChannel(BaseChannel):
             return response
 
         async def handler(connection: ServerConnection) -> None:
+            controller = getattr(connection, "_yoreni_desktop_controller", None)
+            if controller:
+                from yoreni.sandbox.desktop_proxy import get_desktop_proxy
+
+                await get_desktop_proxy().serve(connection, controller)
+                return
             await self._connection_loop(connection)
 
         from aiohttp import web

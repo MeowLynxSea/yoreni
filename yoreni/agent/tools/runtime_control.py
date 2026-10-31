@@ -174,8 +174,15 @@ class AgentRuntimeControl:
             scope=scope,
         )
         assert workspace.project_path is not None
+        root = str(workspace.project_path)
+        try:
+            from yoreni.sandbox.gateway import get_sandbox_gateway
+
+            root = get_sandbox_gateway().display_path(root)
+        except Exception:
+            pass
         return workspace_sandbox_status(
-            workspace=workspace.project_path,
+            workspace=root,
             restrict_to_workspace=workspace.restrict_to_workspace,
         )
 

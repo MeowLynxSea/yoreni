@@ -949,6 +949,7 @@ async def connect_mcp_servers(
     *,
     oauth_handlers: Mapping[str, MCPOAuthHandlers] | None = None,
     network: NetworkConfig | None = None,
+    allow_stdio: bool = True,
 ) -> dict[str, MCPConnection]:
     """Connect to configured MCP servers and register their tools, resources, prompts.
 
@@ -1020,6 +1021,14 @@ async def connect_mcp_servers(
                     return False
 
             if transport_type == "stdio":
+                if not allow_stdio:
+                    logger.warning(
+                        "MCP server '{}': stdio servers run local processes and are "
+                        "disabled while the sandbox VM owns execution. Use an SSE or "
+                        "Streamable HTTP server instead.",
+                        name,
+                    )
+                    return False
                 command, args, env = _normalize_windows_stdio_command(
                     cfg.command,
                     cfg.args,
@@ -1346,8 +1355,10 @@ class MCPProvider:
         *,
         server_loader: MCPServerLoader | None = None,
         network: NetworkConfig | None = None,
+        allow_stdio: bool = True,
     ) -> None:
         self._servers = dict(servers)
+        self._allow_stdio = allow_stdio
         self._network = (network or NetworkConfig()).model_copy(deep=True)
         self._registry = registry
         self._server_loader = server_loader or _load_current_servers
@@ -1369,6 +1380,7 @@ class MCPProvider:
             registry,
             server_loader=server_loader,
             network=config.network,
+            allow_stdio=not config.tools.sandbox.enabled,
         )
 
     @property
@@ -1440,7 +1452,16 @@ class MCPProvider:
                 return
             self._set_runtime_status(missing_servers, "connecting")
             try:
-                connected = await connect_mcp_servers(missing_servers, self._registry, network=self._network)
+                connected = await connect_mcp_servers(
+                    missing_servers,
+                    self._registry,
+                    network=self._network,
+                ) if self._allow_stdio else await connect_mcp_servers(
+                    missing_servers,
+                    self._registry,
+                    network=self._network,
+                    allow_stdio=False,
+                )
                 if self._closing:
                     await _close_mcp_connections(connected)
                     return
@@ -1532,7 +1553,16 @@ class MCPProvider:
             if to_connect:
                 self._set_runtime_status(to_connect, "connecting")
                 try:
-                    connected = await connect_mcp_servers(to_connect, self._registry, network=self._network)
+                    connected = await connect_mcp_servers(
+                        to_connect,
+                        self._registry,
+                        network=self._network,
+                    ) if self._allow_stdio else await connect_mcp_servers(
+                        to_connect,
+                        self._registry,
+                        network=self._network,
+                        allow_stdio=False,
+                    )
                 except BaseException:
                     self._set_runtime_status(to_connect, "failed")
                     raise
@@ -1648,6 +1678,11 @@ class MCPProvider:
                 {server_name: cfg},
                 self._registry,
                 network=self._network,
+            ) if self._allow_stdio else await connect_mcp_servers(
+                {server_name: cfg},
+                self._registry,
+                network=self._network,
+                allow_stdio=False,
             )
             if self._closing:
                 await _close_mcp_connections(connected)

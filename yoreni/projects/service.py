@@ -120,6 +120,25 @@ class ProjectService:
             raise ProjectError("project directory escaped the projects root")
         return candidate
 
+    def _vm(self):
+        try:
+            from yoreni.sandbox.gateway import get_sandbox_gateway
+
+            gateway = get_sandbox_gateway()
+        except Exception:
+            return None
+        return gateway if gateway.started and gateway.loop_bound else None
+
+    def _ensure_vm_directory(self, directory: Path) -> None:
+        gateway = self._vm()
+        if gateway is None:
+            return
+        try:
+            target = gateway.resolve_path(str(directory), write=True)
+            gateway.run_sync(gateway.mkdir(target), timeout=60)
+        except Exception:
+            logger.exception("failed to create the project directory in the sandbox VM")
+
     def ensure_directory(self, project_id: str) -> Path:
         directory = self.directory(project_id)
         directory.mkdir(parents=True, exist_ok=True)
@@ -129,6 +148,8 @@ class ProjectService:
         # the project, so the boundary is checked again after creation.
         if uploads.is_symlink() or uploads.resolve(strict=False).parent != directory:
             raise ProjectError("project uploads directory escaped the project root")
+        self._ensure_vm_directory(directory)
+        self._ensure_vm_directory(uploads)
         return directory
 
     # -- reads ---------------------------------------------------------------
@@ -246,12 +267,18 @@ class ProjectService:
         )
         removed_runs = await asyncio.to_thread(self.store.delete_project, project.id)
         removed_directory = False
-        if directory.is_dir():
-            try:
-                await asyncio.to_thread(shutil.rmtree, directory)
-                removed_directory = True
-            except OSError:
-                logger.exception("failed to remove project directory {}", directory)
+        try:
+            from yoreni.sandbox.gateway import get_sandbox_gateway
+
+            await get_sandbox_gateway().remove(str(directory), recursive=True)
+            removed_directory = True
+        except Exception:
+            if directory.is_dir():
+                try:
+                    await asyncio.to_thread(shutil.rmtree, directory)
+                    removed_directory = True
+                except OSError:
+                    logger.exception("failed to remove project directory {}", directory)
         root = self.root
         try:
             if root.is_dir() and not any(root.iterdir()):
@@ -283,24 +310,48 @@ class ProjectService:
             name = safe_filename(source.name).lstrip(".").strip() or "attachment"
             target = uploads / name
             counter = 1
-            while target.exists():
+            gateway = self._vm()
+            while self._upload_exists(gateway, target):
                 target = uploads / f"{Path(name).stem}-{counter}{Path(name).suffix}"
                 counter += 1
             try:
-                shutil.copy2(source, target)
+                if gateway is not None:
+                    vm_target = gateway.run_sync(
+                        gateway.import_into(str(source), str(target)),
+                        timeout=120,
+                    )
+                    result.append(vm_target)
+                else:
+                    shutil.copy2(source, target)
+                    result.append(str(target))
             except OSError as exc:
                 raise ProjectError(f"could not store the attachment in the project: {exc}") from exc
-            result.append(str(target))
         return result
 
+    @staticmethod
+    def _upload_exists(gateway, target: Path) -> bool:
+        if gateway is None:
+            return target.exists()
+        info = gateway.run_sync(gateway.stat(gateway.resolve_path(str(target))), timeout=30)
+        return info is not None
+
     # -- context -------------------------------------------------------------
+
+    def _display_directory(self, project_id: str) -> str:
+        directory = self.directory(project_id)
+        try:
+            from yoreni.sandbox.gateway import get_sandbox_gateway
+
+            return get_sandbox_gateway().display_path(str(directory))
+        except Exception:
+            return str(directory)
 
     def context_lines(self, project: Project, *, handoff_limit: int = 4) -> list[str]:
         """Render the project as stored data for the current turn."""
         lines = [
             f"Project: {project.name}",
             f"Project ID: {project.id}",
-            "Working directory: " + str(self.directory(project.id)),
+            "Working directory: " + self._display_directory(project.id),
             "Project memory scope: " + project.scope,
         ]
         if project.description:

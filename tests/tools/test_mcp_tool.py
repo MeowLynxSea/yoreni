@@ -167,8 +167,9 @@ async def test_mcp_provider_connect_propagates_external_cancellation(monkeypatch
     started = asyncio.Event()
 
     async def connect_mcp_servers(
-        _servers: dict, _registry: ToolRegistry, *, network
+        _servers: dict, _registry: ToolRegistry, *, network, allow_stdio=True
     ) -> dict:
+        del allow_stdio
         started.set()
         await asyncio.sleep(60)
         return {}

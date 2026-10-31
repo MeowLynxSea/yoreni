@@ -1433,6 +1433,21 @@ Use the `run_cli_app` tool with `name="{name}"` for command execution. Do not in
             lines.append(f"- {rel} ({kind}, {self._format_artifact_size(path)})")
         return lines
 
+    def resolve_entry_point(self, name: str) -> str:
+        """Return the installed entry point for one CLI app."""
+        app = self.get_app(name)
+        installed = self._load_installed()
+        if str(app["name"]) not in installed:
+            raise CliAppError(f"CLI app '{name}' is not installed")
+        entry = str(
+            installed[str(app["name"])].get("entry_point")
+            or app.get("entry_point")
+            or ""
+        )
+        if not entry:
+            raise CliAppError(f"{name} has no entry point")
+        return entry
+
     def run(
         self,
         name: str,

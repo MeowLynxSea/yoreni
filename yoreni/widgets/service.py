@@ -69,6 +69,10 @@ class WidgetService:
         """Apply a new exec sandbox policy to future widget runs."""
         self._runner.set_sandbox(sandbox)
 
+    def set_sandbox_enabled(self, enabled: bool) -> None:
+        """Disable host widget commands while the VM owns execution."""
+        self._runner.set_sandbox_enabled(enabled)
+
     # -- reads -------------------------------------------------------------
 
     def summaries(self) -> list[WidgetSummary]:

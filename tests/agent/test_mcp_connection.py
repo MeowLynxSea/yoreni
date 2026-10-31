@@ -727,6 +727,7 @@ async def test_shared_proxy_snapshot_survives_reconnect_and_reloads_only_opted_i
 ):
     config = Config()
     config.agents.defaults.workspace = str(tmp_path / "workspace")
+    config.tools.sandbox.enabled = False
     config.network.proxy = "http://proxy-a.example:8080"
     config.tools.mcp_servers = {
         "proxied": MCPServerConfig(url="https://mcp.example.com/mcp", use_proxy=True),

@@ -8,7 +8,7 @@ Filesystem tools (`read_file`, `write_file`, `edit_file`, `list_dir`, `apply_pat
 
 Additional filesystem roots must be capability-specific. `extra_allowed_dirs` is a legacy read-only alias. Use `extra_read_allowed_dirs` for read-only roots, `extra_write_allowed_dirs` only when a write-capable tool is intentionally allowed to modify an extra directory, and exact file allowlists when a tool may modify only specific files.
 
-Shell execution (`ExecTool`, `agent/tools/shell.py`) also respects `restrict_to_workspace` as an application-level guard: if enabled and `working_dir` is outside the workspace, the command is rejected before execution, and command text is checked for obvious workspace escapes. This is not process-level isolation; use an exec sandbox backend for that.
+Shell execution (`ExecTool`, `agent/tools/shell.py`) also respects `restrict_to_workspace` as an application-level guard: if enabled and `working_dir` is outside the workspace, the command is rejected before execution, and command text is checked for obvious workspace escapes. Process-level isolation comes from the sandbox VM, not from this guard.
 
 State ownership is separate from the access mode: writes to core memory files, the active config file, and the owner profile and onboarding files are refused on every agent path, including full access. Only `MemoryService` consolidation, `UserProfileStore` and the settings writers touch them. The guard lives in `ExecTool._guard_state_writes` and `_FsTool._refuse_memory_write`; trusted operator shells (`ExecTool.execute_to_completion`) are exempt.
 
@@ -26,11 +26,15 @@ HTTP/SSE MCP transports are part of this boundary: validate configured MCP URLs 
 
 **Rule**: Do not add direct `httpx.get` / `requests.get` calls in tools. Route through the existing web fetch utilities or replicate the `validate_url_target` check.
 
-## Shell Sandbox
+## Execution Plane
 
-`tools/sandbox.py` provides optional command wrapping: `bwrap` (bubblewrap) on Linux and `seatbelt` (`sandbox-exec`) on macOS. Seatbelt must not expose shared host temporary directories; scratch stays in the workspace. On Windows a configured backend warns and leaves only the application guard. On Unix a configured backend that cannot start must fail, not silently execute without isolation.
+Every agent file, shell, browser and desktop action runs inside one persistent Linux VM owned by `yoreni/sandbox/`. `SandboxGateway` is the only executor: it maps the instance workspace onto `/workspace` inside the VM, rejects paths outside that workspace, and starts processes through the VM runtime. There is no host subprocess fallback and no compatibility backend.
 
-**Rule**: If adding a sandbox backend, match the backend callable contract in `yoreni/agent/tools/sandbox.py` and register it in `_BACKENDS`. Preserve read/write root handling and the configured backend's failure behavior.
+The control plane keeps memory, credentials, settings, Run state and the SQLite stores on the host. It may import an attachment into the VM or export a preview, but it never exposes an arbitrary host path or command to a tool. A missing VM is a tool error, not a reason to execute locally.
+
+The WebUI reaches the desktop only through an authenticated, short-lived, single-use ticket and the gateway's byte relay. Input authority is enforced in the VM by x11vnc's view-only mode; the browser and desktop tools also check `ControlStateMachine` before each action. A user takeover pauses tool scheduling, and a release invalidates every browser element reference and desktop observation.
+
+**Rule**: New execution capability belongs behind `SandboxGateway`. Do not add `subprocess`, direct host file I/O, or a browser launched on the host to an agent-facing tool.
 
 ## Credential Boundary
 

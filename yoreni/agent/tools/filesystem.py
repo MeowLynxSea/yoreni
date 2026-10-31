@@ -5,6 +5,7 @@
 import difflib
 import hashlib
 import mimetypes
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,7 @@ from yoreni.agent.tools.schema import (
     tool_parameters_schema,
 )
 from yoreni.profile.store import operator_state_files
+from yoreni.sandbox.gateway import SandboxGateway, get_sandbox_gateway
 from yoreni.security.workspace_access import current_tool_workspace
 from yoreni.utils.file_edit_events import FileDiff, FileEditResult, display_file_edit_path
 from yoreni.utils.helpers import build_image_content_blocks, detect_image_mime
@@ -91,24 +93,19 @@ class _FsTool(Tool):
 
     @classmethod
     def create(cls, ctx: ToolContext) -> Tool:
-        from yoreni.agent.skill_metadata import BUILTIN_SKILLS_DIR
-
         agent_workspace = Path(ctx.workspace)
         resolved_agent_workspace = agent_workspace.expanduser().resolve(strict=False)
-        restrict = (
-            ctx.config.restrict_to_workspace
-            or ctx.config.exec.sandbox
-        )
-        sandbox_restricts = bool(ctx.config.exec.sandbox)
+        restrict = ctx.config.restrict_to_workspace or ctx.config.sandbox.enabled
+        sandbox_restricts = ctx.config.sandbox.enabled or bool(ctx.config.exec.sandbox)
         allowed_dir = agent_workspace if restrict else None
         # Agent-owned skills stay available from project scopes. The memory
         # directory is not a file-tool surface; memory is read through its tools.
         return cls(
             workspace=agent_workspace,
             allowed_dir=allowed_dir,
-            extra_read_allowed_dirs=[BUILTIN_SKILLS_DIR, resolved_agent_workspace / "skills"],
+            extra_read_allowed_dirs=[resolved_agent_workspace / "skills"],
             file_states=ctx.file_state_store,
-            restrict_to_workspace=ctx.config.restrict_to_workspace,
+            restrict_to_workspace=ctx.config.restrict_to_workspace or sandbox_restricts,
             sandbox_restricts_workspace=sandbox_restricts,
             protected_files=list(operator_state_files()),
         )
@@ -140,6 +137,20 @@ class _FsTool(Tool):
         include_media_dir: bool,
         extra_files_require_allowed_root: bool = False,
     ) -> Path:
+        # The agent is told to use the VM path directly. Accept it without
+        # asking the host filesystem whether it exists.
+        try:
+            from yoreni.sandbox.gateway import get_sandbox_gateway
+            from yoreni.sandbox.paths import is_within, normalize_vm_path
+
+            gateway = get_sandbox_gateway()
+            if gateway.maps_host_workspace:
+                vm_root = gateway.config.workspace
+                candidate = normalize_vm_path(path, cwd=vm_root)
+                if is_within(candidate, vm_root):
+                    return Path(candidate)
+        except Exception:
+            pass
         access = current_tool_workspace(
             self._workspace,
             restrict_to_workspace=self._restrict_to_workspace,
@@ -158,37 +169,29 @@ class _FsTool(Tool):
         )
 
     def _resolve_read(self, path: str) -> Path:
-        plugin_skill_dirs: list[Path] = []
-        if self._workspace is not None:
-            from yoreni.agent.plugins import enabled_agent_plugin_skill_dirs
-
-            try:
-                access = current_tool_workspace(
-                    self._workspace,
-                    restrict_to_workspace=self._restrict_to_workspace,
-                    sandbox_restricts_workspace=self._sandbox_restricts_workspace,
-                )
-                if self._effective_allowed_root(access.allowed_root) is not None:
-                    candidate = Path(path).expanduser()
-                    if not candidate.is_absolute() and access.project_path is not None:
-                        candidate = access.project_path / candidate
-                    plugin_skill_dirs = list(
-                        enabled_agent_plugin_skill_dirs(
-                            Path(self._workspace),
-                            requested_path=candidate.resolve(strict=False),
-                        )
-                    )
-            except (OSError, RuntimeError):
-                pass
         target = self._resolve_with_extra(
             path,
-            [*self._extra_read_allowed_dirs, *plugin_skill_dirs],
+            self._extra_read_allowed_dirs,
             self._extra_read_allowed_files,
             include_media_dir=True,
             extra_files_require_allowed_root=True,
         )
         self._refuse_credential_read(target)
         return target
+
+    # -- VM access ---------------------------------------------------------
+
+    def _gateway(self) -> SandboxGateway:
+        return get_sandbox_gateway()
+
+    async def _stat(self, path: Path):
+        return await self._gateway().stat(str(path))
+
+    async def _read(self, path: Path) -> bytes:
+        return await self._gateway().read_file(str(path))
+
+    async def _write(self, path: Path, data: bytes) -> None:
+        await self._gateway().write_file(str(path), data)
 
     @staticmethod
     def _refuse_credential_read(target: Path) -> None:
@@ -279,23 +282,6 @@ def _is_blocked_device(path: str | Path) -> bool:
     return False
 
 
-def _builtin_skill_read_path(path: str) -> Path | None:
-    """Map workspace-relative skills/<name>/... reads onto bundled skills."""
-    from yoreni.agent.skill_metadata import BUILTIN_SKILLS_DIR
-
-    requested = Path(path)
-    if requested.is_absolute():
-        return None
-    parts = requested.parts
-    if len(parts) < 2 or parts[0] != "skills":
-        return None
-    root = BUILTIN_SKILLS_DIR.resolve()
-    candidate = (root / Path(*parts[1:])).resolve()
-    if candidate != root and root not in candidate.parents:
-        return None
-    return candidate if candidate.is_file() else None
-
-
 @tool_parameters(
     tool_parameters_schema(
         path=StringSchema("The file path to read"),
@@ -352,21 +338,27 @@ class ReadFileTool(_FsTool):
             if not path:
                 return ToolResult.error("Error reading file: Unknown path")
 
-            # Device path blacklist
             if _is_blocked_device(path):
-                return ToolResult.error(f"Error: Reading {path} is blocked (device path that could hang or produce infinite output).")
+                return ToolResult.error(
+                    f"Error: Reading {path} is blocked (device path that could hang "
+                    "or produce infinite output)."
+                )
 
             fp = self._resolve_read(path)
-            if not fp.exists():
-                fp = _builtin_skill_read_path(path) or fp
             if _is_blocked_device(fp):
-                return ToolResult.error(f"Error: Reading {fp} is blocked (device path that could hang or produce infinite output).")
-            if not fp.exists():
+                return ToolResult.error(
+                    f"Error: Reading {fp} is blocked (device path that could hang "
+                    "or produce infinite output)."
+                )
+            info = await self._stat(fp)
+            if info is None:
                 return ToolResult.error(f"Error: File not found: {path}")
-            if not fp.is_file():
+            if info.is_dir:
                 return ToolResult.error(f"Error: Not a file: {path}")
+            if not info.is_file:
+                return ToolResult.error(f"Error: Not a regular file: {path}")
 
-            file_size = fp.stat().st_size
+            file_size = info.size
             if file_size > self._MAX_FILE_SIZE_BYTES:
                 size_mib = file_size / (1024 * 1024)
                 max_mib = self._MAX_FILE_SIZE_BYTES // (1024 * 1024)
@@ -375,15 +367,11 @@ class ReadFileTool(_FsTool):
                     f"Maximum is {max_mib} MiB."
                 )
 
-            # PDF support
-            if fp.suffix.lower() == ".pdf":
-                return self._read_pdf(fp, pages)
+            raw = await self._read(fp)
 
-            # Office document support
-            if fp.suffix.lower() in {".docx", ".xlsx", ".pptx"}:
-                return self._read_office_doc(fp, offset, limit)
+            if fp.suffix.lower() in {".pdf", ".docx", ".xlsx", ".pptx"}:
+                return await self._read_document(fp, raw, pages, offset, limit)
 
-            raw = fp.read_bytes()
             if not raw:
                 return f"(Empty file: {path})"
 
@@ -403,8 +391,6 @@ class ReadFileTool(_FsTool):
                 try:
                     text_content = raw.decode("utf-8")
                 except UnicodeDecodeError:
-                    # Match the former eager extractor for known text formats while
-                    # keeping arbitrary binary files on the guarded error path.
                     from yoreni.utils.document import _is_text_extension
 
                     if _is_text_extension(fp.suffix.lower()):
@@ -413,36 +399,33 @@ class ReadFileTool(_FsTool):
                         mime = detect_image_mime(raw) or mimetypes.guess_type(path)[0]
                         if mime and mime.startswith("image/"):
                             return build_image_content_blocks(
-                                raw,
-                                mime,
-                                str(fp),
-                                f"(Image file: {path})",
+                                raw, mime, str(fp), f"(Image file: {path})",
                             )
                         return ToolResult.error(
-                            f"Error: Cannot read binary file {path} (MIME: {mime or 'unknown'}). "
+                            f"Error: Cannot read binary file {path} "
+                            f"(MIME: {mime or 'unknown'}). "
                             "Only supported text files and images can be read."
                         )
 
             if not text_content:
                 return f"(Empty file: {path})"
 
-            # Normalize CRLF -> LF before line-splitting. Primarily a Windows
-            # concern (git checkouts with autocrlf, editors saving CRLF) but
-            # applied on all platforms so downstream StrReplace/Grep behavior
-            # is consistent regardless of where the file was written.
             text_content = text_content.replace("\r\n", "\n")
-
             all_lines = text_content.splitlines()
             total = len(all_lines)
 
             if offset < 1:
                 offset = 1
             if offset > total:
-                return ToolResult.error(f"Error: offset {offset} is beyond end of file ({total} lines)")
+                return ToolResult.error(
+                    f"Error: offset {offset} is beyond end of file ({total} lines)"
+                )
 
             start = offset - 1
             end = min(start + (limit or self._DEFAULT_LIMIT), total)
-            numbered = [f"{start + i + 1}| {line}" for i, line in enumerate(all_lines[start:end])]
+            numbered = [
+                f"{start + i + 1}| {line}" for i, line in enumerate(all_lines[start:end])
+            ]
             result = "\n".join(numbered)
             line_truncated = False
 
@@ -467,7 +450,10 @@ class ReadFileTool(_FsTool):
                     "Use exec with a targeted command to inspect the omitted content.)"
                 )
             if end < total:
-                result += f"\n\n(Showing lines {offset}-{end} of {total}. Use offset={end + 1} to continue.)"
+                result += (
+                    f"\n\n(Showing lines {offset}-{end} of {total}. "
+                    f"Use offset={end + 1} to continue.)"
+                )
             else:
                 result += f"\n\n(End of file — {total} lines total)"
             self._file_states.record_read(
@@ -478,6 +464,28 @@ class ReadFileTool(_FsTool):
             return ToolResult.error(f"Error: {e}")
         except Exception as e:
             return ToolResult.error(f"Error reading file: {e}")
+
+    async def _read_document(
+        self,
+        fp: Path,
+        raw: bytes,
+        pages: str | None,
+        offset: int,
+        limit: int | None,
+    ) -> str:
+        """Extract a PDF or Office document from VM bytes.
+
+        Parsing runs in the control plane against a temporary copy; the agent
+        never receives a host path and cannot ask for one.
+        """
+        suffix = fp.suffix.lower()
+        with tempfile.NamedTemporaryFile(suffix=suffix) as handle:
+            handle.write(raw)
+            handle.flush()
+            staged = Path(handle.name)
+            if suffix == ".pdf":
+                return self._read_pdf(staged, pages)
+            return self._read_office_doc(staged, offset, limit)
 
     def _read_pdf(self, fp: Path, pages: str | None) -> str:
         from yoreni.utils.document import PdfPageRangeError, PdfSafetyError, extract_pdf_pages
@@ -630,8 +638,7 @@ class WriteFileTool(_FsTool):
             if content is None:
                 raise ValueError("Unknown content")
             fp = self._resolve_write(path)
-            fp.parent.mkdir(parents=True, exist_ok=True)
-            fp.write_text(content, encoding="utf-8", newline="")
+            await self._write(fp, content.encode("utf-8"))
             self._file_states.record_write(fp)
             return f"Successfully wrote {len(content)} characters to {fp}"
         except PermissionError as e:
@@ -992,38 +999,39 @@ class EditFileTool(_FsTool):
                 return ToolResult.error("Error: expected_replacements must be >= 1.")
 
             fp = self._resolve_write(path)
-            file_exists = fp.exists()
+            info = await self._stat(fp)
+            file_exists = info is not None
             if file_exists and old_text == new_text:
                 return ToolResult.error("Error: new_text must be different from old_text.")
 
             # Create-file semantics: old_text='' + file doesn't exist → create
             if not file_exists:
                 if old_text == "":
-                    fp.parent.mkdir(parents=True, exist_ok=True)
-                    fp.write_text(new_text, encoding="utf-8", newline="")
+                    await self._write(fp, new_text.encode("utf-8"))
                     self._file_states.record_write(fp)
-                    return self._format_summary(fp, "", fp.read_bytes().decode("utf-8"), created=True)
-                return self._file_not_found_msg(path, fp)
+                    return self._format_summary(
+                        fp, "", new_text.encode("utf-8").decode("utf-8"), created=True,
+                    )
+                return await self._file_not_found_msg(path, fp)
 
             # File size protection
-            try:
-                fsize = fp.stat().st_size
-            except OSError:
-                fsize = 0
+            fsize = info.size
             if fsize > self._MAX_EDIT_FILE_SIZE:
                 return ToolResult.error(f"Error: File too large to edit ({fsize / (1024**3):.1f} GiB). Maximum is 1 GiB.")
 
             # Create-file: old_text='' but file exists and not empty → reject
             if old_text == "":
-                raw = fp.read_bytes()
+                raw = await self._read(fp)
                 content = raw.decode("utf-8")
                 if content.strip():
-                    return ToolResult.error(f"Error: Cannot create file — {path} already exists and is not empty.")
-                fp.write_text(new_text, encoding="utf-8", newline="")
+                    return ToolResult.error(
+                        f"Error: Cannot create file — {path} already exists and is not empty."
+                    )
+                await self._write(fp, new_text.encode("utf-8"))
                 self._file_states.record_write(fp)
-                return self._format_summary(fp, content, fp.read_bytes().decode("utf-8"))
+                return self._format_summary(fp, content, new_text.encode("utf-8").decode("utf-8"))
 
-            raw = fp.read_bytes()
+            raw = await self._read(fp)
             uses_crlf = b"\r\n" in raw
             content = raw.decode("utf-8").replace("\r\n", "\n")
             norm_old = old_text.replace("\r\n", "\n")
@@ -1116,7 +1124,7 @@ class EditFileTool(_FsTool):
             if uses_crlf:
                 new_content = new_content.replace("\n", "\r\n")
 
-            fp.write_bytes(new_content.encode("utf-8"))
+            await self._write(fp, new_content.encode("utf-8"))
             self._file_states.record_write(fp)
             return self._format_summary(fp, content, new_content)
         except PermissionError as e:
@@ -1124,14 +1132,17 @@ class EditFileTool(_FsTool):
         except Exception as e:
             return ToolResult.error(f"Error editing file: {e}")
 
-    def _file_not_found_msg(self, path: str, fp: Path) -> str:
+    async def _file_not_found_msg(self, path: str, fp: Path) -> str:
         """Build an error message with 'Did you mean ...?' suggestions."""
         parent = fp.parent
         suggestions: list[str] = []
-        if parent.is_dir():
-            siblings = [f.name for f in parent.iterdir() if f.is_file()]
+        try:
+            entries = await self._gateway().list_dir(str(parent))
+            siblings = [Path(item.path).name for item in entries if item.is_file]
             close = difflib.get_close_matches(fp.name, siblings, n=3, cutoff=0.6)
             suggestions = [str(parent / c) for c in close]
+        except Exception:
+            suggestions = []
         parts = [f"Error: File not found: {path}"]
         if suggestions:
             parts.append("Did you mean: " + ", ".join(suggestions) + "?")
@@ -1214,31 +1225,36 @@ class ListDirTool(_FsTool):
             if path is None:
                 raise ValueError("Unknown path")
             dp = self._resolve(path)
-            if not dp.exists():
+            info = await self._stat(dp)
+            if info is None:
                 return ToolResult.error(f"Error: Directory not found: {path}")
-            if not dp.is_dir():
+            if not info.is_dir:
                 return ToolResult.error(f"Error: Not a directory: {path}")
 
             cap = max_entries or self._DEFAULT_MAX
             items: list[str] = []
             total = 0
+            gateway = self._gateway()
 
             if recursive:
-                for item in sorted(dp.rglob("*")):
-                    rel = item.relative_to(dp)
-                    if any(p in self._IGNORE_DIRS for p in rel.parts):
+                entries = await gateway.walk(str(dp), max_entries=cap + 1)
+                for item in entries:
+                    rel = Path(item.path).relative_to(dp)
+                    if any(part in self._IGNORE_DIRS for part in rel.parts):
                         continue
                     total += 1
                     if len(items) < cap:
-                        items.append(f"{rel}/" if item.is_dir() else str(rel))
+                        items.append(f"{rel}/" if item.is_dir else str(rel))
             else:
-                for item in sorted(dp.iterdir()):
-                    if item.name in self._IGNORE_DIRS:
+                entries = await gateway.list_dir(str(dp))
+                for item in sorted(entries, key=lambda entry: entry.path):
+                    name = Path(item.path).name
+                    if name in self._IGNORE_DIRS:
                         continue
                     total += 1
                     if len(items) < cap:
-                        pfx = "📁 " if item.is_dir() else "📄 "
-                        items.append(f"{pfx}{item.name}")
+                        prefix = "📁 " if item.is_dir else "📄 "
+                        items.append(f"{prefix}{name}")
 
             if not items and total == 0:
                 return f"Directory {path} is empty"

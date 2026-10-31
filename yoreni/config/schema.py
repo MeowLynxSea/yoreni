@@ -28,6 +28,7 @@ from yoreni.config_base import Base
 from yoreni.cron.types import CronSchedule
 from yoreni.providers.generation import GenerationSettings
 from yoreni.providers.model_api import ModelAPICapabilities, RequestAPI
+from yoreni.sandbox.config import SandboxConfig
 
 
 class ChannelsConfig(Base):
@@ -435,6 +436,7 @@ class ToolsConfig(Base):
     web: WebToolsConfig = Field(default_factory=WebToolsConfig)
     exec: ExecToolConfig = Field(default_factory=ExecToolConfig)
     file: FileToolsConfig = Field(default_factory=FileToolsConfig)
+    sandbox: SandboxConfig = Field(default_factory=SandboxConfig)
     cli_apps: CliAppsToolConfig = Field(default_factory=CliAppsToolConfig)
     my: MyToolConfig = Field(default_factory=MyToolConfig)
     image_generation: ImageGenerationToolConfig = Field(

@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import shlex
 from pathlib import Path
 
 from yoreni.agent.tools.base import Tool, ToolResult, tool_parameters
@@ -137,13 +138,37 @@ class CliAppsTool(Tool):
         workspace = access.project_path or self.workspace
         manager = CliAppManager(workspace=workspace, runtime=self.runtime)
         try:
-            return manager.run(
-                name,
-                args=args or [],
-                json_output=bool(json),
-                working_dir=working_dir,
-                timeout=timeout,
-                restrict_to_workspace=access.restrict_to_workspace,
+            entry = manager.resolve_entry_point(name)
+            from yoreni.sandbox.gateway import get_sandbox_gateway
+
+            gateway = get_sandbox_gateway()
+            clean_args = [str(arg) for arg in (args or [])]
+            if json and "--json" not in clean_args:
+                clean_args = ["--json", *clean_args]
+            cwd = str(working_dir or workspace)
+            available = await gateway.exec(
+                ("sh", "-c", f"command -v {shlex.quote(entry)}"),
+                cwd=cwd,
+                timeout_s=10,
             )
+            if available.exit_code != 0:
+                return ToolResult.error(
+                    f"Error: {entry} is not installed inside the Yoreni VM"
+                )
+            effective_timeout = max(1, min(timeout or self.runtime.run_timeout, 600))
+            result = await gateway.exec(
+                (entry, *clean_args),
+                cwd=cwd,
+                timeout_s=effective_timeout,
+            )
+            lines = [
+                f"CLI app '{name}' exited {result.exit_code}.",
+                "Command: " + shlex.join([entry, *clean_args]),
+            ]
+            if result.stdout:
+                lines.append("\nSTDOUT:\n" + result.stdout.rstrip())
+            if result.stderr:
+                lines.append("\nSTDERR:\n" + result.stderr.rstrip())
+            return "\n".join(lines)
         except CliAppError as exc:
             return ToolResult.error(f"Error: {exc.message}")

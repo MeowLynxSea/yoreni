@@ -128,16 +128,18 @@ class ApplyPatchTool(_FsTool):
                     if pending is not None:
                         content = pending
                         exists = True
-                    elif source.exists():
-                        raw = source.read_bytes()
-                        try:
-                            content = raw.decode("utf-8")
-                        except UnicodeDecodeError:
-                            raise _PatchError(f"file is not UTF-8 text: {path}")
-                        exists = True
                     else:
-                        content = ""
-                        exists = False
+                        info = await self._stat(source)
+                        if info is not None:
+                            raw = await self._read(source)
+                            try:
+                                content = raw.decode("utf-8")
+                            except UnicodeDecodeError:
+                                raise _PatchError(f"file is not UTF-8 text: {path}")
+                            exists = True
+                        else:
+                            content = ""
+                            exists = False
 
                     if exists:
                         uses_crlf = "\r\n" in content
@@ -166,17 +168,17 @@ class ApplyPatchTool(_FsTool):
                     pending = writes.get(source)
                     if pending is not None:
                         content = pending
-                    elif source.exists():
-                        raw = source.read_bytes()
+                    else:
+                        info = await self._stat(source)
+                        if info is None:
+                            raise _PatchError(f"file to update does not exist: {path}")
+                        if not info.is_file:
+                            raise _PatchError(f"path to update is not a file: {path}")
+                        raw = await self._read(source)
                         try:
                             content = raw.decode("utf-8")
                         except UnicodeDecodeError:
                             raise _PatchError(f"file is not UTF-8 text: {path}")
-                    else:
-                        raise _PatchError(f"file to update does not exist: {path}")
-
-                    if pending is None and not source.is_file():
-                        raise _PatchError(f"path to update is not a file: {path}")
 
                     uses_crlf = "\r\n" in content
                     norm_content = content.replace("\r\n", "\n")
@@ -224,20 +226,19 @@ class ApplyPatchTool(_FsTool):
 
             backups: dict[Path, bytes | None] = {}
             for path in writes:
-                backups[path] = path.read_bytes() if path.exists() else None
+                backups[path] = (
+                    await self._read(path) if await self._stat(path) is not None else None
+                )
 
             try:
                 for path, content in writes.items():
-                    path.parent.mkdir(parents=True, exist_ok=True)
-                    path.write_text(content, encoding="utf-8", newline="")
+                    await self._write(path, content.encode("utf-8"))
             except Exception:
                 for path, data in backups.items():
                     if data is None:
-                        if path.exists():
-                            path.unlink()
+                        await self._gateway().remove(str(path))
                     else:
-                        path.parent.mkdir(parents=True, exist_ok=True)
-                        path.write_bytes(data)
+                        await self._write(path, data)
                 raise
 
             for path in writes:

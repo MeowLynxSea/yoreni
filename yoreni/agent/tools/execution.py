@@ -219,17 +219,26 @@ async def _execute_tool_call(
                 "Request the account through an authentication request instead of "
                 "inserting the placeholder into this tool."
             ), event
+    from yoreni.sandbox.errors import SandboxUnavailableError
+    from yoreni.sandbox.gateway import get_sandbox_gateway
+
     try:
-        with (
-            file_read_context(tool_call.id, read_results)
-            if tool_call.name == "read_file" else nullcontext()
-        ):
-            if tool is None:
-                result = await tools.execute(tool_call.name, params)
-            elif interrupt is not None and getattr(tool, "interruptible", False):
-                result = await _run_interruptibly(lambda: tool.execute(**params), interrupt)
-            else:
-                result = await tool.execute(**params)
+        gateway = get_sandbox_gateway()
+    except SandboxUnavailableError:
+        gateway = None
+    try:
+        scope = gateway.tool_scope(tool_call.name) if gateway is not None else nullcontext()
+        async with scope:
+            with (
+                file_read_context(tool_call.id, read_results)
+                if tool_call.name == "read_file" else nullcontext()
+            ):
+                if tool is None:
+                    result = await tools.execute(tool_call.name, params)
+                elif interrupt is not None and getattr(tool, "interruptible", False):
+                    result = await _run_interruptibly(lambda: tool.execute(**params), interrupt)
+                else:
+                    result = await tool.execute(**params)
     except asyncio.CancelledError:
         raise
     except Exception as exc:
@@ -323,7 +332,12 @@ def _redact_tool_payload(result: Any) -> Any:
         if isinstance(result, ToolResult):
             return ToolResult(manager.redact(str(result)), is_error=result.is_error)
         if isinstance(result, str):
-            return manager.redact(result)
+            redacted = manager.redact(result)
+            if hasattr(result, "file_diffs"):
+                from yoreni.utils.file_edit_events import FileEditResult
+
+                return FileEditResult(redacted, result.file_diffs)  # type: ignore[attr-defined]
+            return redacted
         return manager.redact_value(result)
     except Exception:
         logger.exception("Redacting a tool result failed; withholding the payload")

@@ -3,7 +3,13 @@
 {{ platform_policy }}
 
 ## Workspace
-{% if agent_workspace_path != workspace_path %}
+{% if sandbox %}
+You work inside a persistent Linux virtual machine owned by Yoreni. Every shell command, file operation, browser action and desktop action happens there.
+- Working directory: {{ workspace_path }}
+- The VM keeps its files, installed software and browser profile across restarts.
+- Memory and settings live in Yoreni's control plane. Use the memory tools; never try to read or edit profile, memory or settings files as ordinary files.
+- Custom skills are available under skills/{% raw %}{skill-name}{% endraw %}/SKILL.md.
+{% elif agent_workspace_path != workspace_path %}
 Yoreni's agent workspace is at: {{ agent_workspace_path }}
 - Agent profile: {{ agent_workspace_path }}/SOUL.md and {{ agent_workspace_path }}/USER.md
 - Long-term memory summary: {{ agent_workspace_path }}/memory/MEMORY.md

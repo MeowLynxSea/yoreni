@@ -84,6 +84,10 @@ documents = [
 langfuse = [
     "langfuse>=4.7.0,<5.0.0",
 ]
+sandbox = [
+    "boxlite>=0.11.0,<1.0.0",
+    "playwright>=1.50.0,<2.0.0",
+]
 pdf = [
     # Compatibility extra: PDF reading is bundled since v0.2.3.
     "pypdf>=6.21.3,<7.0.0",

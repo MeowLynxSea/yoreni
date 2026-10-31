@@ -100,11 +100,13 @@ class TestReadFileTool:
         assert "not found" in result
 
     @pytest.mark.asyncio
-    async def test_workspace_relative_builtin_skill_read_falls_back_to_packaged_skill(self, tool):
+    async def test_builtin_skills_are_not_read_from_the_host(self, tool):
+        # Bundled skills are copied into the VM workspace at provisioning time.
+        # Before that copy exists, a host installation must not leak through.
         result = await tool.execute(path="skills/cron/SKILL.md", limit=5)
 
-        assert "Error" not in result
-        assert "cron" in result.lower()
+        assert "Error" in result
+        assert "not found" in result
 
     @pytest.mark.asyncio
     async def test_missing_path_returns_clear_error(self, tool):

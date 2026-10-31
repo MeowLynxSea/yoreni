@@ -41,6 +41,8 @@ class WebUIFilePreviewError(ValueError):
 def file_reference_payload(raw_path: str | None, *, scope: WorkspaceScope) -> dict[str, str | None]:
     """Resolve copyable paths through the preview policy without reading file contents."""
     resolved = resolve_file_path(raw_path, scope=scope)
+    if not resolved.is_file():
+        raise WebUIFilePreviewError(404, "file not found")
     try:
         relative = resolved.relative_to(scope.project_path).as_posix()
     except ValueError:
@@ -48,7 +50,7 @@ def file_reference_payload(raw_path: str | None, *, scope: WorkspaceScope) -> di
     return {"path": str(resolved), "relative_path": relative}
 
 
-def file_preview_payload(
+async def file_preview_payload(
     raw_path: str | None,
     *,
     scope: WorkspaceScope,
@@ -59,12 +61,19 @@ def file_preview_payload(
     resolved = resolve_file_path(raw_path, scope=scope)
 
     try:
-        with open(resolved, "rb") as f:
-            prefix = f.read(12)
-            mime = _image_mime(prefix)
-            limit = MAX_IMAGE_PREVIEW_BYTES if mime else max_bytes
-            raw = prefix + f.read(max(0, limit + 1 - len(prefix)))
-        size = resolved.stat().st_size
+        from yoreni.sandbox.gateway import get_sandbox_gateway
+
+        gateway = get_sandbox_gateway()
+        info = await gateway.stat(str(resolved))
+        if info is None:
+            raise FileNotFoundError(resolved)
+        size = info.size
+        prefix = await gateway.read_file(str(resolved), max_bytes=12)
+        mime = _image_mime(prefix)
+        limit = MAX_IMAGE_PREVIEW_BYTES if mime else max_bytes
+        raw = await gateway.read_file(str(resolved), max_bytes=limit + 1)
+    except FileNotFoundError as e:
+        raise WebUIFilePreviewError(404, "file not found") from e
     except OSError as e:
         raise WebUIFilePreviewError(500, "failed to read file") from e
 
@@ -103,7 +112,7 @@ def file_preview_payload(
     }
 
 
-def file_preview_availability_payload(
+async def file_preview_availability_payload(
     raw_path: str | None,
     *,
     scope: WorkspaceScope,
@@ -112,9 +121,16 @@ def file_preview_availability_payload(
 
     resolved = resolve_file_path(raw_path, scope=scope)
     try:
-        with open(resolved, "rb") as f:
-            prefix = f.read(4096)
-        size = resolved.stat().st_size
+        from yoreni.sandbox.gateway import get_sandbox_gateway
+
+        gateway = get_sandbox_gateway()
+        info = await gateway.stat(str(resolved))
+        if info is None:
+            raise FileNotFoundError(resolved)
+        size = info.size
+        prefix = await gateway.read_file(str(resolved), max_bytes=4096)
+    except FileNotFoundError as e:
+        raise WebUIFilePreviewError(404, "file not found") from e
     except OSError as e:
         raise WebUIFilePreviewError(500, "failed to read file") from e
     if _image_mime(prefix):
@@ -141,7 +157,7 @@ def resolve_file_path(
             workspace=scope.project_path,
             allowed_root=scope.project_path if scope.restrict_to_workspace else None,
             extra_allowed_roots=extra_roots,
-            strict=True,
+            strict=False,
         )
     except FileNotFoundError as e:
         raise WebUIFilePreviewError(404, "file not found") from e
@@ -152,8 +168,6 @@ def resolve_file_path(
     except OSError as e:
         raise WebUIFilePreviewError(400, "invalid path") from e
 
-    if not resolved.is_file():
-        raise WebUIFilePreviewError(404, "file not found")
     return resolved
 
 

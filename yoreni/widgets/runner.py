@@ -4,15 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import os
-import shlex
 import signal
 import time
 from contextlib import suppress
 from pathlib import Path
 
-from loguru import logger
-
-from yoreni.agent.tools.sandbox import wrap_command
 from yoreni.widgets.types import (
     MAX_STDOUT_BYTES,
     WidgetDefinition,
@@ -34,11 +30,15 @@ class _OutputLimitError(Exception):
 class WidgetRunner:
     """Execute one widget command with the gateway's exec sandbox policy."""
 
-    def __init__(self, *, sandbox: str = "") -> None:
+    def __init__(self, *, sandbox: str = "", sandbox_enabled: bool = False) -> None:
         self._sandbox = sandbox.strip()
+        self._sandbox_enabled = sandbox_enabled
 
     def set_sandbox(self, sandbox: str) -> None:
         self._sandbox = sandbox.strip()
+
+    def set_sandbox_enabled(self, enabled: bool) -> None:
+        self._sandbox_enabled = enabled
 
     async def run(
         self,
@@ -50,6 +50,13 @@ class WidgetRunner:
         argv = definition.command
         if not argv:
             return WidgetRunResult(error="widget has no command")
+        if self._sandbox_enabled:
+            return WidgetRunResult(
+                error=(
+                    "widget commands are disabled while the sandbox VM owns execution; "
+                    "run the equivalent work with the exec tool inside the VM"
+                )
+            )
         started = time.monotonic()
         command = self._prepare(argv, widget_dir, workspace)
         try:
@@ -119,31 +126,8 @@ class WidgetRunner:
     def _prepare(
         self, argv: tuple[str, ...], widget_dir: Path, workspace: Path | None,
     ) -> list[str]:
-        if not self._sandbox:
-            return list(argv)
-        if os.name == "nt":
-            logger.warning("widget command ran without a sandbox: sandbox backends require POSIX")
-            return list(argv)
-        bind: list[str] = []
-        if workspace is not None:
-            try:
-                resolved = workspace.expanduser().resolve(strict=False)
-            except OSError:
-                resolved = None
-            if (
-                resolved is not None
-                and resolved.is_dir()
-                and not resolved.is_relative_to(widget_dir)
-            ):
-                bind.append(str(resolved))
-        wrapped = wrap_command(
-            self._sandbox,
-            shlex.join(argv),
-            str(widget_dir),
-            str(widget_dir),
-            sandbox_ro_binds=bind or None,
-        )
-        return shlex.split(wrapped)
+        del widget_dir, workspace
+        return list(argv)
 
 
 async def _read_capped(stream: asyncio.StreamReader | None, limit: int) -> bytes:

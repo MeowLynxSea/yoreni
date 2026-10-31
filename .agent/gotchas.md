@@ -16,10 +16,20 @@ Vite proxies `/api`, `/webui`, and `/auth`; the application's WebSocket connects
 
 ## Windows Compatibility
 
-yoreni explicitly supports Windows. Key differences to keep in mind:
-- `ExecTool` defaults to PowerShell on Windows (`pwsh` when available, otherwise Windows PowerShell); pass `shell="cmd"` for cmd.exe syntax or cmd built-ins (`shell.py`).
+yoreni explicitly supports Windows as a host for the gateway. Key differences to keep in mind:
+- Agent commands never run on the host: `ExecTool` sends them to the sandbox VM, whose shell is always bash/sh/zsh. Host platform only matters for the gateway process itself.
 - `yoreni/cli/entry.py` configures Windows console output as UTF-8 before dispatch to handle emoji and multilingual input.
 - MCP stdio server commands are normalized for Windows path separators (`mcp.py`).
+
+## Execution plane
+
+All agent execution — files, shell, code, packages, processes, browser, desktop — goes through `yoreni/sandbox/`, owned by the Python gateway. Install the backend with `uv sync --extra sandbox` (or `pip install -e ".[sandbox]"`), which pulls `boxlite` and `playwright`.
+
+- Linux needs `/dev/kvm`; the user running the gateway must be able to open it. BoxLite reports a clear error when KVM is missing — the gateway logs it, keeps the control plane running, and every execution tool fails explicitly. There is no host fallback.
+- macOS uses Hypervisor.framework through BoxLite (`boxlite` wheels cover Apple Silicon and Intel).
+- Windows has no BoxLite backend yet; `backend: "boxlite"` reports `SandboxUnavailableError` instead of degrading.
+- The first start of a configured image provisions the VM (apt packages, `playwright install chromium`), so it needs network access and several minutes. Progress is logged and the marker file `/workspace/.yoreni/provisioned-v2` skips the work afterwards. The VM disk lives under `~/.boxlite`; deleting it loses the desktop, browser profile, and downloaded packages.
+- Tests: `tests/sandbox/test_vm_integration.py` only runs with `YORENI_SANDBOX_INTEGRATION=1`. Without it, `conftest.py` binds the gateway to `tests/support/local_backend.py`, which is test-only and never used in production.
 
 ## Prompt Templates
 

@@ -479,13 +479,33 @@ def _run_claimed_gateway(
     trigger_store = LocalTriggerStore(config.workspace_path)
     widget_service = WidgetService(
         WidgetStore(get_runtime_subdir("widgets")),
-        runner=WidgetRunner(sandbox=config.tools.exec.sandbox),
+        runner=WidgetRunner(
+            sandbox=config.tools.exec.sandbox,
+            sandbox_enabled=config.tools.sandbox.enabled,
+        ),
         workspace=config.workspace_path,
         admission=bus.admission,
         on_change=partial(publish_widget_change, bus),
     )
 
     turn_delivery_factory = TurnDeliveryFactory(bus)
+
+    from yoreni.config.paths import get_media_dir
+    from yoreni.sandbox import SandboxGateway, set_sandbox_gateway
+    from yoreni.security.network import validate_url_target
+
+    def _sandbox_url_guard(url: str) -> None:
+        ok, error = validate_url_target(url)
+        if not ok:
+            raise ValueError(error or "URL is not allowed")
+
+    sandbox_gateway = SandboxGateway(
+        config.tools.sandbox,
+        host_workspace=str(config.workspace_path),
+        host_media_dir=str(get_media_dir()),
+        url_guard=_sandbox_url_guard,
+    )
+    set_sandbox_gateway(sandbox_gateway)
 
     tools = ToolRegistry()
     register_image_generation_tool(config, tools, workspace=config.workspace_path)
@@ -837,8 +857,8 @@ def _run_claimed_gateway(
         agent.reload_runtime(config)
         if _system_cron_signature() != previous_cron:
             _sync_system_cron_jobs()
-        if widget_service is not None:
-            widget_service.set_sandbox(config.tools.exec.sandbox)
+        widget_service.set_sandbox(config.tools.exec.sandbox)
+        widget_service.set_sandbox_enabled(config.tools.sandbox.enabled)
         channels.apply_runtime_config(config)
         agent.refresh_runtime_config()
         proxy_changed = _agent_proxy() != previous_proxy
@@ -1017,6 +1037,21 @@ def _run_claimed_gateway(
             console.print,
         )
         try:
+            if config.tools.sandbox.enabled:
+                async def _start_sandbox() -> None:
+                    try:
+                        await sandbox_gateway.start()
+                    except Exception as exc:  # noqa: BLE001 - control plane stays up
+                        logger.error(
+                            "The Yoreni sandbox VM is unavailable; execution tools "
+                            "will fail until it can start: {}",
+                            exc,
+                        )
+
+                tasks.append(asyncio.create_task(
+                    _start_sandbox(),
+                    name="yoreni-sandbox-start",
+                ))
             # Re-read once on first admission to close the watcher subscription window.
             agent.runtime_resolver.invalidate()
             # Recovery must finish before WebSocket and other channels begin
@@ -1135,6 +1170,8 @@ def _run_claimed_gateway(
                     tasks,
                     runtime_tasks,
                 )
+                await sandbox_gateway.close()
+                set_sandbox_gateway(None)
                 await bus.drain()
             finally:
                 restore_shutdown_handlers()

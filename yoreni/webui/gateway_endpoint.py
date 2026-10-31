@@ -78,6 +78,17 @@ class WebUIGatewayEndpoint:
             if not is_allowed(client_id):
                 return connection.respond(403, "Forbidden")
             return self.authorize_websocket_handshake(connection, query, request.headers)
+        if got == "/api/sandbox/desktop/ws" and is_websocket_upgrade(request):
+            from yoreni.sandbox.desktop_proxy import get_desktop_proxy
+
+            try:
+                controller = get_desktop_proxy().authorize(query_first(query, "ticket"))
+            except Exception:
+                controller = None
+            if controller is None:
+                return connection.respond(401, "Unauthorized")
+            setattr(connection, "_yoreni_desktop_controller", controller)
+            return None
         return await self._http.dispatch(connection, request)
 
     def authorize_websocket_handshake(

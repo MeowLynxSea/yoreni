@@ -170,10 +170,6 @@ def test_existing_runtime_and_composition_dependencies_remain_allowed(
             "core-execution", "yoreni.webui.metadata", 1,
         ),
         (
-            "yoreni/session/manager.py", "from yoreni.cli import gateway",
-            "session-storage", "yoreni.cli.gateway", 1,
-        ),
-        (
             "yoreni/channels/notification_routes.py",
             "from yoreni.channels.slack.runtime import SlackChannel",
             "channel-routing-contracts", "yoreni.channels.slack.runtime.SlackChannel", 1,

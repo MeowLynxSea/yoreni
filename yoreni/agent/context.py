@@ -58,8 +58,10 @@ class ContextBuilder:
         core: CoreMemory | None = None,
         core_token_budget: int = DEFAULT_CORE_TOKEN_BUDGET,
         profile_store: UserProfileStore | None = None,
+        execution_workspace: Path | None = None,
     ):
         self.workspace = workspace
+        self.execution_workspace = execution_workspace
         self.timezone = timezone
         self.core = core or CoreMemory(workspace, token_budget=core_token_budget)
         self.profile_store = profile_store
@@ -87,7 +89,7 @@ class ContextBuilder:
         if project_path != self.workspace.expanduser().resolve():
             parts.append(
                 "# Current Project\n\n"
-                f"Working directory: {project_path}\n"
+                f"Working directory: {self._display_workspace(project_path)}\n"
                 "Use it as the default root for project files and relative tool paths."
             )
 
@@ -114,21 +116,40 @@ class ContextBuilder:
 
         return "\n\n---\n\n".join(parts)
 
+    def _display_workspace(self, path: Path) -> str:
+        if self.execution_workspace is None:
+            return str(path.expanduser().resolve())
+        try:
+            from yoreni.sandbox.gateway import get_sandbox_gateway
+
+            return get_sandbox_gateway().display_path(str(path))
+        except Exception:
+            return str(self.execution_workspace)
+
     def _get_identity(self, channel: str | None = None, workspace: Path | None = None) -> str:
         """Get the core identity section."""
         root = workspace or self.workspace
-        workspace_path = str(root.expanduser().resolve())
-        agent_workspace_path = str(self.workspace.expanduser().resolve())
-        system = platform.system()
-        runtime = f"{'macOS' if system == 'Darwin' else system} {platform.machine()}, Python {platform.python_version()}"
+        workspace_path = self._display_workspace(root)
+        agent_workspace_path = self._display_workspace(self.workspace)
+        system = "Linux" if self.execution_workspace is not None else platform.system()
+        runtime = (
+            "Linux x86_64, Python 3"
+            if self.execution_workspace is not None
+            else f"{'macOS' if system == 'Darwin' else system} {platform.machine()}, Python {platform.python_version()}"
+        )
 
         return render_template(
             "agent/identity.md",
             workspace_path=workspace_path,
             agent_workspace_path=agent_workspace_path,
             runtime=runtime,
-            platform_policy=render_template("agent/platform_policy.md", system=system),
+            platform_policy=render_template(
+                "agent/platform_policy.md",
+                system=system,
+                sandbox=self.execution_workspace is not None,
+            ),
             channel=channel or "",
+            sandbox=self.execution_workspace is not None,
         )
 
     @staticmethod

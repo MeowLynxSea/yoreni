@@ -20,6 +20,8 @@ pip install -e ".[dev]"
 pytest
 ```
 
+Agent execution runs inside a persistent Linux microVM. Install the backend with `uv sync --extra sandbox` (`pip install -e ".[sandbox]"`); Linux requires `/dev/kvm`. The first gateway start provisions the VM image and needs network access. See [.agent/gotchas.md](.agent/gotchas.md#execution-plane) for platform details.
+
 Build the browser client before packaging:
 
 ```bash

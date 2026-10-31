@@ -17,7 +17,7 @@ import time
 from collections.abc import Awaitable, Callable, Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import quote, urlsplit, urlunsplit
 
 from loguru import logger
 from websockets.datastructures import Headers
@@ -505,11 +505,14 @@ class GatewayHTTPHandler:
         setattr(request, "_yoreni_trusted_proxy_authenticated", True)
         setattr(request, _WEBUI_MUTATION_REQUEST_ATTR, True)
         setattr(request, _WEBUI_MUTATION_PAYLOAD_ATTR, dict(payload))
+        # Route on the bare path; handlers read the query from `request` so a
+        # mutation can target a parameterised route such as desktop control.
+        resolved, _ = _parse_request_path(path)
         try:
             # WebUI mutation tasks already survive a disconnected browser. Keep
             # their async/threaded writes busy until that operation really ends.
             with self.bus.admission.activity():
-                response = await self._dispatch_resolved(connection, request, path)
+                response = await self._dispatch_resolved(connection, request, resolved)
         except RuntimeMaintenanceError:
             return _http_error(503, "Gateway update is being verified. Retry shortly.")
         if isinstance(response, Response):
@@ -531,6 +534,8 @@ class GatewayHTTPHandler:
             "/api/webui/widgets/refresh",
             "/api/webui/memory-backfill/state",
         }:
+            return True
+        if re.match(r"^/api/sandbox/control/(take|release)$", path):
             return True
         return path in {
             "/api/agent/resume", "/api/agent/cancel", "/api/agent/dismiss",
@@ -562,6 +567,14 @@ class GatewayHTTPHandler:
         path = _WEBUI_MUTATION_PATHS.get(action)
         if path is not None:
             return path
+        if action in {"sandbox.control.take", "sandbox.control.release"}:
+            controller = payload.get("controller")
+            if not isinstance(controller, str) or re.fullmatch(
+                r"nbdk_[A-Za-z0-9_-]{16,128}", controller,
+            ) is None:
+                return _http_error(400, "invalid desktop controller")
+            verb = action.rsplit(".", 1)[-1]
+            return f"/api/sandbox/control/{verb}?controller={quote(controller, safe='')}"
         connect_action = _WEBUI_CHANNEL_CONNECT_ACTIONS.get(action)
         if connect_action is not None:
             channel = payload.get("channel")
@@ -671,6 +684,16 @@ class GatewayHTTPHandler:
                 ],
             }, extra_headers=_NO_STORE_HEADERS)
 
+        if got.startswith("/api/sandbox/"):
+            # Control changes arrive as WebUI mutations, which only an
+            # authenticated socket can issue; plain HTTP needs the API token.
+            if not (
+                getattr(request, _WEBUI_MUTATION_REQUEST_ATTR, False)
+                or self.check_api_token(request)
+            ):
+                return _http_error(401, "Unauthorized")
+            return await self._handle_sandbox_route(request, got)
+
         # Settings routes (delegated)
         if got == "/auth/connectors/callback":
             return await self._handle_connector_oauth_callback(request)
@@ -679,7 +702,7 @@ class GatewayHTTPHandler:
             return response
 
         # Media routes
-        response = self._dispatch_media_routes(request, got)
+        response = await self._dispatch_media_routes(request, got)
         if response is not None:
             return response
 
@@ -723,6 +746,63 @@ class GatewayHTTPHandler:
             status if status is not None else "none",
             elapsed_ms,
         )
+
+    # -- Sandbox execution plane -------------------------------------------
+
+    async def _handle_sandbox_route(self, request: WsRequest, path: str) -> Any:
+        from yoreni.sandbox.desktop_proxy import get_desktop_proxy
+        from yoreni.sandbox.errors import SandboxControlError, SandboxError
+        from yoreni.sandbox.gateway import get_sandbox_gateway
+
+        try:
+            gateway = get_sandbox_gateway()
+        except SandboxError as exc:
+            return _http_error(503, str(exc))
+
+        if path == "/api/sandbox/status":
+            status = await gateway.status()
+            return _http_json_response(
+                {
+                    "sandbox": status.as_dict(),
+                    "control": gateway.control_snapshot().as_dict(),
+                    "desktop": {
+                        "enabled": gateway.config.desktop_enabled,
+                        "browser": gateway.config.browser_enabled,
+                        "viewer_path": "/api/sandbox/desktop/ws",
+                    },
+                },
+                extra_headers=_NO_STORE_HEADERS,
+            )
+
+        if path == "/api/sandbox/desktop/session":
+            proxy = get_desktop_proxy()
+            ticket = proxy.issue_ticket()
+            return _http_json_response(
+                {
+                    "ticket": ticket,
+                    "controller_id": ticket,
+                    "path": "/api/sandbox/desktop/ws",
+                    "expires_in": gateway.config.desktop_token_ttl_s,
+                    "control": gateway.control_snapshot().as_dict(),
+                },
+                extra_headers=_NO_STORE_HEADERS,
+            )
+
+        if path in {"/api/sandbox/control/take", "/api/sandbox/control/release"}:
+            controller = _query_first(_request_query(request), "controller") or ""
+            proxy = get_desktop_proxy()
+            if not controller or not proxy.is_controller(controller):
+                return _http_error(403, "Unknown desktop controller")
+            try:
+                if path.endswith("/take"):
+                    snapshot = await gateway.take_control(controller)
+                else:
+                    snapshot = await gateway.release_control(controller)
+            except SandboxControlError as exc:
+                return _http_error(409, str(exc))
+            return _http_json_response({"control": snapshot.as_dict()})
+
+        return _http_error(404, "Sandbox route not found")
 
     # -- Token issue --------------------------------------------------------
 
@@ -978,13 +1058,13 @@ class GatewayHTTPHandler:
 
 
 
-    def _handle_file_preview(self, request: WsRequest) -> Response:
+    async def _handle_file_preview(self, request: WsRequest) -> Response:
         if not self.check_api_token(request):
             return _http_error(401, "Unauthorized")
         query = _request_query(request)
         path = _query_first(query, "path") or ""
         try:
-            payload = file_preview_payload(path, scope=self.workspaces.default_scope())
+            payload = await file_preview_payload(path, scope=self.workspaces.default_scope())
         except WebUIFilePreviewError as exc:
             return _http_error(exc.status, exc.message)
         return _http_json_response(payload)
@@ -1204,7 +1284,7 @@ class GatewayHTTPHandler:
 
     # -- Media routes -------------------------------------------------------
 
-    def _dispatch_media_routes(self, request: WsRequest, got: str) -> Response | None:
+    async def _dispatch_media_routes(self, request: WsRequest, got: str) -> Response | None:
         m = re.match(r"^/api/media/([A-Za-z0-9_-]+)/([A-Za-z0-9_-]+)$", got)
         if m:
             return self._handle_media_fetch(m.group(1), m.group(2), request)
@@ -1233,7 +1313,7 @@ class GatewayHTTPHandler:
         if got.startswith("/api/webui/credentials/"):
             return await self._handle_credentials_mutation(connection, request, got)
         if got == "/api/agent/file-preview":
-            return self._handle_file_preview(request)
+            return await self._handle_file_preview(request)
         if got == "/api/webui/goal":
             return await self._handle_webui_goal(request)
         if got in {"/api/webui/memory-backfill", "/api/webui/memory-backfill/state"}:

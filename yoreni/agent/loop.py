@@ -246,6 +246,9 @@ class AgentLoop:
             disabled_skills=disabled_skills,
             core_token_budget=memory_cfg.core_token_budget,
             profile_store=profile_store,
+            execution_workspace=(
+                Path(_tc.sandbox.workspace) if _tc.sandbox.enabled else None
+            ),
         )
         from yoreni.memory.service import MemoryService
 

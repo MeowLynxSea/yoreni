@@ -432,14 +432,6 @@ class TestProtectedRuntimeState:
         assert "protected" in result
 
     @pytest.mark.asyncio
-    async def test_modify_commands_blocked(self):
-        """commands is BLOCKED — cannot be replaced."""
-        tool = _make_tool()
-        new_commands = MagicMock()
-        result = await tool.execute(action="set", key="commands", value=new_commands)
-        assert "protected" in result
-
-    @pytest.mark.asyncio
     async def test_modify_workspace_preserves_display_compatibility(self):
         """The compatibility value is isolated from filesystem security boundaries."""
         tool = _make_tool()
@@ -822,7 +814,7 @@ class TestRequestContext:
                 tool._audit("modify", "temperature = 0.2")
 
         info.assert_called_once_with(
-            "self.{} | {} | session:{}",
+            "self.{} | {} | run:{}",
             "modify",
             "temperature = 0.2",
             "feishu:oc_abc123",

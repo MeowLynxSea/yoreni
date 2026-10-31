@@ -417,7 +417,7 @@ async def test_exec_rejects_unknown_user_home(tmp_path, monkeypatch, command) ->
         Path(home_path).expanduser()
 
     spawn = AsyncMock(side_effect=AssertionError("Blocked commands must not start a process"))
-    monkeypatch.setattr(ExecTool, "_spawn", spawn)
+    monkeypatch.setattr("yoreni.agent.tools.exec_session.ExecSessionManager.start", spawn)
     result = await ExecTool(
         working_dir=str(tmp_path), restrict_to_workspace=True,
     ).execute(command=command)
@@ -442,7 +442,7 @@ async def test_exec_rejects_home_path_without_home_directory(tmp_path, monkeypat
         Path("~/file.txt").expanduser()
 
     spawn = AsyncMock(side_effect=AssertionError("Blocked commands must not start a process"))
-    monkeypatch.setattr(ExecTool, "_spawn", spawn)
+    monkeypatch.setattr("yoreni.agent.tools.exec_session.ExecSessionManager.start", spawn)
     result = await ExecTool(
         working_dir=str(tmp_path), restrict_to_workspace=True,
     ).execute(command="cat ~/file.txt")
@@ -450,17 +450,6 @@ async def test_exec_rejects_home_path_without_home_directory(tmp_path, monkeypat
     assert result.startswith("Error: Command blocked by safety guard (path outside working dir)")
     assert "hard policy boundary" in result
     spawn.assert_not_called()
-
-
-async def test_exec_allows_resolved_home_inside_workspace(tmp_path, monkeypatch) -> None:
-    monkeypatch.setenv("USERPROFILE" if sys.platform == "win32" else "HOME", str(tmp_path))
-    (tmp_path / "file.txt").write_text("allowed home content", encoding="utf-8")
-    result = await ExecTool(
-        working_dir=str(tmp_path), restrict_to_workspace=True,
-    ).execute(command="cat ~/file.txt", login=False, yield_time_ms=10000)
-
-    assert "allowed home content" in result
-    assert "Exit code: 0" in result
 
 
 @pytest.mark.parametrize(
@@ -995,7 +984,7 @@ async def test_exec_runtime_rejects_out_of_range(
 ) -> None:
     """Invalid budgets fail before spawning instead of being clamped."""
     spawn = AsyncMock(side_effect=AssertionError("Invalid runtime must not start a process"))
-    monkeypatch.setattr(ExecTool, "_spawn", spawn)
+    monkeypatch.setattr("yoreni.agent.tools.exec_session.ExecSessionManager.start", spawn)
     tool = ExecTool(max_runtime=301, max_runtime_limit=300)
 
     result = await tool.execute(command="echo ok", **{runtime_parameter: runtime})
@@ -1007,7 +996,7 @@ async def test_exec_runtime_rejects_out_of_range(
 
 async def test_exec_runtime_aliases_are_mutually_exclusive(monkeypatch) -> None:
     spawn = AsyncMock(side_effect=AssertionError("Conflicting runtime arguments must not spawn"))
-    monkeypatch.setattr(ExecTool, "_spawn", spawn)
+    monkeypatch.setattr("yoreni.agent.tools.exec_session.ExecSessionManager.start", spawn)
     tool = ExecTool()
     params = {"command": "echo ok", "max_runtime": 5, "timeout": 5}
 

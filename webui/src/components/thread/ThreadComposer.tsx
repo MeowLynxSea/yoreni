@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type Ref } from "react";
-import { ArrowUp, ChevronDown, Mic, Paperclip, Quote, Square, X } from "lucide-react";
+import { ArrowUp, ChevronDown, ImageIcon, Loader2, Mic, Paperclip, Quote, Square, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EmojiText } from "@/components/EmojiText";
+import { FileReferenceIcon, fileKindForPath } from "@/components/FileReferenceChip";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useAttachedImages, ACCEPT_ATTR } from "@/hooks/useAttachedImages";
+import { useAttachedImages, ACCEPT_ATTR, MAX_VIDEO_BYTES, type AttachedAttachment, type AttachmentLimits } from "@/hooks/useAttachedImages";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { formatFileSize } from "@/lib/format";
 import { readComposerDraft, writeComposerDraft } from "@/lib/local-ui-state";
 import { cn } from "@/lib/utils";
 import type { SendAttachment, SendOptions } from "@/lib/agent-input";
@@ -81,14 +83,25 @@ export function ThreadComposer({ onSend, onStop, disabled = false, isStreaming =
   }, [quotedContext]);
   const appendTranscript = useCallback((text: string) => setValue((current) => current ? `${current}\n${text}` : text), []);
   const voice = useVoiceRecorder({ disabled, onClearError: () => setError(null), onError: (key) => setError(t(`thread.composer.voice.errors.${key}`)), onTranscript: appendTranscript, onTranscribeAudio });
+  // A rejected or still-encoding attachment cannot be delivered, and sending
+  // the text alone would silently drop it.
+  const attachmentsReady = attachments.images.every((image) => image.status === "ready");
   const send = async () => {
-    if (sending || disabled || attachments.encoding || (!value.trim() && !attachments.images.length)) return;
+    if (sending || disabled || !attachmentsReady || (!value.trim() && !attachments.images.length)) return;
     const content = value;
-    const media: SendAttachment[] = attachments.images.flatMap((image) => image.status !== "ready" ? [] : [{
-      media: image.local ? { path: image.local.path, name: image.file.name } : { data_url: image.dataUrl!, name: image.file.name },
-      preview: { kind: image.kind, url: image.previewUrl ?? image.local?.url, name: image.file.name },
-    }]);
-    if (media.length !== attachments.images.length) return;
+    const media: SendAttachment[] = attachments.images.map((image) => ({
+      media: image.local
+        ? { path: image.local.path, name: image.file.name }
+        : { data_url: image.dataUrl!, name: image.file.name },
+      // The bubble outlives the composer's staged blob URLs, so an image keeps
+      // its own encoded copy as the preview until the gateway signs the file.
+      preview: {
+        kind: image.kind,
+        url: image.local?.url || (image.kind === "image" ? image.dataUrl : undefined),
+        name: image.file.name,
+        size: image.file.size,
+      },
+    }));
     setSending(true); setError(null);
     try {
       const accepted = await onSend(content, media);
@@ -102,7 +115,8 @@ export function ThreadComposer({ onSend, onStop, disabled = false, isStreaming =
       variant === "hero" && "rounded-[2rem]",
     )}
     onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); void attachments.enqueue(Array.from(event.dataTransfer.files)); }}>
-    {attachments.images.length > 0 && <div className="mb-1 flex flex-wrap gap-2 px-1 pt-1">{attachments.images.map((image) => <div key={image.id} className="flex max-w-full items-center gap-1.5 rounded-full border border-white/60 bg-white/45 py-1 pl-3 pr-1 text-xs text-foreground backdrop-blur-md dark:border-white/10 dark:bg-white/[0.06]"><span className="max-w-48 truncate">{image.file.name}</span><Button variant="ghost" size="icon" className="h-5 w-5 rounded-full" aria-label={t("thread.composer.remove")} onClick={() => attachments.remove(image.id)}><X className="h-3 w-3" /></Button></div>)}</div>}
+    {attachments.images.length > 0 && <div data-composer-attachments className="mb-1 flex flex-wrap gap-2 px-1 pt-1">{attachments.images.map((image) => <ComposerAttachment key={image.id} attachment={image} limits={attachments.limits}
+      onRemove={() => { attachments.remove(image.id); inputRef.current?.focus({ preventScroll: true }); }} />)}</div>}
     {quoteMounted ? <div data-composer-quote data-state={quoteExpanded ? "open" : "closed"}
       aria-hidden={quoteExpanded ? undefined : true}
       className={cn(
@@ -157,7 +171,7 @@ export function ThreadComposer({ onSend, onStop, disabled = false, isStreaming =
         {isStreaming && onStop && <Button variant="default" size="icon" aria-label={t("thread.composer.stop")} onClick={onStop}
           className="h-9 w-9 rounded-full"><Square className="h-3 w-3" fill="currentColor" /></Button>}
         <Button size="icon" aria-label={t("thread.composer.send")}
-          disabled={disabled || sending || attachments.encoding || (!value.trim() && !attachments.images.length)}
+          disabled={disabled || sending || !attachmentsReady || (!value.trim() && !attachments.images.length)}
           onClick={() => { void send(); }}
           className="ml-0.5 h-9 w-9 rounded-full shadow-[0_1px_2px_rgba(20,28,42,0.16)] active:scale-95 motion-reduce:active:scale-100">
           <ArrowUp className="h-[1.1rem] w-[1.1rem]" strokeWidth={2.25} />
@@ -165,4 +179,81 @@ export function ThreadComposer({ onSend, onStop, disabled = false, isStreaming =
       </div>
     </div>
   </div>;
+}
+
+/** A staged attachment stays recognizable before it is sent: an image is its
+ * own thumbnail, a file its name and size, and a failure says why it cannot
+ * go out. Dismissing one is always the same corner control. */
+function ComposerAttachment({ attachment, limits, onRemove }: {
+  attachment: AttachedAttachment;
+  limits: AttachmentLimits;
+  onRemove: () => void;
+}) {
+  const { t } = useTranslation();
+  const name = attachment.file.name;
+  const failed = attachment.status === "error";
+  const encoding = attachment.status === "encoding";
+  const remove = <button type="button" onClick={onRemove} aria-label={t("thread.composer.remove")}
+    className="absolute right-1 top-1 grid size-5 place-items-center rounded-full bg-background/85 text-foreground/65 shadow-[0_1px_2px_rgba(0,0,0,0.22)] backdrop-blur transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+    <X className="size-3" strokeWidth={2.25} aria-hidden />
+  </button>;
+
+  if (attachment.kind === "image" && !failed) {
+    const preview = attachment.previewUrl || undefined;
+    return <span data-composer-attachment="image" role="group" aria-label={name} className="relative shrink-0">
+      <span aria-hidden className="relative grid size-12 place-items-center overflow-hidden rounded-control border border-border/60 bg-foreground/[0.04] text-muted-foreground">
+        {preview ? <img src={preview} alt="" draggable={false} className="size-full object-cover" />
+          : <ImageIcon className="size-4" strokeWidth={1.75} />}
+        {encoding ? <span className="absolute inset-0 grid place-items-center bg-background/70">
+          <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" />
+        </span> : null}
+      </span>
+      {remove}
+    </span>;
+  }
+
+  const detail = failed && attachment.error
+    ? rejectionCopy(attachment, limits, t)
+    : encoding
+      ? t("thread.composer.encoding")
+      : attachment.normalized && attachment.encodedBytes
+        ? t("thread.composer.normalizedSizeHint", {
+            orig: formatFileSize(attachment.file.size),
+            current: formatFileSize(attachment.encodedBytes),
+          })
+        : formatFileSize(attachment.file.size);
+  return <span data-composer-attachment={attachment.kind}
+    className={cn(
+      "relative flex h-12 max-w-full min-w-0 items-center gap-2 rounded-control border pe-7 ps-1.5",
+      failed ? "border-destructive/40 bg-destructive/5" : "border-border/60 bg-background/55",
+    )}>
+    <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-[0.55rem] bg-foreground/[0.05] text-muted-foreground">
+      {encoding ? <Loader2 className="size-4 animate-spin motion-reduce:animate-none" />
+        : <FileReferenceIcon kind={fileKindForPath(name)} className="text-[17px]" />}
+    </span>
+    <span className="flex min-w-0 flex-col">
+      {attachment.kind !== "image" ? (
+        <span title={name} className="max-w-56 truncate text-[12px] font-medium leading-4 text-foreground">{shortAttachmentName(name)}</span>
+      ) : null}
+      <span title={detail} className={cn("max-w-56 truncate text-[11px] leading-4", failed ? "text-destructive" : "text-muted-foreground")}>{detail}</span>
+    </span>
+    {remove}
+  </span>;
+}
+
+/** Long names lose their middle, so the extension and the beginning survive. */
+function shortAttachmentName(name: string, max = 24): string {
+  if (name.length <= max) return name;
+  const extension = name.match(/\.(?:tar\.(?:gz|bz2|xz)|[a-z0-9]{1,12})$/i)?.[0] ?? "";
+  return `${name.slice(0, Math.max(1, max - extension.length - 1))}…${extension}`;
+}
+
+function rejectionCopy(attachment: AttachedAttachment, limits: AttachmentLimits, t: ReturnType<typeof useTranslation>["t"]): string {
+  const tooLarge = attachment.error === "too_large";
+  return t(`thread.composer.imageRejected.${attachment.error}`, {
+    max: tooLarge
+      ? formatFileSize(attachment.kind === "video" ? MAX_VIDEO_BYTES : limits.fileBytes)
+      : limits.count,
+    size: formatFileSize(attachment.file.size),
+  });
 }

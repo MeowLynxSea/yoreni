@@ -13,7 +13,7 @@ import type { WebUIIngressLimits } from "@/lib/types";
 type AttachmentStatus = "encoding" | "ready" | "error";
 export type AttachmentKind = "image" | "video" | "file";
 
-interface AttachedAttachment {
+export interface AttachedAttachment {
   id: string;
   kind: AttachmentKind;
   file: Pick<File, "name" | "size" | "type">;
@@ -31,8 +31,6 @@ interface AttachedAttachment {
   /** Human-readable validation / encoding error when ``status === "error"``. */
   error?: AttachmentError;
 }
-
-export type AttachedImage = AttachedAttachment;
 
 export interface RestoredReadyAttachment {
   dataUrl?: string;
@@ -219,6 +217,13 @@ function mapEncodeFailure(reason: EncodeFailure["reason"]): AttachmentError {
   }
 }
 
+export interface AttachmentLimits {
+  /** Non-video attachments allowed in one message. */
+  count: number;
+  fileBytes: number;
+  totalBytes: number;
+}
+
 export interface UseAttachedImagesApi {
   images: AttachedAttachment[];
   /** Enqueue new files. Returns the list of rejected files so the caller can
@@ -239,10 +244,10 @@ export interface UseAttachedImagesApi {
    * back into the input. These entries are immediately sendable and use image
    * ``data:`` URLs as stable previews. */
   restoreReadyImages: (images: RestoredReadyAttachment[]) => void;
-  /** ``true`` when at least one attachment is still encoding — Send should wait. */
-  encoding: boolean;
   /** ``true`` when we've hit ``MAX_ATTACHMENTS_PER_MESSAGE``. */
   full: boolean;
+  /** The limits validation actually applied, for copy that explains a rejection. */
+  limits: AttachmentLimits;
 }
 
 interface UseAttachedImagesOptions {
@@ -485,9 +490,11 @@ export function useAttachedImages({
     };
   }, []);
 
-  const encoding = images.some((img) => img.status === "encoding");
   const videos = images.filter((image) => image.kind === "video").length;
   const full = images.length - videos >= maxAttachments && videos >= MAX_VIDEOS_PER_MESSAGE;
 
-  return { images, enqueue, addLocal, remove, clear, restoreReadyImages, encoding, full };
+  return {
+    images, enqueue, addLocal, remove, clear, restoreReadyImages, full,
+    limits: { count: maxAttachments, fileBytes: maxFileBytes, totalBytes: maxTotalBytes },
+  };
 }

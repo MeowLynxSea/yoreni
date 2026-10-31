@@ -41,6 +41,9 @@ _gateway_instance: "SandboxGateway | None" = None
 # A crashed desktop or browser service is retried in the background; status
 # polling drives it so a transient Chromium crash heals without a restart.
 _SERVICE_RETRY_S = 60.0
+# Health probes cost one VM round trip. The WebUI polls status every few
+# seconds, so serve the last measurement and refresh it in the background.
+_HEALTH_TTL_S = 5.0
 
 
 def set_sandbox_gateway(gateway: "SandboxGateway | None") -> None:
@@ -154,6 +157,9 @@ class SandboxGateway:
         self._status_detail = ""
         self._service_retry_at = 0.0
         self._service_retry_task: asyncio.Task[None] | None = None
+        self._health: SandboxHealth | None = None
+        self._health_at = 0.0
+        self._health_task: asyncio.Task[None] | None = None
         self._closing = False
         self._processes: dict[str, _Process] = {}
         self._viewers: dict[str, str] = {}
@@ -219,6 +225,7 @@ class SandboxGateway:
             # services inside it: their failure keeps files and shell usable and
             # is reported per capability instead of taking the whole VM down.
             self._started = True
+            self._health = None
         await self.start_services()
 
     async def start_services(self, *, announce: bool = True) -> None:
@@ -263,6 +270,9 @@ class SandboxGateway:
             except Exception as exc:
                 problems.append(str(exc))
         self._status_detail = " ".join(problems)
+        # Warm the cache while the caller is still in start-up: the first
+        # status poll should not pay for a probe the start already ran.
+        self._health = None if problems else await self._probe_health()
         self._service_retry_at = (
             asyncio.get_running_loop().time() + _SERVICE_RETRY_S if problems else 0.0
         )
@@ -316,8 +326,10 @@ class SandboxGateway:
 
     async def stop(self) -> None:
         self._closing = True
+        self._cancel_health_probe()
         async with self._start_lock:
             self._cancel_service_retry()
+            self._health = None
             await self._terminate_all("shutdown")
             await self.browser.close()
             await self.backend.stop()
@@ -337,6 +349,33 @@ class SandboxGateway:
     async def health(self) -> SandboxHealth:
         if not self._started:
             return SandboxHealth(False, False, False, "VM is not started")
+        if self._health is None:
+            return await self._probe_health()
+        now = asyncio.get_running_loop().time()
+        if now - self._health_at >= _HEALTH_TTL_S:
+            self._schedule_health_probe()
+        return self._health
+
+    def _schedule_health_probe(self) -> None:
+        if self._health_task is not None or self._closing:
+            return
+        loop = asyncio.get_running_loop()
+
+        async def probe() -> None:
+            if self._started and not self._closing:
+                await self._probe_health()
+
+        self._health_task = loop.create_task(probe())
+
+        def clear(task: asyncio.Task[None]) -> None:
+            self._health_task = None
+            if not task.cancelled():
+                with suppress(Exception):
+                    task.exception()
+
+        self._health_task.add_done_callback(clear)
+
+    async def _probe_health(self) -> SandboxHealth:
         try:
             raw = await self.backend.status()
             desktop_ready, browser_ready = await self.desktop.health()
@@ -348,14 +387,17 @@ class SandboxGateway:
                     self._status_detail = "the VM desktop stopped responding"
                 elif self.config.browser_enabled and not browser_ready:
                     self._status_detail = "the VM browser stopped responding"
-            return SandboxHealth(
+            result = SandboxHealth(
                 running=raw.state == "running",
                 desktop_ready=desktop_ready,
                 browser_ready=browser_ready,
                 detail=raw.detail,
             )
         except SandboxError as exc:
-            return SandboxHealth(False, False, False, str(exc))
+            result = SandboxHealth(False, False, False, str(exc))
+        self._health = result
+        self._health_at = asyncio.get_running_loop().time()
+        return result
 
     async def status(self) -> SandboxStatus:
         raw = await self.backend.status()
@@ -375,11 +417,19 @@ class SandboxGateway:
 
     async def close(self) -> None:
         self._closing = True
+        self._cancel_health_probe()
         self._cancel_service_retry()
+        self._health = None
         await self._terminate_all("shutdown")
         await self.browser.close()
         await self.backend.close()
         self._started = False
+
+    def _cancel_health_probe(self) -> None:
+        task = self._health_task
+        self._health_task = None
+        if task is not None:
+            task.cancel()
 
     def _cancel_service_retry(self) -> None:
         task = self._service_retry_task

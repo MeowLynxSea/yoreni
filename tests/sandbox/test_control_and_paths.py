@@ -306,3 +306,15 @@ async def test_a_failed_browser_service_keeps_the_vm_usable(monkeypatch) -> None
     assert gateway.started
     assert not gateway.browser.connected
     assert "CDP endpoint" in gateway._status_detail
+
+
+async def test_status_reuses_a_recent_health_probe() -> None:
+    backend = _PortBackend()
+    gateway = _gateway(backend, desktop_enabled=True, browser_enabled=True)
+
+    await gateway.health()
+    await gateway.status()
+    await gateway.status()
+
+    probes = [cmd for cmd, _cwd in backend.commands if "create_connection" in str(cmd)]
+    assert len(probes) == 1

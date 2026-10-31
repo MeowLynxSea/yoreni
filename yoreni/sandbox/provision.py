@@ -93,6 +93,19 @@ _BROWSER_READY = (
     "urllib.request.urlopen('http://127.0.0.1:9222/json/version', timeout=2)\" "
     ">/dev/null 2>&1 && pgrep -x socat >/dev/null"
 )
+# One round trip for both services: spawning a shell per probe dominates the
+# latency the WebUI sees while it polls status.
+_READINESS = (
+    "python3 -c \"import socket, subprocess\n"
+    "def ok(port):\n"
+    "    try:\n"
+    "        socket.create_connection(('127.0.0.1', port), 2).close()\n"
+    "        return True\n"
+    "    except OSError:\n"
+    "        return False\n"
+    "relay = subprocess.run(['pgrep', '-x', 'socat'], capture_output=True).returncode == 0\n"
+    "print(int(ok(5900) and ok(6080)), int(ok(9222) and relay))\""
+)
 
 
 _STYLE_DESKTOP = r"""
@@ -290,20 +303,19 @@ class DesktopServices:
             )
 
     async def health(self) -> tuple[bool, bool]:
-        if self._config.desktop_enabled:
-            desktop = await self._backend.exec(
-                _DESKTOP_READY,
-                cwd="/",
-                timeout_s=10,
-                user="root",
-            )
-            self._desktop_ready = desktop.exit_code == 0
-        if self._config.browser_enabled:
-            browser = await self._backend.exec(
-                _BROWSER_READY,
-                cwd="/",
-                timeout_s=10,
-                user="root",
-            )
-            self._browser_ready = browser.exit_code == 0
+        """Probe both services in a single VM round trip."""
+        if not (self._config.desktop_enabled or self._config.browser_enabled):
+            return False, False
+        result = await self._backend.exec(
+            _READINESS,
+            cwd="/",
+            timeout_s=10,
+            user="root",
+        )
+        parts = result.stdout.split()
+        if len(parts) != 2:
+            self._desktop_ready = self._browser_ready = False
+        else:
+            self._desktop_ready = self._config.desktop_enabled and parts[0] == "1"
+            self._browser_ready = self._config.browser_enabled and parts[1] == "1"
         return self._desktop_ready, self._browser_ready

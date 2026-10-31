@@ -528,7 +528,7 @@ export default function MarkdownTextRenderer({
     return () => { cancelled = true; };
   }, [needsMath, mathPlugin]);
   const rehypePlugins = useMemo<NonNullable<StreamdownProps["rehypePlugins"]>>(
-    () => [rehypeEmojiArtwork(), ...(needsMath && mathPlugin ? [mathPlugin] : [])],
+    () => [rehypeEmojiArtwork, ...(needsMath && mathPlugin ? [mathPlugin] : [])],
     [needsMath, mathPlugin],
   );
   const components = useMemo<Components>(
@@ -764,11 +764,14 @@ export default function MarkdownTextRenderer({
       },
       img({ src, alt, node: _node, className: imgClassName, ...props }) {
         void _node;
-        void imgClassName;
         void props;
         const source = typeof src === "string" ? src : "";
         if (!source) return null;
         const label = typeof alt === "string" ? alt : "";
+        // The emoji plugin draws artwork on the text baseline, not as an attachment.
+        if (imgClassName?.split(" ").includes("emoji-image")) {
+          return <img src={source} alt={label} className="emoji-image" draggable={false} />;
+        }
         if (documentPath) {
           return <DocumentLink href={source} path={documentPath} onOpen={onOpenFilePreview}>{label || source}</DocumentLink>;
         }

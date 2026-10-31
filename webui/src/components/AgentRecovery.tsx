@@ -38,19 +38,35 @@ export function AgentRecovery() {
       {runs.map((run) => (
         <div key={run.id} className="flex items-center justify-between gap-3 text-sm">
           <span className="truncate">{t("recovery.interrupted")} <code className="text-xs text-muted-foreground">{run.id.slice(0, 8)}</code></span>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={busy !== null}
-            onClick={() => {
-              setBusy(run.id);
-              setError(false);
-              void client.requestMutation("agent.resume", { run_id: run.id })
-                .then(() => setRuns((current) => current.filter((item) => item.id !== run.id)))
-                .catch(() => setError(true))
-                .finally(() => { setBusy(null); void refresh().catch(() => {}); });
-            }}
-          >{t("recovery.continue")}</Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy !== null}
+              onClick={() => {
+                setBusy(run.id);
+                setError(false);
+                void client.requestMutation("agent.resume", { run_id: run.id })
+                  .then(() => setRuns((current) => current.filter((item) => item.id !== run.id)))
+                  .catch(() => setError(true))
+                  .finally(() => { setBusy(null); void refresh().catch(() => {}); });
+              }}
+            >{t("recovery.continue")}</Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              disabled={busy !== null}
+              onClick={() => {
+                setBusy(run.id);
+                setError(false);
+                void client.requestMutation("agent.dismiss", { run_id: run.id })
+                  .then(() => setRuns((current) => current.filter((item) => item.id !== run.id)))
+                  .catch(() => setError(true))
+                  .finally(() => { setBusy(null); void refresh().catch(() => {}); });
+              }}
+            >{t("recovery.dismiss")}</Button>
+          </div>
         </div>
       ))}
       {error && <p role="alert" className="text-sm text-destructive">{t("recovery.actionFailed")}</p>}

@@ -129,6 +129,7 @@ _NO_STORE_HEADERS = [("Cache-Control", "no-store")]
 _WEBUI_MUTATION_PATHS = {
     "agent.resume": "/api/agent/resume",
     "agent.cancel": "/api/agent/cancel",
+    "agent.dismiss": "/api/agent/dismiss",
     "onboarding.token": "/api/onboarding/token",
     "onboarding.profile": "/api/onboarding/profile",
     "onboarding.step": "/api/onboarding/step",
@@ -492,7 +493,7 @@ class GatewayHTTPHandler:
         }:
             return True
         return path in {
-            "/api/agent/resume", "/api/agent/cancel",
+            "/api/agent/resume", "/api/agent/cancel", "/api/agent/dismiss",
             "/api/onboarding/token", "/api/onboarding/profile",
             "/api/onboarding/step", "/api/onboarding/complete",
             "/api/onboarding/embedding-test",
@@ -552,7 +553,7 @@ class GatewayHTTPHandler:
                 return _http_error(401, "Unauthorized")
             return await self._handle_setup(request, got)
 
-        if got in {"/api/agent", "/api/agent/resume", "/api/agent/cancel"}:
+        if got in {"/api/agent", "/api/agent/resume", "/api/agent/cancel", "/api/agent/dismiss"}:
             if not self.onboarding.is_complete():
                 return _http_error(409, "Finish setting up Yoreni before chatting")
             if not self.check_api_token(request):

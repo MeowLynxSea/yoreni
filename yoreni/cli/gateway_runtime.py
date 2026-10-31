@@ -532,6 +532,15 @@ def _run_claimed_gateway(
             if not count and record["status"] in {"queued", "running", "interrupted"}:
                 await asyncio.to_thread(agent.agent.store.interrupt, run_id, "Cancelled by owner", cancelled=True)
             return {"cancelled": count}
+        if action == "dismiss":
+            if record["status"] not in {"queued", "running", "interrupted"}:
+                raise RuntimeError("Run is already settled")
+            if run_id in agent.active_run_ids:
+                raise RuntimeError("Run is still active")
+            await asyncio.to_thread(
+                agent.agent.store.interrupt, run_id, "Dismissed by owner", cancelled=True,
+            )
+            return {"dismissed": True}
         if record["status"] not in {"queued", "running", "interrupted"}:
             raise RuntimeError("Run is already settled")
         if run_id in agent.active_run_ids:

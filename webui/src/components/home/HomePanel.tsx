@@ -76,7 +76,7 @@ export function HomePanel({ open }: { open: boolean }) {
       )}
     >
       <div className={cn(
-        "flex h-full w-[100vw] flex-col overflow-y-auto overscroll-contain border-r border-white/50 bg-white/[0.08] px-4 pb-10 pt-20 backdrop-blur-2xl transition-transform duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:w-[max(21rem,30vw)] md:px-5 dark:border-white/10 dark:bg-white/[0.015]",
+        "flex h-full w-[100vw] flex-col overflow-y-auto overscroll-contain bg-white/[0.08] px-4 pb-10 pt-20 backdrop-blur-2xl transition-transform duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:w-[max(21rem,30vw)] md:px-5 dark:bg-white/[0.015]",
         open ? "translate-x-0" : "-translate-x-full",
       )}>
         <HomeFeed />

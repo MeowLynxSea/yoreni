@@ -380,11 +380,6 @@
     "description": "Activez la transcription ; modifiez le modèle, la langue et les limites de durée et de taille ; essayez l’enregistrement automatique.",
     "options": "settings fournit les informations du fournisseur ; le parent gère form et les rappels d’enregistrement."
   },
-  "safety": {
-    "title": "Paramètres d’accès",
-    "description": "Basculez l’accès aux services locaux et les permissions par défaut ; observez les lignes, conseils et retours d’enregistrement automatique.",
-    "options": "form fournit les valeurs affichées ; onSave traite les demandes d’enregistrement. La passerelle reste responsable de l’application des permissions à l’exécution."
-  },
   "channelCatalog": {
     "title": "Catalogue et identité des canaux",
     "description": "Comparez les états en cours, démarrage, échec et non installé ; essayez l’interrupteur, l’installation et le menu d’aide.",

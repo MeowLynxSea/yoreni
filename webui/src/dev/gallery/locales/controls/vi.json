@@ -380,11 +380,6 @@
     "description": "Bật/tắt chép lời, sửa mô hình, ngôn ngữ, giới hạn thời lượng và dung lượng tải lên; thử tự động lưu.",
     "options": "settings cung cấp thông tin nhà cung cấp; thành phần cha quản lý form và hàm gọi lại lưu."
   },
-  "safety": {
-    "title": "Cài đặt truy cập",
-    "description": "Chuyển quyền truy cập dịch vụ cục bộ và quyền mặc định; xem hàng cài đặt, gợi ý và phản hồi tự động lưu.",
-    "options": "form cung cấp giá trị hiển thị; onSave xử lý yêu cầu lưu. Việc thực thi quyền lúc chạy vẫn do gateway quản lý."
-  },
   "channelCatalog": {
     "title": "Danh mục và nhận diện kênh",
     "description": "Chuyển trạng thái đang chạy, đang khởi động, thất bại và chưa cài; thử công tắc, cài đặt và menu trợ giúp.",

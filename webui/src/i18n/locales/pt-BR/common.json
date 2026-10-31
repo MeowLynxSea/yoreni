@@ -363,21 +363,9 @@
           "label": "Intervalo de verificação",
           "help": "Segundos entre verificações do heartbeat.\n\nO gateway agenda as verificações ao iniciar."
         },
-        "agents_defaults_max_tool_iterations": {
-          "label": "Rodadas de ferramentas",
-          "help": "Máximo de rodadas de ferramentas por resposta.\n\nNúmero máximo de interações entre o modelo e as ferramentas em um turno."
-        },
         "agents_defaults_max_concurrent_subagents": {
           "label": "Subagentes simultâneos",
           "help": "Máximo de subagentes em execução ao mesmo tempo.\n\nNúmero máximo de subagentes executados ao mesmo tempo."
-        },
-        "agents_defaults_max_tool_result_chars": {
-          "label": "Tamanho do resultado",
-          "help": "Limite de caracteres por resultado de ferramenta enviado ao modelo.\n\nLimita a saída das ferramentas incluída no contexto do modelo."
-        },
-        "agents_defaults_provider_retry_mode": {
-          "label": "Continuar tentando",
-          "help": "Tente novamente após erros recuperáveis; desative para tentativas padrão.\n\nTenta novamente quando uma solicitação ao modelo falha por um erro temporário. Desative para limitar o número de tentativas."
         },
         "agents_defaults_tool_hint_max_length": {
           "label": "Tamanho do resumo",
@@ -491,24 +479,12 @@
           "label": "Modo de reinicialização",
           "help": "Escolha como reiniciar; Automático segue o ambiente.\n\nMétodo de reinicialização do processo. O modo automático depende do ambiente do host."
         },
-        "api_host": {
-          "label": "Endereço da API",
-          "help": "Defina uma chave antes do acesso pela rede; reinicie a API após alterações.\n\nÉ necessária uma chave de API para receber conexões em um endereço diferente de localhost. Configure a chave em Sistema e reinicie o serviço de API para aplicar as alterações."
-        },
-        "api_timeout": {
-          "label": "Tempo limite da API",
-          "help": "Máximo de segundos por solicitação API; reinicie para aplicar.\n\nDuração máxima das solicitações. Reinicie o serviço de API para aplicar as alterações."
-        },
         "tools_image_generation_save_dir": {
           "label": "Pasta de destino",
           "help": "Caminho relativo dentro da pasta de mídia; imagens existentes não são movidas.\n\nCaminho relativo dentro da pasta de mídia do yoreni. As imagens existentes não são movidas."
         }
       },
       "groups": {
-        "chat": {
-          "title": "Permissões WebUI",
-          "help": "Configure acesso a serviços locais e permissões padrão das conversas.\n\nAcesso a serviços locais e permissões padrão das conversas."
-        },
         "identity": {
           "title": "Fuso horário",
           "help": "Escolha o fuso horário das tarefas agendadas."
@@ -520,10 +496,6 @@
         "heartbeat": {
           "title": "Verificações periódicas",
           "help": "Configure verificações periódicas de tarefas."
-        },
-        "execution": {
-          "title": "Limites de execução",
-          "help": "Configure limites de ferramentas e novas tentativas."
         },
         "tools": {
           "title": "Ferramentas integradas",
@@ -552,10 +524,6 @@
         "gateway": {
           "title": "Gateway",
           "help": "Configure implantação e reinício."
-        },
-        "api": {
-          "title": "Ajustes da API",
-          "help": "Configure o endereço de escuta e o tempo limite das solicitações."
         },
         "storage": {
           "title": "Armazenamento de imagens",
@@ -636,11 +604,9 @@
       "cliApps": "Apps CLI",
       "mcp": "Servidores MCP",
       "regional": "Região e fuso horário",
-      "webuiSafety": "Segurança da WebUI",
       "capabilities": "Recursos",
       "apps": "Aplicativos",
       "nativeHost": "Aplicativo para desktop",
-      "hostSafety": "Segurança do app",
       "voiceInput": "Transcrição",
       "memory": "Memória de longo prazo"
     },
@@ -799,7 +765,6 @@
       "imageSaveDir": "Diretório de salvamento",
       "timezone": "Fuso horário",
       "workspacePath": "Diretório de trabalho",
-      "localServiceAccess": "Serviços locais",
       "cliAppsCatalog": "Catálogo",
       "cliAppsFilter": "Filtro",
       "engine": "Motor",
@@ -854,11 +819,9 @@
       "timezone": "Usado em agendamentos e respostas sobre datas e horas.",
       "cliAppsCatalog": "Instale ferramentas CLI para yoreni; apps de desktop permanecem iguais.\n\nInstala as ferramentas de linha de comando que o yoreni pode usar neste computador. Os aplicativos para desktop não são alterados.",
       "cliAppsFilter": "Busque por nome, categoria ou função.",
-      "localServiceAccess": "Comandos Shell com acesso total podem acessar serviços locais.\n\nPermite que comandos shell com acesso completo alcancem serviços locais.",
       "securityManagedControls": "Redes locais e privadas são bloqueadas por padrão.\n\nAs ferramentas web bloqueiam o acesso a serviços locais, redes privadas e serviços de metadados, exceto quando há permissão explícita. As demais configurações de segurança dos canais são gerenciadas em config.json.",
       "logs": "Abra a pasta de logs do mecanismo do app de desktop.",
       "diagnostics": "Exporte um relatório para diagnosticar problemas.",
-      "localServiceAccessNative": "Comandos Shell com acesso total podem acessar serviços neste Mac.\n\nPermite que comandos shell com acesso completo alcancem serviços neste Mac.",
       "contextWindow": "Orçamento de tokens de contexto deste modelo.",
       "transcription": "Transcreva o áudio primeiro; plataformas de conversa compartilham estes ajustes.\n\nTranscreve a entrada do microfone antes de enviá-la. Mensagens de voz dos canais de chat usam as mesmas configurações.",
       "transcriptionProvider": "Usa as credenciais salvas em Provedores.",
@@ -1226,27 +1189,6 @@
       "searchSupport": "Dependências do serviço de busca",
       "searchInstallOnSave": "As dependências do Olostep serão instaladas automaticamente ao salvar.",
       "installing": "Instalando dependências…"
-    },
-    "api": {
-      "title": "Servidor de API",
-      "openaiCompatible": "API compatível com OpenAI",
-      "description": "Conecte por uma API compatível com OpenAI.",
-      "start": "Iniciar servidor de API",
-      "starting": "Iniciando...",
-      "stop": "Parar",
-      "stopping": "Parando...",
-      "access": "Acesso",
-      "thisDevice": "Este dispositivo",
-      "localNetwork": "Rede local",
-      "localHelp": "Somente este dispositivo pode conectar.",
-      "networkHelp": "O acesso pela LAN exige uma chave API.\n\nOutros dispositivos podem se conectar; é necessária uma chave de API.",
-      "port": "Porta",
-      "portHelp": "Porta local do serviço API.",
-      "apiKey": "Chave de API",
-      "apiKeyHelp": "Envie a chave como Bearer token.",
-      "apiKeyRequired": "Obrigatória antes de expor a API na rede.",
-      "apiKeyPlaceholder": "Informe uma chave de API",
-      "autoInstall": "As dependências do servidor de API serão instaladas automaticamente ao iniciá-lo."
     },
     "observability": {
       "title": "Rastreamento de execução",

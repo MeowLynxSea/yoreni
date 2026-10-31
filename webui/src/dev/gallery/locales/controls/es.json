@@ -380,11 +380,6 @@
     "description": "Activa la transcripción, edita modelo, idioma y límites de duración y tamaño de carga; prueba el guardado automático.",
     "options": "settings proporciona información del proveedor; el padre gestiona form y las funciones de guardado."
   },
-  "safety": {
-    "title": "Ajustes de acceso",
-    "description": "Alterna el acceso a servicios locales y los permisos predeterminados; observa filas, consejos y avisos de guardado automático.",
-    "options": "form proporciona los valores visibles; onSave procesa las solicitudes de guardado. La pasarela sigue aplicando los permisos en ejecución."
-  },
   "channelCatalog": {
     "title": "Catálogo e identidad de canales",
     "description": "Alterna los estados en ejecución, iniciando, fallido y sin instalar; prueba el interruptor, la instalación y la ayuda.",

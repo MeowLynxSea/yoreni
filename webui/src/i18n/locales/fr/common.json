@@ -363,21 +363,9 @@
           "label": "Intervalle de vérification",
           "help": "Secondes entre les vérifications du heartbeat.\n\nLa passerelle programme les vérifications à son démarrage."
         },
-        "agents_defaults_max_tool_iterations": {
-          "label": "Cycles d’outils",
-          "help": "Nombre maximal de cycles d’outils par réponse.\n\nNombre maximal d’échanges entre le modèle et les outils par tour."
-        },
         "agents_defaults_max_concurrent_subagents": {
           "label": "Sous-agents simultanés",
           "help": "Nombre maximal de sous-agents exécutés en même temps.\n\nNombre maximal de sous-agents exécutés en parallèle."
-        },
-        "agents_defaults_max_tool_result_chars": {
-          "label": "Longueur du résultat",
-          "help": "Limite de caractères par résultat d’outil envoyé au modèle.\n\nLimite la sortie des outils incluse dans le contexte du modèle."
-        },
-        "agents_defaults_provider_retry_mode": {
-          "label": "Réessayer en continu",
-          "help": "Réessayez les erreurs récupérables ; désactivez pour les tentatives standard.\n\nRelance les requêtes après une erreur temporaire du modèle. Désactivez cette option pour limiter le nombre de tentatives."
         },
         "agents_defaults_tool_hint_max_length": {
           "label": "Longueur du résumé",
@@ -491,24 +479,12 @@
           "label": "Mode de redémarrage",
           "help": "Choisissez le redémarrage ; Automatique suit votre environnement.\n\nMode de redémarrage du processus. Le mode automatique dépend de l’environnement hôte."
         },
-        "api_host": {
-          "label": "Adresse API",
-          "help": "Définissez une clé avant l’accès réseau ; redémarrez l’API après modification.\n\nUne clé API est requise pour écouter sur une adresse autre que localhost. Configurez-la dans Système, puis redémarrez le service API pour appliquer les modifications."
-        },
-        "api_timeout": {
-          "label": "Délai API",
-          "help": "Secondes maximales par requête API ; redémarrez pour appliquer.\n\nDurée maximale des requêtes. Redémarrez le service API pour appliquer les modifications."
-        },
         "tools_image_generation_save_dir": {
           "label": "Dossier de sauvegarde",
           "help": "Chemin relatif dans le dossier des médias ; les images existantes ne sont pas déplacées.\n\nChemin relatif sous le dossier multimédia de yoreni. Les images existantes ne sont pas déplacées."
         }
       },
       "groups": {
-        "chat": {
-          "title": "Permissions WebUI",
-          "help": "Réglez l’accès aux services locaux et les permissions de discussion par défaut.\n\nAccès aux services locaux et autorisations par défaut des conversations WebUI."
-        },
         "identity": {
           "title": "Fuseau horaire",
           "help": "Choisissez le fuseau des tâches planifiées."
@@ -520,10 +496,6 @@
         "heartbeat": {
           "title": "Vérifications périodiques",
           "help": "Configurez la vérification régulière des tâches."
-        },
-        "execution": {
-          "title": "Limites d’exécution",
-          "help": "Réglez les limites d’outils et les nouvelles tentatives."
         },
         "tools": {
           "title": "Outils intégrés",
@@ -552,10 +524,6 @@
         "gateway": {
           "title": "Passerelle",
           "help": "Réglez le déploiement et le redémarrage."
-        },
-        "api": {
-          "title": "Réglages API",
-          "help": "Réglez l’adresse d’écoute et le délai des requêtes."
         },
         "storage": {
           "title": "Stockage des images",
@@ -634,13 +602,11 @@
       "webSearch": "Recherche web",
       "webBehavior": "Accès web",
       "regional": "Région et fuseau horaire",
-      "webuiSafety": "Sécurité WebUI",
       "capabilities": "Fonctionnalités",
       "cliApps": "Applications CLI",
       "mcp": "Services MCP",
       "apps": "Applications",
       "nativeHost": "Application de bureau",
-      "hostSafety": "Sécurité de l’app",
       "voiceInput": "Transcription",
       "memory": "Mémoire à long terme"
     },
@@ -740,7 +706,6 @@
       "imageSaveDir": "Dossier d’enregistrement",
       "timezone": "Fuseau horaire",
       "workspacePath": "Dossier de travail",
-      "localServiceAccess": "Services locaux",
       "currentModel": "Configuration actuelle",
       "brandLogos": "Logos de marque",
       "browserNotifications": "Notifications du navigateur",
@@ -791,7 +756,6 @@
       "defaultImageSize": "Taille d’image par défaut, si prise en charge.\n\nIndication de taille envoyée aux fournisseurs compatibles.",
       "maxImagesPerTurn": "Nombre maximal d’images par requête.",
       "timezone": "Utilisé pour les plannings et les réponses liées aux dates et heures.",
-      "localServiceAccess": "Les commandes Shell avec accès complet peuvent joindre les services locaux.\n\nAutorise les commandes shell avec accès complet à atteindre les services localhost.",
       "securityManagedControls": "Les réseaux locaux et privés sont bloqués par défaut.\n\nLes outils web bloquent par défaut l’accès aux services locaux, aux réseaux privés et aux services de métadonnées, sauf autorisation explicite. Les autres règles de sécurité des canaux se configurent dans config.json.",
       "currentModel": "Utilisé pour les nouvelles réponses.",
       "selectedModelProvider": "Défini par le modèle sélectionné.",
@@ -803,7 +767,6 @@
       "cliAppsFilter": "Recherchez par nom, catégorie ou fonction.",
       "logs": "Ouvrez le dossier des journaux du moteur de l’application de bureau.",
       "diagnostics": "Exportez un rapport pour diagnostiquer les problèmes.",
-      "localServiceAccessNative": "Les commandes Shell avec accès complet peuvent joindre les services de ce Mac.\n\nAutorise les commandes shell avec accès complet à atteindre les services sur ce Mac.",
       "contextWindow": "Budget de tokens de contexte pour ce modèle.",
       "transcription": "Transcrivez d’abord l’audio ; les plateformes de discussion partagent ces réglages.\n\nTranscrit l’entrée du micro avant l’envoi. Les messages vocaux des canaux utilisent les mêmes réglages.",
       "transcriptionProvider": "Utilise les identifiants enregistrés dans Fournisseurs.",
@@ -1223,27 +1186,6 @@
         "github": "Gérez les dépôts, issues et PR.",
         "supabase": "Consultez et gérez les projets."
       }
-    },
-    "api": {
-      "title": "Serveur API",
-      "openaiCompatible": "API compatible OpenAI",
-      "description": "Connectez-vous via une API compatible OpenAI.",
-      "start": "Démarrer le serveur API",
-      "starting": "Démarrage...",
-      "stop": "Arrêter",
-      "stopping": "Arrêt...",
-      "access": "Accès",
-      "thisDevice": "Cet appareil",
-      "localNetwork": "Réseau local",
-      "localHelp": "Seul cet appareil peut se connecter.",
-      "networkHelp": "L’accès réseau local nécessite une clé API.\n\nD’autres appareils peuvent se connecter ; une clé API est requise.",
-      "port": "Port",
-      "portHelp": "Port local du service API.",
-      "apiKey": "Clé API",
-      "apiKeyHelp": "Envoyez la clé comme Bearer token.",
-      "apiKeyRequired": "Requise avant d’exposer l’API au réseau.",
-      "apiKeyPlaceholder": "Saisissez une clé API",
-      "autoInstall": "Les dépendances du serveur API seront installées automatiquement au démarrage."
     },
     "observability": {
       "title": "Traces d’exécution",

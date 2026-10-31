@@ -363,21 +363,9 @@
           "label": "檢查間隔",
           "help": "心跳任務的檢查間隔，單位秒"
         },
-        "agents_defaults_max_tool_iterations": {
-          "label": "互動上限",
-          "help": "每次回覆最多與工具互動多少輪\n\n每次回覆中，模型與工具最多可以互動多少輪。"
-        },
         "agents_defaults_max_concurrent_subagents": {
           "label": "併發上限",
           "help": "同時執行任務的子智慧體數量上限"
-        },
-        "agents_defaults_max_tool_result_chars": {
-          "label": "結果長度",
-          "help": "每條工具結果傳給模型的字元上限\n\n限制每條工具結果傳入模型的長度，按字元計數。"
-        },
-        "agents_defaults_provider_retry_mode": {
-          "label": "持續重試",
-          "help": "可恢復錯誤持續重試；關閉用標準策略\n\n遇到可恢復的請求錯誤時持續重試。關閉後使用標準重試策略。"
         },
         "agents_defaults_tool_hint_max_length": {
           "label": "提示長度",
@@ -491,24 +479,12 @@
           "label": "重新啟動方式",
           "help": "選擇重啟方式，自動按環境決定\n\n選擇閘道器的重啟方式。“自動”會根據執行環境選擇。"
         },
-        "api_host": {
-          "label": "API 地址",
-          "help": "對外開放須設金鑰；修改後重啟 API\n\n允許其他裝置連線前，請先在“系統”中設定 API 金鑰。修改後需重啟 API 服務。"
-        },
-        "api_timeout": {
-          "label": "API 超時",
-          "help": "API 最長等待秒數，重啟服務生效\n\n每次 API 請求最長等待多久。修改後需重啟 API 服務。"
-        },
         "tools_image_generation_save_dir": {
           "label": "儲存目錄",
           "help": "媒體目錄內相對路徑，不遷移已有圖片\n\nyoreni 媒體目錄內的子目錄。請使用相對路徑，已有圖片不會遷移。"
         }
       },
       "groups": {
-        "chat": {
-          "title": "WebUI 許可權",
-          "help": "設定對話的本機服務訪問和預設許可權\n\nWebUI 會話的本地服務訪問和預設許可權。"
-        },
         "identity": {
           "title": "時區",
           "help": "選擇計劃任務使用的時區"
@@ -520,10 +496,6 @@
         "heartbeat": {
           "title": "定期檢查排程",
           "help": "設定定期任務檢查"
-        },
-        "execution": {
-          "title": "執行限制",
-          "help": "設定工具上限和請求重試方式"
         },
         "tools": {
           "title": "內建工具",
@@ -552,10 +524,6 @@
         "gateway": {
           "title": "閘道器",
           "help": "設定部署和重啟方式"
-        },
-        "api": {
-          "title": "API 設定",
-          "help": "設定監聽地址和請求超時"
         },
         "storage": {
           "title": "圖片儲存",
@@ -634,13 +602,11 @@
       "webSearch": "網路搜尋",
       "webBehavior": "網頁訪問",
       "regional": "地區時區",
-      "webuiSafety": "WebUI 安全",
       "capabilities": "功能",
       "cliApps": "CLI 應用",
       "mcp": "MCP 服務",
       "apps": "應用程式",
       "nativeHost": "桌面應用程式",
-      "hostSafety": "應用程式安全",
       "voiceInput": "語音轉寫",
       "memory": "長期記憶"
     },
@@ -740,7 +706,6 @@
       "imageSaveDir": "儲存目錄",
       "timezone": "時區",
       "workspacePath": "工作目錄",
-      "localServiceAccess": "本機服務",
       "currentModel": "目前設定",
       "brandLogos": "品牌圖示",
       "browserNotifications": "瀏覽器通知",
@@ -791,7 +756,6 @@
       "defaultImageSize": "預設圖片尺寸，需提供商支援\n\n請求生成的圖片尺寸，僅對支援此選項的提供商生效。",
       "maxImagesPerTurn": "每次請求最多生成多少張圖片",
       "timezone": "用於任務安排和時間相關回復",
-      "localServiceAccess": "完全訪問的 Shell 可連線本機服務\n\n允許具有“完全訪問許可權”的 Shell 命令連線本機服務。",
       "securityManagedControls": "預設限制訪問本機和內網\n\n網頁請求預設禁止訪問本機、內網和雲後設資料服務，明確允許的地址除外。聊天平臺的安全設定單獨管理。",
       "currentModel": "用於新的回覆",
       "selectedModelProvider": "由選取的模型決定。",
@@ -803,7 +767,6 @@
       "cliAppsFilter": "按名稱、分類或功能搜尋",
       "logs": "開啟桌面應用的引擎日誌資料夾",
       "diagnostics": "匯出診斷報告，幫助排查問題",
-      "localServiceAccessNative": "完全訪問的 Shell 可連線本機服務\n\n允許具有“完全訪問許可權”的 Shell 命令連線這臺 Mac 上的服務。",
       "contextWindow": "模型可用的上下文 Token 數量",
       "transcription": "先將錄音轉為文字；聊天平臺共用設定\n\n傳送前先把麥克風輸入轉寫到輸入框。聊天平臺裡的語音訊息也使用同一套設定。",
       "transcriptionProvider": "使用提供商頁儲存的憑據",
@@ -1223,27 +1186,6 @@
         "github": "管理倉庫、Issue 和 PR",
         "supabase": "檢視和管理專案"
       }
-    },
-    "api": {
-      "title": "API 伺服器",
-      "openaiCompatible": "OpenAI 相容 API",
-      "description": "透過相容 OpenAI 的 API 連線",
-      "start": "啟動 API 伺服器",
-      "starting": "正在啟動…",
-      "stop": "停止",
-      "stopping": "正在停止…",
-      "access": "存取範圍",
-      "thisDevice": "僅此裝置",
-      "localNetwork": "區域網路",
-      "localHelp": "僅當前裝置可連線",
-      "networkHelp": "區域網可連線，須設定 API 金鑰\n\n區域網內其他裝置可以連線，因此必須設定 API 金鑰。",
-      "port": "連接埠",
-      "portHelp": "API 服務使用的本地埠",
-      "apiKey": "API 金鑰",
-      "apiKeyHelp": "透過 Bearer Token 傳送金鑰",
-      "apiKeyRequired": "向區域網路開放 API 前必須設定金鑰。",
-      "apiKeyPlaceholder": "輸入 API 金鑰",
-      "autoInstall": "啟動時會自動安裝 API 服務所需的套件。"
     },
     "observability": {
       "title": "執行追蹤",

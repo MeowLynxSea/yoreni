@@ -380,11 +380,6 @@
     "description": "Ative a transcrição, edite modelo, idioma e limites de duração e tamanho de envio; experimente o salvamento automático.",
     "options": "settings fornece informações do provedor; o pai gerencia form e os callbacks de salvamento."
   },
-  "safety": {
-    "title": "Configurações de acesso",
-    "description": "Alterne o acesso a serviços locais e as permissões padrão; veja linhas, dicas e avisos de salvamento automático.",
-    "options": "form fornece os valores exibidos; onSave trata as solicitações de salvamento. O gateway continua responsável por aplicar as permissões em execução."
-  },
   "channelCatalog": {
     "title": "Catálogo e identidade dos canais",
     "description": "Alterne entre execução, inicialização, falha e não instalado; experimente o interruptor, a instalação e o menu de ajuda.",

@@ -363,21 +363,9 @@
           "label": "Intervalo de revisión",
           "help": "Segundos entre revisiones del heartbeat.\n\nLa gateway programa las comprobaciones al iniciarse."
         },
-        "agents_defaults_max_tool_iterations": {
-          "label": "Rondas de herramientas",
-          "help": "Máximo de rondas de herramientas por respuesta.\n\nMáximo de intercambios entre el modelo y las herramientas en un turno."
-        },
         "agents_defaults_max_concurrent_subagents": {
           "label": "Subagentes simultáneos",
           "help": "Máximo de subagentes ejecutándose a la vez.\n\nMáximo de subagentes que pueden ejecutarse a la vez."
-        },
-        "agents_defaults_max_tool_result_chars": {
-          "label": "Longitud del resultado",
-          "help": "Límite de caracteres por resultado de herramienta enviado al modelo.\n\nLimita la salida de las herramientas incluida en el contexto del modelo."
-        },
-        "agents_defaults_provider_retry_mode": {
-          "label": "Seguir reintentando",
-          "help": "Reintenta errores recuperables; desactívalo para usar reintentos estándar.\n\nVuelve a intentar las solicitudes al modelo tras un error temporal. Desactiva esta opción para limitar el número de reintentos."
         },
         "agents_defaults_tool_hint_max_length": {
           "label": "Longitud del resumen",
@@ -491,24 +479,12 @@
           "label": "Modo de reinicio",
           "help": "Elige cómo reiniciar; Automático se adapta al entorno.\n\nMétodo de reinicio del proceso. El modo automático depende del entorno del host."
         },
-        "api_host": {
-          "label": "Dirección API",
-          "help": "Configura una clave antes del acceso por red; reinicia la API tras los cambios.\n\nSe requiere una clave API para escuchar en una dirección distinta de localhost. Configúrala en Sistema y reinicia el servicio API para aplicar los cambios."
-        },
-        "api_timeout": {
-          "label": "Tiempo límite de API",
-          "help": "Segundos máximos por solicitud API; reinicia para aplicar.\n\nDuración máxima de las solicitudes. Reinicia el servicio API para aplicar los cambios."
-        },
         "tools_image_generation_save_dir": {
           "label": "Directorio de guardado",
           "help": "Ruta relativa dentro del directorio multimedia; las imágenes existentes no se mueven.\n\nRuta relativa dentro de la carpeta multimedia de yoreni. Las imágenes existentes no se mueven."
         }
       },
       "groups": {
-        "chat": {
-          "title": "Permisos WebUI",
-          "help": "Configura el acceso a servicios locales y los permisos predeterminados del chat.\n\nAcceso a servicios locales y permisos predeterminados de chat."
-        },
         "identity": {
           "title": "Zona horaria",
           "help": "Elige la zona horaria de las tareas programadas."
@@ -520,10 +496,6 @@
         "heartbeat": {
           "title": "Comprobaciones periódicas",
           "help": "Configura revisiones periódicas de tareas."
-        },
-        "execution": {
-          "title": "Límites de ejecución",
-          "help": "Configura los límites de herramientas y los reintentos."
         },
         "tools": {
           "title": "Herramientas integradas",
@@ -552,10 +524,6 @@
         "gateway": {
           "title": "Puerta de enlace",
           "help": "Configura el despliegue y el reinicio."
-        },
-        "api": {
-          "title": "Ajustes API",
-          "help": "Configura la dirección de escucha y el tiempo límite de solicitudes."
         },
         "storage": {
           "title": "Almacenamiento de imágenes",
@@ -634,13 +602,11 @@
       "webSearch": "Búsqueda web",
       "webBehavior": "Acceso web",
       "regional": "Región y zona horaria",
-      "webuiSafety": "Seguridad de WebUI",
       "capabilities": "Funciones",
       "cliApps": "Apps CLI",
       "mcp": "Servicios MCP",
       "apps": "Aplicaciones",
       "nativeHost": "Aplicación de escritorio",
-      "hostSafety": "Seguridad de la app",
       "voiceInput": "Transcripción",
       "memory": "Memoria a largo plazo"
     },
@@ -740,7 +706,6 @@
       "imageSaveDir": "Directorio de guardado",
       "timezone": "Zona horaria",
       "workspacePath": "Directorio de trabajo",
-      "localServiceAccess": "Servicios locales",
       "currentModel": "Configuración actual",
       "brandLogos": "Logos de marca",
       "browserNotifications": "Notificaciones del navegador",
@@ -791,7 +756,6 @@
       "defaultImageSize": "Tamaño de imagen predeterminado, si es compatible.\n\nTamaño de imagen que se solicita a los proveedores compatibles.",
       "maxImagesPerTurn": "Máximo de imágenes por solicitud.",
       "timezone": "Se usa para horarios y respuestas sobre fechas y horas.",
-      "localServiceAccess": "Los comandos Shell con acceso completo pueden conectar a servicios locales.\n\nPermite que los comandos shell con acceso completo alcancen servicios locales.",
       "securityManagedControls": "Las redes locales y privadas se bloquean por defecto.\n\nLas herramientas web bloquean el acceso a servicios locales, redes privadas y servicios de metadatos, salvo que se permita de forma explícita. Los demás ajustes de seguridad de los canales se gestionan en config.json.",
       "currentModel": "Se usa para nuevas respuestas.",
       "selectedModelProvider": "Definido por el modelo seleccionado.",
@@ -803,7 +767,6 @@
       "cliAppsFilter": "Busca por nombre, categoría o función.",
       "logs": "Abre la carpeta de registros del motor de la app de escritorio.",
       "diagnostics": "Exporta un informe para diagnosticar problemas.",
-      "localServiceAccessNative": "Los comandos Shell con acceso completo pueden conectar a servicios de este Mac.\n\nPermite que los comandos shell con acceso completo alcancen servicios en este Mac.",
       "contextWindow": "Presupuesto de tokens de contexto para este modelo.",
       "transcription": "Transcribe primero el audio; las plataformas de chat comparten estos ajustes.\n\nTranscribe la entrada del micrófono antes de enviarla. Los mensajes de voz de los canales usan la misma configuración.",
       "transcriptionProvider": "Usa las credenciales guardadas en Proveedores.",
@@ -1223,27 +1186,6 @@
         "github": "Gestiona repositorios, issues y PR.",
         "supabase": "Consulta y gestiona proyectos."
       }
-    },
-    "api": {
-      "title": "Servidor API",
-      "openaiCompatible": "API compatible con OpenAI",
-      "description": "Conecta mediante una API compatible con OpenAI.",
-      "start": "Iniciar servidor API",
-      "starting": "Iniciando...",
-      "stop": "Detener",
-      "stopping": "Deteniendo...",
-      "access": "Acceso",
-      "thisDevice": "Este dispositivo",
-      "localNetwork": "Red local",
-      "localHelp": "Solo este dispositivo puede conectarse.",
-      "networkHelp": "El acceso desde la red local requiere una clave API.\n\nOtros dispositivos pueden conectarse; se requiere una clave API.",
-      "port": "Puerto",
-      "portHelp": "Puerto local del servicio API.",
-      "apiKey": "Clave API",
-      "apiKeyHelp": "Envía la clave como Bearer token.",
-      "apiKeyRequired": "Obligatoria antes de exponer la API en la red.",
-      "apiKeyPlaceholder": "Introduce una clave API",
-      "autoInstall": "Las dependencias del servidor API se instalarán automáticamente al iniciarlo."
     },
     "observability": {
       "title": "Trazas de ejecución",

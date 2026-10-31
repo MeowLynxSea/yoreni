@@ -380,11 +380,6 @@
     "description": "切換轉錄，編輯模型、語言、時長與上傳大小限制，體驗自動儲存。",
     "options": "settings 提供服務商資訊；form 與儲存回呼由父元件管理。"
   },
-  "safety": {
-    "title": "存取設定",
-    "description": "切換本機服務存取與預設權限，查看設定列、提示及自動儲存回饋。",
-    "options": "form 是顯示值；onSave 處理儲存請求。執行時期的權限執行仍由 gateway 負責。"
-  },
   "channelCatalog": {
     "title": "頻道項目",
     "description": "切換執行、啟動、失敗與未安裝狀態；操作開關、安裝入口與說明選單。",

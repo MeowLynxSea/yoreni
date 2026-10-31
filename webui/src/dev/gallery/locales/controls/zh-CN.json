@@ -380,11 +380,6 @@
     "description": "切换转写开关，编辑模型、语言、时长和上传大小限制，体验自动保存。",
     "options": "settings 提供服务商信息；form 与保存回调由父组件管理。"
   },
-  "safety": {
-    "title": "访问设置",
-    "description": "切换本地服务访问与默认权限，查看设置行、提示和自动保存反馈。",
-    "options": "form 是显示值；onSave 处理保存请求。运行时的权限执行仍由 gateway 负责。"
-  },
   "channelCatalog": {
     "title": "频道条目",
     "description": "切换运行、启动、失败和未安装状态；操作开关、安装入口与帮助菜单。",

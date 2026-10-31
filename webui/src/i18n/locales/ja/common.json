@@ -363,21 +363,9 @@
           "label": "確認間隔",
           "help": "ハートビートの確認間隔（秒）です。\n\nゲートウェイの起動時に定期チェックを予約します。"
         },
-        "agents_defaults_max_tool_iterations": {
-          "label": "ツールの回数",
-          "help": "返信ごとのツール実行回数の上限です。\n\n1 ターンでモデルとツールがやり取りする回数の上限です。"
-        },
         "agents_defaults_max_concurrent_subagents": {
           "label": "同時サブエージェント",
           "help": "同時に実行するサブエージェントの上限です。\n\n同時に実行するサブエージェントの最大数です。"
-        },
-        "agents_defaults_max_tool_result_chars": {
-          "label": "結果の長さ",
-          "help": "モデルに渡すツール結果ごとの文字数上限です。\n\nモデルのコンテキストに含めるツール出力を制限します。"
-        },
-        "agents_defaults_provider_retry_mode": {
-          "label": "再試行を継続",
-          "help": "回復可能なエラーで再試行します。オフでは標準の再試行を使います。\n\nモデルへのリクエストが一時的なエラーで失敗した場合、成功するまで再試行します。オフにすると再試行回数を制限します。"
         },
         "agents_defaults_tool_hint_max_length": {
           "label": "概要の長さ",
@@ -491,24 +479,12 @@
           "label": "再起動モード",
           "help": "再起動方法を選びます。「自動」は環境に合わせます。\n\nプロセスの再起動方法。自動モードではホスト環境に応じて選択します。"
         },
-        "api_host": {
-          "label": "API アドレス",
-          "help": "ネットワーク公開前にキーを設定し、変更後は API を再起動します。\n\nlocalhost 以外のアドレスで待ち受けるには API キーが必要です。「システム」でキーを設定し、API サービスを再起動して変更を反映してください。"
-        },
-        "api_timeout": {
-          "label": "API 制限時間",
-          "help": "API 要求の最大秒数です。適用には再起動が必要です。\n\nリクエストの時間制限です。API サービスの再起動後に反映されます。"
-        },
         "tools_image_generation_save_dir": {
           "label": "保存先",
           "help": "メディア内の相対パスです。既存の画像は移動しません。\n\nyoreni のメディアディレクトリ内の相対パス。既存の画像は移動しません。"
         }
       },
       "groups": {
-        "chat": {
-          "title": "WebUI 権限",
-          "help": "本機のサービスへのアクセスとチャットの既定権限を設定します。\n\nローカルサービスへのアクセスとチャットの既定の権限。"
-        },
         "identity": {
           "title": "タイムゾーン",
           "help": "予約タスクの時間帯を選びます。"
@@ -520,10 +496,6 @@
         "heartbeat": {
           "title": "定期チェックのスケジュール",
           "help": "タスクの定期確認を設定します。"
-        },
-        "execution": {
-          "title": "実行の制限",
-          "help": "ツールの上限と要求の再試行を設定します。"
         },
         "tools": {
           "title": "組み込みツール",
@@ -552,10 +524,6 @@
         "gateway": {
           "title": "ゲートウェイ",
           "help": "配置と再起動の方法を設定します。"
-        },
-        "api": {
-          "title": "API 設定",
-          "help": "待ち受けアドレスと要求の制限時間を設定します。"
         },
         "storage": {
           "title": "画像の保存",
@@ -634,13 +602,11 @@
       "webSearch": "ウェブ検索",
       "webBehavior": "ウェブアクセス",
       "regional": "地域と時間帯",
-      "webuiSafety": "WebUI の安全性",
       "capabilities": "機能",
       "cliApps": "CLI アプリ",
       "mcp": "MCP サービス",
       "apps": "アプリ",
       "nativeHost": "デスクトップアプリ",
-      "hostSafety": "アプリの安全性",
       "voiceInput": "音声の文字起こし",
       "memory": "長期記憶"
     },
@@ -740,7 +706,6 @@
       "imageSaveDir": "保存先ディレクトリ",
       "timezone": "タイムゾーン",
       "workspacePath": "作業ディレクトリ",
-      "localServiceAccess": "本機のサービス",
       "currentModel": "現在の設定",
       "brandLogos": "ブランドロゴ",
       "browserNotifications": "ブラウザー通知",
@@ -791,7 +756,6 @@
       "defaultImageSize": "対応する場合に使う既定の画像サイズです。\n\n対応しているプロバイダーへ送信するサイズ指定です。",
       "maxImagesPerTurn": "要求ごとの画像数の上限です。",
       "timezone": "予定と日時に関する返信に使います。",
-      "localServiceAccess": "フルアクセスの Shell コマンドで本機のサービスに接続できます。\n\nフルアクセスの shell コマンドが localhost サービスにアクセスできるようにします。",
       "securityManagedControls": "本機とプライベートネットワークへのアクセスは既定で禁止されます。\n\nウェブツールは、明示的に許可された場合を除き、ローカルサービス、プライベートネットワーク、メタデータサービスへのアクセスをブロックします。その他のチャンネルの安全性に関する設定は config.json で管理します。",
       "currentModel": "新しい返信に使います。",
       "selectedModelProvider": "選択したモデルによって設定されます。",
@@ -803,7 +767,6 @@
       "cliAppsFilter": "名前、分類、機能で検索します。",
       "logs": "デスクトップアプリのエンジンログを開きます。",
       "diagnostics": "問題の診断に使うレポートを出力します。",
-      "localServiceAccessNative": "フルアクセスの Shell コマンドでこの Mac のサービスに接続できます。\n\nフルアクセスの shell コマンドがこの Mac 上のサービスにアクセスできるようにします。",
       "contextWindow": "このモデルのコンテキスト Token 数です。",
       "transcription": "先に音声を文字起こしします。チャットプラットフォームも同じ設定を使います。\n\nマイク入力を送信前に文字起こしします。チャンネルの音声メッセージにも同じ設定を使います。",
       "transcriptionProvider": "「プロバイダー」に保存した認証情報を使います。",
@@ -1223,27 +1186,6 @@
         "github": "リポジトリ、Issue、PR を管理します。",
         "supabase": "プロジェクトを確認・管理します。"
       }
-    },
-    "api": {
-      "title": "API サーバー",
-      "openaiCompatible": "OpenAI 互換 API",
-      "description": "OpenAI 互換の API で接続します。",
-      "start": "API サーバーを起動",
-      "starting": "起動中...",
-      "stop": "停止",
-      "stopping": "停止中...",
-      "access": "アクセス",
-      "thisDevice": "このデバイス",
-      "localNetwork": "ローカルネットワーク",
-      "localHelp": "この端末だけが接続できます。",
-      "networkHelp": "LAN からのアクセスには API キーが必要です。\n\n他のデバイスも接続できるため API キーが必要です。",
-      "port": "ポート",
-      "portHelp": "API サービスが使うローカルポートです。",
-      "apiKey": "API キー",
-      "apiKeyHelp": "キーを Bearer Token として送信します。",
-      "apiKeyRequired": "ネットワークに公開する前に必要です。",
-      "apiKeyPlaceholder": "API キーを入力",
-      "autoInstall": "起動時に API サーバーに必要なパッケージを自動的にインストールします。"
     },
     "observability": {
       "title": "実行の追跡",

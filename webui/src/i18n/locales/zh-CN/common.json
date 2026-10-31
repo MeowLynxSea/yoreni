@@ -363,21 +363,9 @@
           "label": "检查间隔",
           "help": "心跳任务的检查间隔，单位秒"
         },
-        "agents_defaults_max_tool_iterations": {
-          "label": "交互上限",
-          "help": "每次回复最多与工具交互多少轮\n\n每次回复中，模型与工具最多可以交互多少轮。"
-        },
         "agents_defaults_max_concurrent_subagents": {
           "label": "并发上限",
           "help": "同时执行任务的子智能体数量上限"
-        },
-        "agents_defaults_max_tool_result_chars": {
-          "label": "结果长度",
-          "help": "每条工具结果传给模型的字符上限\n\n限制每条工具结果传入模型的长度，按字符计数。"
-        },
-        "agents_defaults_provider_retry_mode": {
-          "label": "持续重试",
-          "help": "可恢复错误持续重试；关闭用标准策略\n\n遇到可恢复的请求错误时持续重试。关闭后使用标准重试策略。"
         },
         "agents_defaults_tool_hint_max_length": {
           "label": "提示长度",
@@ -491,24 +479,12 @@
           "label": "重启模式",
           "help": "选择重启方式，自动按环境决定\n\n选择网关的重启方式。“自动”会根据运行环境选择。"
         },
-        "api_host": {
-          "label": "API 地址",
-          "help": "对外开放须设密钥；修改后重启 API\n\n允许其他设备连接前，请先在“系统”中设置 API 密钥。修改后需重启 API 服务。"
-        },
-        "api_timeout": {
-          "label": "API 超时",
-          "help": "API 最长等待秒数，重启服务生效\n\n每次 API 请求最长等待多久。修改后需重启 API 服务。"
-        },
         "tools_image_generation_save_dir": {
           "label": "保存目录",
           "help": "媒体目录内相对路径，不迁移已有图片\n\nyoreni 媒体目录内的子目录。请使用相对路径，已有图片不会迁移。"
         }
       },
       "groups": {
-        "chat": {
-          "title": "WebUI 权限",
-          "help": "设置对话的本机服务访问和默认权限\n\nWebUI 会话的本地服务访问和默认权限。"
-        },
         "identity": {
           "title": "时区",
           "help": "选择计划任务使用的时区"
@@ -520,10 +496,6 @@
         "heartbeat": {
           "title": "心跳计划",
           "help": "设置定期任务检查"
-        },
-        "execution": {
-          "title": "运行限制",
-          "help": "设置工具上限和请求重试方式"
         },
         "tools": {
           "title": "内置工具",
@@ -552,10 +524,6 @@
         "gateway": {
           "title": "网关",
           "help": "设置部署和重启方式"
-        },
-        "api": {
-          "title": "API 设置",
-          "help": "设置监听地址和请求超时"
         },
         "storage": {
           "title": "图片存储",
@@ -636,11 +604,9 @@
       "cliApps": "CLI 应用",
       "mcp": "MCP 服务",
       "regional": "地区时区",
-      "webuiSafety": "WebUI 安全",
       "capabilities": "功能",
       "apps": "应用",
       "nativeHost": "桌面应用",
-      "hostSafety": "应用安全",
       "voiceInput": "语音转写",
       "memory": "长期记忆"
     },
@@ -799,7 +765,6 @@
       "imageSaveDir": "保存目录",
       "timezone": "时区",
       "workspacePath": "工作目录",
-      "localServiceAccess": "本机服务",
       "cliAppsCatalog": "应用列表",
       "cliAppsFilter": "筛选",
       "engine": "引擎",
@@ -854,11 +819,9 @@
       "timezone": "用于任务安排和时间相关回复",
       "cliAppsCatalog": "安装 CLI 工具，不改桌面应用\n\n安装供 yoreni 使用的命令行工具，不会安装或修改对应的桌面应用。",
       "cliAppsFilter": "按名称、分类或功能搜索",
-      "localServiceAccess": "完全访问的 Shell 可连接本机服务\n\n允许具有“完全访问权限”的 Shell 命令连接本机服务。",
       "securityManagedControls": "默认限制访问本机和内网\n\n网页请求默认禁止访问本机、内网和云元数据服务，明确允许的地址除外。聊天平台的安全设置单独管理。",
       "logs": "打开桌面应用的引擎日志文件夹",
       "diagnostics": "导出诊断报告，帮助排查问题",
-      "localServiceAccessNative": "完全访问的 Shell 可连接本机服务\n\n允许具有“完全访问权限”的 Shell 命令连接这台 Mac 上的服务。",
       "contextWindow": "模型可用的上下文 Token 数量",
       "transcription": "先将录音转为文字；聊天平台共用设置\n\n发送前先把麦克风输入转写到输入框。聊天平台里的语音消息也使用同一套设置。",
       "transcriptionProvider": "使用提供商页保存的凭据",
@@ -1226,27 +1189,6 @@
       "searchSupport": "搜索服务支持包",
       "searchInstallOnSave": "保存时会自动安装 Olostep 所需的软件包。",
       "installing": "正在安装所需软件包…"
-    },
-    "api": {
-      "title": "API 服务",
-      "openaiCompatible": "OpenAI 兼容 API",
-      "description": "通过兼容 OpenAI 的 API 连接",
-      "start": "启动 API 服务",
-      "starting": "正在启动...",
-      "stop": "停止",
-      "stopping": "正在停止...",
-      "access": "访问范围",
-      "thisDevice": "仅此设备",
-      "localNetwork": "局域网",
-      "localHelp": "仅当前设备可连接",
-      "networkHelp": "局域网可连接，须设置 API 密钥\n\n局域网内其他设备可以连接，因此必须设置 API 密钥。",
-      "port": "端口",
-      "portHelp": "API 服务使用的本地端口",
-      "apiKey": "API 密钥",
-      "apiKeyHelp": "通过 Bearer Token 发送密钥",
-      "apiKeyRequired": "向局域网开放 API 前必须设置密钥。",
-      "apiKeyPlaceholder": "输入 API 密钥",
-      "autoInstall": "启动时会自动安装 API 服务所需的软件包。"
     },
     "observability": {
       "title": "运行追踪",

@@ -380,11 +380,6 @@
     "description": "Aktifkan transkripsi, edit model, bahasa, batas durasi, dan ukuran unggahan; coba penyimpanan otomatis.",
     "options": "settings menyediakan informasi penyedia; induk mengelola form dan callback penyimpanan."
   },
-  "safety": {
-    "title": "Pengaturan akses",
-    "description": "Alihkan akses layanan lokal dan izin default; lihat baris pengaturan, petunjuk, dan umpan balik penyimpanan otomatis.",
-    "options": "form menyediakan nilai tampilan; onSave menangani permintaan simpan. Penegakan izin saat runtime tetap menjadi tanggung jawab gateway."
-  },
   "channelCatalog": {
     "title": "Katalog dan identitas kanal",
     "description": "Ganti status berjalan, memulai, gagal, dan belum terpasang; coba sakelar, pemasangan, dan menu bantuan.",

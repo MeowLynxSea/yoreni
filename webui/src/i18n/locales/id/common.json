@@ -363,21 +363,9 @@
           "label": "Interval pemeriksaan",
           "help": "Jeda pemeriksaan heartbeat dalam detik.\n\nGateway menjadwalkan pemeriksaan berkala saat dimulai."
         },
-        "agents_defaults_max_tool_iterations": {
-          "label": "Putaran alat",
-          "help": "Batas putaran alat untuk tiap balasan.\n\nJumlah maksimum interaksi model dan alat dalam satu giliran."
-        },
         "agents_defaults_max_concurrent_subagents": {
           "label": "Subagen bersamaan",
           "help": "Batas subagen yang berjalan bersamaan.\n\nJumlah maksimum subagen yang berjalan bersamaan."
-        },
-        "agents_defaults_max_tool_result_chars": {
-          "label": "Panjang hasil",
-          "help": "Batas karakter tiap hasil alat yang dikirim ke model.\n\nMembatasi keluaran alat yang disertakan dalam konteks model."
-        },
-        "agents_defaults_provider_retry_mode": {
-          "label": "Terus mencoba",
-          "help": "Ulangi setelah kesalahan yang dapat dipulihkan; nonaktifkan untuk percobaan standar.\n\nMencoba kembali permintaan ke model saat terjadi kesalahan sementara. Nonaktifkan untuk membatasi jumlah percobaan ulang."
         },
         "agents_defaults_tool_hint_max_length": {
           "label": "Panjang ringkasan",
@@ -491,24 +479,12 @@
           "label": "Mode mulai ulang",
           "help": "Pilih cara mulai ulang; Otomatis mengikuti lingkungan.\n\nCara memulai ulang proses. Mode otomatis memilih berdasarkan lingkungan host."
         },
-        "api_host": {
-          "label": "Alamat API",
-          "help": "Tetapkan kunci sebelum akses jaringan; mulai ulang API setelah perubahan.\n\nKunci API diperlukan untuk menerima koneksi pada alamat selain localhost. Atur kunci di Sistem, lalu mulai ulang layanan API untuk menerapkan perubahan."
-        },
-        "api_timeout": {
-          "label": "Batas waktu API",
-          "help": "Batas detik tiap permintaan API; mulai ulang untuk menerapkan.\n\nDurasi maksimum permintaan. Mulai ulang layanan API untuk menerapkan perubahan."
-        },
         "tools_image_generation_save_dir": {
           "label": "Direktori penyimpanan",
           "help": "Lokasi relatif dalam direktori media; gambar yang ada tidak dipindahkan.\n\nJalur relatif di dalam folder media yoreni. Gambar yang ada tidak dipindahkan."
         }
       },
       "groups": {
-        "chat": {
-          "title": "Izin WebUI",
-          "help": "Atur akses layanan lokal dan izin chat default.\n\nAkses layanan lokal dan izin chat default."
-        },
         "identity": {
           "title": "Zona waktu",
           "help": "Pilih zona waktu untuk tugas terjadwal."
@@ -520,10 +496,6 @@
         "heartbeat": {
           "title": "Jadwal pemeriksaan berkala",
           "help": "Atur pemeriksaan tugas berkala."
-        },
-        "execution": {
-          "title": "Batas eksekusi",
-          "help": "Atur batas alat dan percobaan ulang permintaan."
         },
         "tools": {
           "title": "Alat bawaan",
@@ -552,10 +524,6 @@
         "gateway": {
           "title": "Gateway",
           "help": "Atur opsi penerapan dan mulai ulang."
-        },
-        "api": {
-          "title": "Pengaturan API",
-          "help": "Atur alamat listener dan batas waktu permintaan."
         },
         "storage": {
           "title": "Penyimpanan gambar",
@@ -634,13 +602,11 @@
       "webSearch": "Pencarian web",
       "webBehavior": "Akses web",
       "regional": "Wilayah dan zona waktu",
-      "webuiSafety": "Keamanan WebUI",
       "capabilities": "Fitur",
       "cliApps": "Aplikasi CLI",
       "mcp": "Layanan MCP",
       "apps": "Aplikasi",
       "nativeHost": "Aplikasi desktop",
-      "hostSafety": "Keamanan aplikasi",
       "voiceInput": "Transkripsi",
       "memory": "Memori jangka panjang"
     },
@@ -740,7 +706,6 @@
       "imageSaveDir": "Direktori simpan",
       "timezone": "Zona waktu",
       "workspacePath": "Direktori kerja",
-      "localServiceAccess": "Layanan lokal",
       "currentModel": "Konfigurasi saat ini",
       "brandLogos": "Logo merek",
       "browserNotifications": "Notifikasi browser",
@@ -791,7 +756,6 @@
       "defaultImageSize": "Ukuran gambar default, jika didukung.\n\nPetunjuk ukuran yang dikirim ke penyedia yang mendukungnya.",
       "maxImagesPerTurn": "Batas gambar tiap permintaan.",
       "timezone": "Digunakan untuk jadwal dan balasan terkait waktu.",
-      "localServiceAccess": "Perintah Shell dengan akses penuh dapat menjangkau layanan lokal.\n\nIzinkan perintah shell dengan akses penuh menjangkau layanan lokal.",
       "securityManagedControls": "Jaringan lokal dan privat diblokir secara default.\n\nAlat web memblokir akses ke layanan lokal, jaringan privat, dan layanan metadata, kecuali diizinkan secara eksplisit. Pengaturan keamanan kanal lainnya dikelola di config.json.",
       "currentModel": "Digunakan untuk balasan baru.",
       "selectedModelProvider": "Ditentukan oleh model yang dipilih.",
@@ -803,7 +767,6 @@
       "cliAppsFilter": "Cari berdasarkan nama, kategori, atau kemampuan.",
       "logs": "Buka folder log mesin aplikasi desktop.",
       "diagnostics": "Ekspor laporan untuk mendiagnosis masalah.",
-      "localServiceAccessNative": "Perintah Shell dengan akses penuh dapat menjangkau layanan di Mac ini.\n\nIzinkan perintah shell dengan akses penuh mengakses layanan di Mac ini.",
       "contextWindow": "Anggaran token konteks untuk model ini.",
       "transcription": "Transkripsikan audio dulu; platform chat berbagi pengaturan ini.\n\nTranskripsikan input mikrofon sebelum dikirim. Pesan suara kanal memakai pengaturan yang sama.",
       "transcriptionProvider": "Menggunakan kredensial tersimpan di Penyedia.",
@@ -1223,27 +1186,6 @@
         "github": "Kelola repositori, issue, dan PR.",
         "supabase": "Lihat dan kelola proyek."
       }
-    },
-    "api": {
-      "title": "Server API",
-      "openaiCompatible": "API kompatibel OpenAI",
-      "description": "Hubungkan melalui API yang kompatibel dengan OpenAI.",
-      "start": "Mulai server API",
-      "starting": "Memulai...",
-      "stop": "Hentikan",
-      "stopping": "Menghentikan...",
-      "access": "Akses",
-      "thisDevice": "Perangkat ini",
-      "localNetwork": "Jaringan lokal",
-      "localHelp": "Hanya perangkat ini yang dapat terhubung.",
-      "networkHelp": "Akses LAN memerlukan kunci API.\n\nPerangkat lain dapat terhubung; kunci API diperlukan.",
-      "port": "Port",
-      "portHelp": "Port lokal untuk layanan API.",
-      "apiKey": "Kunci API",
-      "apiKeyHelp": "Kirim kunci sebagai Bearer token.",
-      "apiKeyRequired": "Wajib sebelum membuka API ke jaringan.",
-      "apiKeyPlaceholder": "Masukkan kunci API",
-      "autoInstall": "Paket yang diperlukan server API akan dipasang otomatis saat server dimulai."
     },
     "observability": {
       "title": "Pelacakan eksekusi",

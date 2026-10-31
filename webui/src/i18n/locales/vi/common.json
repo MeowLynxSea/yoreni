@@ -363,21 +363,9 @@
           "label": "Khoảng kiểm tra",
           "help": "Số giây giữa các lần kiểm tra heartbeat.\n\nGateway lên lịch kiểm tra định kỳ khi khởi động."
         },
-        "agents_defaults_max_tool_iterations": {
-          "label": "Số lượt công cụ",
-          "help": "Số lượt công cụ tối đa mỗi câu trả lời.\n\nSố lần trao đổi tối đa giữa mô hình và công cụ trong một lượt."
-        },
         "agents_defaults_max_concurrent_subagents": {
           "label": "Subagent đồng thời",
           "help": "Số subagent chạy đồng thời tối đa.\n\nSố tác nhân phụ tối đa chạy cùng lúc."
-        },
-        "agents_defaults_max_tool_result_chars": {
-          "label": "Độ dài kết quả",
-          "help": "Giới hạn ký tự mỗi kết quả công cụ gửi đến mô hình.\n\nGiới hạn đầu ra công cụ được đưa vào ngữ cảnh mô hình."
-        },
-        "agents_defaults_provider_retry_mode": {
-          "label": "Tiếp tục thử lại",
-          "help": "Thử lại khi lỗi có thể khắc phục; tắt để dùng cách thử lại tiêu chuẩn.\n\nTự động thử lại khi yêu cầu gửi đến mô hình gặp lỗi tạm thời. Tắt tùy chọn này để giới hạn số lần thử lại."
         },
         "agents_defaults_tool_hint_max_length": {
           "label": "Độ dài tóm tắt",
@@ -491,24 +479,12 @@
           "label": "Chế độ khởi động lại",
           "help": "Chọn cách khởi động lại; Tự động dựa theo môi trường.\n\nCách khởi động lại tiến trình. Chế độ tự động chọn theo môi trường máy chủ."
         },
-        "api_host": {
-          "label": "Địa chỉ API",
-          "help": "Đặt khóa trước khi cho phép truy cập mạng; khởi động lại API sau thay đổi.\n\nCần khóa API khi nhận kết nối trên địa chỉ khác localhost. Đặt khóa trong Hệ thống rồi khởi động lại dịch vụ API để áp dụng thay đổi."
-        },
-        "api_timeout": {
-          "label": "Thời hạn API",
-          "help": "Số giây mỗi yêu cầu API tối đa; khởi động lại để áp dụng.\n\nThời gian tối đa của yêu cầu. Khởi động lại dịch vụ API để áp dụng."
-        },
         "tools_image_generation_save_dir": {
           "label": "Thư mục lưu",
           "help": "Đường dẫn tương đối trong thư mục media; không chuyển ảnh có sẵn.\n\nĐường dẫn tương đối trong thư mục phương tiện của yoreni. Ảnh hiện có không bị di chuyển."
         }
       },
       "groups": {
-        "chat": {
-          "title": "Quyền WebUI",
-          "help": "Đặt quyền truy cập dịch vụ cục bộ và quyền trò chuyện mặc định.\n\nTruy cập dịch vụ cục bộ và quyền trò chuyện mặc định."
-        },
         "identity": {
           "title": "Múi giờ",
           "help": "Chọn múi giờ cho tác vụ theo lịch."
@@ -520,10 +496,6 @@
         "heartbeat": {
           "title": "Lịch kiểm tra định kỳ",
           "help": "Đặt kiểm tra tác vụ định kỳ."
-        },
-        "execution": {
-          "title": "Giới hạn chạy",
-          "help": "Đặt giới hạn công cụ và thử lại yêu cầu."
         },
         "tools": {
           "title": "Công cụ tích hợp",
@@ -552,10 +524,6 @@
         "gateway": {
           "title": "Gateway",
           "help": "Đặt cách triển khai và khởi động lại."
-        },
-        "api": {
-          "title": "Thiết lập API",
-          "help": "Đặt địa chỉ lắng nghe và thời hạn yêu cầu."
         },
         "storage": {
           "title": "Lưu trữ ảnh",
@@ -634,13 +602,11 @@
       "webSearch": "Tìm kiếm web",
       "webBehavior": "Truy cập web",
       "regional": "Khu vực và múi giờ",
-      "webuiSafety": "An toàn WebUI",
       "capabilities": "Tính năng",
       "cliApps": "Ứng dụng CLI",
       "mcp": "Dịch vụ MCP",
       "apps": "Ứng dụng",
       "nativeHost": "Ứng dụng trên máy tính",
-      "hostSafety": "An toàn ứng dụng",
       "voiceInput": "Chép lời",
       "memory": "Bộ nhớ dài hạn"
     },
@@ -740,7 +706,6 @@
       "imageSaveDir": "Thư mục lưu",
       "timezone": "Múi giờ",
       "workspacePath": "Thư mục làm việc",
-      "localServiceAccess": "Dịch vụ cục bộ",
       "currentModel": "Cấu hình hiện tại",
       "brandLogos": "Logo thương hiệu",
       "browserNotifications": "Thông báo trình duyệt",
@@ -791,7 +756,6 @@
       "defaultImageSize": "Kích thước ảnh mặc định, nếu được hỗ trợ.\n\nGợi ý kích thước gửi tới nhà cung cấp hỗ trợ.",
       "maxImagesPerTurn": "Số ảnh tối đa mỗi yêu cầu.",
       "timezone": "Dùng cho lịch và câu trả lời liên quan thời gian.",
-      "localServiceAccess": "Lệnh Shell có toàn quyền có thể kết nối dịch vụ cục bộ.\n\nCho phép lệnh shell có quyền truy cập đầy đủ truy cập các dịch vụ cục bộ.",
       "securityManagedControls": "Mặc định chặn truy cập mạng cục bộ và riêng.\n\nCông cụ web mặc định chặn truy cập dịch vụ cục bộ, mạng riêng và dịch vụ siêu dữ liệu, trừ khi được cho phép rõ ràng. Các cài đặt bảo mật khác của kênh được quản lý trong config.json.",
       "currentModel": "Dùng cho câu trả lời mới.",
       "selectedModelProvider": "Được đặt bởi mô hình đã chọn.",
@@ -803,7 +767,6 @@
       "cliAppsFilter": "Tìm theo tên, danh mục hoặc chức năng.",
       "logs": "Mở thư mục nhật ký engine của ứng dụng máy tính.",
       "diagnostics": "Xuất báo cáo để chẩn đoán vấn đề.",
-      "localServiceAccessNative": "Lệnh Shell có toàn quyền có thể kết nối dịch vụ trên Mac này.\n\nCho phép lệnh shell có quyền truy cập đầy đủ truy cập các dịch vụ trên máy Mac này.",
       "contextWindow": "Số Token ngữ cảnh cho mô hình này.",
       "transcription": "Chuyển âm thanh thành văn bản trước; các nền tảng trò chuyện dùng chung thiết lập.\n\nChuyển giọng nói từ micrô thành văn bản trước khi gửi. Tin nhắn thoại từ các kênh chat cũng dùng cùng cài đặt.",
       "transcriptionProvider": "Dùng thông tin xác thực đã lưu trong Nhà cung cấp.",
@@ -1223,27 +1186,6 @@
         "github": "Quản lý kho mã, issue và PR.",
         "supabase": "Xem và quản lý dự án."
       }
-    },
-    "api": {
-      "title": "Máy chủ API",
-      "openaiCompatible": "API tương thích OpenAI",
-      "description": "Kết nối qua API tương thích OpenAI.",
-      "start": "Khởi động API",
-      "starting": "Đang khởi động...",
-      "stop": "Dừng",
-      "stopping": "Đang dừng...",
-      "access": "Truy cập",
-      "thisDevice": "Thiết bị này",
-      "localNetwork": "Mạng nội bộ",
-      "localHelp": "Chỉ thiết bị này có thể kết nối.",
-      "networkHelp": "Truy cập LAN cần khóa API.\n\nThiết bị khác có thể kết nối; cần khóa API.",
-      "port": "Cổng",
-      "portHelp": "Cổng cục bộ dịch vụ API sử dụng.",
-      "apiKey": "Khóa API",
-      "apiKeyHelp": "Gửi khóa dưới dạng Bearer Token.",
-      "apiKeyRequired": "Bắt buộc trước khi mở API ra mạng.",
-      "apiKeyPlaceholder": "Nhập khóa API",
-      "autoInstall": "Các gói cần thiết cho máy chủ API sẽ được cài tự động khi khởi động."
     },
     "observability": {
       "title": "Theo dõi chạy",

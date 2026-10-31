@@ -380,11 +380,6 @@
     "description": "Toggle transcription; edit the model, language, duration and upload size limits; try autosave.",
     "options": "settings supplies provider information; the parent manages form and save callbacks."
   },
-  "safety": {
-    "title": "Access settings",
-    "description": "Toggle local service access and default permissions; view setting rows, hints and autosave feedback.",
-    "options": "form supplies display values; onSave handles save requests. Runtime permission enforcement remains the gateway's responsibility."
-  },
   "channelCatalog": {
     "title": "Channel catalog and identity",
     "description": "Switch running, starting, failed and uninstalled states; try the switch, installation entry and help menu.",

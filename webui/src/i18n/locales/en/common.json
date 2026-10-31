@@ -363,21 +363,9 @@
           "label": "Check interval",
           "help": "Seconds between heartbeat checks.\n\nSchedule the built-in heartbeat when the gateway starts."
         },
-        "agents_defaults_max_tool_iterations": {
-          "label": "Tool rounds",
-          "help": "Maximum tool rounds per reply.\n\nMaximum number of model and tool rounds for each reply."
-        },
         "agents_defaults_max_concurrent_subagents": {
           "label": "Concurrent subagents",
           "help": "Maximum subagents running at once.\n\nMaximum number of subagents running at the same time."
-        },
-        "agents_defaults_max_tool_result_chars": {
-          "label": "Result length",
-          "help": "Character limit for each tool result sent to the model.\n\nMaximum number of characters from each tool result sent to the model."
-        },
-        "agents_defaults_provider_retry_mode": {
-          "label": "Keep retrying",
-          "help": "Retry recoverable errors; turn off for standard retries.\n\nKeep retrying requests after recoverable errors. Turn off to use standard retries."
         },
         "agents_defaults_tool_hint_max_length": {
           "label": "Summary length",
@@ -491,24 +479,12 @@
           "label": "Restart mode",
           "help": "Choose a restart method; Automatic follows your environment.\n\nChoose how the gateway restarts. Automatic selects a method for your environment."
         },
-        "api_host": {
-          "label": "API address",
-          "help": "Set a key before allowing network access; restart the API after changes.\n\nSet an API key in System before binding to a network address. Restart the API service to apply changes."
-        },
-        "api_timeout": {
-          "label": "API timeout",
-          "help": "Maximum seconds per API request; restart to apply.\n\nHow long each API request can take. Restart the API service to apply changes."
-        },
         "tools_image_generation_save_dir": {
           "label": "Save directory",
           "help": "Relative path inside the media directory; existing images stay put.\n\nSubdirectory of yoreni’s media directory. Use a relative path; existing images are not moved."
         }
       },
       "groups": {
-        "chat": {
-          "title": "WebUI permissions",
-          "help": "Set local service access and default chat permissions.\n\nLocal service access and default permissions for WebUI chats."
-        },
         "identity": {
           "title": "Timezone",
           "help": "Choose the timezone for scheduled tasks."
@@ -520,10 +496,6 @@
         "heartbeat": {
           "title": "Heartbeat schedule",
           "help": "Set up periodic task checks."
-        },
-        "execution": {
-          "title": "Run limits",
-          "help": "Set tool limits and request retries."
         },
         "tools": {
           "title": "Built-in tools",
@@ -552,10 +524,6 @@
         "gateway": {
           "title": "Gateway",
           "help": "Set deployment and restart options."
-        },
-        "api": {
-          "title": "API settings",
-          "help": "Set the listening address and request timeout."
         },
         "storage": {
           "title": "Image storage",
@@ -636,11 +604,9 @@
       "cliApps": "CLI apps",
       "mcp": "MCP services",
       "regional": "Region and timezone",
-      "webuiSafety": "Web safety",
       "capabilities": "Capabilities",
       "apps": "Apps",
       "nativeHost": "Native host",
-      "hostSafety": "App safety",
       "voiceInput": "Transcription",
       "memory": "Long-term memory"
     },
@@ -799,7 +765,6 @@
       "imageSaveDir": "Save directory",
       "timezone": "Timezone",
       "workspacePath": "Working directory",
-      "localServiceAccess": "Local services",
       "cliAppsCatalog": "Catalog",
       "cliAppsFilter": "Filter",
       "engine": "Engine",
@@ -854,11 +819,9 @@
       "timezone": "Used for schedules and time-related replies.",
       "cliAppsCatalog": "Install CLI tools for yoreni; desktop apps stay unchanged.\n\nInstall command-line tools for yoreni to use. This does not install or change the corresponding desktop apps.",
       "cliAppsFilter": "Search by name, category, or capability.",
-      "localServiceAccess": "Full Access Shell commands can reach local services.\n\nAllow Full Access shell commands to reach localhost services.",
       "securityManagedControls": "Local and private networks are blocked by default.\n\nWeb requests block local, private, and metadata service addresses unless explicitly allowed. Channel security is configured separately.",
       "logs": "Open the desktop app's engine log folder.",
       "diagnostics": "Export a report to help diagnose problems.",
-      "localServiceAccessNative": "Full Access Shell commands can reach services on this Mac.\n\nAllow Full Access shell commands to reach services on this Mac.",
       "contextWindow": "Context token budget for this model.",
       "transcription": "Transcribe audio first; chat platforms share these settings.\n\nTranscribe microphone input before sending it. Chat channel voice messages use the same settings.",
       "transcriptionProvider": "Uses credentials saved in Providers.",
@@ -1226,27 +1189,6 @@
       "searchSupport": "Search dependencies",
       "searchInstallOnSave": "Required Olostep packages will be installed automatically when you save.",
       "installing": "Installing required packages…"
-    },
-    "api": {
-      "title": "API server",
-      "openaiCompatible": "OpenAI-compatible API",
-      "description": "Connect through an OpenAI-compatible API.",
-      "start": "Start API server",
-      "starting": "Starting...",
-      "stop": "Stop",
-      "stopping": "Stopping...",
-      "access": "Access",
-      "thisDevice": "This device",
-      "localNetwork": "Local network",
-      "localHelp": "Only this device can connect.",
-      "networkHelp": "LAN access requires an API key.\n\nOther devices can connect; an API key is required.",
-      "port": "Port",
-      "portHelp": "Local port used by the API service.",
-      "apiKey": "API key",
-      "apiKeyHelp": "Send the key as a Bearer token.",
-      "apiKeyRequired": "Required before exposing the API to your network.",
-      "apiKeyPlaceholder": "Enter an API key",
-      "autoInstall": "Required API server packages will be installed automatically when you start it."
     },
     "observability": {
       "title": "Run tracing",

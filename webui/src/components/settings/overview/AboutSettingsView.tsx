@@ -12,7 +12,7 @@ export function AboutSettingsLayout({ version, links, starLink }: {
   return <div className="flex flex-1 flex-col gap-5">
     <div className="flex flex-col items-center gap-3 py-6 text-center">
       <img src="/brand/yoreni_mark.svg" alt="" className="h-16 w-16 select-none" draggable={false} />
-      <h1><img src="/brand/yoreni_wordmark.svg" alt="yoreni" width={800} height={164} className="h-auto w-40 select-none dark:brightness-150" draggable={false} /></h1>
+      <h1 className="select-none text-[28px] font-semibold leading-none tracking-tight">yoreni</h1>
     </div>
     {version}
     {links}

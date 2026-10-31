@@ -79,11 +79,22 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
   const [phase, setPhase] = useState<"idle" | "connecting" | "connected" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [fit, setFit] = useState<{ width: number; height: number } | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const morphFrom = useRef<DOMRect | null>(null);
   const grewFromAnchor = useRef(false);
 
   // Grow and shrink the desktop from its small preview rect instead of sliding
   // a differently shaped panel in from the edge.
+  // noVNC scales its canvas from the container it was mounted in. Resizing the
+  // container is not enough when the switch happens inside one frame, so ask it
+  // to recompute after every layout change.
+  const reflowScreen = () => {
+    const rfb = rfbRef.current;
+    if (!rfb) return;
+    rfb.scaleViewport = true;
+  };
+
   useLayoutEffect(() => {
     const from = morphFrom.current;
     morphFrom.current = null;
@@ -91,8 +102,9 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
     if (!from || !element || element.animate === undefined) return;
     const to = element.getBoundingClientRect();
     if (!to.width || !to.height) return;
+    window.requestAnimationFrame(reflowScreen);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    element.animate(
+    const animation = element.animate(
       [
         {
           transformOrigin: "top left",
@@ -103,7 +115,17 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
       ],
       { duration: 320, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
     );
+    void animation.finished
+      .then(() => { window.requestAnimationFrame(reflowScreen); })
+      .catch(() => undefined);
   }, [view]);
+
+  useEffect(() => {
+    if (phase !== "connected") return;
+    const frame = window.requestAnimationFrame(reflowScreen);
+    return () => window.cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   useLayoutEffect(() => {
     if (!open || view !== "peek") {
@@ -115,6 +137,39 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
     animateAnchor(shellRef.current, anchorRef?.current ?? null, "in");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, view]);
+
+  const ratio = status && status.desktop.height > 0
+    ? status.desktop.width / status.desktop.height
+    : 16 / 10;
+
+  useLayoutEffect(() => {
+    if (view !== "full") {
+      setFit(null);
+      return;
+    }
+    const stage = stageRef.current;
+    if (!stage) return;
+    const measure = () => {
+      const { width, height } = stage.getBoundingClientRect();
+      if (!width || !height) return;
+      // The largest framebuffer-shaped box the padded stage can hold: matching
+      // the VM ratio is what keeps letterboxing out of the view.
+      setFit(width / height > ratio
+        ? { width: height * ratio, height }
+        : { width, height: width / ratio });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [view, ratio]);
+
+  useEffect(() => {
+    if (!fit) return;
+    const frame = window.requestAnimationFrame(reflowScreen);
+    return () => window.cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fit]);
 
   const switchView = (next: "peek" | "full") => {
     morphFrom.current = screenRef.current?.getBoundingClientRect() ?? null;
@@ -396,12 +451,15 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
         )}
 
         <div
+          ref={stageRef}
+          className={cn(full ? "relative flex min-h-0 flex-1 items-center justify-center" : "relative")}
+        >
+        <div
           ref={screenRef}
+          style={{ aspectRatio: ratio, ...(full && fit ? { width: fit.width, height: fit.height } : null) }}
           className={cn(
             "relative overflow-hidden bg-[#0b0d10] ring-1 ring-black/25 dark:ring-white/10",
-            full
-              ? "mx-auto min-h-0 w-full max-w-[min(100%,96rem)] flex-1 rounded-[1.25rem]"
-              : "aspect-[16/10] w-full",
+            full ? "max-h-full max-w-full rounded-[1.25rem]" : "w-full",
           )}
         >
           {phase !== "connected" ? (
@@ -428,6 +486,7 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
               </div>
             </div>
           ) : null}
+        </div>
         </div>
 
         {error ? (

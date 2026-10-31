@@ -2524,7 +2524,15 @@
     "cancel": "Hủy",
     "connect": "Kết nối",
     "continueInBrowser": "Tiếp tục trong trình duyệt",
-    "secureNote": "Thông tin đăng nhập được gửi trực tiếp tới Yoreni và không bao giờ xuất hiện trong cuộc trò chuyện."
+    "secureNote": "Thông tin đăng nhập được gửi trực tiếp tới Yoreni và không bao giờ xuất hiện trong cuộc trò chuyện.",
+    "scope": "Chỉ dùng cho",
+    "fields": {
+      "username": "Tên đăng nhập",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "apiKey": "Khóa API",
+      "code": "Mã xác minh"
+    }
   },
   "accounts": {
     "title": "Tài khoản",

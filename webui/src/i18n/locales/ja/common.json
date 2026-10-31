@@ -2524,7 +2524,15 @@
     "cancel": "キャンセル",
     "connect": "接続",
     "continueInBrowser": "ブラウザーで続行",
-    "secureNote": "認証情報は Yoreni に直接送信され、チャットには表示されません。"
+    "secureNote": "認証情報は Yoreni に直接送信され、チャットには表示されません。",
+    "scope": "使用先",
+    "fields": {
+      "username": "ユーザー名",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "apiKey": "API キー",
+      "code": "確認コード"
+    }
   },
   "accounts": {
     "title": "アカウント",

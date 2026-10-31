@@ -2524,7 +2524,15 @@
     "cancel": "Cancelar",
     "connect": "Conectar",
     "continueInBrowser": "Continuar en el navegador",
-    "secureNote": "Las credenciales se envían directamente a Yoreni y nunca aparecen en el chat."
+    "secureNote": "Las credenciales se envían directamente a Yoreni y nunca aparecen en el chat.",
+    "scope": "Solo se usa en",
+    "fields": {
+      "username": "Usuario",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "apiKey": "Clave de API",
+      "code": "Código de verificación"
+    }
   },
   "accounts": {
     "title": "Cuentas",

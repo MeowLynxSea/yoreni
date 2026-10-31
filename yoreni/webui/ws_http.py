@@ -769,6 +769,9 @@ class GatewayHTTPHandler:
                         "enabled": gateway.config.desktop_enabled,
                         "browser": gateway.config.browser_enabled,
                         "viewer_path": "/api/sandbox/desktop/ws",
+                        # The viewers match this ratio so no letterboxing shows.
+                        "width": gateway.config.display_width,
+                        "height": gateway.config.display_height,
                     },
                 },
                 extra_headers=_NO_STORE_HEADERS,

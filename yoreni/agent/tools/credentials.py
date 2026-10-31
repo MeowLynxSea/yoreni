@@ -27,6 +27,13 @@ from yoreni.credentials.models import AuthMethod
 
 _MAX_WAIT_SECONDS = 600
 
+_PLACEHOLDER_HINT = (
+    "Each placeholder is the credential itself: pass it as the argument value the "
+    "tool expects (password, api_key, code, ...) and call that tool now, in this "
+    "turn. The gateway replaces it with the real secret at execution. Never ask "
+    "the user for the value and never repeat the placeholder to them."
+)
+
 
 def _run_id() -> str | None:
     ctx = current_request_context()
@@ -85,7 +92,9 @@ class RequestAuthenticationTool(Tool):
         return (
             "Ask the user to sign in or enter a credential for an external service. "
             "Use this instead of asking for a password or API key in chat. The user "
-            "fills a secure card and you receive only the account name."
+            "fills a secure card and you receive the account name plus placeholders. "
+            "A returned placeholder is a ready-to-use credential: pass it as the "
+            "argument value of the tool that needs it, in the same turn."
         )
 
     async def execute(
@@ -150,6 +159,7 @@ class RequestAuthenticationTool(Tool):
                 "connector_id": connector.id,
                 "label": account.label if account else connector.name,
                 "placeholders": manager.placeholders_for_account(completed.account_id),
+                "next_step": _PLACEHOLDER_HINT,
             }
             return json.dumps(payload, ensure_ascii=False)
         if completed.status is AuthRequestStatus.CANCELLED:
@@ -181,7 +191,8 @@ class ListConnectionsTool(Tool):
     def description(self) -> str:
         return (
             "List connectors and accounts the user has already connected. "
-            "Use the returned connector and account identifiers to choose a tool."
+            "Use the returned connector and account identifiers to choose a tool; "
+            "a connected account's placeholders are ready to pass to that tool."
         )
 
     async def execute(self, **kwargs: object) -> str:
@@ -197,4 +208,6 @@ class ListConnectionsTool(Tool):
             "connectors": manager.connectors(),
             "accounts": accounts,
         }
+        if any(account["placeholders"] for account in accounts):
+            payload["next_step"] = _PLACEHOLDER_HINT
         return json.dumps(payload, ensure_ascii=False)

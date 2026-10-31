@@ -1356,7 +1356,13 @@ export interface SandboxStatusPayload {
     detail: string;
   };
   control: SandboxControlSnapshot;
-  desktop: { enabled: boolean; browser: boolean; viewer_path: string };
+  desktop: {
+    enabled: boolean;
+    browser: boolean;
+    viewer_path: string;
+    width: number;
+    height: number;
+  };
 }
 
 export interface DesktopSessionPayload {

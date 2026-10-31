@@ -2524,7 +2524,15 @@
     "cancel": "Batal",
     "connect": "Hubungkan",
     "continueInBrowser": "Lanjutkan di browser",
-    "secureNote": "Kredensial dikirim langsung ke Yoreni dan tidak pernah muncul di obrolan."
+    "secureNote": "Kredensial dikirim langsung ke Yoreni dan tidak pernah muncul di obrolan.",
+    "scope": "Hanya dipakai di",
+    "fields": {
+      "username": "Nama pengguna",
+      "email": "Email",
+      "password": "Kata sandi",
+      "apiKey": "Kunci API",
+      "code": "Kode verifikasi"
+    }
   },
   "accounts": {
     "title": "Akun",

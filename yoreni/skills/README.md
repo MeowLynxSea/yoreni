@@ -26,3 +26,4 @@ These skills are adapted from [OpenClaw](https://github.com/openclaw/openclaw)'s
 | `home-widgets` | Create and maintain Home widgets |
 | `skill-creator` | Create new skills |
 | `yoreni-design` | Visual and copy conventions for interfaces and widget HTML |
+| `signing-in` | Sign in to a service through an authentication card and use its placeholder |

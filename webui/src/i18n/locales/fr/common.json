@@ -2524,7 +2524,15 @@
     "cancel": "Annuler",
     "connect": "Se connecter",
     "continueInBrowser": "Continuer dans le navigateur",
-    "secureNote": "Les identifiants sont envoyés directement à Yoreni et n'apparaissent jamais dans la conversation."
+    "secureNote": "Les identifiants sont envoyés directement à Yoreni et n'apparaissent jamais dans la conversation.",
+    "scope": "Utilisé uniquement sur",
+    "fields": {
+      "username": "Nom d’utilisateur",
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "apiKey": "Clé d’API",
+      "code": "Code de vérification"
+    }
   },
   "accounts": {
     "title": "Comptes",

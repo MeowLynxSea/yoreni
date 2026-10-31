@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { Disclosure } from "@/components/ui/disclosure";
 import { ChevronDown } from "lucide-react";
 import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, Eye, EyeOff, Fingerprint, Loader2 } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import { HashRouter, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useParams } from "react-router-dom";
 import { AmbientBackground } from "@/components/AmbientBackground";
@@ -28,7 +28,8 @@ import { useReadingTypography } from "@/hooks/useReadingTypography";
 import { BootstrapAuthRequiredError, clearSavedSecret, consumeUrlBootstrapSecret, deriveWsUrl, fetchBootstrap, loadSavedSecret, saveSecret } from "@/lib/bootstrap";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import type { SendAttachment } from "@/lib/agent-input";
-import { fetchChatSearch, fetchChatSearchSemantic, fetchOnboarding } from "@/lib/api";
+import { authenticateWithPasskey, fetchAuthStatus, fetchChatSearch, fetchChatSearchSemantic, fetchOnboarding, requestPasskeyAssertion } from "@/lib/api";
+import { assertPasskey, passkeysNeedSecureContext, passkeysSupported } from "@/lib/webauthn";
 import {
   parseChatSearchResult,
   parseChatSemanticResult,
@@ -41,7 +42,7 @@ import { messageCopyText } from "@/lib/message-text";
 import { createRuntimeHost } from "@/lib/runtime";
 import { formatQuotedUserMessage } from "@/lib/user-message-quote";
 import { YoreniClient } from "@/lib/yoreni-client";
-import type { BootstrapResponse, OnboardingSnapshot, UIMessage } from "@/lib/types";
+import type { AuthStatus, BootstrapResponse, OnboardingSnapshot, UIMessage } from "@/lib/types";
 import { ClientProvider, useClient } from "@/providers/ClientProvider";
 
 const SettingsView = lazy(() => import("@/components/settings/SettingsView").then((module) => ({ default: module.SettingsView })));
@@ -54,10 +55,30 @@ function AuthScreen({ failed, onSecret }: { failed: boolean; onSecret: (secret: 
   const [value, setValue] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
   const [validationError, setValidationError] = useState<"required" | "invalid" | null>(
     failed ? "invalid" : null,
   );
-  const errorMessage = validationError ? t(`app.auth.${validationError}`) : null;
+  const passkeyRegistered = Boolean(authStatus && authStatus.passkey_count > 0);
+  const errorMessage = validationError
+    && (validationError !== "invalid" || !passkeyRegistered)
+    ? t(`app.auth.${validationError}`)
+    : null;
+
+  useEffect(() => {
+    if (!passkeysSupported()) return;
+    let live = true;
+    fetchAuthStatus().then(
+      (status) => { if (live) setAuthStatus(status); },
+      () => { /* older gateways simply keep the password form */ },
+    );
+    return () => { live = false; };
+  }, []);
+
+  const passkeyAvailable = passkeyRegistered && passkeysSupported();
+  const passkeyHint = Boolean(authStatus) && !passkeyRegistered && passkeysSupported();
+  const needsSecureContext = passkeysNeedSecureContext();
 
   useEffect(() => {
     if (!validationError) return;
@@ -68,6 +89,24 @@ function AuthScreen({ failed, onSecret }: { failed: boolean; onSecret: (secret: 
   useEffect(() => {
     if (failed) setSubmitting(false);
   }, [failed]);
+
+  const handlePasskey = async () => {
+    if (passkeyBusy) return;
+    setPasskeyBusy(true);
+    setValidationError(null);
+    try {
+      const options = await requestPasskeyAssertion();
+      const assertion = await assertPasskey(options);
+      if (!assertion) return;
+      const result = await authenticateWithPasskey(assertion);
+      setSubmitting(true);
+      onSecret(result.ticket);
+    } catch {
+      setValidationError("invalid");
+    } finally {
+      setPasskeyBusy(false);
+    }
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -110,7 +149,27 @@ function AuthScreen({ failed, onSecret }: { failed: boolean; onSecret: (secret: 
             <h1 id="webui-auth-title" className="display-serif text-[2rem] leading-[1.1] text-foreground sm:text-[2.25rem]">
               {t("app.auth.title")}
             </h1>
-            <form onSubmit={handleSubmit} className="mt-8">
+            {passkeyAvailable ? (
+              <div className="mt-8 space-y-4">
+                <Button
+                  type="button"
+                  onClick={() => { void handlePasskey(); }}
+                  disabled={passkeyBusy}
+                  className="h-11 w-full rounded-full"
+                >
+                  {passkeyBusy ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Fingerprint className="mr-2 h-4 w-4" strokeWidth={1.75} aria-hidden />
+                  )}
+                  {t("app.auth.passkey.action")}
+                </Button>
+                <p className="text-center text-[12px] text-muted-foreground/80">
+                  {t("app.auth.passkey.orPassword")}
+                </p>
+              </div>
+            ) : null}
+            <form onSubmit={handleSubmit} className={passkeyAvailable ? "mt-4" : "mt-8"}>
               <div className="relative">
                 <Input
                   ref={inputRef}
@@ -167,6 +226,15 @@ function AuthScreen({ failed, onSecret }: { failed: boolean; onSecret: (secret: 
                 </p>
               ) : null}
             </form>
+            {needsSecureContext || passkeyHint ? (
+              <p className="mt-4 text-center text-[11.5px] leading-5 text-muted-foreground/80">
+                {t(
+                  needsSecureContext
+                    ? "app.auth.passkey.secureContext"
+                    : "app.auth.passkey.hint",
+                )}
+              </p>
+            ) : null}
             <Disclosure
               className="mt-5"
               summaryClassName="flex min-h-11 items-center justify-center gap-1.5 rounded-full text-[13px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
@@ -261,6 +329,10 @@ export default function App() {
     if (!contract || contract.min_protocol > 2 || contract.max_protocol < 2 || !contract.capabilities?.includes("webui.core.v2")) throw new Error("WebUI protocol 2 is required");
     return boot;
   }, []);
+  const applyAuthSecret = useCallback((next: string) => {
+    secret.current = next;
+    saveSecret(next);
+  }, []);
   const start = useCallback(async (value: string) => {
     const attempt = ++generation.current;
     clientRef.current?.close(); clientRef.current = null;
@@ -334,7 +406,7 @@ export default function App() {
       }}
     />;
   }
-  return <ClientProvider client={ready.client} token={ready.boot.api_token ?? ""} modelName={ready.boot.model_name ?? null} ingressLimits={ready.boot.limits ?? null} webuiCapabilities={ready.boot.terminal?.webui?.capabilities ?? []}>
+  return <ClientProvider client={ready.client} token={ready.boot.api_token ?? ""} modelName={ready.boot.model_name ?? null} ingressLimits={ready.boot.limits ?? null} webuiCapabilities={ready.boot.terminal?.webui?.capabilities ?? []} onAuthSecretChange={applyAuthSecret}>
     <HashRouter>
       <NavigationPersistence />
       <AgentShell onLogout={() => { ++generation.current; ready.client.close(); clearSavedSecret(); window.history.replaceState(null, "", window.location.pathname + window.location.search); setReady(null); setAuth(true); }} />

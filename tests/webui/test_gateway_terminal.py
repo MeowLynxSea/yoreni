@@ -27,3 +27,24 @@ def test_terminal_probe_is_private_stable_and_does_not_issue_credentials():
         assert "no-store" in response.headers["Cache-Control"]
     assert not handler.tokens.api_tokens and not handler.tokens.issued_tokens
     assert GatewayTokenStore().instance_id != handler.tokens.instance_id
+
+
+def test_bootstrap_accepts_a_passkey_ticket_instead_of_the_password():
+    handler = object.__new__(GatewayHTTPHandler)
+    handler.config = WebSocketConfig(token_issue_secret="fixture-secret")
+    handler.tokens = GatewayTokenStore()
+    connection = SimpleNamespace(
+        remote_address=("127.0.0.1", 10000),
+        respond=lambda status, _body: SimpleNamespace(status_code=status),
+    )
+    request = Request("/webui/terminal", Headers({"Host": "127.0.0.1:8765"}))
+
+    ticket = handler.tokens.issue_login_ticket(60)
+    request.headers["X-Yoreni-Auth"] = ticket
+    assert handler._handle_bootstrap(connection, request, terminal_probe=True).status_code == 200
+
+    request.headers["X-Yoreni-Auth"] = "nbwpt_unknown"
+    assert handler._handle_bootstrap(connection, request, terminal_probe=True).status_code == 401
+
+    # A ticket never works as a CLI token request.
+    assert handler._handle_token_issue(connection, request).status_code == 401

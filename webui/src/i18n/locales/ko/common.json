@@ -37,7 +37,13 @@
       "hidePassword": "비밀번호 숨기기",
       "submit": "연결",
       "required": "비밀번호를 입력하세요",
-      "invalid": "비밀번호를 확인하세요"
+      "invalid": "비밀번호를 확인하세요",
+      "passkey": {
+        "action": "Face ID 또는 지문으로 로그인",
+        "orPassword": "또는 비밀번호로 로그인",
+        "hint": "로그인 후 프로필에서 인증 기기를 추가하면 다음부터 Face ID나 지문으로 로그인할 수 있습니다.",
+        "secureContext": "인증 기기 로그인은 HTTPS 또는 localhost에서만 사용할 수 있습니다."
+      }
     },
     "account": {
       "section": "계정",
@@ -330,6 +336,38 @@
         "more": "강하게",
         "neutral": "중립",
         "less": "약하게"
+      }
+    },
+    "security": {
+      "password": {
+        "title": "로그인 비밀번호",
+        "hint": "어떤 브라우저에서든 Yoreni에 로그인할 때 사용합니다.",
+        "current": "현재 비밀번호",
+        "new": "새 비밀번호",
+        "confirm": "새 비밀번호 확인",
+        "save": "비밀번호 변경",
+        "saved": "비밀번호를 변경했습니다"
+      },
+      "authenticators": {
+        "title": "인증 기기",
+        "hint": "Face ID, Touch ID, Windows Hello, 지문으로 비밀번호 없이 로그인할 수 있습니다.",
+        "empty": "등록된 인증 기기가 없습니다.",
+        "nameLabel": "이름",
+        "namePlaceholder": "예: 이 Mac",
+        "defaultName": "이 기기",
+        "add": "인증 기기 추가",
+        "remove": "{{name}} 삭제",
+        "lastUsed": "마지막 사용 {{date}}",
+        "addedOn": "{{date}}에 추가",
+        "secureContext": "인증 기기를 추가하려면 HTTPS 또는 localhost로 접속해야 합니다."
+      },
+      "errors": {
+        "loadFailed": "로그인 방법을 불러오지 못했습니다.",
+        "currentPasswordWrong": "현재 비밀번호가 올바르지 않습니다.",
+        "passwordTooShort": "{{count}}자 이상 입력하세요.",
+        "passwordMismatch": "새 비밀번호가 일치하지 않습니다.",
+        "passkeyFailed": "인증 기기 확인이 완료되지 않았습니다. 다시 시도하세요.",
+        "passkeyExists": "이 기기는 이미 인증 기기로 등록되어 있습니다."
       }
     }
   },

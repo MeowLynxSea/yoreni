@@ -20,10 +20,12 @@ class GatewayTokenStore:
     """Own short-lived WebSocket and WebUI API tokens for one gateway process."""
 
     max_tokens: int = 10_000
+    max_login_tickets: int = 1_024
     instance_id: str = field(default_factory=lambda: str(uuid.uuid4()), init=False)
     issued_tokens: dict[str, float] = field(default_factory=dict)
     issued_token_audiences: dict[str, IssuedTokenAudience] = field(default_factory=dict)
     api_tokens: dict[str, float] = field(default_factory=dict)
+    login_tickets: dict[str, float] = field(default_factory=dict)
 
     def check_api_token(self, request: WsRequest) -> bool:
         self._purge_expired_api_tokens()
@@ -65,6 +67,26 @@ class GatewayTokenStore:
         self.api_tokens[token_value] = expiry
         return token_value
 
+    def issue_login_ticket(self, ttl_s: int | float) -> str:
+        """Issue a bootstrap secret for a completed authenticator sign-in."""
+        self._purge_expired_login_tickets()
+        if len(self.login_tickets) >= self.max_login_tickets:
+            oldest = min(self.login_tickets, key=self.login_tickets.__getitem__)
+            self.login_tickets.pop(oldest, None)
+        token_value = f"nbwpt_{secrets.token_urlsafe(32)}"
+        self.login_tickets[token_value] = time.monotonic() + float(ttl_s)
+        return token_value
+
+    def check_login_ticket(self, value: str | None) -> bool:
+        if not value or not value.startswith("nbwpt_"):
+            return False
+        self._purge_expired_login_tickets()
+        expiry = self.login_tickets.get(value)
+        return expiry is not None and time.monotonic() <= expiry
+
+    def revoke_login_tickets(self) -> None:
+        self.login_tickets.clear()
+
     def take_issued_token_audience(
         self,
         token_value: str | None,
@@ -85,6 +107,13 @@ class GatewayTokenStore:
         self.issued_tokens.clear()
         self.issued_token_audiences.clear()
         self.api_tokens.clear()
+        self.login_tickets.clear()
+
+    def _purge_expired_login_tickets(self) -> None:
+        now = time.monotonic()
+        for token_key, expiry in list(self.login_tickets.items()):
+            if now > expiry:
+                self.login_tickets.pop(token_key, None)
 
     def _purge_expired_api_tokens(self) -> None:
         now = time.monotonic()

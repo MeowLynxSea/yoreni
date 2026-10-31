@@ -37,7 +37,13 @@
       "hidePassword": "Ẩn mật khẩu",
       "submit": "Kết nối",
       "required": "Nhập mật khẩu",
-      "invalid": "Mật khẩu không đúng"
+      "invalid": "Mật khẩu không đúng",
+      "passkey": {
+        "action": "Đăng nhập bằng Face ID hoặc vân tay",
+        "orPassword": "Hoặc dùng mật khẩu",
+        "hint": "Thêm thiết bị xác thực trong hồ sơ sau khi đăng nhập, lần sau có thể dùng Face ID hoặc vân tay.",
+        "secureContext": "Đăng nhập bằng thiết bị xác thực cần HTTPS hoặc localhost."
+      }
     },
     "account": {
       "section": "Tài khoản",
@@ -330,6 +336,38 @@
         "more": "Tăng",
         "neutral": "Trung tính",
         "less": "Giảm"
+      }
+    },
+    "security": {
+      "password": {
+        "title": "Mật khẩu đăng nhập",
+        "hint": "Dùng để đăng nhập Yoreni từ mọi trình duyệt.",
+        "current": "Mật khẩu hiện tại",
+        "new": "Mật khẩu mới",
+        "confirm": "Xác nhận mật khẩu mới",
+        "save": "Cập nhật mật khẩu",
+        "saved": "Đã cập nhật mật khẩu"
+      },
+      "authenticators": {
+        "title": "Thiết bị xác thực",
+        "hint": "Dùng Face ID, Touch ID, Windows Hello hoặc vân tay để đăng nhập mà không cần nhập mật khẩu.",
+        "empty": "Chưa thêm thiết bị xác thực nào.",
+        "nameLabel": "Tên",
+        "namePlaceholder": "Ví dụ: Mac này",
+        "defaultName": "Thiết bị này",
+        "add": "Thêm thiết bị xác thực",
+        "remove": "Xóa {{name}}",
+        "lastUsed": "Dùng lần cuối {{date}}",
+        "addedOn": "Đã thêm {{date}}",
+        "secureContext": "Cần truy cập qua HTTPS hoặc localhost để thêm thiết bị xác thực."
+      },
+      "errors": {
+        "loadFailed": "Không tải được phương thức đăng nhập.",
+        "currentPasswordWrong": "Mật khẩu hiện tại không đúng.",
+        "passwordTooShort": "Dùng ít nhất {{count}} ký tự.",
+        "passwordMismatch": "Mật khẩu mới không khớp.",
+        "passkeyFailed": "Thiết bị xác thực chưa hoàn tất. Hãy thử lại.",
+        "passkeyExists": "Thiết bị này đã là thiết bị xác thực."
       }
     }
   },

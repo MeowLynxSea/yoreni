@@ -1,5 +1,5 @@
 
-import type { AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemoryBackfillPayload, MemorySettingsUpdate, OnboardingSnapshot, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, PairingPayload, ProjectSummary, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
+import type { AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemoryBackfillPayload, MemorySettingsUpdate, OnboardingSnapshot, AuthStatus, AuthenticatorSummary, PasskeyAssertionOptions, PasskeyAssertionPayload, PasskeyRegistrationOptions, PasskeyRegistrationPayload, ProfileSecurity, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, PairingPayload, ProjectSummary, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
 
 const API_READ_TIMEOUT_MS = 20_000;
@@ -28,14 +28,13 @@ async function request<T>(
   init?: RequestInit,
   timeoutMs: number = 0,
 ): Promise<T> {
+  const headers: Record<string, string> = { ...(init?.headers as Record<string, string> ?? {}) };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetchWithTimeout(
     url,
     {
       ...(init ?? {}),
-      headers: {
-        ...(init?.headers ?? {}),
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
       credentials: "same-origin",
     },
     timeoutMs,
@@ -1091,6 +1090,100 @@ export function fetchOnboarding(token: string): Promise<OnboardingSnapshot> {
 
 export function fetchUserProfile(token: string): Promise<{ profile: UserProfile }> {
   return request<{ profile: UserProfile }>("/api/profile", token, undefined, API_READ_TIMEOUT_MS);
+}
+
+/** The page origin, so credential listings survive a proxy that rewrites Host. */
+function pageOrigin(): string {
+  return typeof window === "undefined" ? "" : window.location.origin;
+}
+
+/** Sign-in capabilities of this gateway; readable before any token exists. */
+export function fetchAuthStatus(): Promise<AuthStatus> {
+  const origin = pageOrigin();
+  const query = origin ? `?origin=${encodeURIComponent(origin)}` : "";
+  return request<AuthStatus>(`/api/auth/status${query}`, "", undefined, API_READ_TIMEOUT_MS);
+}
+
+/**
+ * Ask the gateway for an assertion challenge for one registered authenticator.
+ *
+ * The gateway HTTP layer only parses GET requests (non-GET is reserved for
+ * binary uploads), so the page origin travels as a query parameter. The
+ * signature still binds to the origin echoed in the client data.
+ */
+export function requestPasskeyAssertion(): Promise<PasskeyAssertionOptions> {
+  const origin = pageOrigin();
+  const query = origin ? `?origin=${encodeURIComponent(origin)}` : "";
+  return request<PasskeyAssertionOptions>(
+    `/api/auth/passkey/options${query}`,
+    "",
+    undefined,
+    API_READ_TIMEOUT_MS,
+  );
+}
+
+/** Exchange a completed assertion for a bootstrap ticket. */
+export function authenticateWithPasskey(
+  payload: PasskeyAssertionPayload,
+): Promise<{ ticket: string; expires_in: number }> {
+  const query = new URLSearchParams({
+    client_data_json: payload.client_data_json,
+    authenticator_data: payload.authenticator_data,
+    signature: payload.signature,
+    credential_id: payload.credential_id,
+  });
+  const origin = pageOrigin();
+  if (origin) query.set("origin", origin);
+  return request<{ ticket: string; expires_in: number }>(
+    `/api/auth/passkey/verify?${query.toString()}`,
+    "",
+    undefined,
+    API_READ_TIMEOUT_MS,
+  );
+}
+
+export function fetchProfileSecurity(token: string): Promise<ProfileSecurity> {
+  const origin = pageOrigin();
+  const query = origin ? `?origin=${encodeURIComponent(origin)}` : "";
+  return request<ProfileSecurity>(
+    `/api/profile/security${query}`,
+    token,
+    undefined,
+    API_READ_TIMEOUT_MS,
+  );
+}
+
+export function changeLoginPassword(
+  transport: WebUIMutationTransport,
+  current: string,
+  password: string,
+): Promise<{ token_set: boolean }> {
+  return mutation<{ token_set: boolean }>(transport, "profile.password", { current, password });
+}
+
+export function requestAuthenticatorRegistration(
+  transport: WebUIMutationTransport,
+  name: string,
+): Promise<PasskeyRegistrationOptions> {
+  return mutation<PasskeyRegistrationOptions>(transport, "profile.passkey.options", { name });
+}
+
+export function registerAuthenticator(
+  transport: WebUIMutationTransport,
+  payload: PasskeyRegistrationPayload,
+): Promise<{ authenticator: AuthenticatorSummary }> {
+  return mutation<{ authenticator: AuthenticatorSummary }>(
+    transport,
+    "profile.passkey.register",
+    { ...payload },
+  );
+}
+
+export function removeAuthenticator(
+  transport: WebUIMutationTransport,
+  id: string,
+): Promise<ProfileSecurity> {
+  return mutation<ProfileSecurity>(transport, "profile.passkey.remove", { id });
 }
 
 export function saveOnboardingToken(

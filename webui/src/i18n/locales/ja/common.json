@@ -37,7 +37,13 @@
       "hidePassword": "パスワードを隠す",
       "submit": "接続",
       "required": "パスワードを入力",
-      "invalid": "パスワードが違います"
+      "invalid": "パスワードが違います",
+      "passkey": {
+        "action": "Face ID または指紋でサインイン",
+        "orPassword": "またはパスワードでサインイン",
+        "hint": "サインイン後にプロフィールで認証器を追加すると、次回から Face ID や指紋でサインインできます。",
+        "secureContext": "認証器でのサインインには HTTPS または localhost でのアクセスが必要です。"
+      }
     },
     "account": {
       "section": "アカウント",
@@ -330,6 +336,38 @@
         "more": "強める",
         "neutral": "標準",
         "less": "弱める"
+      }
+    },
+    "security": {
+      "password": {
+        "title": "サインインパスワード",
+        "hint": "どのブラウザからでも Yoreni にサインインするときに使います。",
+        "current": "現在のパスワード",
+        "new": "新しいパスワード",
+        "confirm": "新しいパスワード（確認）",
+        "save": "パスワードを更新",
+        "saved": "パスワードを更新しました"
+      },
+      "authenticators": {
+        "title": "認証器",
+        "hint": "Face ID、Touch ID、Windows Hello、指紋でパスワードを入力せずにサインインできます。",
+        "empty": "認証器はまだ登録されていません。",
+        "nameLabel": "名前",
+        "namePlaceholder": "例：この Mac",
+        "defaultName": "このデバイス",
+        "add": "認証器を追加",
+        "remove": "{{name}} を削除",
+        "lastUsed": "最終使用 {{date}}",
+        "addedOn": "{{date}} に追加",
+        "secureContext": "認証器の追加には HTTPS または localhost でのアクセスが必要です。"
+      },
+      "errors": {
+        "loadFailed": "サインイン方法を読み込めませんでした。",
+        "currentPasswordWrong": "現在のパスワードが正しくありません。",
+        "passwordTooShort": "{{count}} 文字以上で入力してください。",
+        "passwordMismatch": "新しいパスワードが一致しません。",
+        "passkeyFailed": "認証器の処理が完了しませんでした。もう一度お試しください。",
+        "passkeyExists": "このデバイスはすでに認証器として登録されています。"
       }
     }
   },

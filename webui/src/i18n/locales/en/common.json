@@ -37,7 +37,13 @@
       "hidePassword": "Hide password",
       "submit": "Connect",
       "required": "Enter password",
-      "invalid": "Incorrect password"
+      "invalid": "Incorrect password",
+      "passkey": {
+        "action": "Sign in with Face ID or fingerprint",
+        "orPassword": "Or use your password",
+        "hint": "Add an authenticator in Profile after signing in, then use Face ID or a fingerprint next time.",
+        "secureContext": "Authenticator sign-in requires HTTPS or localhost."
+      }
     },
     "account": {
       "section": "Account",
@@ -330,6 +336,38 @@
         "more": "More",
         "neutral": "Neutral",
         "less": "Less"
+      }
+    },
+    "security": {
+      "password": {
+        "title": "Sign-in password",
+        "hint": "Used to sign in to Yoreni from any browser.",
+        "current": "Current password",
+        "new": "New password",
+        "confirm": "Confirm new password",
+        "save": "Update password",
+        "saved": "Password updated"
+      },
+      "authenticators": {
+        "title": "Authenticators",
+        "hint": "Use Face ID, Touch ID, Windows Hello or a fingerprint to sign in without typing your password.",
+        "empty": "No authenticator added yet.",
+        "nameLabel": "Name",
+        "namePlaceholder": "For example: this Mac",
+        "defaultName": "This device",
+        "add": "Add authenticator",
+        "remove": "Remove {{name}}",
+        "lastUsed": "Last used {{date}}",
+        "addedOn": "Added {{date}}",
+        "secureContext": "Adding an authenticator requires HTTPS or localhost."
+      },
+      "errors": {
+        "loadFailed": "Couldn't load your sign-in methods.",
+        "currentPasswordWrong": "The current password is incorrect.",
+        "passwordTooShort": "Use at least {{count}} characters.",
+        "passwordMismatch": "The new passwords don't match.",
+        "passkeyFailed": "The authenticator didn't finish. Try again.",
+        "passkeyExists": "This device is already an authenticator."
       }
     }
   },

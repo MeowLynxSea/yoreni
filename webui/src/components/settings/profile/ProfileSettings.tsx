@@ -4,6 +4,7 @@ import { Check, Loader2 } from "lucide-react";
 
 import { BirthdayField } from "@/components/profile/BirthdayField";
 import { ChatStyleEditor } from "@/components/profile/ChatStyleEditor";
+import { SecuritySettings } from "@/components/settings/profile/SecuritySettings";
 import { SettingsGroup, SettingsSectionTitle } from "@/components/settings/shared/SettingsControls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -183,6 +184,8 @@ export function ProfileSettings() {
           </div>
         </SettingsGroup>
       </section>
+
+      <SecuritySettings />
 
       {error ? (
         <p role="alert" className="settings-list-inset text-[12.5px] leading-5 text-destructive">

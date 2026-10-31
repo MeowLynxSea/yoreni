@@ -83,6 +83,9 @@ from yoreni.webui.http_utils import (
     normalize_config_path as _normalize_config_path,
 )
 from yoreni.webui.http_utils import (
+    normalize_origin as _normalize_origin,
+)
+from yoreni.webui.http_utils import (
     parse_query as _parse_query,
 )
 from yoreni.webui.http_utils import (
@@ -90,6 +93,12 @@ from yoreni.webui.http_utils import (
 )
 from yoreni.webui.http_utils import (
     query_first as _query_first,
+)
+from yoreni.webui.http_utils import (
+    request_origin as _request_origin,
+)
+from yoreni.webui.http_utils import (
+    request_secret as _request_secret,
 )
 from yoreni.webui.http_utils import (
     safe_host_header as _safe_host_header,
@@ -100,6 +109,7 @@ from yoreni.webui.onboarding_api import OnboardingError, OnboardingService
 from yoreni.webui.outbound_wire import (
     encode_history_run as _encode_history_run,
 )
+from yoreni.webui.passkeys import PasskeyError, PasskeyService
 from yoreni.webui.skills_api import (
     SkillManagementError,
     delete_webui_skill,
@@ -140,6 +150,10 @@ _WEBUI_MUTATION_PATHS = {
     "onboarding.complete": "/api/onboarding/complete",
     "onboarding.embedding_test": "/api/onboarding/embedding-test",
     "profile.update": "/api/profile/update",
+    "profile.password": "/api/profile/password",
+    "profile.passkey.options": "/api/profile/passkeys/options",
+    "profile.passkey.register": "/api/profile/passkeys/register",
+    "profile.passkey.remove": "/api/profile/passkeys/remove",
     "automation.enable": "/api/webui/automations/enable",
     "automation.disable": "/api/webui/automations/disable",
     "automation.delete": "/api/webui/automations/delete",
@@ -392,6 +406,7 @@ class GatewayHTTPHandler:
             workspace=skills_workspace_path,
             live_websocket=config,
         )
+        self.passkeys = PasskeyService(settings.config, tokens=tokens)
         self.settings_routes = WebUISettingsRouter(
             settings=settings,
             bus=bus,
@@ -508,6 +523,10 @@ class GatewayHTTPHandler:
             "/api/onboarding/step", "/api/onboarding/complete",
             "/api/onboarding/embedding-test",
             "/api/profile/update",
+            "/api/profile/password",
+            "/api/profile/passkeys/options",
+            "/api/profile/passkeys/register",
+            "/api/profile/passkeys/remove",
             "/api/webui/skills/install",
             "/api/webui/skills/update",
             "/api/webui/skills/delete",
@@ -557,10 +576,20 @@ class GatewayHTTPHandler:
         if got == "/webui/terminal":
             return self._handle_bootstrap(connection, request, terminal_probe=True)
 
+        # Authenticator sign-in for the login screen; these run before the
+        # authenticated API guard because the browser has no token yet.
+        if got == "/api/auth/status":
+            return self._handle_auth_status(request)
+        if got == "/api/auth/passkey/options":
+            return self._handle_passkey_options(request)
+        if got == "/api/auth/passkey/verify":
+            return self._handle_passkey_verify(request)
+
         if (
             got == "/api/onboarding"
             or got.startswith("/api/onboarding/")
-            or got in {"/api/profile", "/api/profile/update"}
+            or got == "/api/profile"
+            or got.startswith("/api/profile/")
         ):
             if not self.check_api_token(request):
                 return _http_error(401, "Unauthorized")
@@ -708,9 +737,50 @@ class GatewayHTTPHandler:
 
     # -- Onboarding and profile ---------------------------------------------
 
+    def _handle_auth_status(self, request: WsRequest) -> Response:
+        return _http_json_response(
+            self.passkeys.status(self._read_origin(request)),
+            extra_headers=_NO_STORE_HEADERS,
+        )
+
+    def _read_origin(self, request: WsRequest) -> str | None:
+        """Resolve the page origin for an authenticator request.
+
+        The gateway HTTP layer parses only GET, and a same-origin GET usually
+        omits ``Origin``, so the browser-declared origin is the reliable source.
+        It only binds the challenge to the page: a forged value cannot produce
+        an assertion, because the browser always signs its real origin in the
+        client data and verification compares against it.
+        """
+        return (
+            _normalize_origin(_case_insensitive_header(request.headers, "Origin"))
+            or _normalize_origin(_query_first(_request_query(request), "origin"))
+            or _request_origin(request.headers)
+        )
+
+    def _handle_passkey_options(self, request: WsRequest) -> Response:
+        try:
+            options = self.passkeys.authentication_options(self._read_origin(request))
+        except PasskeyError as exc:
+            return _http_error(exc.status, exc.message)
+        return _http_json_response(options, extra_headers=_NO_STORE_HEADERS)
+
+    def _handle_passkey_verify(self, request: WsRequest) -> Response:
+        query = _request_query(request)
+        payload = {
+            key: _query_first(query, key) or ""
+            for key in ("client_data_json", "authenticator_data", "signature", "credential_id")
+        }
+        try:
+            result = self.passkeys.authenticate(payload, self._read_origin(request))
+        except PasskeyError as exc:
+            return _http_error(exc.status, exc.message)
+        return _http_json_response(result, extra_headers=_NO_STORE_HEADERS)
+
     async def _handle_setup(self, request: WsRequest, path: str) -> Response:
         """Serve first-run state and the owner profile outside agent execution."""
         payload = _mutation_payload(request) or {}
+        origin = _request_origin(request.headers)
         try:
             if path == "/api/onboarding":
                 return _http_json_response(
@@ -721,6 +791,29 @@ class GatewayHTTPHandler:
                 return _http_json_response(
                     {"profile": self.onboarding.read_profile()},
                     extra_headers=_NO_STORE_HEADERS,
+                )
+            if path == "/api/profile/security":
+                return _http_json_response(
+                    self.passkeys.list(self._read_origin(request)),
+                    extra_headers=_NO_STORE_HEADERS,
+                )
+            if path == "/api/profile/password":
+                return _http_json_response(
+                    self.onboarding.change_password(
+                        payload.get("current"), payload.get("password")
+                    )
+                )
+            if path == "/api/profile/passkeys/options":
+                return _http_json_response(
+                    self.passkeys.registration_options(origin, payload.get("name"))
+                )
+            if path == "/api/profile/passkeys/register":
+                return _http_json_response(
+                    {"authenticator": self.passkeys.register(payload, origin)}
+                )
+            if path == "/api/profile/passkeys/remove":
+                return _http_json_response(
+                    self.passkeys.remove(origin, payload.get("id"))
                 )
             if path == "/api/onboarding/token":
                 return _http_json_response(self.onboarding.set_token(payload.get("token")))
@@ -739,7 +832,7 @@ class GatewayHTTPHandler:
             if path == "/api/profile/update":
                 profile = self.onboarding.update_profile(payload.get("profile"))
                 return _http_json_response({"profile": profile})
-        except OnboardingError as exc:
+        except (OnboardingError, PasskeyError) as exc:
             return _http_error(exc.status, exc.message)
         return _http_error(404, "Setup route not found")
 
@@ -749,6 +842,7 @@ class GatewayHTTPHandler:
         self, connection: Any, request: Any, *, terminal_probe: bool = False,
     ) -> Response:
         secret = self.config.token_issue_secret.strip() or self.config.token.strip()
+        ticket_valid = self.tokens.check_login_ticket(_request_secret(request.headers))
         is_local_browser = _is_local_browser_request(connection, request.headers)
         is_proxy_authenticated = _is_trusted_proxy_authenticated_request(
             connection,
@@ -757,9 +851,12 @@ class GatewayHTTPHandler:
         )
         if not is_proxy_authenticated:
             if secret:
-                if not _issue_route_secret_matches(request.headers, secret):
+                if (
+                    not _issue_route_secret_matches(request.headers, secret)
+                    and not ticket_valid
+                ):
                     return _http_error(401, "Unauthorized")
-            elif not is_local_browser:
+            elif not ticket_valid and not is_local_browser:
                 return _http_error(403, "bootstrap is localhost-only")
 
         from yoreni.webui.client_contract import gateway_identity
@@ -786,7 +883,7 @@ class GatewayHTTPHandler:
             }
             return _http_json_response(payload, extra_headers=_NO_STORE_HEADERS)
 
-        api_token_allowed = bool(secret) or is_local_browser
+        api_token_allowed = bool(secret) or is_local_browser or ticket_valid
         if not self.tokens.can_issue(include_api_token=api_token_allowed):
             return _http_response(
                 json.dumps({"error": "too many outstanding tokens"}).encode("utf-8"),

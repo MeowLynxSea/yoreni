@@ -79,6 +79,7 @@ def test_operator_state_files_cover_the_instance_config_and_profile(monkeypatch,
         config_file,
         tmp_path / "profile.json",
         tmp_path / "onboarding.json",
+        tmp_path / "passkeys.json",
     )
 
 

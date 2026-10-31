@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 PROFILE_FILENAME = "profile.json"
 ONBOARDING_FILENAME = "onboarding.json"
+PASSKEY_FILENAME = "passkeys.json"
 _PROFILE_VERSION = 1
 _ONBOARDING_VERSION = 1
 
@@ -111,7 +112,7 @@ def operator_state_files() -> tuple[Path, ...]:
     data_dir = config_path.parent
     return (
         config_path,
-        *(data_dir / name for name in (PROFILE_FILENAME, ONBOARDING_FILENAME)),
+        *(data_dir / name for name in (PROFILE_FILENAME, ONBOARDING_FILENAME, PASSKEY_FILENAME)),
     )
 
 

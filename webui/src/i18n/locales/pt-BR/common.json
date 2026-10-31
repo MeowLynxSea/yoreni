@@ -37,7 +37,13 @@
       "hidePassword": "Ocultar senha",
       "submit": "Conectar",
       "required": "Digite a senha",
-      "invalid": "Senha incorreta"
+      "invalid": "Senha incorreta",
+      "passkey": {
+        "action": "Entrar com Face ID ou digital",
+        "orPassword": "Ou use sua senha",
+        "hint": "Adicione um autenticador no perfil após entrar e, na próxima vez, use Face ID ou digital.",
+        "secureContext": "O acesso com autenticador exige HTTPS ou localhost."
+      }
     },
     "account": {
       "section": "Conta",
@@ -330,6 +336,38 @@
         "more": "Mais",
         "neutral": "Neutro",
         "less": "Menos"
+      }
+    },
+    "security": {
+      "password": {
+        "title": "Senha de acesso",
+        "hint": "Usada para entrar no Yoreni em qualquer navegador.",
+        "current": "Senha atual",
+        "new": "Nova senha",
+        "confirm": "Confirmar nova senha",
+        "save": "Atualizar senha",
+        "saved": "Senha atualizada"
+      },
+      "authenticators": {
+        "title": "Autenticadores",
+        "hint": "Use Face ID, Touch ID, Windows Hello ou digital para entrar sem digitar a senha.",
+        "empty": "Nenhum autenticador adicionado.",
+        "nameLabel": "Nome",
+        "namePlaceholder": "Por exemplo: este Mac",
+        "defaultName": "Este dispositivo",
+        "add": "Adicionar autenticador",
+        "remove": "Remover {{name}}",
+        "lastUsed": "Último uso {{date}}",
+        "addedOn": "Adicionado em {{date}}",
+        "secureContext": "Adicionar um autenticador exige HTTPS ou localhost."
+      },
+      "errors": {
+        "loadFailed": "Não foi possível carregar seus métodos de acesso.",
+        "currentPasswordWrong": "A senha atual está incorreta.",
+        "passwordTooShort": "Use pelo menos {{count}} caracteres.",
+        "passwordMismatch": "As novas senhas não coincidem.",
+        "passkeyFailed": "O autenticador não concluiu. Tente novamente.",
+        "passkeyExists": "Este dispositivo já é um autenticador."
       }
     }
   },

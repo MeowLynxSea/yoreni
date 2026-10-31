@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hmac
 import threading
 import time
 from pathlib import Path
@@ -47,8 +48,12 @@ def _websocket_config(config: Any) -> "WebSocketConfig":
 
 
 def _token_is_set(config: Any) -> bool:
+    return bool(_configured_secret(config))
+
+
+def _configured_secret(config: Any) -> str:
     websocket = _websocket_config(config)
-    return bool(websocket.token_issue_secret.strip() or websocket.token.strip())
+    return websocket.token_issue_secret.strip() or websocket.token.strip()
 
 
 def profile_payload(profile: UserProfile) -> dict[str, Any]:
@@ -124,6 +129,30 @@ class OnboardingService:
     # -- writes --------------------------------------------------------------
 
     def set_token(self, raw: Any) -> dict[str, Any]:
+        token = self._validated_token(raw)
+        self._write_token(token)
+        record = self._state.read()
+        if record is None or record.step == "token":
+            self._state.mark_step("language")
+        return {"token_set": True}
+
+    def change_password(self, current: Any, new: Any) -> dict[str, Any]:
+        """Replace the WebUI password after the owner proves the current one."""
+        config = self._config.load()
+        secret = _configured_secret(config)
+        supplied = current.strip() if isinstance(current, str) else ""
+        if not secret or not supplied or not hmac.compare_digest(supplied, secret):
+            raise OnboardingError("The current password is incorrect", status=403)
+        token = self._validated_token(new)
+        if hmac.compare_digest(token, secret):
+            raise OnboardingError("The new password is the same as the current one")
+        self._write_token(token)
+        return {"token_set": True}
+
+    def password_is_set(self) -> bool:
+        return _token_is_set(self._config.load())
+
+    def _validated_token(self, raw: Any) -> str:
         token = raw.strip() if isinstance(raw, str) else ""
         if not token:
             raise OnboardingError("Enter a WebUI password")
@@ -133,7 +162,9 @@ class OnboardingService:
             )
         if any(ord(character) < 32 or ord(character) == 127 for character in token):
             raise OnboardingError("The password cannot contain control characters")
+        return token
 
+    def _write_token(self, token: str) -> None:
         def mutate(config: Any) -> None:
             websocket = _websocket_config(config)
             websocket.token_issue_secret = token
@@ -149,10 +180,6 @@ class OnboardingService:
             # The running listener checks this live object, not the file.
             self._live_websocket.token_issue_secret = token
             self._live_websocket.websocket_requires_token = True
-        record = self._state.read()
-        if record is None or record.step == "token":
-            self._state.mark_step("language")
-        return {"token_set": True}
 
     def save_profile(self, payload: Any) -> dict[str, Any]:
         profile = self._validate_profile(payload)

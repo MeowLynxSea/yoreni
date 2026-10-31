@@ -56,6 +56,8 @@ Dream is a single bounded model call producing a JSON change set. Validation, ap
 
 `ContextBuilder` is the single injection point: it renders `USER.md` through core memory and then appends the structured profile and style instructions, so every entry point that sees `USER.md` sees the same profile. The WebUI password is the existing `channels.websocket.tokenIssueSecret`; onboarding writes it into the config rather than creating a second credential store.
 
+Passkey sign-in stays a WebUI concern. `yoreni/webui/passkeys.py` owns `passkeys.json` beside the config (one stable user handle, one record per credential bound to its `rp_id`), and `yoreni/webui/webauthn.py` holds the pure ceremony checks. `PasskeyStore` is the only writer, and the file joins the operator state files so no agent path can install a credential. `/webui/bootstrap` accepts either the configured password or an in-memory ticket issued after a verified assertion; tickets never reach the CLI token endpoint and never survive a gateway restart, so losing them only costs one authenticator prompt.
+
 ## Project workspaces
 
 A project is a durable line of work owned by the same single, sessionless agent, not a Session or a second Agent. `yoreni/projects/` owns the concept: `scope.py` defines the only vocabulary (`global` for the main chat, `project:<id>` for one project), `models.py` holds the persisted records, and `ProjectService` owns creation, rename, handoff, upload ingestion and deletion. Project metadata lives in `projects` and `project_handoffs` inside `agent.sqlite3`, so `AgentStore` stays the only writer of that database; the working directory is `<workspace>/projects/<id>` and is derived from the ID, never from the name.

@@ -37,7 +37,13 @@
       "hidePassword": "隐藏密码",
       "submit": "连接",
       "required": "请输入密码",
-      "invalid": "密码不正确，请重试"
+      "invalid": "密码不正确，请重试",
+      "passkey": {
+        "action": "使用面容 ID 或指纹登录",
+        "orPassword": "或使用密码登录",
+        "hint": "登录后可在个人资料中添加验证器，下次即可用面容 ID 或指纹登录。",
+        "secureContext": "验证器登录需要在 HTTPS 或 localhost 下访问。"
+      }
     },
     "account": {
       "section": "账户",
@@ -330,6 +336,38 @@
         "more": "增强",
         "neutral": "中性",
         "less": "减弱"
+      }
+    },
+    "security": {
+      "password": {
+        "title": "登录密码",
+        "hint": "用于在任何浏览器登录 Yoreni。",
+        "current": "当前密码",
+        "new": "新密码",
+        "confirm": "确认新密码",
+        "save": "更新密码",
+        "saved": "密码已更新"
+      },
+      "authenticators": {
+        "title": "验证器",
+        "hint": "使用面容 ID、Touch ID、Windows Hello 或指纹登录，无需输入密码。",
+        "empty": "尚未添加验证器。",
+        "nameLabel": "名称",
+        "namePlaceholder": "例如：这台 Mac",
+        "defaultName": "此设备",
+        "add": "添加验证器",
+        "remove": "移除 {{name}}",
+        "lastUsed": "上次使用 {{date}}",
+        "addedOn": "添加于 {{date}}",
+        "secureContext": "添加验证器需要在 HTTPS 或 localhost 下访问。"
+      },
+      "errors": {
+        "loadFailed": "无法加载登录方式。",
+        "currentPasswordWrong": "当前密码不正确。",
+        "passwordTooShort": "请至少输入 {{count}} 个字符。",
+        "passwordMismatch": "两次输入的新密码不一致。",
+        "passkeyFailed": "验证器未完成验证，请重试。",
+        "passkeyExists": "此设备已添加过验证器。"
       }
     }
   },

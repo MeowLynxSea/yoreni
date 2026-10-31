@@ -37,7 +37,13 @@
       "hidePassword": "隱藏密碼",
       "submit": "連線",
       "required": "請輸入密碼",
-      "invalid": "密碼不正確，請重試"
+      "invalid": "密碼不正確，請重試",
+      "passkey": {
+        "action": "使用面容 ID 或指紋登入",
+        "orPassword": "或使用密碼登入",
+        "hint": "登入後可在個人資料中新增驗證器，下次即可用面容 ID 或指紋登入。",
+        "secureContext": "驗證器登入需要在 HTTPS 或 localhost 下存取。"
+      }
     },
     "account": {
       "section": "帳戶",
@@ -330,6 +336,38 @@
         "more": "增強",
         "neutral": "中性",
         "less": "減弱"
+      }
+    },
+    "security": {
+      "password": {
+        "title": "登入密碼",
+        "hint": "用於在任何瀏覽器登入 Yoreni。",
+        "current": "目前密碼",
+        "new": "新密碼",
+        "confirm": "確認新密碼",
+        "save": "更新密碼",
+        "saved": "密碼已更新"
+      },
+      "authenticators": {
+        "title": "驗證器",
+        "hint": "使用面容 ID、Touch ID、Windows Hello 或指紋登入，無需輸入密碼。",
+        "empty": "尚未新增驗證器。",
+        "nameLabel": "名稱",
+        "namePlaceholder": "例如：這台 Mac",
+        "defaultName": "此裝置",
+        "add": "新增驗證器",
+        "remove": "移除 {{name}}",
+        "lastUsed": "上次使用 {{date}}",
+        "addedOn": "新增於 {{date}}",
+        "secureContext": "新增驗證器需要在 HTTPS 或 localhost 下存取。"
+      },
+      "errors": {
+        "loadFailed": "無法載入登入方式。",
+        "currentPasswordWrong": "目前密碼不正確。",
+        "passwordTooShort": "請至少輸入 {{count}} 個字元。",
+        "passwordMismatch": "兩次輸入的新密碼不一致。",
+        "passkeyFailed": "驗證器未完成驗證，請重試。",
+        "passkeyExists": "此裝置已新增過驗證器。"
       }
     }
   },

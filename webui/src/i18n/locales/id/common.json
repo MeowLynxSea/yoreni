@@ -37,7 +37,13 @@
       "hidePassword": "Sembunyikan kata sandi",
       "submit": "Hubungkan",
       "required": "Masukkan kata sandi",
-      "invalid": "Kata sandi salah"
+      "invalid": "Kata sandi salah",
+      "passkey": {
+        "action": "Masuk dengan Face ID atau sidik jari",
+        "orPassword": "Atau gunakan kata sandi",
+        "hint": "Tambahkan pengautentikasi di profil setelah masuk, lalu gunakan Face ID atau sidik jari lain kali.",
+        "secureContext": "Masuk dengan pengautentikasi memerlukan HTTPS atau localhost."
+      }
     },
     "account": {
       "section": "Akun",
@@ -330,6 +336,38 @@
         "more": "Lebih",
         "neutral": "Netral",
         "less": "Kurangi"
+      }
+    },
+    "security": {
+      "password": {
+        "title": "Kata sandi masuk",
+        "hint": "Dipakai untuk masuk ke Yoreni dari browser mana pun.",
+        "current": "Kata sandi saat ini",
+        "new": "Kata sandi baru",
+        "confirm": "Konfirmasi kata sandi baru",
+        "save": "Perbarui kata sandi",
+        "saved": "Kata sandi diperbarui"
+      },
+      "authenticators": {
+        "title": "Pengautentikasi",
+        "hint": "Gunakan Face ID, Touch ID, Windows Hello, atau sidik jari untuk masuk tanpa mengetik kata sandi.",
+        "empty": "Belum ada pengautentikasi.",
+        "nameLabel": "Nama",
+        "namePlaceholder": "Misalnya: Mac ini",
+        "defaultName": "Perangkat ini",
+        "add": "Tambah pengautentikasi",
+        "remove": "Hapus {{name}}",
+        "lastUsed": "Terakhir dipakai {{date}}",
+        "addedOn": "Ditambahkan {{date}}",
+        "secureContext": "Menambah pengautentikasi memerlukan HTTPS atau localhost."
+      },
+      "errors": {
+        "loadFailed": "Tidak dapat memuat metode masuk Anda.",
+        "currentPasswordWrong": "Kata sandi saat ini salah.",
+        "passwordTooShort": "Gunakan minimal {{count}} karakter.",
+        "passwordMismatch": "Kata sandi baru tidak cocok.",
+        "passkeyFailed": "Pengautentikasi tidak selesai. Coba lagi.",
+        "passkeyExists": "Perangkat ini sudah menjadi pengautentikasi."
       }
     }
   },

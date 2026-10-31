@@ -1442,6 +1442,67 @@ export interface OnboardingSnapshot {
   completed_at: string | null;
 }
 
+/** Sign-in state the login screen needs before it holds any token. */
+export interface AuthStatus {
+  password_set: boolean;
+  passkey_count: number;
+}
+
+export interface AuthenticatorSummary {
+  id: string;
+  name: string;
+  created_at: string;
+  last_used_at: string | null;
+}
+
+export interface ProfileSecurity {
+  password_set: boolean;
+  authenticators: AuthenticatorSummary[];
+}
+
+export interface CredentialDescriptorJSON {
+  type: "public-key";
+  id: string;
+  transports?: string[];
+}
+
+/** Registration options as the gateway serializes them, with base64url values. */
+export interface PasskeyRegistrationOptions {
+  challenge: string;
+  rp: { id: string; name: string };
+  user: { id: string; name: string; displayName: string };
+  pubKeyCredParams: Array<{ type: "public-key"; alg: number }>;
+  authenticatorSelection: {
+    residentKey: "preferred";
+    userVerification: "required";
+  };
+  attestation: "none";
+  timeout: number;
+  excludeCredentials: CredentialDescriptorJSON[];
+}
+
+export interface PasskeyAssertionOptions {
+  challenge: string;
+  rpId: string;
+  allowCredentials: CredentialDescriptorJSON[];
+  userVerification: "preferred";
+  timeout: number;
+}
+
+export interface PasskeyRegistrationPayload {
+  client_data_json: string;
+  attestation_object: string;
+  name: string;
+  transports: string[];
+}
+
+export interface PasskeyAssertionPayload {
+  client_data_json: string;
+  authenticator_data: string;
+  signature: string;
+  credential_id: string;
+}
+
 export type ConnectionStatus =
   | "idle"
   | "connecting"

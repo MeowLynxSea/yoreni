@@ -37,7 +37,13 @@
       "hidePassword": "Ocultar contraseña",
       "submit": "Conectar",
       "required": "Introduce la contraseña",
-      "invalid": "Contraseña incorrecta"
+      "invalid": "Contraseña incorrecta",
+      "passkey": {
+        "action": "Iniciar sesión con Face ID o huella",
+        "orPassword": "O usa tu contraseña",
+        "hint": "Añade un autenticador en el perfil tras entrar y la próxima vez usa Face ID o tu huella.",
+        "secureContext": "El acceso con autenticador requiere HTTPS o localhost."
+      }
     },
     "account": {
       "section": "Cuenta",
@@ -330,6 +336,38 @@
         "more": "Más",
         "neutral": "Neutral",
         "less": "Menos"
+      }
+    },
+    "security": {
+      "password": {
+        "title": "Contraseña de acceso",
+        "hint": "Se usa para entrar en Yoreni desde cualquier navegador.",
+        "current": "Contraseña actual",
+        "new": "Nueva contraseña",
+        "confirm": "Confirmar contraseña nueva",
+        "save": "Actualizar contraseña",
+        "saved": "Contraseña actualizada"
+      },
+      "authenticators": {
+        "title": "Autenticadores",
+        "hint": "Usa Face ID, Touch ID, Windows Hello o tu huella para entrar sin escribir la contraseña.",
+        "empty": "Aún no hay autenticadores.",
+        "nameLabel": "Nombre",
+        "namePlaceholder": "Por ejemplo: este Mac",
+        "defaultName": "Este dispositivo",
+        "add": "Añadir autenticador",
+        "remove": "Eliminar {{name}}",
+        "lastUsed": "Último uso {{date}}",
+        "addedOn": "Añadido el {{date}}",
+        "secureContext": "Añadir un autenticador requiere HTTPS o localhost."
+      },
+      "errors": {
+        "loadFailed": "No se pudieron cargar tus métodos de acceso.",
+        "currentPasswordWrong": "La contraseña actual no es correcta.",
+        "passwordTooShort": "Usa al menos {{count}} caracteres.",
+        "passwordMismatch": "Las contraseñas nuevas no coinciden.",
+        "passkeyFailed": "El autenticador no terminó. Inténtalo de nuevo.",
+        "passkeyExists": "Este dispositivo ya es un autenticador."
       }
     }
   },

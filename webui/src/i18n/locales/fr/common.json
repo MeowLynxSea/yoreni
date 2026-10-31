@@ -37,7 +37,13 @@
       "hidePassword": "Masquer le mot de passe",
       "submit": "Se connecter",
       "required": "Saisissez le mot de passe",
-      "invalid": "Mot de passe incorrect"
+      "invalid": "Mot de passe incorrect",
+      "passkey": {
+        "action": "Se connecter avec Face ID ou une empreinte",
+        "orPassword": "Ou utilisez votre mot de passe",
+        "hint": "Ajoutez un authentificateur dans le profil après connexion, puis utilisez Face ID ou une empreinte la fois suivante.",
+        "secureContext": "La connexion par authentificateur nécessite HTTPS ou localhost."
+      }
     },
     "account": {
       "section": "Compte",
@@ -330,6 +336,38 @@
         "more": "Plus",
         "neutral": "Neutre",
         "less": "Moins"
+      }
+    },
+    "security": {
+      "password": {
+        "title": "Mot de passe de connexion",
+        "hint": "Sert à vous connecter à Yoreni depuis n'importe quel navigateur.",
+        "current": "Mot de passe actuel",
+        "new": "Nouveau mot de passe",
+        "confirm": "Confirmer le nouveau mot de passe",
+        "save": "Mettre à jour",
+        "saved": "Mot de passe mis à jour"
+      },
+      "authenticators": {
+        "title": "Authentificateurs",
+        "hint": "Utilisez Face ID, Touch ID, Windows Hello ou une empreinte pour vous connecter sans mot de passe.",
+        "empty": "Aucun authentificateur ajouté.",
+        "nameLabel": "Nom",
+        "namePlaceholder": "Par exemple : ce Mac",
+        "defaultName": "Cet appareil",
+        "add": "Ajouter un authentificateur",
+        "remove": "Supprimer {{name}}",
+        "lastUsed": "Dernière utilisation {{date}}",
+        "addedOn": "Ajouté le {{date}}",
+        "secureContext": "L'ajout d'un authentificateur nécessite HTTPS ou localhost."
+      },
+      "errors": {
+        "loadFailed": "Impossible de charger vos méthodes de connexion.",
+        "currentPasswordWrong": "Le mot de passe actuel est incorrect.",
+        "passwordTooShort": "Utilisez au moins {{count}} caractères.",
+        "passwordMismatch": "Les nouveaux mots de passe ne correspondent pas.",
+        "passkeyFailed": "L'authentificateur n'a pas terminé. Réessayez.",
+        "passkeyExists": "Cet appareil est déjà enregistré comme authentificateur."
       }
     }
   },

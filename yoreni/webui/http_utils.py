@@ -311,14 +311,44 @@ def bearer_token(headers: Any) -> str | None:
     return None
 
 
+def request_secret(headers: Any) -> str:
+    """Return the bootstrap secret a request supplied, if any."""
+    bearer = bearer_token(headers)
+    if bearer:
+        return bearer
+    return case_insensitive_header(headers, "X-Yoreni-Auth")
+
+
 def issue_route_secret_matches(headers: Any, configured_secret: str) -> bool:
     if not configured_secret:
         return True
-    authorization = headers.get("Authorization") or headers.get("authorization")
-    if authorization and authorization.lower().startswith("bearer "):
-        supplied = authorization[7:].strip()
-        return hmac.compare_digest(supplied, configured_secret)
-    header_token = headers.get("X-Yoreni-Auth") or headers.get("x-yoreni-auth")
-    if not header_token:
+    supplied = request_secret(headers)
+    if not supplied:
         return False
-    return hmac.compare_digest(header_token.strip(), configured_secret)
+    return hmac.compare_digest(supplied, configured_secret)
+
+
+def normalize_origin(value: object) -> str | None:
+    """Normalize a browser origin, or return None when it is not one."""
+    if not isinstance(value, str):
+        return None
+    parts = urlparse(value.strip())
+    if parts.scheme not in {"http", "https"} or not parts.netloc:
+        return None
+    return f"{parts.scheme}://{parts.netloc.lower()}"
+
+
+def request_origin(headers: Any) -> str | None:
+    """Return the browser origin for a WebAuthn ceremony.
+
+    Browsers always send ``Origin`` for credential calls. A same-origin GET may
+    omit it, so loopback requests may fall back to the ``Host`` header; forwarded
+    host headers are never trusted for origin binding.
+    """
+    origin = normalize_origin(case_insensitive_header(headers, "Origin"))
+    if origin:
+        return origin
+    host = case_insensitive_header(headers, "Host")
+    if host and is_loopback_host(host):
+        return f"http://{host.lower()}"
+    return None

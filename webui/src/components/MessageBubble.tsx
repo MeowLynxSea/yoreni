@@ -526,7 +526,7 @@ function MessageBubbleView({
               data-quote-target={quoteTarget || undefined}
               data-temporary-message={temporary ? "true" : undefined}
               className={cn(
-                "thread-message-body ml-auto w-fit max-w-full min-w-0 rounded-[1.35rem] px-4 py-2.5",
+                "ml-auto w-fit max-w-full min-w-0 rounded-[1.35rem] px-4 py-2.5",
                 "text-left text-reading whitespace-pre-wrap [overflow-wrap:anywhere]",
                 temporary
                   ? "border border-dashed border-muted-foreground/40 bg-transparent"
@@ -644,7 +644,7 @@ function MessageBubbleView({
       ) : null}
       <div
         data-quote-target={quoteTarget || undefined}
-        className="thread-message-body app-surface-glass rounded-[1.6rem] px-5 py-4 sm:px-6 sm:py-5"
+        className="app-surface-glass rounded-[1.6rem] px-5 py-4 sm:px-6 sm:py-5"
       >
         <InlineImageProvider>
           <div

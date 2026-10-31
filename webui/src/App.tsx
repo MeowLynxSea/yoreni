@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Disclosure } from "@/components/ui/disclosure";
 import { ChevronDown } from "lucide-react";
-import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -347,6 +347,50 @@ function MessageTimeDivider({ timestamp }: { timestamp: number }) {
   );
 }
 
+/**
+ * A transcript row that keeps the browser's work proportional to what is on
+ * screen. A row far outside the viewport is replaced by a spacer holding the
+ * height it measured, so the scroll geometry stays exact: unlike an estimated
+ * placeholder, loading an older page never resizes the rows the reader is
+ * standing on. The spacer keeps the message ID so quotes and search can still
+ * land on it.
+ */
+function ThreadMessageRow({ messageId, children }: { messageId: string; children: ReactNode }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const heightRef = useRef(0);
+  const [rendered, setRendered] = useState(true);
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[entries.length - 1];
+      if (!entry) return;
+      if (entry.isIntersecting) {
+        setRendered(true);
+        return;
+      }
+      const height = entry.boundingClientRect.height;
+      // A row the browser has not laid out yet collapses to nothing, so it
+      // stays rendered until it reports the height it occupies.
+      if (height <= 0) return;
+      heightRef.current = height;
+      setRendered(false);
+    }, { rootMargin: "800px 0px" });
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div
+      ref={rowRef}
+      {...(rendered
+        ? {}
+        : { "data-message-id": messageId, style: { height: heightRef.current } })}
+    >
+      {rendered ? children : null}
+    </div>
+  );
+}
+
 function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocusHandled }: {
   greeting: string;
   run: ReturnType<typeof useAgentRun>;
@@ -441,12 +485,13 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
                 <Fragment key={group.key}>
                   <MessageTimeDivider timestamp={group.startedAt} />
                   {group.messages.map((message) => (
-                    <MessageBubble
-                      key={message.id}
-                      message={message}
-                      onJumpToQuote={jumpToQuote}
-                      quoteTarget={quoteTarget === message.id}
-                    />
+                    <ThreadMessageRow key={message.id} messageId={message.id}>
+                      <MessageBubble
+                        message={message}
+                        onJumpToQuote={jumpToQuote}
+                        quoteTarget={quoteTarget === message.id}
+                      />
+                    </ThreadMessageRow>
                   ))}
                 </Fragment>
               ))}

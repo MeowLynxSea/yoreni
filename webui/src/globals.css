@@ -45,17 +45,6 @@
   }
 }
 
-/* Every loaded message stays in the DOM so quotes, search, and find-in-page keep
-   resolving, but a bubble that is offscreen skips layout and paint. The `auto`
-   intrinsic size reuses the height a bubble already had, so scrolling history
-   back into view does not resize it. */
-@supports (content-visibility: auto) {
-  .thread-message-body {
-    content-visibility: auto;
-    contain-intrinsic-size: auto 12rem;
-  }
-}
-
 /* Only gradient owners need interpolable colors; palette tokens remain unchanged. */
 @property --thread-history-background {
   syntax: "<color>";

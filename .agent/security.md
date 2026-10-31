@@ -12,6 +12,8 @@ Shell execution (`ExecTool`, `agent/tools/shell.py`) also respects `restrict_to_
 
 State ownership is separate from the access mode: writes to core memory files, the active config file, and the owner profile and onboarding files are refused on every agent path, including full access. Only `MemoryService` consolidation, `UserProfileStore` and the settings writers touch them. The guard lives in `ExecTool._guard_state_writes` and `_FsTool._refuse_memory_write`; trusted operator shells (`ExecTool.execute_to_completion`) are exempt.
 
+Project workspaces tighten this boundary: a turn whose scope names a project always resolves to `<workspace>/projects/<id>` in restricted mode, ignoring any client-requested path or access mode, and the project directory is validated against the projects root (including the `uploads` subdirectory) so a symlink cannot redirect project writes outside it. Deleting a project re-checks the directory before removing any record, so a redirected path stops the operation while the data is intact.
+
 **Rule**: Any new path-handling logic must go through the workspace path resolver or perform an equivalent containment check with explicit read/write capability semantics.
 
 ## SSRF Protection

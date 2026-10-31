@@ -181,20 +181,84 @@ describe("agent messages", () => {
     client.close();
   });
 
-  it("trims a long delivered message behind a full-message reader", async () => {
+  it("trims long Agent answers behind a full-message reader", async () => {
     const long = "The plan holds together across every section. ".repeat(60);
     const message: UIMessage = {
       id: "m-long", role: "assistant", content: long, createdAt: 0,
-      turnId: "run-1", delivered: true, turnPhase: "complete",
+      turnId: "run-1", turnPhase: "complete",
     };
-    const { container } = render(<MessageBubble message={message} />);
+    const restoreLayout = stubMessageLayout({ overflowing: true });
+    try {
+      const { container } = render(<MessageBubble message={message} />);
 
-    expect(container.querySelector("[data-message-trimmed]")).not.toBeNull();
-    expect(screen.queryByText(long)).not.toBeInTheDocument();
+      expect(container.querySelector("[data-message-trimmed]")).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Read full message" }));
+      fireEvent.click(screen.getByRole("button", { name: "Read full message" }));
 
-    const dialog = await screen.findByRole("dialog");
-    expect(dialog.textContent?.replace(/\s+/g, " ")).toContain(long.trim().slice(-80).replace(/\s+/g, " "));
+      const dialog = await screen.findByRole("dialog");
+      expect(dialog.textContent?.replace(/\s+/g, " ")).toContain(long.trim().slice(-80).replace(/\s+/g, " "));
+    } finally {
+      restoreLayout();
+    }
+  });
+
+  it("trims a long user message the same way", async () => {
+    const long = "Please read this long note before replying. ".repeat(80);
+    const restoreLayout = stubMessageLayout({ overflowing: true });
+    try {
+      const { container } = render(
+        <MessageBubble message={{ id: "u-long", role: "user", content: long, createdAt: 0 }} />,
+      );
+
+      expect(container.querySelector("[data-message-trimmed]")).not.toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: "Read full message" }));
+
+      const dialog = await screen.findByRole("dialog");
+      expect(dialog.textContent?.replace(/\s+/g, " ")).toContain(long.trim().slice(-80).replace(/\s+/g, " "));
+    } finally {
+      restoreLayout();
+    }
+  });
+
+  it("leaves a short answer unfolded", () => {
+    const restoreLayout = stubMessageLayout({ overflowing: false });
+    try {
+      const { container } = render(
+        <MessageBubble message={{ id: "m-short", role: "assistant", content: "On it.", createdAt: 0 }} />,
+      );
+
+      expect(container.querySelector("[data-message-trimmed]")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Read full message" })).not.toBeInTheDocument();
+    } finally {
+      restoreLayout();
+    }
   });
 });
+
+/** happy-dom performs no layout, so tests supply the measured heights. */
+function stubMessageLayout({ overflowing }: { overflowing: boolean }) {
+  const scrollHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollHeight");
+  const clientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
+  Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+    configurable: true,
+    get(this: HTMLElement) {
+      if (this.dataset.messageContent !== undefined) return overflowing ? 900 : 300;
+      return scrollHeight?.get?.call(this) ?? 0;
+    },
+  });
+  Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+    configurable: true,
+    get(this: HTMLElement) {
+      if (this.dataset.messageClip !== undefined) return 416;
+      return clientHeight?.get?.call(this) ?? 0;
+    },
+  });
+  return () => {
+    if (scrollHeight) Object.defineProperty(HTMLElement.prototype, "scrollHeight", scrollHeight);
+    else delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollHeight;
+    if (clientHeight) Object.defineProperty(HTMLElement.prototype, "clientHeight", clientHeight);
+    else delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientHeight;
+  };
+}
+

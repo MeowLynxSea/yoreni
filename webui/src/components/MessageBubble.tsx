@@ -9,7 +9,6 @@ import {
 import {
   Activity,
   Check,
-  ChevronDown,
   CircleAlert,
   Clock3,
   Copy,
@@ -19,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { AttachmentTile } from "@/components/AttachmentTile";
 import { LinkCard } from "@/components/LinkCard";
 import { CodeBlock } from "@/components/CodeBlock";
+import { CollapsibleMessageText } from "@/components/CollapsibleMessageText";
 import { FallbackResponseSources } from "@/components/ResponseSourceBadge";
 import { HtmlAttachment } from "@/components/HtmlAttachment";
 import { ImageGallery } from "@/components/ImageGallery";
@@ -26,7 +26,6 @@ import { InlineImageProvider, useInlineImages } from "@/components/InlineImageCo
 import { MarkdownText } from "@/components/MarkdownText";
 import { ContextCompactionNotice } from "@/components/thread/ContextCompactionNotice";
 import { QuotedMessageLink } from "@/components/thread/QuotedMessageLink";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { UserMessageText } from "@/components/UserMessageText";
 import { HoverHint } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -370,24 +369,6 @@ function UserDeliveryStatus({
   );
 }
 
-/** Answers longer than this read as walls of text, so the bubble trims them. */
-const LONG_MESSAGE_CHARS = 1_200;
-
-/** Cut a long answer at a natural boundary so the bubble ends on a whole thought. */
-function trimmedMessage(content: string): string {
-  const window = content.slice(0, LONG_MESSAGE_CHARS);
-  const boundary = Math.max(
-    window.lastIndexOf("\n\n"),
-    window.lastIndexOf("\n"),
-    window.lastIndexOf("。"),
-    window.lastIndexOf("！"),
-    window.lastIndexOf("？"),
-    window.lastIndexOf(". "),
-  );
-  const end = boundary > LONG_MESSAGE_CHARS * 0.6 ? boundary + 1 : LONG_MESSAGE_CHARS;
-  return content.slice(0, end).trimEnd();
-}
-
 /**
  * The send time, revealed above the message on hover: the Agent's on the left,
  * the reader's on the right, stacked date over clock like a chat client. It is
@@ -467,75 +448,6 @@ function MessageReactions({
   );
 }
 
-function DeliveredMessageBody({
-  content,
-  streaming,
-  onOpenFilePreview,
-}: {
-  content: string;
-  streaming: boolean;
-  onOpenFilePreview?: (path: string) => void;
-}) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const long = !streaming && content.length > LONG_MESSAGE_CHARS;
-  if (!long) {
-    return (
-      <MarkdownText
-        streaming={streaming}
-        preserveStreamingLayout
-        onOpenFilePreview={onOpenFilePreview}
-      >
-        {content}
-      </MarkdownText>
-    );
-  }
-  const label = t("message.readFullMessage");
-  return (
-    <>
-      <div
-        data-message-trimmed
-        className={cn(
-          "relative max-h-[26rem] overflow-hidden",
-          "[mask-image:linear-gradient(to_bottom,black_72%,transparent)]",
-        )}
-      >
-        <MarkdownText onOpenFilePreview={onOpenFilePreview}>{trimmedMessage(content)}</MarkdownText>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          tabIndex={-1}
-          aria-hidden
-          className="absolute inset-0 cursor-pointer"
-        />
-      </div>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={cn(
-          "mt-2 inline-flex items-center gap-1 rounded-control text-[13px] font-medium",
-          "text-muted-foreground transition-colors hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        )}
-      >
-        {label}
-        <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-      </button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent
-          aria-describedby={undefined}
-          className="max-h-[85dvh] w-[min(92vw,46rem)] overflow-y-auto overscroll-contain"
-        >
-          <DialogTitle>{t("message.fullMessageTitle")}</DialogTitle>
-          <div data-assistant-selectable="true" className="text-reading">
-            <MarkdownText onOpenFilePreview={onOpenFilePreview}>{content}</MarkdownText>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
 /** Render user turns as compact bubbles and assistant turns as document-like prose. */
 export function MessageBubble({
   message,
@@ -607,7 +519,7 @@ export function MessageBubble({
         {hasText ? (
           <div data-user-text-bubble className="relative ml-auto w-fit max-w-full min-w-0">
             {contextMenu}
-            <p
+            <div
               data-theme-surface
               data-message-selectable="true"
               data-quote-target={quoteTarget || undefined}
@@ -620,8 +532,14 @@ export function MessageBubble({
                   : "user-message-bubble",
               )}
             >
-              {messageText}
-            </p>
+              <CollapsibleMessageText
+                fullContent={
+                  <div className="whitespace-pre-wrap [overflow-wrap:anywhere]">{messageText}</div>
+                }
+              >
+                {messageText}
+              </CollapsibleMessageText>
+            </div>
             <MessageReactions reactions={message.reactions} side="right" />
           </div>
         ) : null}
@@ -682,6 +600,25 @@ export function MessageBubble({
       </div>
     );
   }
+  const proseBody = message.renderAs === "text" ? (
+    <CodeBlock language="text" code={assistantContent} highlight={false} ansi={false} />
+  ) : message.delivered ? (
+    <MarkdownText onOpenFilePreview={onOpenFilePreview}>{assistantContent}</MarkdownText>
+  ) : (
+    /* A mode switch rebuilds Streamdown's subtree and moves the scroll anchor. */
+    <MarkdownText
+      streaming={!!message.isStreaming}
+      preserveStreamingLayout
+      onOpenFilePreview={onOpenFilePreview}
+    >
+      {assistantContent}
+    </MarkdownText>
+  );
+  const fullProseBody = message.renderAs === "text" ? (
+    <CodeBlock language="text" code={assistantContent} highlight={false} ansi={false} />
+  ) : (
+    <MarkdownText onOpenFilePreview={onOpenFilePreview}>{assistantContent}</MarkdownText>
+  );
   return (
     <div
       data-assistant-message
@@ -713,24 +650,12 @@ export function MessageBubble({
             data-message-selectable={message.isStreaming ? undefined : "true"}
             data-assistant-selectable={message.isStreaming ? undefined : "true"}
           >
-            {message.renderAs === "text" ? (
-              <CodeBlock language="text" code={assistantContent} highlight={false} ansi={false} />
-            ) : message.delivered ? (
-              <DeliveredMessageBody
-                content={assistantContent}
-                streaming={!!message.isStreaming}
-                onOpenFilePreview={onOpenFilePreview}
-              />
-            ) : (
-              /* A mode switch rebuilds Streamdown's subtree and moves the scroll anchor. */
-              <MarkdownText
-                streaming={!!message.isStreaming}
-                preserveStreamingLayout
-                onOpenFilePreview={onOpenFilePreview}
-              >
-                {assistantContent}
-              </MarkdownText>
-            )}
+            <CollapsibleMessageText
+              streaming={!!message.isStreaming}
+              fullContent={<div data-assistant-selectable="true">{fullProseBody}</div>}
+            >
+              {proseBody}
+            </CollapsibleMessageText>
           </div>
           {media.length > 0 ? <MessageMedia media={media} align="left" /> : null}
         </InlineImageProvider>

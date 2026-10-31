@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from yoreni.config.schema import ProvidersConfig, ToolsConfig
     from yoreni.cron.service import CronService
     from yoreni.memory.service import MemoryService
+    from yoreni.projects.service import ProjectService
     from yoreni.providers.factory import ProviderSnapshot
     from yoreni.security.workspace_access import WorkspaceSandboxStatus, WorkspaceScope
     from yoreni.utils.llm_runtime import LLMRuntime
@@ -78,6 +79,13 @@ def current_request_context() -> RequestContext | None:
     return _CURRENT_REQUEST_CONTEXT.get()
 
 
+def current_memory_scope(default: str = "global") -> str:
+    """Return the conversation scope of the running turn."""
+    ctx = current_request_context()
+    scope = ctx.attributes.get("memory_scope") if ctx is not None else None
+    return scope if isinstance(scope, str) and scope else default
+
+
 def tool_log_content_allowed() -> bool:
     """Whether diagnostics may include content from the current tool request."""
     ctx = current_request_context()
@@ -106,6 +114,7 @@ class ToolContext:
     exec_session_manager: ExecSessionManager | None = None
     agent_store: AgentStore | None = None
     memory: MemoryService | None = None
+    projects: ProjectService | None = None
     file_state_store: FileStates | None = None
     provider_snapshot_loader: Callable[..., ProviderSnapshot] | None = None
     providers_config: ProvidersConfig | None = None

@@ -15,7 +15,7 @@ from loguru import logger
 
 from yoreni.agent.injection import current_user_message_id
 from yoreni.agent.tools.base import Tool
-from yoreni.agent.tools.context import current_request_context
+from yoreni.agent.tools.context import current_memory_scope, current_request_context
 from yoreni.bus.delivery import DeliveryRequest
 from yoreni.bus.events import OutboundMessage
 from yoreni.bus.outbound_events import AgentMessageEvent
@@ -275,7 +275,10 @@ class OutboundChatTool(Tool):
         if self._store is None:
             return None
         try:
-            reference = await asyncio.to_thread(self._store.resolve_message_reference, message_id)
+            reference = await asyncio.to_thread(
+                self._store.resolve_message_reference, message_id,
+                scope=current_memory_scope(),
+            )
         except Exception:
             logger.opt(exception=True).warning("failed to resolve reply target {}", message_id)
             return None

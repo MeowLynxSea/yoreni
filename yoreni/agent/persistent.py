@@ -41,6 +41,13 @@ from yoreni.bus.outbound_events import StreamDeltaEvent, StreamEndEvent
 from yoreni.cron.events import cron_run_id
 from yoreni.events import AgentEvent, EventSink
 from yoreni.memory.service import iso_from_ms
+from yoreni.projects.scope import (
+    GLOBAL_SCOPE,
+    PROJECT_ID_METADATA_KEY,
+    ProjectScopeError,
+    project_id_from_scope,
+    project_scope,
+)
 from yoreni.runtime_admission import RuntimeMaintenanceError
 from yoreni.runtime_context import (
     RUNTIME_CONTEXT_MESSAGE_META,
@@ -49,6 +56,7 @@ from yoreni.runtime_context import (
     public_history_messages,
     wrap_runtime_context_lines,
 )
+from yoreni.security.workspace_access import build_workspace_scope
 from yoreni.triggers.events import local_trigger_delivery_id
 from yoreni.utils.document import reference_non_image_attachments
 from yoreni.utils.progress_events import output_events
@@ -183,6 +191,15 @@ class PersistentAgent:
     @staticmethod
     def input_from_message(msg: InboundMessage) -> AgentInput:
         correlation = msg.metadata.get(INBOUND_META_TURN_ID)
+        raw_project = msg.metadata.get(PROJECT_ID_METADATA_KEY)
+        scope = GLOBAL_SCOPE
+        if raw_project is not None:
+            if not isinstance(raw_project, str):
+                raise ValueError("invalid project id in message metadata")
+            try:
+                scope = project_scope(raw_project)
+            except ProjectScopeError as exc:
+                raise ValueError("invalid project id in message metadata") from exc
         cron_id = cron_run_id(msg.metadata)
         trigger_id = local_trigger_delivery_id(msg.metadata)
         source = "cron" if cron_id else "local_trigger" if trigger_id else msg.channel
@@ -197,6 +214,7 @@ class PersistentAgent:
             event_id=cron_id or trigger_id or (correlation if isinstance(correlation, str) and correlation else str(msg.timestamp.timestamp())),
             media=tuple(msg.media),
             metadata={**metadata, "sender_id": msg.sender_id},
+            scope=scope,
         )
 
     async def archive_pending(self) -> None:
@@ -205,12 +223,13 @@ class PersistentAgent:
         if not memory.config.enabled:
             return
         pending = await asyncio.to_thread(self.store.pending_journal)
-        for run_id, messages, created_at_ms in pending:
+        for run_id, messages, created_at_ms, scope in pending:
             await asyncio.to_thread(
                 memory.record_run,
                 run_id,
                 public_history_messages(messages),
                 observed_at=iso_from_ms(created_at_ms),
+                scope=scope,
             )
             await asyncio.to_thread(self.store.mark_journaled, run_id)
         if pending:
@@ -252,7 +271,7 @@ class PersistentAgent:
             record: StoredRun = {
                 "id": execution_id, "event_seq": 0, "status": "queued", "error": None,
                 "transcript": [], "checkpoint": None, "result": None, "journaled": 0,
-                "payload": {},
+                "payload": {}, "scope": event.scope,
             }
             try:
                 return await self._execute(
@@ -271,7 +290,14 @@ class PersistentAgent:
         run_id = await asyncio.to_thread(self.store.admit, event)
         # User interactions share recent context; background work has its own
         # lane and acquires resource leases only while executing effects.
-        lane = "interaction" if event.kind == "user" else f"run:{run_id}"
+        if event.kind != "user":
+            lane = f"run:{run_id}"
+        elif event.scope == GLOBAL_SCOPE:
+            lane = "interaction"
+        else:
+            # One inbox per conversation: a project turn must not wait for,
+            # or absorb, the main chat's live turn.
+            lane = f"interaction:{event.scope}"
         async with resource_lock(self.store, f"event:{run_id}"):
             async with resource_lock(self.store, lane):
                 record = await asyncio.to_thread(self.store.read_run, run_id)
@@ -326,7 +352,19 @@ class PersistentAgent:
             )
         if on_runtime_admitted is not None:
             await on_runtime_admitted(runtime)
-        history = await asyncio.to_thread(self.store.recent) if event.kind == "user" and not event.ephemeral else []
+        project_id = project_id_from_scope(event.scope)
+        project = (
+            await asyncio.to_thread(self.loop.projects.get, project_id)
+            if project_id else None
+        )
+        if project_id is not None and project is None:
+            # The project was deleted after this Event was admitted; running it
+            # in the default workspace would misfile its files and its memory.
+            raise RuntimeError("this project no longer exists")
+        history = (
+            await asyncio.to_thread(self.store.recent, scope=event.scope)
+            if event.kind == "user" and not event.ephemeral else []
+        )
         history = public_history_messages(history)
         context_count = len(history)
         content, media = reference_non_image_attachments(event.content, list(event.media))
@@ -341,14 +379,25 @@ class PersistentAgent:
                 "Use agent_state for current task progress; durable facts belong to memory tools.",
             ]),
         )]
+        if project is not None:
+            blocks.append(RuntimeContextBlock(
+                source="project",
+                content=wrap_runtime_context_lines([
+                    "Current project workspace (stored data). Continue this work here;",
+                    "files you create belong to this project directory.",
+                    *self.loop.projects.context_lines(project),
+                ]),
+            ))
         if event.kind == "user" and not event.ephemeral:
-            blocks.append(await self._conversation_block())
+            blocks.append(await self._conversation_block(scope=event.scope))
             if self.loop.memory.config.enabled:
                 query = event.content
                 task = identity.state.get("task")
                 if isinstance(task, dict) and task:
                     query = f"{query}\n{json.dumps(task, ensure_ascii=False)[:500]}"
-                memory_block = await self.loop.memory.context_block(query)
+                memory_block = await self.loop.memory.context_block(
+                    query, scope=event.scope,
+                )
                 if memory_block is not None:
                     blocks.append(memory_block)
         current_message: str | None = content
@@ -375,13 +424,24 @@ class PersistentAgent:
         scope = loop.workspace_scopes.for_turn(
             channel=event.channel, message_metadata=event.metadata,
         )
+        if project is not None:
+            # A project turn always works inside its own directory, whatever
+            # access the client asked for; that boundary is what keeps one
+            # project from reading another.
+            scope = build_workspace_scope(
+                loop.projects.directory(project.id), "restricted",
+                source_channel=scope.source_channel,
+            )
         request = RequestContext(
             channel=event.channel, chat_id=event.chat_id, sender_id=event.principal,
             message_id=event.event_id if event.kind == "user" else None,
             turn_id=run_id, runtime=runtime, workspace=scope.project_path, workspace_scope=scope,
             original_user_text=event.content if event.kind == "user" else None,
             metadata={**event.metadata, "_agent_event_source": event.source},
-            attributes={**(attributes or {}), "agent_id": identity.id, "run_id": run_id, "event_id": event.event_id},
+            attributes={
+                **(attributes or {}), "agent_id": identity.id, "run_id": run_id,
+                "event_id": event.event_id, "memory_scope": event.scope,
+            },
             agent_id=identity.id,
             can_receive_background_results=False,
             log_content=not event.ephemeral,
@@ -488,9 +548,11 @@ class PersistentAgent:
             return assembled
         return response
 
-    async def _conversation_block(self) -> RuntimeContextBlock:
+    async def _conversation_block(self, *, scope: str = GLOBAL_SCOPE) -> RuntimeContextBlock:
         """Expose message IDs so replies can target one earlier message."""
-        recent = await asyncio.to_thread(self.store.recent_user_messages, limit=6)
+        recent = await asyncio.to_thread(
+            self.store.recent_user_messages, limit=6, scope=scope,
+        )
         rows = [
             {"id": str(row["id"]), "text": str(row["text"])[:200]}
             for row in recent

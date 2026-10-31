@@ -145,7 +145,9 @@ class MemorySearchTool(_MemoryTool):
                     "observed_at": item.observed_at,
                     "excerpt": " ".join(item.content.split())[:300],
                 }
-                for item in self._memory.store.search_evidence(match, 3)
+                for item in self._memory.store.search_evidence(
+                    match, 3, scope=self._scope(),
+                )
             ]
         run_evidence: list[dict[str, Any]] = []
         run_id = self._context.turn_id if self._context is not None else None
@@ -203,7 +205,10 @@ class MemoryGetTool(_MemoryTool):
     predicate=StringSchema("Lowercase snake_case property, e.g. 'preferred_language'."),
     text=StringSchema("One self-contained sentence stating the fact."),
     kind=StringSchema("Memory kind.", enum=_KIND_VALUES),
-    scope=StringSchema("'global' or 'project:<name>'. Defaults to global."),
+    scope=StringSchema(
+        "Optional 'global' or 'project:<id>'. Defaults to the current conversation: "
+        "a project keeps its own knowledge, while global facts reach every project.",
+    ),
     evidence=ArraySchema(
         StringSchema("Evidence id from this Run."),
         description=(
@@ -239,7 +244,7 @@ class MemoryRememberTool(_MemoryTool):
         predicate: str,
         text: str,
         kind: str,
-        scope: str = "global",
+        scope: str | None = None,
         evidence: list[str] | None = None,
         **kwargs: Any,
     ) -> str:
@@ -250,7 +255,7 @@ class MemoryRememberTool(_MemoryTool):
                 predicate=predicate,
                 text=text,
                 kind=FactKind(kind),
-                scope=scope,
+                scope=scope or self._scope() or "global",
                 evidence_ids=evidence,
             )
         except (MemoryError, ValueError) as exc:
@@ -354,6 +359,7 @@ class MemoryForgetTool(_MemoryTool):
                 fact_id=fact_id,
                 query=query,
                 limit=limit,
+                scope=self._scope(),
             )
         except MemoryError as exc:
             return ToolResult.error(f"Error: {exc}")

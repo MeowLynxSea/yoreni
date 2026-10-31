@@ -263,14 +263,19 @@ class AgentLoop:
         self._exec_session_manager = ExecSessionManager()
         self.runner = AgentRunner()
         from yoreni.agent.persistent import PersistentAgent
+        from yoreni.projects.service import ProjectService
 
         self.agent = PersistentAgent(self)
+        # One service owns project metadata, directories and scoped knowledge.
+        self.projects = ProjectService(workspace, self.agent.store, memory=self.memory)
+        self.projects.bind_cancel_run(self.cancel_run)
         self.consolidator = Consolidator()
         self._running = False
         self._runtime_context_providers: list[RuntimeContextProvider] = []
         self._active_tasks: dict[str, set[asyncio.Task[Any]]] = {}
-        # One live inbox per conversation; other chats keep their own turn.
-        self._interactions: dict[tuple[str, str], _Interaction] = {}
+        # One live inbox per conversation scope; a project turn never absorbs
+        # a message addressed to the main chat, or to another project.
+        self._interactions: dict[tuple[str, str, str], _Interaction] = {}
         self._background_tasks: set[asyncio.Task[Any]] = set()
         self._accepted_runs: set[str] = set()
         self._close_lock = asyncio.Lock()
@@ -431,6 +436,7 @@ class AgentLoop:
             exec_session_manager=self._exec_session_manager,
             agent_store=self.agent.store,
             memory=self.memory,
+            projects=self.projects,
             provider_snapshot_loader=provider_snapshot_loader,
             timezone=self.context.timezone or "UTC",
             workspace_sandbox=self.workspace_scopes.sandbox_status,
@@ -576,11 +582,14 @@ class AgentLoop:
         if request.turn_id and self.memory.config.enabled:
             active_run = request.turn_id
 
+            memory_scope = request.attributes.get("memory_scope")
+
             async def record_tool_evidence(
                 tool_name: str, content: str | list[dict[str, Any]],
             ) -> None:
                 await asyncio.to_thread(
                     self.memory.record_tool_result, active_run, tool_name, content,
+                    scope=memory_scope if isinstance(memory_scope, str) else "global",
                 )
 
             tool_evidence = record_tool_evidence
@@ -702,7 +711,7 @@ class AgentLoop:
 
     async def _insert_message(self, event: AgentInput, msg: InboundMessage) -> str | None:
         """Deliver a message into the turn that is already running."""
-        active = self._interactions.get((msg.channel, msg.chat_id))
+        active = self._interactions.get((msg.channel, msg.chat_id, event.scope))
         if active is None:
             return None
         payload = {
@@ -742,14 +751,14 @@ class AgentLoop:
             interaction = None
             if injections is not None:
                 interaction = _Interaction(run_id, msg.channel, msg.chat_id, injections)
-                self._interactions[(msg.channel, msg.chat_id)] = interaction
+                self._interactions[(msg.channel, msg.chat_id, event.scope)] = interaction
             try:
                 await self.agent.submit_message(event, msg, injections=injections)
             finally:
                 self._accepted_runs.discard(run_id)
                 if interaction is None:
                     return
-                key = (msg.channel, msg.chat_id)
+                key = (msg.channel, msg.chat_id, event.scope)
                 if self._interactions.get(key) is interaction:
                     del self._interactions[key]
                 for leftover in interaction.injections.close():

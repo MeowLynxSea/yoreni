@@ -1282,3 +1282,54 @@ function searchParams(query: string, projectId?: string | null): URLSearchParams
   if (projectId) params.set("project_id", projectId);
   return params;
 }
+
+// -- Connector credentials -------------------------------------------------
+
+export async function fetchCredentials(token: string): Promise<import("./types").CredentialsState> {
+  return request<import("./types").CredentialsState>(
+    "/api/webui/credentials",
+    token,
+    undefined,
+    API_READ_TIMEOUT_MS,
+  );
+}
+
+export async function submitCredentialAuth(
+  transport: WebUIMutationTransport,
+  requestId: string,
+  values: Record<string, string>,
+  label?: string,
+): Promise<import("./types").CredentialAccountSummary> {
+  const payload = await mutation<{ account: import("./types").CredentialAccountSummary }>(
+    transport,
+    "credentials.submit",
+    { request_id: requestId, values, ...(label ? { label } : {}) },
+  );
+  return payload.account;
+}
+
+export async function cancelCredentialAuth(
+  transport: WebUIMutationTransport,
+  requestId: string,
+): Promise<void> {
+  await mutation(transport, "credentials.cancel", { request_id: requestId });
+}
+
+export async function startCredentialOAuth(
+  transport: WebUIMutationTransport,
+  connectorId: string,
+  requestId: string,
+): Promise<{ authorization_url: string }> {
+  return mutation<{ authorization_url: string }>(transport, "credentials.connect_oauth", {
+    connector_id: connectorId,
+    request_id: requestId,
+    redirect_uri: `${window.location.origin}/auth/connectors/callback`,
+  });
+}
+
+export async function disconnectCredential(
+  transport: WebUIMutationTransport,
+  accountId: string,
+): Promise<void> {
+  await mutation(transport, "credentials.delete", { account_id: accountId });
+}

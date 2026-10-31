@@ -17,10 +17,12 @@ import { MessageBubble } from "@/components/MessageBubble";
 import { SettingsIndex } from "@/components/settings/SettingsIndex";
 import { isSettingsSectionKey } from "@/components/settings/contracts";
 import { MessageActionLayer, type MessageQuoteSelection } from "@/components/thread/MessageActionLayer";
+import { AuthenticationCard } from "@/components/thread/AuthenticationCard";
 import { ThreadComposer } from "@/components/thread/ThreadComposer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAgentRun } from "@/hooks/useAgentRun";
+import { useAuthRequests } from "@/hooks/useAuthRequests";
 import { useProject } from "@/hooks/useProject";
 import { ThemeControlProvider, useTheme, useThemeControl } from "@/hooks/useTheme";
 import { useAppViewport } from "@/hooks/useAppViewport";
@@ -524,6 +526,7 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
   const { t } = useTranslation();
   const viewport = useRef<HTMLDivElement>(null);
   const thread = useRef<HTMLDivElement>(null);
+  const authRequests = useAuthRequests();
   const following = useRef(true);
   const [atBottom, setAtBottom] = useState(true);
   const highlightTimer = useRef<number | null>(null);
@@ -648,6 +651,20 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
                 </Fragment>
               ))}
               {running ? <AgentRunIndicator key="agent-run" activity={run.activity} className="-mt-3" /> : null}
+              {authRequests.pending.length ? (
+                <div className="mx-auto mt-3 w-full max-w-[44rem]">
+                  {authRequests.pending.map((request) => (
+                    <AuthenticationCard
+                      key={request.id}
+                      request={request}
+                      busy={authRequests.busy === request.id}
+                      onCancel={(id) => { void authRequests.cancel(id); }}
+                      onSubmit={(id, values) => { void authRequests.submit(id, values); }}
+                      onOAuth={(item) => { void authRequests.startOAuth(item); }}
+                    />
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
         )}
@@ -675,6 +692,11 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
             {run.error ? (
               <p role="alert" className="mx-auto mb-2 w-fit rounded-full bg-destructive/10 px-3 py-1.5 text-[12px] text-destructive">
                 {run.error}
+              </p>
+            ) : null}
+            {authRequests.error ? (
+              <p role="alert" className="mx-auto mb-2 w-fit rounded-full bg-destructive/10 px-3 py-1.5 text-[12px] text-destructive">
+                {authRequests.error}
               </p>
             ) : null}
             <ThreadComposer

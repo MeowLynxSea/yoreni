@@ -164,6 +164,16 @@ _WEBUI_MUTATION_PATHS = {
     "skill.delete": "/api/webui/skills/delete",
     "star_prompt.claim": "/api/webui/star-prompt/claim",
     "star_prompt.dismiss": "/api/webui/star-prompt/dismiss",
+    "credentials.connect": "/api/webui/credentials/connect",
+    "credentials.configure_oauth": "/api/webui/credentials/configure-oauth",
+    "credentials.update": "/api/webui/credentials/update",
+    "credentials.delete": "/api/webui/credentials/delete",
+    "credentials.revoke": "/api/webui/credentials/revoke",
+    "credentials.submit": "/api/webui/credentials/submit",
+    "credentials.cancel": "/api/webui/credentials/cancel",
+    "credentials.connect_oauth": "/api/webui/credentials/connect-oauth",
+    "credentials.register_connector": "/api/webui/credentials/register-connector",
+    "credentials.rotate_key": "/api/webui/credentials/rotate-key",
     "workspace.favorite": "/api/workspaces/favorite",
     "workspace.resolve_project": "/api/workspaces/resolve-project",
     "project.create": "/api/projects/create",
@@ -511,6 +521,11 @@ class GatewayHTTPHandler:
             return True
         if re.match(r"^/api/webui/automations/(enable|disable|delete|run|update)$", path):
             return True
+        if re.match(
+            r"^/api/webui/credentials/(connect|configure-oauth|update|delete|revoke|submit|cancel|connect-oauth|register-connector|rotate-key)$",
+            path,
+        ):
+            return True
         if path in {
             "/api/webui/widgets/delete",
             "/api/webui/widgets/refresh",
@@ -657,6 +672,8 @@ class GatewayHTTPHandler:
             }, extra_headers=_NO_STORE_HEADERS)
 
         # Settings routes (delegated)
+        if got == "/auth/connectors/callback":
+            return await self._handle_connector_oauth_callback(request)
         response = await self.settings_routes.dispatch(connection, request, got)
         if response is not None:
             return response
@@ -1207,6 +1224,14 @@ class GatewayHTTPHandler:
     async def _dispatch_misc_routes(
         self, connection: Any, request: WsRequest, got: str
     ) -> Response | None:
+        if got == "/api/webui/credentials":
+            if not self.check_api_token(request):
+                return _http_error(401, "Unauthorized")
+            from yoreni.webui.credentials_api import credentials_state
+
+            return _http_json_response(credentials_state(), extra_headers=_NO_STORE_HEADERS)
+        if got.startswith("/api/webui/credentials/"):
+            return await self._handle_credentials_mutation(connection, request, got)
         if got == "/api/agent/file-preview":
             return self._handle_file_preview(request)
         if got == "/api/webui/goal":
@@ -1265,6 +1290,79 @@ class GatewayHTTPHandler:
                 return _http_error(500, "failed to save reminder preference")
             return _http_json_response({"show": show})
         return None
+
+    async def _handle_connector_oauth_callback(self, request: WsRequest) -> Response:
+        """Complete a connector OAuth flow on the gateway, never in the browser."""
+        from yoreni.credentials.oauth import OAuthFlowError, parse_callback_query
+        from yoreni.webui.credentials_api import complete_oauth_callback
+
+        query = _request_query(request)
+        state = (_query_first(query, "state") or "").strip()
+        code = (_query_first(query, "code") or "").strip()
+        try:
+            if not state or not code:
+                state, code = parse_callback_query(
+                    "&".join(f"{key}={value}" for key, values in query.items() for value in values)
+                )
+            await complete_oauth_callback(state, code)
+        except OAuthFlowError as exc:
+            return self._connector_callback_page(False, str(exc))
+        except Exception:
+            self._log.exception("connector OAuth callback failed")
+            return self._connector_callback_page(False, "Authorization could not be completed")
+        return self._connector_callback_page(True, "You can close this window and return to Yoreni.")
+
+    @staticmethod
+    def _connector_callback_page(ok: bool, message: str) -> Response:
+        import html as _html
+
+        title = "Connected" if ok else "Not connected"
+        body = (
+            "<!doctype html><html><head><meta charset='utf-8'>"
+            f"<title>{_html.escape(title)}</title></head>"
+            "<body style='font-family:system-ui;padding:48px;max-width:32rem;margin:auto'>"
+            f"<h1>{_html.escape(title)}</h1>"
+            f"<p>{_html.escape(message)}</p></body></html>"
+        )
+        return _http_response(body.encode("utf-8"), status=200 if ok else 400, content_type="text/html; charset=utf-8")
+
+    async def _handle_credentials_mutation(
+        self, connection: Any, request: WsRequest, got: str
+    ) -> Response:
+        if not self.check_api_token(request):
+            return _http_error(401, "Unauthorized")
+        payload = _mutation_payload(request) or {}
+        action = got.rsplit("/", 1)[-1]
+        from yoreni.webui import credentials_api as api
+
+        handlers = {
+            "connect": api.connect_account,
+            "configure-oauth": api.configure_oauth,
+            "update": api.update_account,
+            "delete": api.delete_account,
+            "revoke": api.revoke_account,
+            "submit": api.submit_auth_request,
+            "cancel": api.cancel_auth_request,
+            "connect-oauth": api.start_oauth,
+            "register-connector": api.register_connector,
+        }
+        try:
+            if action == "rotate-key":
+                result = await asyncio.to_thread(api.rotate_master_key)
+            else:
+                handler = handlers.get(action)
+                if handler is None:
+                    return _http_error(404, "Credential action not found")
+                result = await asyncio.to_thread(handler, payload)
+        except KeyError:
+            return _http_error(404, "Credential record not found")
+        except ValueError as exc:
+            return _http_error(400, str(exc) or "invalid credential request")
+        except Exception:
+            self._log.exception("credential action failed: %s", action)
+            return _http_error(500, "credential action failed")
+        _ = connection
+        return _http_json_response(result, extra_headers=_NO_STORE_HEADERS)
 
     async def _handle_chat_search(self, request: WsRequest, *, semantic: bool = False) -> Response:
         if not self.check_api_token(request):

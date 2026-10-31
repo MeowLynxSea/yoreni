@@ -31,3 +31,9 @@ HTTP/SSE MCP transports are part of this boundary: validate configured MCP URLs 
 `tools/sandbox.py` provides optional command wrapping: `bwrap` (bubblewrap) on Linux and `seatbelt` (`sandbox-exec`) on macOS. Seatbelt must not expose shared host temporary directories; scratch stays in the workspace. On Windows a configured backend warns and leaves only the application guard. On Unix a configured backend that cannot start must fail, not silently execute without isolation.
 
 **Rule**: If adding a sandbox backend, match the backend callable contract in `yoreni/agent/tools/sandbox.py` and register it in `_BACKENDS`. Preserve read/write root handling and the configured backend's failure behavior.
+
+## Credential Boundary
+
+Stored credentials belong to `yoreni/credentials/`. Model-bound text is redacted at the provider boundary, and a placeholder is restored only inside `agent/tools/execution.py` for an account that explicitly binds the tool, the field, and the destination. Shell, exec, HTTP fetch, messaging, and filesystem-write tools never receive a restored secret.
+
+**Rule**: Do not log, echo, persist, or forward a decrypted credential. New outbound model paths must go through `LLMProvider._safe_chat`/`_safe_chat_stream` or call `CredentialManager.redact_messages`; new tool paths that can carry a placeholder must rely on the execution middleware rather than restoring values themselves.

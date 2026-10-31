@@ -11,6 +11,7 @@ from typing import Any, cast
 from loguru import logger
 
 from yoreni.agent.hook import AgentHook, AgentHookContext
+from yoreni.agent.tools.base import ToolResult
 from yoreni.agent.tools.context import tool_log_content_allowed
 from yoreni.agent.tools.file_state import file_read_context
 from yoreni.agent.tools.registry import ToolRegistry, is_tool_error_result, with_tool_error_hint
@@ -91,6 +92,7 @@ async def execute_tool_calls(
     model_messages: list[dict[str, Any]] | None = None,
     compacted_tool_results: set[str] | None = None,
     interrupt: asyncio.Event | None = None,
+    run_id: str | None = None,
 ) -> tuple[list[Any], list[dict[str, str]]]:
     """Execute one model response's tool calls in stable result order."""
     @cache
@@ -117,6 +119,7 @@ async def execute_tool_calls(
                     context,
                     read_results,
                     interrupt,
+                    run_id,
                 )
                 for tool_call in batch
             ))
@@ -132,6 +135,7 @@ async def execute_tool_calls(
                     context,
                     read_results,
                     interrupt,
+                    run_id,
                 )
                 tool_results.append(result)
 
@@ -149,6 +153,7 @@ async def _execute_tool_call(
     context: AgentHookContext,
     read_results: Callable[[], dict[str, str]],
     interrupt: asyncio.Event | None = None,
+    run_id: str | None = None,
 ) -> tuple[Any, dict[str, str]]:
     lookup_error = repeated_external_lookup_error(
         tool_call.name,
@@ -192,7 +197,28 @@ async def _execute_tool_call(
             return handled
         return payload, event
 
-    await hook.before_execute_tool(context, tool_call, tool, params)
+    # Hooks observe the model's placeholder arguments. Restoration happens
+    # after them and immediately before the tool runs, so no observer, event,
+    # or transcript can capture the real value.
+    hook_params: dict[str, Any] = (
+        dict(cast(dict[str, Any], params)) if isinstance(params, dict) else {}
+    )
+    await hook.before_execute_tool(context, tool_call, tool, hook_params)
+    if tool is not None:
+        credential_error = _restore_credentials(
+            tool_call.name, cast(dict[str, Any], params), run_id,
+        )
+        if credential_error is not None:
+            event = {
+                "name": tool_call.name,
+                "status": "error",
+                "detail": f"credential use denied: {credential_error}"[:160],
+            }
+            return with_tool_error_hint(
+                f"Error: credential use denied for {tool_call.name}: {credential_error}. "
+                "Request the account through an authentication request instead of "
+                "inserting the placeholder into this tool."
+            ), event
     try:
         with (
             file_read_context(tool_call.id, read_results)
@@ -207,15 +233,16 @@ async def _execute_tool_call(
     except asyncio.CancelledError:
         raise
     except Exception as exc:
-        await hook.on_execute_tool_error(context, tool_call, tool, params, exc)
+        await hook.on_execute_tool_error(context, tool_call, tool, hook_params, exc)
+        safe_exc = _redact_tool_payload(str(exc))
         event = {
             "name": tool_call.name,
             "status": "error",
-            "detail": str(exc),
+            "detail": str(safe_exc),
         }
-        payload = with_tool_error_hint(f"Error: {type(exc).__name__}: {exc}")
+        payload = with_tool_error_hint(f"Error: {type(exc).__name__}: {safe_exc}")
         handled = _classify_violation(
-            raw_text=str(exc),
+            raw_text=str(safe_exc),
             soft_payload=payload,
             event=event,
             tool_call=tool_call,
@@ -225,8 +252,9 @@ async def _execute_tool_call(
             return handled
         return payload, event
 
+    result = _redact_tool_payload(result)
     if is_tool_error_result(result):
-        await hook.on_execute_tool_error(context, tool_call, tool, params, result)
+        await hook.on_execute_tool_error(context, tool_call, tool, hook_params, result)
         payload = with_tool_error_hint(result)
         event = {
             "name": tool_call.name,
@@ -253,7 +281,7 @@ async def _execute_tool_call(
         logger.info("Abandoned tool {} after a new user message", tool_call.name)
         return _INTERRUPTED_TOOL_RESULT, event
 
-    await hook.after_execute_tool(context, tool_call, tool, params, result)
+    await hook.after_execute_tool(context, tool_call, tool, hook_params, result)
 
     detail = "" if result is None else str(result)
     detail = detail.replace("\n", " ").strip()
@@ -262,6 +290,46 @@ async def _execute_tool_call(
     elif len(detail) > 120:
         detail = detail[:120] + "..."
     return result, {"name": tool_call.name, "status": "ok", "detail": detail}
+
+
+def _restore_credentials(
+    tool_name: str,
+    params: dict[str, Any],
+    run_id: str | None,
+) -> str | None:
+    """Restore allowed placeholders in place; return a denial reason otherwise."""
+    from yoreni.credentials.manager import get_credential_manager
+    from yoreni.credentials.policy import CredentialUseDeniedError
+
+    try:
+        restored = get_credential_manager().restore_arguments(tool_name, params, run_id=run_id)
+    except CredentialUseDeniedError as exc:
+        return str(exc)
+    except Exception:
+        logger.exception("Credential restoration failed for %s", tool_name)
+        return "credential restoration failed"
+    if restored is not params:
+        params.clear()
+        params.update(restored)
+    return None
+
+
+def _redact_tool_payload(result: Any) -> Any:
+    """Remove stored secrets from a tool result before it can reach the model."""
+    from yoreni.credentials.manager import get_credential_manager
+
+    try:
+        manager = get_credential_manager()
+        if isinstance(result, ToolResult):
+            return ToolResult(manager.redact(str(result)), is_error=result.is_error)
+        if isinstance(result, str):
+            return manager.redact(result)
+        return manager.redact_value(result)
+    except Exception:
+        logger.exception("Redacting a tool result failed; withholding the payload")
+        return ToolResult.error(
+            "Error: tool output was withheld because credential redaction failed."
+        )
 
 
 def is_ssrf_violation(text: str) -> bool:

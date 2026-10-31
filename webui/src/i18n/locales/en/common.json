@@ -629,6 +629,7 @@
       "byok": "BYOK",
       "overview": "Overview",
       "profile": "Profile",
+      "accounts": "Accounts",
       "appearance": "Appearance",
       "notifications": "Notifications",
       "models": "Models",
@@ -2516,6 +2517,44 @@
       "retry": "Try again",
       "cancel": "Cancel",
       "switchDirectory": "Switch directory"
+    }
+  },
+  "auth": {
+    "title": "Authentication required",
+    "cancel": "Cancel",
+    "connect": "Connect",
+    "continueInBrowser": "Continue in browser",
+    "secureNote": "Credentials are sent directly to Yoreni and never appear in chat."
+  },
+  "accounts": {
+    "title": "Accounts",
+    "description": "Accounts appear here when the agent asks you to sign in. Credentials stay on this machine and never enter a model prompt.",
+    "loading": "Loading accounts…",
+    "disconnect": "Disconnect",
+    "tabs": {
+      "all": "All",
+      "connected": "Connected",
+      "login": "Logins",
+      "api_key": "API keys"
+    },
+    "status": {
+      "connected": "Connected",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    },
+    "services": {
+      "api_key": {
+        "name": "API key",
+        "description": "A service authenticated with a single token"
+      },
+      "basic_auth": {
+        "name": "Username and password",
+        "description": "A site that signs in with an account"
+      }
+    },
+    "empty": {
+      "title": "No accounts yet",
+      "description": "When the agent needs a service, it will ask for authorization in the conversation. Connected accounts show up here."
     }
   }
 }

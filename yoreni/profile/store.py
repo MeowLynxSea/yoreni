@@ -108,11 +108,14 @@ def profile_store_for_config(config: "Config") -> UserProfileStore:
 
 def operator_state_files() -> tuple[Path, ...]:
     """Instance files that only the operator or the gateway may write."""
+    from yoreni.credentials.paths import credential_state_files
+
     config_path = get_config_path().expanduser().resolve(strict=False)
     data_dir = config_path.parent
     return (
         config_path,
         *(data_dir / name for name in (PROFILE_FILENAME, ONBOARDING_FILENAME, PASSKEY_FILENAME)),
+        *credential_state_files(),
     )
 
 

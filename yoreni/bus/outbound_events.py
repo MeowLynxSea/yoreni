@@ -98,6 +98,13 @@ class WidgetChangedEvent(AgentEvent):
 
 
 @dataclass(frozen=True)
+class AuthRequestEvent(AgentEvent):
+    """A structured authentication card the WebUI must render."""
+
+    request: dict[str, Any]
+
+
+@dataclass(frozen=True)
 class UserInputEvent(AgentEvent):
     """A user-input row projected by an edge adapter."""
 

@@ -49,6 +49,8 @@ export interface AgentFrame {
   memory_backfill?: import("./types").MemoryBackfillPayload;
   /** Home widget named by a `widget_changed` frame. */
   widget_id?: string;
+  /** Authentication card carried by an `auth_request` frame. */
+  auth_request?: import("./types").CredentialAuthRequest;
 }
 export interface YoreniClientOptions {
   url: string;

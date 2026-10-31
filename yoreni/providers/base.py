@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import TYPE_CHECKING, Any, Literal, cast
@@ -708,6 +708,48 @@ class LLMProvider(ABC):
             sanitized.append(clean)
         return sanitized
 
+    def _redact_outbound(self, kwargs: dict[str, Any]) -> dict[str, Any]:
+        """Replace every protected secret before a request leaves the process.
+
+        The credential manager is a process-wide singleton; the provider's own
+        key joins the redaction set so a config dump in a tool result cannot
+        echo it back to the model.
+        """
+        from yoreni.credentials.manager import get_credential_manager
+
+        manager = get_credential_manager()
+        manager.register_external_secret(self.api_key, label=f"provider:{self.provider_name}")
+        messages = kwargs.get("messages")
+        if isinstance(messages, list):
+            kwargs = {**kwargs, "messages": manager.redact_messages(cast(list[dict[str, Any]], messages))}
+        tools = kwargs.get("tools")
+        if isinstance(tools, list):
+            kwargs["tools"] = manager.redact_value(tools)
+        return kwargs
+
+    def _redact_provider_context(
+        self,
+        provider_context: ProviderCallContext,
+    ) -> ProviderCallContext:
+        """Redact continuation input that bypasses the ``messages`` argument.
+
+        Responses-style providers replay ``pending_messages`` and private
+        payload items directly from this context, so leaving it untouched would
+        send the original secret even when ``messages`` were redacted.
+        """
+        from yoreni.credentials.manager import get_credential_manager
+
+        state = provider_context.conversation_state
+        if state is None:
+            return provider_context
+        manager = get_credential_manager()
+        redacted_state = replace(
+            state,
+            payload=cast(dict[str, Any], manager.redact_value(state.payload)),
+            pending_messages=manager.redact_messages(state.pending_messages),
+        )
+        return replace(provider_context, conversation_state=redacted_state)
+
     @abstractmethod
     async def chat(
         self,
@@ -1053,7 +1095,9 @@ class LLMProvider(ABC):
         started_at_ns = time.monotonic_ns()
         try:
             provider_context = kwargs.pop("provider_context", None)
+            kwargs = self._redact_outbound(kwargs)
             if isinstance(provider_context, ProviderCallContext):
+                provider_context = self._redact_provider_context(provider_context)
                 response = await self.chat_with_context(
                     provider_context=provider_context,
                     **kwargs,
@@ -1198,7 +1242,9 @@ class LLMProvider(ABC):
 
         try:
             provider_context = kwargs.pop("provider_context", None)
+            kwargs = self._redact_outbound(kwargs)
             if isinstance(provider_context, ProviderCallContext):
+                provider_context = self._redact_provider_context(provider_context)
                 response = await self.chat_stream_with_context(
                     provider_context=provider_context,
                     **kwargs,

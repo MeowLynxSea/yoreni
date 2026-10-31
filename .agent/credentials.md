@@ -1,0 +1,47 @@
+# Connectors, accounts, and credential protection
+
+`yoreni/credentials/` is the only path through which a stored secret can reach a tool or leave the process. Agent code sees account metadata and placeholders; the model API never sees a real value.
+
+## Vocabulary and ownership
+
+A **connector** is an authentication definition (`ConnectorSpec`): allowed methods, required fields, scopes, optional OAuth endpoints, and default destinations. Built-in connectors cover API keys, basic auth, one-time codes, public services, and MCP servers; operators can register more connectors, which are persisted beside accounts.
+
+An **account** is one user's connection through a connector, including its bound tool names and allowed domains. An **authentication request** is the structured card the agent asks for; it carries the connector, method, field names, purpose, requesting Run, and the bindings the account will receive. A **credential** is one field of an account's encrypted payload.
+
+`CredentialManager` is the single entry point: it owns the encrypted store, the in-memory secret vault, the connector catalog, and pending authentication requests. WebUI routes and agent tools call it; neither touches `credentials.sqlite3` or the key file directly.
+
+## Storage and encryption
+
+Accounts live in `credentials.sqlite3` beside the instance config. Payloads are AES-GCM sealed with associated data equal to the account ID, so ciphertext cannot be moved between accounts. The master key is 32 random bytes in `keys/credentials.key` with owner-only permissions, or supplied by `YORENI_CREDENTIAL_KEY` for managed deployments. Rotation rewraps every payload in one transaction before the new key file replaces the old one.
+
+One-time fields (verification codes) are never written to the database. They stay in memory, expire quickly, and are dropped after the first successful restoration. OAuth access and refresh tokens are stored but are never restorable into a tool call.
+
+## Placeholders and redaction
+
+Every registered secret maps to a deterministic placeholder `{{YORENI_SECRET_<16 hex>}}` derived with HMAC, so the same value yields the same token across rounds, streams, and restarts. Redaction runs at the provider boundary (`LLMProvider._safe_chat` and `_safe_chat_stream`) and on every direct model call in memory, extraction, and chat search. It rewrites strings anywhere in the message tree, including system prompts, history, tool-call arguments, reasoning fields, and tool results.
+
+Redaction fails closed: after rewriting, the vault asserts that no known secret survives, and a failure becomes a provider error instead of an outbound request. High-confidence untrusted shapes (`sk-…`, GitHub tokens, AWS keys, private-key blocks, long bearer tokens) are also replaced, without a mapping, so they can never be restored.
+
+Provider API keys are registered as redaction-only secrets at gateway startup. Legacy MCP OAuth tokens in `auth/mcp.json` are imported into the encrypted store for redaction; the MCP client keeps owning its file, and a failed read changes nothing.
+
+## Tool restoration
+
+Restoration happens in `agent/tools/execution.py` after `before_execute_tool` and immediately before `tool.execute`, so hooks, events, transcripts, and checkpoints only ever see the placeholder arguments.
+
+A call is denied unless every placeholder sits in a credential-shaped field (`text`, `value`, `password`, `api_key`, …), belongs to an account that is connected and unexpired, is marked restorable, and names the tool or a matching glob in its `allowed_tools`. Every credential-bearing call must also name a destination, and each account's own `allowed_domains` must match it; one account never lends its domains to another account in the same call. Omitting the URL is a denial, not an implicit wildcard, because the page a browser tool is already showing cannot be trusted. Shell, exec, HTTP fetch, messaging, filesystem writes, and unrelated tools are denied outright, so a placeholder cannot be smuggled out through a command line or a URL. One-time codes stop restoring after their first use, but their mapping stays available for redaction. Revoking or expiring an account removes restoration while keeping redaction.
+
+Agents receive placeholders from `request_authentication` and `list_connections`; these are opaque references, never secrets. Tool output, including errors and exceptions, is redacted before it enters the model context, run record, memory, or WebUI activity detail.
+
+## Authentication cards and OAuth
+
+`request_authentication` creates a persisted auth request and blocks the Run. The gateway pushes an `auth_request` frame; the WebUI renders a card and submits values through `/api/webui/credentials/submit`, never through chat or MCP elicitation. Submission seals the payload, binds the account to the requesting Run's tool and domain list, resolves the waiting future thread-safely, and the Run continues.
+
+Settings → Accounts (`webui/src/components/settings/accounts/`) is the operator surface for the same records. It lists only connectors that exist in the runtime — API key and username/password today, plus any connector the operator registered — and groups them by connection kind. It offers connect, manage, and disconnect. MCP authorization, one-time codes, and public endpoints stay in their own surfaces. There are deliberately no vendor presets: a service appears here only after its integration and OAuth client actually exist, so the page never advertises a connection that cannot complete.
+
+OAuth uses authorization code with PKCE and a server-side `state`. The browser is redirected to the provider; the provider redirects to `/auth/connectors/callback`; the gateway validates state, exchanges the code, stores tokens, and resumes the requesting Run. Callbacks must be HTTPS or loopback, so a remote deployment needs a TLS reverse proxy. The browser never receives a third-party token.
+
+## Boundaries and limits
+
+Tools that are granted an account still see the real value at execution time. The system guarantees that the value does not enter a model request, transcript, memory, or log, and it limits which tools and destinations may receive it; it cannot make an arbitrary untrusted tool safe with a password.
+
+Generic OAuth uses public-client PKCE (no client secret). Connectors whose provider requires a confidential client secret are not supported yet. Browser automation is not part of this package: Playwright and browser MCP tools are covered by the same restoration and redaction middleware, and a browser tool that cannot report its target URL must not be granted a network credential.

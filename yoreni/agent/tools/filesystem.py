@@ -180,13 +180,27 @@ class _FsTool(Tool):
                     )
             except (OSError, RuntimeError):
                 pass
-        return self._resolve_with_extra(
+        target = self._resolve_with_extra(
             path,
             [*self._extra_read_allowed_dirs, *plugin_skill_dirs],
             self._extra_read_allowed_files,
             include_media_dir=True,
             extra_files_require_allowed_root=True,
         )
+        self._refuse_credential_read(target)
+        return target
+
+    @staticmethod
+    def _refuse_credential_read(target: Path) -> None:
+        """Credential material is never an agent-readable file."""
+        from yoreni.credentials.paths import credential_state_files
+
+        try:
+            resolved = target.expanduser().resolve(strict=False)
+        except (OSError, RuntimeError, ValueError):
+            return
+        if resolved in {path.expanduser().resolve(strict=False) for path in credential_state_files()}:
+            raise PermissionError("credential storage is not available to agent tools")
 
     def _resolve_write(self, path: str) -> Path:
         target = self._resolve_with_extra(

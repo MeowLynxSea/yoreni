@@ -1,4 +1,4 @@
-import { Bell, ChevronRight, LogOut, UserRound } from "lucide-react";
+import { Bell, ChevronRight, KeyRound, LogOut, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { LucideIcon } from "lucide-react";
 
@@ -18,6 +18,7 @@ const SETTINGS_GROUPS: SettingsEntry[][] = [
   [
     { key: "overview", icon: OverviewIcon },
     { key: "profile", icon: UserRound },
+    { key: "accounts", icon: KeyRound },
     { key: "appearance", icon: AppearanceIcon },
     { key: "notifications", icon: Bell },
     { key: "models", icon: ModelsIcon },

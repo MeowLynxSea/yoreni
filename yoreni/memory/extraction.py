@@ -111,8 +111,12 @@ class FactExtractor:
                 existing=_render_existing(existing or []),
                 evidence=_render_evidence(chunk),
             )
+            from yoreni.credentials.manager import get_credential_manager
+
             response = await runtime.provider.chat(
-                messages=[{"role": "user", "content": prompt}],
+                messages=get_credential_manager().redact_messages(
+                    [{"role": "user", "content": prompt}]
+                ),
                 model=runtime.model,
                 temperature=0.0,
                 max_tokens=runtime.generation.max_tokens,

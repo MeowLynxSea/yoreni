@@ -25,6 +25,7 @@ import {
 } from "@/components/settings/models/ProviderSettings";
 import { providerFormFromRow } from "@/components/settings/models/providerForm";
 import { AboutSettings, AppearanceSettings, OverviewSettings } from "@/components/settings/overview/OverviewSettings";
+import { AccountsSettings } from "@/components/settings/accounts/AccountsSettings";
 import { WidgetsSettings } from "@/components/settings/overview/WidgetsSettings";
 import { NotificationSettings } from "@/components/settings/notifications/NotificationSettings";
 import { ProfileSettings } from "@/components/settings/profile/ProfileSettings";
@@ -529,6 +530,8 @@ export function SettingsPage({
     switch (section) {
       case "widgets":
         return <WidgetsSettings />;
+      case "accounts":
+        return <AccountsSettings />;
       case "appearance":
         return <AppearanceSettings themePreference={themePreference} onChangeTheme={onChangeTheme}
           localPrefs={localPrefs} onChangeLocalPrefs={setLocalPrefs} />;
@@ -637,7 +640,7 @@ export function SettingsPage({
   // Appearance reads only browser-local preferences, not the gateway settings snapshot.
   const localSection = activeSection === "appearance";
   const sectionReady = localSection || settings !== null || activeSection === "skills" || activeSection === "apps"
-    || activeSection === "channels" || activeSection === "automations";
+    || activeSection === "channels" || activeSection === "automations" || activeSection === "accounts";
 
   return (
     <DialogLayoutContext.Provider value={dialogLayoutAnchor}>

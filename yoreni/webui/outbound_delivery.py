@@ -12,6 +12,7 @@ from yoreni.agent.state import PERSONAL_CHAT_ID
 from yoreni.bus.events import OUTBOUND_META_AGENT_UI, OutboundMessage
 from yoreni.bus.outbound_events import (
     AgentMessageEvent,
+    AuthRequestEvent,
     GoalStateSyncEvent,
     GoalStatusEvent,
     MemoryBackfillEvent,
@@ -94,6 +95,9 @@ class WebUIOutboundDelivery:
                 "widget_id": event.widget_id,
                 "kind": event.kind,
             })
+            return
+        if isinstance(event, AuthRequestEvent):
+            await self._send({"event": "auth_request", "auth_request": event.request})
             return
         if isinstance(event, RuntimeModelUpdatedEvent | TurnModelUpdatedEvent):
             await self._send({

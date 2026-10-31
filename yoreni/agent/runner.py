@@ -653,6 +653,7 @@ class AgentRunner:
                     model_messages=messages_for_model,
                     compacted_tool_results=request_state.compacted_tool_results,
                     interrupt=spec.interrupt,
+                    run_id=spec.run_id,
                 )
                 tool_events.extend(new_events)
                 tools_used.extend(

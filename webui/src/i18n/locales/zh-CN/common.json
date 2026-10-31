@@ -629,6 +629,7 @@
       "byok": "BYOK",
       "overview": "总览",
       "profile": "个人资料",
+      "accounts": "账户",
       "appearance": "外观",
       "notifications": "通知",
       "models": "模型",
@@ -2516,6 +2517,37 @@
       "retry": "重试",
       "cancel": "取消",
       "switchDirectory": "切换目录"
+    }
+  },
+  "accounts": {
+    "title": "账户",
+    "description": "账户会在 Agent 请求你登录后出现在这里。凭证只保存在本机，不会进入模型请求。",
+    "loading": "正在加载账户…",
+    "disconnect": "断开",
+    "tabs": {
+      "all": "全部",
+      "connected": "连接",
+      "login": "登录信息",
+      "api_key": "API 密钥"
+    },
+    "status": {
+      "connected": "已连接",
+      "expired": "已过期",
+      "revoked": "已撤销"
+    },
+    "services": {
+      "api_key": {
+        "name": "API 密钥",
+        "description": "使用单一 Token 鉴权的服务"
+      },
+      "basic_auth": {
+        "name": "用户名与密码",
+        "description": "使用账号密码登录的服务"
+      }
+    },
+    "empty": {
+      "title": "还没有账户",
+      "description": "当 Agent 需要使用某个服务时，会在对话中发起授权请求。连接后的账户会显示在这里。"
     }
   }
 }

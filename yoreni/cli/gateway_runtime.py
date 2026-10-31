@@ -531,6 +531,33 @@ def _run_claimed_gateway(
 
     agent.memory.backfill.on_change = _publish_memory_backfill
 
+    from yoreni.credentials.manager import get_credential_manager
+    from yoreni.webui.run_events import publish_auth_request
+
+    _credential_loop: list[asyncio.AbstractEventLoop] = []
+
+    def _on_auth_request(request: Any) -> None:
+        payload = request.public_dict()
+        if not _credential_loop:
+            return
+
+        def _publish() -> None:
+            asyncio.ensure_future(publish_auth_request(bus, payload))
+
+        _credential_loop[0].call_soon_threadsafe(_publish)
+
+    get_credential_manager().set_auth_listener(_on_auth_request)
+
+    # Provider keys are not connector credentials, but they must still never
+    # reach a model prompt through a config dump or tool echo.
+    _credential_manager = get_credential_manager()
+    provider_values = list(config.providers.__dict__.values())
+    provider_values.extend((config.providers.model_extra or {}).values())
+    for provider in provider_values:
+        api_key = getattr(provider, "api_key", None)
+        if isinstance(api_key, str):
+            _credential_manager.register_external_secret(api_key, label="provider")
+
     async def agent_action(action: str, payload: dict[str, Any]) -> dict[str, Any]:
         run_id = payload["run_id"]
         record = await asyncio.to_thread(agent.agent.store.read_run, run_id)
@@ -975,6 +1002,8 @@ def _run_claimed_gateway(
             console.print(f"[yellow]Could not open browser ({e}); visit {display_url}[/yellow]")
 
     async def run() -> None:
+        _credential_loop.clear()
+        _credential_loop.append(asyncio.get_running_loop())
         tasks: list[asyncio.Task[Any]] = []
         shutdown_task: asyncio.Task[Any] | None = None
         runtime_tasks: asyncio.Future[list[Any]] | None = None

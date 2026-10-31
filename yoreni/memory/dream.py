@@ -238,8 +238,10 @@ class DreamConsolidator:
         tokens_in = 0
         tokens_out = 0
         for _round in range(MAX_TOOL_ROUNDS):
+            from yoreni.credentials.manager import get_credential_manager
+
             response = await runtime.provider.chat(
-                messages=messages,
+                messages=get_credential_manager().redact_messages(messages),
                 model=runtime.model,
                 temperature=0.0,
                 max_tokens=runtime.generation.max_tokens,

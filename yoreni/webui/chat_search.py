@@ -401,9 +401,11 @@ async def semantic_chat_search(
     if not candidates:
         return []
     try:
+        from yoreni.credentials.manager import get_credential_manager
+
         response = await asyncio.wait_for(
             provider.chat(
-                messages=build_search_prompt(query, candidates),
+                messages=get_credential_manager().redact_messages(build_search_prompt(query, candidates)),
                 model=model,
                 max_tokens=160,
                 temperature=0.0,

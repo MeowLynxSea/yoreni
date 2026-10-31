@@ -8,7 +8,7 @@ import {
   ModelsIcon,
 } from "@/components/icons/product-icons";
 import { useRef, useState } from "react";
-import { Bell, Check, ChevronDown, ChevronLeft, LogOut, Loader2, UserRound, type LucideIcon } from "lucide-react";
+import { Bell, Check, ChevronDown, ChevronLeft, KeyRound, LogOut, Loader2, UserRound, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -30,6 +30,7 @@ import { cn } from "@/lib/utils";
 const SETTINGS_NAV_ITEMS: Array<{ key: SettingsSectionKey; icon: LucideIcon; fallback: string }> = [
   { key: "overview", icon: OverviewIcon, fallback: "Overview" },
   { key: "profile", icon: UserRound, fallback: "Profile" },
+  { key: "accounts", icon: KeyRound, fallback: "Accounts" },
   { key: "appearance", icon: AppearanceIcon, fallback: "Appearance" },
   { key: "notifications", icon: Bell, fallback: "Notifications" },
   { key: "models", icon: ModelsIcon, fallback: "Models" },

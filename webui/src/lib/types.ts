@@ -1603,3 +1603,50 @@ export interface AutomationJob {
   };
 }
 export type InboundEvent = import("./yoreni-client").AgentFrame;
+
+/** A structured authentication card pushed by the gateway. */
+export interface CredentialAuthRequest {
+  id: string;
+  connector_id: string;
+  method: string;
+  fields: string[];
+  purpose: string;
+  status: "pending" | "completed" | "cancelled" | "expired" | "failed";
+  run_id?: string | null;
+  account_id?: string | null;
+  created_at?: number;
+  expires_at?: number;
+  allowed_tools?: string[];
+  allowed_domains?: string[];
+  error?: string | null;
+}
+
+export interface ConnectorSummary {
+  id: string;
+  name: string;
+  description: string;
+  brand?: string;
+  color?: string;
+  auth_methods: string[];
+  fields: Array<{ name: string; label: string; kind: string; secret: boolean; required: boolean }>;
+  allowed_domains: string[];
+  tool_patterns: string[];
+  oauth_ready?: boolean;
+}
+
+export interface CredentialAccountSummary {
+  id: string;
+  connector_id: string;
+  label: string;
+  auth_method: string;
+  status: "connected" | "expired" | "revoked";
+  allowed_tools: string[];
+  allowed_domains: string[];
+  restorable: boolean;
+}
+
+export interface CredentialsState {
+  connectors: ConnectorSummary[];
+  accounts: CredentialAccountSummary[];
+  pending: CredentialAuthRequest[];
+}

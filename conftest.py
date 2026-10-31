@@ -45,6 +45,10 @@ def _isolate_runtime_stores(
     """Isolate writable stores without making a directory for pure tests."""
     import yoreni.llm_usage.service as llm_usage
     import yoreni.pairing.store as pairing_store
+    from yoreni.credentials import crypto as credential_crypto
+    from yoreni.credentials import store as credential_store
+    from yoreni.credentials.manager import reset_credential_manager
+    from yoreni.credentials.vault import reset_vault
     from yoreni.webui import star_prompt
 
     # A sibling of tmp_path stays outside any test's agent workspace. mkdir is
@@ -63,6 +67,10 @@ def _isolate_runtime_stores(
     monkeypatch.setattr(star_prompt, "get_webui_dir", lambda: runtime_subdir("webui"))
     monkeypatch.setattr(pairing_store, "_store_path", lambda: data_dir() / "pairing.json")
     monkeypatch.setattr(llm_usage, "get_data_dir", data_dir)
+    monkeypatch.setattr(credential_crypto, "get_data_dir", data_dir)
+    monkeypatch.setattr(credential_store, "get_data_dir", data_dir)
+    reset_credential_manager(None)
+    reset_vault(None)
     stores: dict[Path, llm_usage.LLMUsageStore] = {}
     monkeypatch.setattr(llm_usage, "_STORES", stores)
     try:
@@ -70,6 +78,8 @@ def _isolate_runtime_stores(
     finally:
         for store in stores.values():
             store.close()
+        reset_credential_manager(None)
+        reset_vault(None)
 
 
 @pytest.fixture(scope="session", autouse=True)

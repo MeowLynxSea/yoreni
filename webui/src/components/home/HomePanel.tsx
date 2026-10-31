@@ -71,14 +71,15 @@ export function HomePanel({ open }: { open: boolean }) {
       aria-label={t("home.title")}
       data-state={open ? "open" : "closed"}
       className={cn(
-        "w-full md:relative md:z-auto md:shrink-0 md:overflow-hidden md:transition-[width,opacity] md:duration-300 md:[transition-timing-function:cubic-bezier(0.22,1,0.36,1)] md:motion-reduce:transition-none",
-        open ? "flex md:w-[max(21rem,30vw)] md:opacity-100" : "hidden md:flex md:w-0 md:opacity-0",
+        "relative z-30 shrink-0 overflow-hidden transition-[width] duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+        open ? "w-full md:w-[max(21rem,30vw)]" : "w-0",
       )}
     >
-      <div className="flex h-full w-full flex-col bg-white/[0.08] backdrop-blur-2xl dark:bg-white/[0.015] md:w-[max(21rem,30vw)]">
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-4 pb-10 pt-20 md:px-5">
-          <HomeFeed />
-        </div>
+      <div className={cn(
+        "flex h-full w-[100vw] flex-col overflow-y-auto overscroll-contain border-r border-white/50 bg-white/[0.08] px-4 pb-10 pt-20 backdrop-blur-2xl transition-transform duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none md:w-[max(21rem,30vw)] md:px-5 dark:border-white/10 dark:bg-white/[0.015]",
+        open ? "translate-x-0" : "-translate-x-full",
+      )}>
+        <HomeFeed />
       </div>
     </aside>
   );

@@ -6,7 +6,7 @@ metadata: {"yoreni":{"emoji":"🎨"}}
 
 # Yoreni design
 
-Use this when you write anything the user sees inside yoreni: Home widget HTML, a generated page, or interface copy. The WebUI's template widgets already follow these conventions; when a template can express the content, prefer it over hand-written HTML and the result stays consistent for free.
+Use this when you write anything the user sees inside yoreni: Home widget HTML, a generated page, or interface copy. The WebUI's template widgets already follow these conventions; `metrics`, `progress`, and `panel` cover most cards, so prefer them over hand-written HTML and the result stays consistent for free.
 
 ## Feel
 

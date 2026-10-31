@@ -32,9 +32,48 @@ MAX_LIST_ITEMS = 20
 MAX_TABLE_COLUMNS = 6
 MAX_TABLE_ROWS = 20
 MAX_TEXT_CHARS = 4000
+MAX_TILE_ITEMS = 6
+MAX_FACT_ITEMS = 8
+MAX_CHART_POINTS = 12
+MAX_TIMELINE_ITEMS = 8
+MAX_BADGE_ITEMS = 8
+MAX_LINK_ITEMS = 6
+MAX_URL_CHARS = 2048
+MAX_PANEL_BLOCKS = 8
 
-ViewKind = Literal["stat", "list", "table", "text", "html"]
-_VIEW_KINDS: frozenset[str] = frozenset({"stat", "list", "table", "text", "html"})
+_BLOCK_KINDS: frozenset[str] = frozenset(
+    {
+        "text",
+        "list",
+        "table",
+        "metrics",
+        "progress",
+        "facts",
+        "chart",
+        "timeline",
+        "badges",
+        "links",
+    }
+)
+_PANEL_BLOCK_KINDS: frozenset[str] = _BLOCK_KINDS | {"divider"}
+_VIEW_KINDS: frozenset[str] = _BLOCK_KINDS | {"stat", "panel", "html"}
+_TONES: frozenset[str] = frozenset({"neutral", "positive", "warning", "critical"})
+
+ViewKind = Literal[
+    "stat",
+    "list",
+    "table",
+    "text",
+    "metrics",
+    "progress",
+    "facts",
+    "chart",
+    "timeline",
+    "badges",
+    "links",
+    "panel",
+    "html",
+]
 
 
 class WidgetError(ValueError):
@@ -177,7 +216,7 @@ def validate_description(value: object) -> str:
 
 def validate_view(value: object) -> ViewKind:
     if not isinstance(value, str) or value not in _VIEW_KINDS:
-        raise WidgetError("view must be one of: stat, list, table, text, html")
+        raise WidgetError("view must be one of: " + ", ".join(sorted(_VIEW_KINDS)))
     return cast(ViewKind, value)
 
 
@@ -245,7 +284,7 @@ def validate_script(value: object) -> str:
 
 
 def validate_data(view: ViewKind, value: object) -> object:
-    """Validate the template contract and reject non-JSON data."""
+    """Validate one view's data contract and reject non-JSON values."""
     if not isinstance(value, dict):
         raise WidgetError("data must be a JSON object")
     data = cast(dict[str, Any], value)
@@ -257,53 +296,203 @@ def validate_data(view: ViewKind, value: object) -> object:
         for key in ("label", "detail"):
             _optional_string(data, key)
         return data
-    if view == "list":
-        items = data.get("items")
-        if not isinstance(items, list):
-            raise WidgetError("list data must be {\"items\": [...]}")
-        entries = cast(list[object], items)
-        if len(entries) > MAX_LIST_ITEMS:
-            raise WidgetError(f"list data accepts at most {MAX_LIST_ITEMS} items")
-        for entry in entries:
-            if not isinstance(entry, dict):
-                raise WidgetError("each list item must be an object")
-            _require_type(cast(dict[str, Any], entry), "title", (str,))
-            for key in ("detail", "meta"):
-                _optional_string(cast(dict[str, Any], entry), key)
-        return data
-    if view == "table":
-        columns = data.get("columns")
-        rows = data.get("rows")
-        if not isinstance(columns, list) or not columns:
-            raise WidgetError("table data must define a non-empty \"columns\" list")
-        column_names = cast(list[object], columns)
-        if len(column_names) > MAX_TABLE_COLUMNS:
-            raise WidgetError(f"table data accepts at most {MAX_TABLE_COLUMNS} columns")
-        if not all(isinstance(column, str) for column in column_names):
-            raise WidgetError("table columns must be strings")
-        if not isinstance(rows, list):
-            raise WidgetError("table data must define a \"rows\" list")
-        row_values = cast(list[object], rows)
-        if len(row_values) > MAX_TABLE_ROWS:
-            raise WidgetError(f"table data accepts at most {MAX_TABLE_ROWS} rows")
-        for entry in row_values:
-            if not isinstance(entry, list):
-                raise WidgetError("each table row must match the number of columns")
-            cells = cast(list[object], entry)
-            if len(cells) != len(column_names):
-                raise WidgetError("each table row must match the number of columns")
-            if not all(
-                isinstance(cell, (str, int, float)) and not isinstance(cell, bool)
-                for cell in cells
-            ):
-                raise WidgetError("table cells must be strings or numbers")
-        return data
+    if view == "panel":
+        _validate_panel(data)
+    else:
+        _validate_block(view, data)
+    return data
+
+
+def _validate_block(kind: str, data: dict[str, Any]) -> None:
+    if kind == "text":
+        _validate_text(data)
+    elif kind == "list":
+        _validate_list(data)
+    elif kind == "table":
+        _validate_table(data)
+    elif kind == "metrics":
+        _validate_metrics(data)
+    elif kind == "progress":
+        _validate_progress(data)
+    elif kind == "facts":
+        _validate_facts(data)
+    elif kind == "chart":
+        _validate_chart(data)
+    elif kind == "timeline":
+        _validate_timeline(data)
+    elif kind == "badges":
+        _validate_badges(data)
+    elif kind == "links":
+        _validate_links(data)
+    else:
+        raise WidgetError(f"unsupported view '{kind}'")
+
+
+def _validate_list(data: dict[str, Any]) -> None:
+    items = data.get("items")
+    if not isinstance(items, list):
+        raise WidgetError("list data must be {\"items\": [...]}")
+    entries = cast(list[object], items)
+    if len(entries) > MAX_LIST_ITEMS:
+        raise WidgetError(f"list data accepts at most {MAX_LIST_ITEMS} items")
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise WidgetError("each list item must be an object")
+        item = cast(dict[str, Any], entry)
+        _require_type(item, "title", (str,))
+        for key in ("detail", "meta"):
+            _optional_string(item, key)
+
+
+def _validate_table(data: dict[str, Any]) -> None:
+    columns = data.get("columns")
+    rows = data.get("rows")
+    if not isinstance(columns, list) or not columns:
+        raise WidgetError("table data must define a non-empty \"columns\" list")
+    column_names = cast(list[object], columns)
+    if len(column_names) > MAX_TABLE_COLUMNS:
+        raise WidgetError(f"table data accepts at most {MAX_TABLE_COLUMNS} columns")
+    if not all(isinstance(column, str) for column in column_names):
+        raise WidgetError("table columns must be strings")
+    if not isinstance(rows, list):
+        raise WidgetError("table data must define a \"rows\" list")
+    row_values = cast(list[object], rows)
+    if len(row_values) > MAX_TABLE_ROWS:
+        raise WidgetError(f"table data accepts at most {MAX_TABLE_ROWS} rows")
+    for entry in row_values:
+        if not isinstance(entry, list):
+            raise WidgetError("each table row must match the number of columns")
+        cells = cast(list[object], entry)
+        if len(cells) != len(column_names):
+            raise WidgetError("each table row must match the number of columns")
+        if not all(
+            isinstance(cell, (str, int, float)) and not isinstance(cell, bool)
+            for cell in cells
+        ):
+            raise WidgetError("table cells must be strings or numbers")
+
+
+def _validate_text(data: dict[str, Any]) -> None:
     text = data.get("text")
     if not isinstance(text, str):
         raise WidgetError("text data must be {\"text\": \"...\"}")
     if len(text) > MAX_TEXT_CHARS:
         raise WidgetError(f"text data accepts at most {MAX_TEXT_CHARS} characters")
-    return data
+
+
+def _validate_metrics(data: dict[str, Any]) -> None:
+    columns = data.get("columns", 2)
+    if isinstance(columns, bool) or not isinstance(columns, int) or columns not in (1, 2, 3):
+        raise WidgetError("metrics data columns must be 1, 2, or 3")
+    for entry in _tile_items(data, "metrics", MAX_TILE_ITEMS):
+        _require_type(entry, "label", (str,))
+        _require_type(entry, "value", (str, int, float))
+        _optional_string(entry, "detail")
+        _optional_tone(entry)
+
+
+def _validate_progress(data: dict[str, Any]) -> None:
+    for entry in _tile_items(data, "progress", MAX_TILE_ITEMS):
+        _require_type(entry, "label", (str,))
+        if _number(entry, "value") < 0:
+            raise WidgetError("progress values must not be negative")
+        if entry.get("max") is not None and _number(entry, "max") <= 0:
+            raise WidgetError("progress max must be greater than 0")
+        _optional_string(entry, "detail")
+        _optional_tone(entry)
+
+
+def _validate_facts(data: dict[str, Any]) -> None:
+    for entry in _tile_items(data, "facts", MAX_FACT_ITEMS):
+        _require_type(entry, "label", (str,))
+        _require_type(entry, "value", (str, int, float))
+        _optional_tone(entry)
+
+
+def _validate_chart(data: dict[str, Any]) -> None:
+    kind = data.get("type", "bar")
+    if kind not in ("bar", "line"):
+        raise WidgetError('chart data type must be "bar" or "line"')
+    for entry in _tile_items(data, "chart", MAX_CHART_POINTS):
+        _require_type(entry, "label", (str,))
+        if _number(entry, "value") < 0:
+            raise WidgetError("chart values must not be negative")
+    if data.get("max") is not None and _number(data, "max") <= 0:
+        raise WidgetError("chart max must be greater than 0")
+
+
+def _validate_timeline(data: dict[str, Any]) -> None:
+    for entry in _tile_items(data, "timeline", MAX_TIMELINE_ITEMS):
+        _require_type(entry, "title", (str,))
+        for key in ("detail", "meta"):
+            _optional_string(entry, key)
+        _optional_tone(entry)
+
+
+def _validate_badges(data: dict[str, Any]) -> None:
+    for entry in _tile_items(data, "badges", MAX_BADGE_ITEMS):
+        _require_type(entry, "label", (str,))
+        _optional_string(entry, "detail")
+        _optional_tone(entry)
+
+
+def _validate_links(data: dict[str, Any]) -> None:
+    for entry in _tile_items(data, "links", MAX_LINK_ITEMS):
+        _require_type(entry, "label", (str,))
+        href = entry.get("href")
+        if not isinstance(href, str) or not href.startswith(("https://", "http://")):
+            raise WidgetError("each link needs an http(s) href")
+        if len(href) > MAX_URL_CHARS:
+            raise WidgetError(f"link href must be at most {MAX_URL_CHARS} characters")
+        _optional_string(entry, "detail")
+        _optional_string(entry, "meta")
+
+
+def _validate_panel(data: dict[str, Any]) -> None:
+    for key in ("lead", "note"):
+        value = data.get(key)
+        if value is not None and (not isinstance(value, str) or not value.strip()):
+            raise WidgetError(f'panel data "{key}" must be a non-empty string')
+    blocks = data.get("blocks")
+    if not isinstance(blocks, list) or not blocks:
+        raise WidgetError("panel data must define a non-empty \"blocks\" list")
+    entries = cast(list[object], blocks)
+    if len(entries) > MAX_PANEL_BLOCKS:
+        raise WidgetError(f"panel data accepts at most {MAX_PANEL_BLOCKS} blocks")
+    for index, entry in enumerate(entries, 1):
+        if not isinstance(entry, dict):
+            raise WidgetError(f"panel block {index} must be an object")
+        block = cast(dict[str, Any], entry)
+        kind = block.get("kind")
+        if kind not in _PANEL_BLOCK_KINDS:
+            raise WidgetError(
+                f"panel block {index} kind must be one of: "
+                + ", ".join(sorted(_PANEL_BLOCK_KINDS))
+            )
+        title = block.get("title")
+        if title is not None and (not isinstance(title, str) or not title.strip()):
+            raise WidgetError(f"panel block {index} title must be a non-empty string")
+        if kind == "divider":
+            continue
+        try:
+            _validate_block(cast(str, kind), block)
+        except WidgetError as exc:
+            raise WidgetError(f"panel block {index}: {exc}") from None
+
+
+def _tile_items(data: dict[str, Any], kind: str, limit: int) -> list[dict[str, Any]]:
+    items = data.get("items")
+    if not isinstance(items, list) or not items:
+        raise WidgetError(f'{kind} data must define a non-empty "items" list')
+    entries = cast(list[object], items)
+    if len(entries) > limit:
+        raise WidgetError(f"{kind} data accepts at most {limit} items")
+    rows: list[dict[str, Any]] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise WidgetError(f"each {kind} item must be an object")
+        rows.append(cast(dict[str, Any], entry))
+    return rows
 
 
 def parse_stdout_json(text: str) -> object:
@@ -403,3 +592,16 @@ def _optional_string(data: dict[str, Any], key: str) -> None:
     value = data.get(key)
     if value is not None and not isinstance(value, str):
         raise WidgetError(f"data.{key} must be a string")
+
+
+def _optional_tone(data: dict[str, Any]) -> None:
+    value = data.get("tone")
+    if value is not None and value not in _TONES:
+        raise WidgetError("data.tone must be one of: " + ", ".join(sorted(_TONES)))
+
+
+def _number(data: dict[str, Any], key: str) -> float:
+    value = data.get(key)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise WidgetError(f"data.{key} must be a finite number")
+    return float(value)

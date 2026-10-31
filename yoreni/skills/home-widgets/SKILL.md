@@ -1,6 +1,6 @@
 ---
 name: home-widgets
-description: Create and maintain Home widgets for glanceable values, lists, tables, text, or custom HTML.
+description: Create and maintain Home widgets for glanceable values, metric grids, progress bars, charts, timelines, lists, tables, links, composed panels, or custom HTML.
 metadata: {"yoreni":{"emoji":"🧩"}}
 ---
 
@@ -45,22 +45,99 @@ widget(action="delete", widget_id="weather")
 | View | Renders | Data shape |
 | --- | --- | --- |
 | `stat` | One large value with optional caption | `{"value": string\|number, "label"?: string, "detail"?: string}` |
-| `list` | Up to 20 rows | `{"items": [{"title": string, "detail"?: string, "meta"?: string}]}` |
+| `metrics` | Up to 6 labelled values in a 1–3 column grid | `{"items": [{"label": string, "value": string\|number, "detail"?: string, "tone"?: tone}], "columns"?: 1\|2\|3}` |
+| `progress` | Up to 6 bars, each a value against a limit | `{"items": [{"label": string, "value": number, "max"?: number, "detail"?: string, "tone"?: tone}]}` |
+| `facts` | Up to 8 label/value rows separated by hairlines | `{"items": [{"label": string, "value": string\|number, "tone"?: tone}]}` |
+| `list` | Up to 20 rows with a title and trailing metadata | `{"items": [{"title": string, "detail"?: string, "meta"?: string}]}` |
 | `table` | Up to 6 columns × 20 rows | `{"columns": [string], "rows": [[string\|number]]}` |
+| `timeline` | Up to 8 ordered events on a rail, with tone dots | `{"items": [{"title": string, "detail"?: string, "meta"?: string, "tone"?: tone}]}` |
+| `chart` | A bar or line chart of up to 12 points | `{"type"?: "bar"\|"line", "max"?: number, "items": [{"label": string, "value": number}]}` |
+| `badges` | Up to 8 pills for tags and short statuses | `{"items": [{"label": string, "detail"?: string, "tone"?: tone}]}` |
+| `links` | Up to 6 rows that open an http(s) URL | `{"items": [{"label": string, "href": string, "detail"?: string, "meta"?: string}]}` |
 | `text` | One paragraph | `{"text": string}` (≤4000 characters) |
+| `panel` | A composed card: lead line, blocks, footer note | `{"lead"?: string, "blocks": [block], "note"?: string}` |
 | `html` | An HTML fragment in a sandboxed frame | any JSON object |
 
-Prefer a template view. It already inherits the panel's typography, spacing, theme, and accessibility, so the card looks native without extra work. Reach for `html` only when the layout cannot be expressed with a value, a list, or a table.
+Prefer a template view. It already inherits the panel's typography, spacing, theme, and accessibility, so the card looks native without extra work. Choose by what the data is:
+
+- One number that carries the card → `stat`; several numbers of equal weight → `metrics`.
+- Usage against a limit → `progress`; a value over time → `chart`.
+- Ordered events → `timeline`; unordered rows → `list`.
+- Dense label/value pairs → `facts`; a grid with headers → `table`.
+- Short statuses or tags → `badges`; a pointer to the source → `links`.
+- A summary line plus several blocks → `panel`.
+
+Reach for `html` only when the layout cannot be expressed with these blocks.
+
+`tone` is `neutral` (default), `positive`, `warning`, or `critical`. It colors a value, bar, dot, or pill, but the label must still carry the meaning; never rely on color alone.
 
 ```
 widget(action="create", widget_id="focus", title="Focus", view="stat")
+widget(action="create", widget_id="limits", title="Limits", view="metrics")
+widget(action="create", widget_id="storage", title="Storage", view="progress")
+widget(action="create", widget_id="region", title="Region", view="facts")
 widget(action="create", widget_id="tasks", title="Today", view="list")
 widget(action="create", widget_id="quota", title="Quota", view="table")
+widget(action="create", widget_id="deploys", title="Deploys", view="timeline")
+widget(action="create", widget_id="traffic", title="Traffic", view="chart")
+widget(action="create", widget_id="flags", title="Flags", view="badges")
+widget(action="create", widget_id="docs", title="Docs", view="links")
 widget(action="create", widget_id="note", title="Note", view="text")
+widget(action="create", widget_id="account", title="Account", view="panel")
 widget(action="create", widget_id="status", title="Status", view="html", html="<p id='status'></p>")
 ```
 
 A template widget with no data renders nothing, and `create` does not take `data`: create it with a backend command, or call `set_data` in the same turn. After changing a widget's `view`, send data in the new shape; old cached data is not converted.
+
+## Rich panels
+
+`panel` builds a whole card from blocks, so a dashboard-like widget does not need HTML. `lead` is one summary sentence above the blocks, `note` is a muted footer, and `blocks` is an ordered list of 1–8 entries:
+
+| Block `kind` | Fields |
+| --- | --- |
+| `metrics` | `items` and `columns` as in `view="metrics"` |
+| `progress` | `items` as in `view="progress"` |
+| `facts` | `items` as in `view="facts"` |
+| `list` | `items` as in `view="list"` |
+| `table` | `columns` and `rows` as in `view="table"` |
+| `timeline` | `items` as in `view="timeline"` |
+| `chart` | `type`, `max`, and `items` as in `view="chart"` |
+| `badges` | `items` as in `view="badges"` |
+| `links` | `items` as in `view="links"` |
+| `text` | `text` |
+| `divider` | no other fields; a hairline that separates groups |
+
+Every block except `divider` accepts an optional `title`, rendered as a small caption above it.
+
+```
+widget(
+  action="create",
+  widget_id="quota",
+  title="Hark 额度",
+  view="panel",
+  every_seconds=300,
+  script=(
+    "import json\n"
+    "print(json.dumps({\n"
+    "  'lead': 'Hark Pro (free) · 今日剩余 100%，本月剩余 98%。',\n"
+    "  'blocks': [\n"
+    "    {'kind': 'metrics', 'items': [\n"
+    "      {'label': '今日剩余', 'value': '100%'},\n"
+    "      {'label': '每日重置', 'value': '5:03 AM'},\n"
+    "      {'label': '本月剩余', 'value': '98%'},\n"
+    "      {'label': '每月重置', 'value': '8:00 AM'},\n"
+    "    ]},\n"
+    "    {'kind': 'progress', 'title': '本月用量', 'items': [\n"
+    "      {'label': 'Hark Pro', 'value': 2, 'max': 100, 'detail': '2 / 100'},\n"
+    "    ]},\n"
+    "  ],\n"
+    "  'note': '每 5 分钟刷新',\n"
+    "}))\n"
+  ),
+)
+```
+
+Keep one idea per panel. A lead line, one metrics block, and a note cover most cards; add other blocks only when they carry the same topic, and split unrelated topics into separate widgets.
 
 ## Data update
 
@@ -138,6 +215,7 @@ Contract:
 - Title 60 characters, description 120 (shown in Settings).
 - HTML 128 KB, script 256 KB, stored data 256 KB.
 - List 20 items, table 6 columns × 20 rows with one cell per column, text 4000 characters.
+- Metrics and progress 6 items each, facts 8, chart 12 points, timeline 8, badges 8, links 6; panel 8 blocks.
 
 ## Rules of thumb
 

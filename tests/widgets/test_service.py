@@ -202,6 +202,111 @@ async def test_html_widget_stores_markup_and_accepts_any_object(service):
     assert snapshot.data == {"anything": [1, 2, 3]}
 
 
+async def test_metrics_widget_validates_labelled_tiles(service):
+    await service.create(
+        _spec(id="limits", title="Limits", view="metrics", script=None, command=None)
+    )
+
+    await service.set_data(
+        "limits",
+        {"items": [{"label": "Today", "value": "100%"}, {"label": "Reset", "value": "5:03 AM"}]},
+    )
+
+    with pytest.raises(WidgetError, match="non-empty"):
+        await service.set_data("limits", {"items": []})
+    with pytest.raises(WidgetError, match="label"):
+        await service.set_data("limits", {"items": [{"value": 1}]})
+    with pytest.raises(WidgetError, match="tone"):
+        await service.set_data(
+            "limits", {"items": [{"label": "Today", "value": 1, "tone": "loud"}]}
+        )
+
+
+async def test_progress_widget_rejects_values_outside_the_bar(service):
+    await service.create(
+        _spec(id="storage", title="Storage", view="progress", script=None, command=None)
+    )
+
+    await service.set_data("storage", {"items": [{"label": "Drive", "value": 62, "max": 100}]})
+
+    with pytest.raises(WidgetError, match="negative"):
+        await service.set_data("storage", {"items": [{"label": "Drive", "value": -1}]})
+    with pytest.raises(WidgetError, match="greater than 0"):
+        await service.set_data("storage", {"items": [{"label": "Drive", "value": 1, "max": 0}]})
+
+
+async def test_panel_widget_composes_blocks(service):
+    await service.create(
+        _spec(id="account", title="Account", view="panel", script=None, command=None)
+    )
+    await service.set_data(
+        "account",
+        {
+            "lead": "Hark Pro (free)",
+            "blocks": [
+                {"kind": "metrics", "title": "Quota", "items": [{"label": "Today", "value": "100%"}]},
+                {"kind": "progress", "items": [{"label": "Drive", "value": 62}]},
+                {"kind": "divider"},
+            ],
+            "note": "Refreshed every 5 minutes",
+        },
+    )
+
+    assert service.snapshot("account").data["lead"] == "Hark Pro (free)"
+
+    with pytest.raises(WidgetError, match="block 1 kind"):
+        await service.set_data("account", {"blocks": [{"kind": "html", "html": "<p>x</p>"}]})
+    with pytest.raises(WidgetError, match="panel block 2"):
+        await service.set_data(
+            "account", {"blocks": [{"kind": "divider"}, {"kind": "metrics", "items": []}]}
+        )
+
+
+async def test_facts_chart_timeline_badges_and_links_contracts(service):
+    await service.create(
+        _spec(id="region", title="Region", view="facts", script=None, command=None)
+    )
+    await service.set_data("region", {"items": [{"label": "Region", "value": "eu-west-1"}]})
+    with pytest.raises(WidgetError, match="label"):
+        await service.set_data("region", {"items": [{"value": "eu-west-1"}]})
+
+    await service.create(
+        _spec(id="traffic", title="Traffic", view="chart", script=None, command=None)
+    )
+    await service.set_data("traffic", {"type": "line", "items": [{"label": "Mon", "value": 3}]})
+    with pytest.raises(WidgetError, match="bar"):
+        await service.set_data(
+            "traffic", {"type": "pie", "items": [{"label": "Mon", "value": 3}]}
+        )
+    with pytest.raises(WidgetError, match="negative"):
+        await service.set_data("traffic", {"items": [{"label": "Mon", "value": -1}]})
+
+    await service.create(
+        _spec(id="deploys", title="Deploys", view="timeline", script=None, command=None)
+    )
+    await service.set_data(
+        "deploys", {"items": [{"title": "api", "meta": "12:40", "tone": "positive"}]}
+    )
+    with pytest.raises(WidgetError, match="title"):
+        await service.set_data("deploys", {"items": [{"meta": "12:40"}]})
+
+    await service.create(
+        _spec(id="flags", title="Flags", view="badges", script=None, command=None)
+    )
+    await service.set_data("flags", {"items": [{"label": "beta", "tone": "warning"}]})
+
+    await service.create(
+        _spec(id="docs", title="Docs", view="links", script=None, command=None)
+    )
+    await service.set_data(
+        "docs", {"items": [{"label": "Runbook", "href": "https://example.com/run"}]}
+    )
+    with pytest.raises(WidgetError, match="http"):
+        await service.set_data(
+            "docs", {"items": [{"label": "Runbook", "href": "javascript:alert(1)"}]}
+        )
+
+
 async def test_delete_removes_the_widget(service, changes):
     await service.create(_spec())
 

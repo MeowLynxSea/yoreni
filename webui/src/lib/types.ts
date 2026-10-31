@@ -322,7 +322,20 @@ export interface DynamicWidgetSummary {
   id: string;
   title: string;
   description: string;
-  view: "stat" | "list" | "table" | "text" | "html";
+  view:
+    | "stat"
+    | "list"
+    | "table"
+    | "text"
+    | "metrics"
+    | "progress"
+    | "facts"
+    | "chart"
+    | "timeline"
+    | "badges"
+    | "links"
+    | "panel"
+    | "html";
   has_command: boolean;
   every_seconds: number | null;
   has_data: boolean;

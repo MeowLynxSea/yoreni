@@ -238,6 +238,88 @@ describe("dynamic widget", () => {
     expect(screen.queryByTitle("Weather")).not.toBeInTheDocument();
   });
 
+  it("renders a metrics grid of labelled values", async () => {
+    const { client } = fakeClient();
+    vi.mocked(fetchWidget).mockResolvedValue(
+      snapshot(
+        {
+          data: {
+            items: [
+              { label: "今日剩余", value: "100%" },
+              { label: "每日重置", value: "5:03 AM" },
+            ],
+          },
+        },
+        { view: "metrics" },
+      ),
+    );
+    render(<DynamicWidget id="weather" summary={summary({ view: "metrics" })} />, {
+      wrapper: wrap(client),
+    });
+
+    expect(await screen.findByText("今日剩余")).toBeInTheDocument();
+    expect(screen.getByText("100%")).toBeInTheDocument();
+    expect(screen.getByText("5:03 AM")).toBeInTheDocument();
+  });
+
+  it("renders a panel with a lead, blocks, and a note", async () => {
+    const { client } = fakeClient();
+    vi.mocked(fetchWidget).mockResolvedValue(
+      snapshot(
+        {
+          data: {
+            lead: "Hark Pro (free)",
+            blocks: [
+              { kind: "metrics", items: [{ label: "今日剩余", value: "100%" }] },
+              {
+                kind: "progress",
+                title: "Storage",
+                items: [{ label: "Drive", value: 62, detail: "62 GB" }],
+              },
+              { kind: "facts", title: "Facts", items: [{ label: "Region", value: "eu-west-1" }] },
+              {
+                kind: "chart",
+                title: "Traffic",
+                items: [
+                  { label: "Mon", value: 3 },
+                  { label: "Tue", value: 5 },
+                ],
+              },
+              { kind: "timeline", title: "Deploys", items: [{ title: "api", meta: "12:40" }] },
+              { kind: "badges", title: "Flags", items: [{ label: "beta" }] },
+              {
+                kind: "links",
+                title: "Links",
+                items: [{ label: "Runbook", href: "https://example.com/run" }],
+              },
+              { kind: "divider" },
+            ],
+            note: "Refreshed every 5 minutes",
+          },
+        },
+        { view: "panel" },
+      ),
+    );
+    render(<DynamicWidget id="weather" summary={summary({ view: "panel" })} />, {
+      wrapper: wrap(client),
+    });
+
+    expect(await screen.findByText("Hark Pro (free)")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "Drive" })).toHaveAttribute(
+      "aria-valuenow",
+      "62",
+    );
+    expect(screen.getByText("eu-west-1")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Mon 3, Tue 5" })).toBeInTheDocument();
+    expect(screen.getByText("api")).toBeInTheDocument();
+    expect(screen.getByText("beta")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Runbook/ })).toHaveAttribute(
+      "href",
+      "https://example.com/run",
+    );
+    expect(screen.getByText("Refreshed every 5 minutes")).toBeInTheDocument();
+  });
+
   it("renders nothing until it has data", async () => {
     const { client } = fakeClient();
     vi.mocked(fetchWidget).mockResolvedValue(snapshot({ data: null }, { has_data: false }));

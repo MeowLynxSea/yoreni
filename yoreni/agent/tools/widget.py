@@ -44,10 +44,25 @@ _WIDGET_PARAMETERS = ObjectSchema(
             "Optional one-line description shown in Settings (max 120 characters)."
         ),
         "view": StringSchema(
-            "REQUIRED for create: how the widget renders. Prefer a template view: "
-            "stat, list, table, and text render the stored data with a built-in template. "
-            "'html' needs html and is only for layouts a template cannot express.",
-            enum=["stat", "list", "table", "text", "html"],
+            "REQUIRED for create: how the widget renders. Template views render stored data: "
+            "stat, list, table, text, metrics, progress, facts, chart, timeline, badges, links. "
+            "'panel' composes several of them into one card. 'html' needs html and is only for "
+            "layouts no template can express.",
+            enum=[
+                "stat",
+                "list",
+                "table",
+                "text",
+                "metrics",
+                "progress",
+                "facts",
+                "chart",
+                "timeline",
+                "badges",
+                "links",
+                "panel",
+                "html",
+            ],
         ),
         "html": StringSchema(
             "HTML fragment for view='html'. It runs in a sandboxed iframe with scripts but no "
@@ -87,7 +102,15 @@ _WIDGET_PARAMETERS = ObjectSchema(
             description=(
                 "REQUIRED for set_data. Shape depends on the view: stat {value, label?, detail?}, "
                 "list {items: [{title, detail?, meta?}]}, table {columns: [string], rows: [[value]]}, "
-                "text {text: string}, html any JSON object."
+                "text {text}, metrics {items: [{label, value, detail?, tone?}], columns?: 1|2|3}, "
+                "progress {items: [{label, value, max?, detail?, tone?}]}, "
+                "facts {items: [{label, value, tone?}]}, "
+                "chart {type?: 'bar'|'line', max?, items: [{label, value}]}, "
+                "timeline {items: [{title, detail?, meta?, tone?}]}, "
+                "badges {items: [{label, detail?, tone?}]}, "
+                "links {items: [{label, href, detail?, meta?}]}, "
+                "panel {lead?, blocks: [{kind, title?, ...}], note?}, html any JSON object. "
+                "tone is neutral, positive, warning, or critical."
             ),
         ),
     },
@@ -95,9 +118,10 @@ _WIDGET_PARAMETERS = ObjectSchema(
     additional_properties=False,
     description=(
         "create needs title and view; prefer a template view and use view='html' only when no "
-        "template can express the layout, which also needs html. Add script or argv when the "
-        "widget should fetch its own data. update changes only the fields you pass. Widgets show "
-        "on the user's Home panel."
+        "template can express the layout, which also needs html. panel composes text, list, "
+        "table, metrics, progress, facts, chart, timeline, badges, and links blocks into one "
+        "card. Add script or argv when the widget should fetch its own data. update changes "
+        "only the fields you pass. Widgets show on the user's Home panel."
     ),
 ).to_json_schema()
 
@@ -129,9 +153,10 @@ class WidgetTool(Tool):
     def description(self) -> str:
         return (
             "Create and maintain Home widgets: list, get, create, update, delete, set_data, refresh. "
-            "A widget renders stored data with a template (stat, list, table, text) or an HTML "
-            "fragment in a sandboxed iframe. A backend command can produce the data as JSON on "
-            "stdout and refresh it every_seconds. Use this for values the user wants at a glance."
+            "A widget renders stored data with a template (stat, list, table, text, metrics, "
+            "progress, facts, chart, timeline, badges, links, panel) or an HTML fragment in a "
+            "sandboxed iframe. A backend command can produce the data as JSON on stdout and "
+            "refresh it every_seconds. Use this for values the user wants at a glance."
         )
 
     def validate_params(self, params: dict[str, Any]) -> list[str]:

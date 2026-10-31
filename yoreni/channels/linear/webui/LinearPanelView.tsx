@@ -349,7 +349,7 @@ export function LinearPanelView({ feature, showBrandLogos, fields, advancedField
               })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {tx("custom.disconnectDescription", "Revoke this workspace's authorization and clear its member access settings in yoreni. Linear issues, comments, and yoreni conversation history will be kept. Other workspaces are not affected. You can authorize this workspace again later.")}
+              {tx("custom.disconnectDescription", "Revoke this workspace's authorization and clear its member access settings in Yoreni. Linear issues, comments, and Yoreni conversation history will be kept. Other workspaces are not affected. You can authorize this workspace again later.")}
               {installations.length === 1 ? <> {tx("custom.disconnectLast", "This is the last connected workspace, so the Linear channel will also be turned off.")}</> : null}
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -101,7 +101,7 @@ function AuthScreen({ failed, onSecret }: { failed: boolean; onSecret: (secret: 
             />
           </div>
           <div className="relative px-10 pb-10">
-            <p className="display-serif text-[2.75rem] leading-none text-foreground/90">yoreni</p>
+            <p className="display-serif text-[2.75rem] leading-none text-foreground/90">Yoreni</p>
           </div>
         </div>
 
@@ -109,7 +109,7 @@ function AuthScreen({ failed, onSecret }: { failed: boolean; onSecret: (secret: 
           <div className="mx-auto w-full max-w-[19rem]">
             <div className="mb-8 flex items-center gap-3 md:hidden">
               <img src="/brand/yoreni_mark.svg" alt="" draggable={false} className="h-11 w-11 rounded-xl" />
-              <span className="display-serif text-[1.9rem] leading-none">yoreni</span>
+              <span className="display-serif text-[1.9rem] leading-none">Yoreni</span>
             </div>
             <h1 id="webui-auth-title" className="display-serif text-[2rem] leading-[1.1] text-foreground sm:text-[2.25rem]">
               {t("app.auth.title")}

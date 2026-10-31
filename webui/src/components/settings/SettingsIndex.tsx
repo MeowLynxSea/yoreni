@@ -50,7 +50,7 @@ export function SettingsIndex({ onOpenSection, onLogout }: SettingsIndexProps) {
           />
           <div className="min-w-0">
             <p className="display-serif truncate text-[1.6rem] leading-tight text-foreground/95">
-              yoreni
+              Yoreni
             </p>
             {connection ? (
               <p className="mt-1 truncate text-[13px] leading-none text-muted-foreground/85">

@@ -220,7 +220,7 @@ export function AutomationsSettings({
               inputAriaLabel={tx("settings.automations.createInput", "Describe an automation")}
               placeholder={tx(
                 "settings.automations.createPrompt",
-                "What would you like yoreni to automate?",
+                "What would you like Yoreni to automate?",
               )}
               variant="thread"
               compactWhenIdle

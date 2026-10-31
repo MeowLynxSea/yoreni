@@ -5,7 +5,7 @@ import { WebSocketIcon } from "./WebSocketIcon";
 
 export default {
   presentation: {
-    displayName: "yoreni WebUI",
+    displayName: "Yoreni WebUI",
     initials: "WS",
     color: "#111827",
     icon: WebSocketIcon,

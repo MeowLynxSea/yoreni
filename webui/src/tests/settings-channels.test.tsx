@@ -184,7 +184,7 @@ function uninstalledConnectFeature(
       ? {
           instances: [{
             id: "default",
-            name: "yoreni",
+            name: "Yoreni",
             enabled: false,
             runtime_status: "stopped",
             configured: false,
@@ -270,7 +270,7 @@ describe("Settings channels", () => {
 
     const privacy = screen.getByText(/Agent chats are not end-to-end encrypted/);
     expect(privacy).toBeVisible();
-    expect(privacy).toHaveTextContent("yoreni and your configured model provider");
+    expect(privacy).toHaveTextContent("Yoreni and your configured model provider");
     const token = screen.getByLabelText("API token");
     expect(token).toHaveValue("");
     expect(privacy.compareDocumentPosition(token) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -436,7 +436,7 @@ describe("Settings channels", () => {
   it("shows all channels by default when only the always-enabled WebUI is enabled", async () => {
     const websocket = {
       ...catalogFeature("websocket", true),
-      display_name: "yoreni WebUI",
+      display_name: "Yoreni WebUI",
       capabilities: ["always_enabled"],
     };
     const disabled = catalogFeature("Disabled channel", false);
@@ -451,7 +451,7 @@ describe("Settings channels", () => {
 
     renderSettingsView({ initialSection: "channels" });
 
-    expect(await screen.findByText("yoreni WebUI")).toBeInTheDocument();
+    expect(await screen.findByText("Yoreni WebUI")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "View Disabled channel settings" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
   });
@@ -521,17 +521,17 @@ describe("Settings channels", () => {
     );
     finishInstall(installedPayload);
     expect(requestMutationMock).not.toHaveBeenCalledWith("settings.channel.connect.start", expect.anything(), expect.anything());
-    const restartButton = await within(installationGroup).findByRole("button", { name: "Restart yoreni" });
+    const restartButton = await within(installationGroup).findByRole("button", { name: "Restart Yoreni" });
     const blockedInstallHint = within(installationGroup).getByRole("group", { name: "Install WeChat" });
     expect(secondInstall).toBeDisabled();
     await act(async () => { blockedInstallHint.focus(); });
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("Restart yoreni before installing another channel.");
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Restart Yoreni before installing another channel.");
     await userEvent.setup().keyboard("{Enter}");
     fireEvent.click(secondInstall);
     expect(requestMutationMock).toHaveBeenCalledTimes(1);
     expect(restartButton).toBeEnabled();
     await act(async () => { restartButton.focus(); });
-    expect(await screen.findByRole("tooltip")).toHaveTextContent("Restart yoreni to apply updated channel support.");
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Restart Yoreni to apply updated channel support.");
     expect(screen.queryByRole("switch", { name: "WhatsApp channel" })).not.toBeInTheDocument();
     expect(restart).not.toHaveBeenCalled();
     fireEvent.click(restartButton);
@@ -562,7 +562,7 @@ describe("Settings channels", () => {
     renderSettingsView({ initialSection: "channels" });
 
     const installationGroup = await screen.findByRole("region", { name: "Requires dependencies" });
-    expect(await within(installationGroup).findByRole("button", { name: "Restart yoreni" })).toBeEnabled();
+    expect(await within(installationGroup).findByRole("button", { name: "Restart Yoreni" })).toBeEnabled();
     expect(screen.getByRole("switch", { name: "Existing channel" })).toBeDisabled();
 
     restartPending = false;
@@ -745,7 +745,7 @@ describe("Settings channels", () => {
       expect(await screen.findByRole("alert")).toHaveTextContent("Package install failed");
       expect(screen.getByRole("button", { name: "Install WhatsApp" })).toBeEnabled();
       expect(consoleError).toHaveBeenCalledWith(
-        "yoreni feature action failed",
+        "Yoreni feature action failed",
         expect.objectContaining({
           action: "enable",
           name: "whatsapp",
@@ -1009,7 +1009,7 @@ describe("Settings channels", () => {
             configured: true,
             instances: [{
               id: "default",
-              name: "yoreni",
+              name: "Yoreni",
               enabled: true,
               running: true,
               runtime_status: "running",
@@ -1040,7 +1040,7 @@ describe("Settings channels", () => {
     renderSettingsView({ initialSection: "channels" });
 
     fireEvent.click((await screen.findAllByRole("button", { name: /^View .+ settings$/ }))[0]);
-    fireEvent.click(await screen.findByRole("switch", { name: "yoreni assistant" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "Yoreni assistant" }));
 
     await waitFor(() =>
       expect(requestMutationMock).toHaveBeenCalledWith(
@@ -1052,7 +1052,7 @@ describe("Settings channels", () => {
     expect(requestMutationMock.mock.calls.some(([action]) => (
       action === "settings.channel.connect.start"
     ))).toBe(false);
-    expect(screen.getByRole("switch", { name: "yoreni assistant" })).toHaveAttribute(
+    expect(screen.getByRole("switch", { name: "Yoreni assistant" })).toHaveAttribute(
       "aria-checked",
       "true",
     );
@@ -1084,7 +1084,7 @@ describe("Settings channels", () => {
               instances: [
                 {
                   id: "default",
-                  name: "yoreni",
+                  name: "Yoreni",
                   display_name: "Support Bot",
                   avatar_url: "https://example.com/support.png",
                   enabled: true,
@@ -1332,7 +1332,7 @@ describe("Settings channels", () => {
         requires_restart: true,
         instances: [{
           id: "default",
-          name: "yoreni",
+          name: "Yoreni",
           display_name: "Support Bot",
           avatar_url: "https://example.com/support.png",
           enabled: true,
@@ -2331,10 +2331,10 @@ describe("Settings channels", () => {
 
     renderSettingsView({ initialSection: "channels" });
 
-    const websocketName = await screen.findByText("yoreni WebUI");
+    const websocketName = await screen.findByText("Yoreni WebUI");
     fireEvent.click(websocketName);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    const websocketSwitch = screen.getByRole("switch", { name: "yoreni WebUI channel" });
+    const websocketSwitch = screen.getByRole("switch", { name: "Yoreni WebUI channel" });
     expect(websocketSwitch).toBeDisabled();
     expect(websocketSwitch).toHaveAttribute("aria-checked", "true");
     expect(requestMutationMock).not.toHaveBeenCalled();

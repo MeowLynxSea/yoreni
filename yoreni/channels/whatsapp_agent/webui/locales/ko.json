@@ -2,7 +2,7 @@
   "setup": {
     "docsLabel": "에이전트 설정 가이드 열기",
     "officialLabel": "WhatsApp 에이전트 도움말 열기",
-    "privacyNotice": "에이전트와의 채팅에는 종단간 암호화가 적용되지 않습니다. 메시지는 yoreni과 설정한 모델 제공업체가 처리합니다.",
+    "privacyNotice": "에이전트와의 채팅에는 종단간 암호화가 적용되지 않습니다. 메시지는 Yoreni과 설정한 모델 제공업체가 처리합니다.",
     "fields": {
       "token": {
         "label": "API 토큰",

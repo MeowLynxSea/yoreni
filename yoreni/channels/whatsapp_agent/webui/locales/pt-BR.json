@@ -2,7 +2,7 @@
   "setup": {
     "docsLabel": "Abrir o guia de configuração do agente",
     "officialLabel": "Abrir a ajuda de agentes do WhatsApp",
-    "privacyNotice": "As conversas com o agente não têm criptografia de ponta a ponta. As mensagens são processadas pelo yoreni e pelo provedor de modelos que você configurou.",
+    "privacyNotice": "As conversas com o agente não têm criptografia de ponta a ponta. As mensagens são processadas pelo Yoreni e pelo provedor de modelos que você configurou.",
     "fields": {
       "token": {
         "label": "Token de API",

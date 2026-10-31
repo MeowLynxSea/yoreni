@@ -472,7 +472,7 @@ describe("SettingsView Apps catalog", () => {
       requires_restart: false,
       hot_reload: {
         ok: true,
-        message: "MCP connections refreshed without restarting yoreni.",
+        message: "MCP connections refreshed without restarting Yoreni.",
         connected: ["team-docs"],
         failed: [],
       },
@@ -673,7 +673,7 @@ describe("SettingsView Apps catalog", () => {
     const callbackInput = await screen.findByRole("textbox", { name: "Callback URL" });
     expect(screen.getByText(/localhost page will not load/i)).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Finish signing in, then paste the callback URL into yoreni.",
+      "Finish signing in, then paste the callback URL into Yoreni.",
     );
 
     fireEvent.change(callbackInput, { target: { value: callbackUrl } });
@@ -780,11 +780,11 @@ describe("SettingsView Apps catalog", () => {
       requires_restart: false,
       hot_reload: {
         ok: true,
-        message: "MCP config reloaded without restarting yoreni.",
+        message: "MCP config reloaded without restarting Yoreni.",
       },
       last_action: {
         ok: true,
-        message: "Removed MCP preset for Xmind. MCP config reloaded without restarting yoreni.",
+        message: "Removed MCP preset for Xmind. MCP config reloaded without restarting Yoreni.",
         removed: true,
       },
     });

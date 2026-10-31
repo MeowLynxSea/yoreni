@@ -63,7 +63,7 @@ async function request<T>(
     throw new ApiError(
       res.status,
       isHtml
-        ? "Gateway returned WebUI HTML instead of JSON. Restart yoreni gateway and try again."
+        ? "Gateway returned WebUI HTML instead of JSON. Restart Yoreni gateway and try again."
         : "Gateway returned a non-JSON response.",
     );
   }

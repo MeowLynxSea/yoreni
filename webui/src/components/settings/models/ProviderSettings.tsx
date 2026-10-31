@@ -727,7 +727,7 @@ export function ProvidersSettings({
                         : provider.name === "openai_codex" && remoteBrowserAccess
                           ? tx(
                               "settings.oauth.codexRemoteSignInHelp",
-                              "Sign in through this browser, then paste the full localhost callback URL back into yoreni.",
+                              "Sign in through this browser, then paste the full localhost callback URL back into Yoreni.",
                             )
                           : provider.name === "xai_grok" && remoteBrowserAccess
                           ? tx(

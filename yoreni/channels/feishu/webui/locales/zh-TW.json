@@ -80,7 +80,7 @@
     "needsSetup": "需要授權",
     "qrAlt": "飛書連線 QR Code",
     "scanTitle": "使用飛書掃描",
-    "scanDescription": "請使用手機上的飛書或 Lark 掃描此 QR Code。完成授權後，yoreni 會自動完成設定。",
+    "scanDescription": "請使用手機上的飛書或 Lark 掃描此 QR Code。完成授權後，Yoreni 會自動完成設定。",
     "waiting": "正在等待授權…",
     "connected": "飛書已連線。",
     "stopped": "連線已停止。",

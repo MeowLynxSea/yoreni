@@ -2,7 +2,7 @@
   "setup": {
     "docsLabel": "開啟代理設定指南",
     "officialLabel": "開啟 WhatsApp 代理說明",
-    "privacyNotice": "代理對話不採用端對端加密。訊息由 yoreni 和你設定的模型服務供應商處理。",
+    "privacyNotice": "代理對話不採用端對端加密。訊息由 Yoreni 和你設定的模型服務供應商處理。",
     "fields": {
       "token": {
         "label": "API 權杖",

@@ -79,7 +79,7 @@
     "needsSetup": "Perlu otorisasi",
     "qrAlt": "Kode QR koneksi Feishu",
     "scanTitle": "Pindai dengan Feishu",
-    "scanDescription": "Pindai kode ini dengan Feishu atau Lark di ponsel. yoreni akan menyelesaikan penyiapan setelah Anda menyetujui akses.",
+    "scanDescription": "Pindai kode ini dengan Feishu atau Lark di ponsel. Yoreni akan menyelesaikan penyiapan setelah Anda menyetujui akses.",
     "waiting": "Menunggu otorisasi...",
     "connected": "Feishu sudah terhubung.",
     "stopped": "Koneksi dihentikan.",

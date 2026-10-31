@@ -2,7 +2,7 @@
   "setup": {
     "docsLabel": "打开智能体设置指南",
     "officialLabel": "打开 WhatsApp 智能体帮助",
-    "privacyNotice": "智能体对话不采用端到端加密。消息由 yoreni 和你配置的模型服务商处理。",
+    "privacyNotice": "智能体对话不采用端到端加密。消息由 Yoreni 和你配置的模型服务商处理。",
     "fields": {
       "token": {
         "label": "API 令牌",

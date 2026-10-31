@@ -1,7 +1,7 @@
 {
-  "name": "yoreni",
-  "short_name": "yoreni",
-  "description": "yoreni AI assistant",
+  "name": "Yoreni",
+  "short_name": "Yoreni",
+  "description": "Yoreni AI assistant",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#eef2f6",

@@ -79,7 +79,7 @@
     "needsSetup": "Autorisation requise",
     "qrAlt": "QR code de connexion Feishu",
     "scanTitle": "Scanner avec Feishu",
-    "scanDescription": "Utilisez Feishu ou Lark sur votre téléphone pour scanner ce code. yoreni terminera la configuration après autorisation.",
+    "scanDescription": "Utilisez Feishu ou Lark sur votre téléphone pour scanner ce code. Yoreni terminera la configuration après autorisation.",
     "waiting": "En attente d’autorisation...",
     "connected": "Feishu est connecté.",
     "stopped": "Connexion arrêtée.",

@@ -5,9 +5,9 @@
     "closeAll": "Đóng khung xem trước"
   },
   "starPrompt": {
-    "footerAction": "Tặng yoreni một sao",
+    "footerAction": "Tặng Yoreni một sao",
     "title": "Thật vui khi giúp được bạn.",
-    "intro": "Nếu yoreni giúp mỗi ngày của bạn nhẹ nhàng hơn một chút,",
+    "intro": "Nếu Yoreni giúp mỗi ngày của bạn nhẹ nhàng hơn một chút,",
     "invitation": "hãy tặng chúng mình một sao trên GitHub nhé.",
     "thanks": "Sự động viên nhỏ ấy có ý nghĩa rất lớn với chúng mình.",
     "action": "Tặng một sao",
@@ -16,21 +16,21 @@
     "saveError": "Có thể đã xảy ra sự cố mạng. Lời nhắc này có thể xuất hiện lại."
   },
   "app": {
-    "brand": "yoreni",
+    "brand": "Yoreni",
     "loading": {
-      "connecting": "Đang kết nối tới yoreni…",
-      "boot": "Đang tải yoreni…",
+      "connecting": "Đang kết nối tới Yoreni…",
+      "boot": "Đang tải Yoreni…",
       "failed": "Không thể tải giao diện này. Hãy quay lại hoặc tải lại trang để thử lại."
     },
     "error": {
-      "title": "Không thể kết nối tới yoreni",
+      "title": "Không thể kết nối tới Yoreni",
       "gatewayHint": "Hãy chắc chắn gateway đang chạy (`yoreni gateway`) và trình duyệt này có thể truy cập địa chỉ WebUI của gateway."
     },
     "auth": {
-      "title": "Kết nối với yoreni",
+      "title": "Kết nối với Yoreni",
       "label": "Mật khẩu WebUI",
       "helpTitle": "Tìm mật khẩu ở đâu?",
-      "helpConfig": "Trên thiết bị đang chạy yoreni, mở tệp cấu hình, thường nằm tại:",
+      "helpConfig": "Trên thiết bị đang chạy Yoreni, mở tệp cấu hình, thường nằm tại:",
       "helpSecret": "Sao chép giá trị của trường này làm mật khẩu:",
       "helpFallback": "Nếu giá trị này trống, hãy dùng <code>channels.websocket.token</code>.",
       "showPassword": "Hiện mật khẩu",
@@ -46,9 +46,9 @@
     },
     "system": {
       "section": "Hệ thống",
-      "restartHint": "Khởi động lại yoreni để áp dụng thay đổi thời gian chạy.",
+      "restartHint": "Khởi động lại Yoreni để áp dụng thay đổi thời gian chạy.",
       "restartAction": "Khởi động lại",
-      "restart": "Khởi động lại yoreni",
+      "restart": "Khởi động lại Yoreni",
       "restarting": "Đang khởi động lại...",
       "restartEngine": "Khởi động lại bộ máy",
       "restartingEngine": "Đang khởi động lại bộ máy..."
@@ -57,11 +57,11 @@
       "completed": "Khởi động lại hoàn tất sau {{seconds}} giây."
     },
     "documentTitle": {
-      "base": "yoreni",
+      "base": "Yoreni",
       "chat": "{{title}}"
     },
     "meta": {
-      "description": "Giao diện web yoreni — trò chuyện với không gian làm việc yoreni của bạn."
+      "description": "Giao diện web Yoreni — trò chuyện với không gian làm việc Yoreni của bạn."
     },
     "pairing": {
       "haveCode": "Bạn đã nhận được mã?",
@@ -329,7 +329,7 @@
     "timezoneNoMatches": "Không tìm thấy múi giờ phù hợp.",
     "configure": "Cấu hình",
     "exit": {
-      "title": "Khởi động lại yoreni trước khi rời phần cài đặt?",
+      "title": "Khởi động lại Yoreni trước khi rời phần cài đặt?",
       "description": "Thay đổi đã được lưu. Khởi động lại để áp dụng.",
       "later": "Khởi động lại sau"
     },
@@ -443,7 +443,7 @@
         },
         "network_proxy": {
           "label": "Proxy chung",
-          "help": "Địa chỉ dùng cho các tính năng đã bật proxy. 127.0.0.1 là máy chạy yoreni."
+          "help": "Địa chỉ dùng cho các tính năng đã bật proxy. 127.0.0.1 là máy chạy Yoreni."
         },
         "tools_web_use_proxy": {
           "label": "Dùng proxy",
@@ -491,7 +491,7 @@
         },
         "tools_image_generation_save_dir": {
           "label": "Thư mục lưu",
-          "help": "Đường dẫn tương đối trong thư mục media; không chuyển ảnh có sẵn.\n\nĐường dẫn tương đối trong thư mục phương tiện của yoreni. Ảnh hiện có không bị di chuyển."
+          "help": "Đường dẫn tương đối trong thư mục media; không chuyển ảnh có sẵn.\n\nĐường dẫn tương đối trong thư mục phương tiện của Yoreni. Ảnh hiện có không bị di chuyển."
         }
       },
       "groups": {
@@ -556,7 +556,7 @@
       "saving": "Đang lưu…",
       "discard": "Hủy thay đổi",
       "saved": "Đã lưu.",
-      "restart": "Khởi động lại yoreni",
+      "restart": "Khởi động lại Yoreni",
       "restartHelp": "Khởi động lại để áp dụng thay đổi. Tham số dòng lệnh và biến môi trường có thể được ưu tiên.",
       "search": "Tìm cài đặt nâng cao",
       "noResults": "Không có cài đặt phù hợp.",
@@ -638,8 +638,8 @@
       "test": "Thử thông báo",
       "testBody": "Đây là thông báo thử.",
       "waiting": "Đang chờ trình duyệt…",
-      "insecure": "Mở yoreni qua HTTPS hoặc localhost để dùng thông báo.",
-      "unsupported": "Trình duyệt này không hỗ trợ thông báo. Hãy thử trình duyệt khác; trên iPhone hoặc iPad, mở yoreni từ Màn hình chính.",
+      "insecure": "Mở Yoreni qua HTTPS hoặc localhost để dùng thông báo.",
+      "unsupported": "Trình duyệt này không hỗ trợ thông báo. Hãy thử trình duyệt khác; trên iPhone hoặc iPad, mở Yoreni từ Màn hình chính.",
       "denied": "Thông báo đã bị chặn. Hãy cho phép thông báo trong cài đặt trang web của trình duyệt này, rồi bật tại đây.",
       "dismissed": "Chưa được cấp quyền. Bật thông báo và chọn Cho phép.",
       "permissionFailed": "Không thể yêu cầu quyền. Hãy thử lại trên trình duyệt có hỗ trợ.",
@@ -672,7 +672,7 @@
       "refresh": "Làm mới {{name}}",
       "delete": "Xóa {{name}}",
       "deleteTitle": "Xóa {{name}}?",
-      "deleteDescription": "Thao tác này xóa tiện ích và dữ liệu của nó khỏi bản cài yoreni này. Tiện ích sẽ không còn hiển thị trên trang chính.",
+      "deleteDescription": "Thao tác này xóa tiện ích và dữ liệu của nó khỏi bản cài Yoreni này. Tiện ích sẽ không còn hiển thị trên trang chính.",
       "deleteAction": "Xóa tiện ích",
       "deleteFailed": "Không thể xóa tiện ích. Hãy thử lại.",
       "alwaysOn": "Tự động",
@@ -693,7 +693,7 @@
       "language": "Ngôn ngữ",
       "provider": "Nhà cung cấp",
       "model": "Mô hình",
-      "restart": "Khởi động lại yoreni",
+      "restart": "Khởi động lại Yoreni",
       "configPath": "Đường dẫn cấu hình",
       "activePreset": "Cấu hình đặt trước đang dùng",
       "gateway": "Gateway",
@@ -775,7 +775,7 @@
       "brandLogos": "Hiện logo nhà cung cấp và ứng dụng trong Thiết lập.\n\nHiển thị logo nhà cung cấp bên thứ ba và CLI trong Cài đặt.",
       "browserNotifications": "Thông báo khi tin nhắn đến trong lúc trang ở chế độ nền.",
       "notificationSound": "Phát âm báo khi tin nhắn đến, kể cả ở tab nền.",
-      "cliAppsCatalog": "Cài công cụ CLI cho yoreni; giữ nguyên ứng dụng máy tính.\n\nCài các công cụ dòng lệnh mà yoreni có thể dùng trên máy này. Các ứng dụng trên máy tính không bị thay đổi.",
+      "cliAppsCatalog": "Cài công cụ CLI cho Yoreni; giữ nguyên ứng dụng máy tính.\n\nCài các công cụ dòng lệnh mà Yoreni có thể dùng trên máy này. Các ứng dụng trên máy tính không bị thay đổi.",
       "cliAppsFilter": "Tìm theo tên, danh mục hoặc chức năng.",
       "logs": "Mở thư mục nhật ký engine của ứng dụng máy tính.",
       "diagnostics": "Xuất báo cáo để chẩn đoán vấn đề.",
@@ -828,11 +828,11 @@
       "loadError": "Không thể tải cài đặt",
       "unsaved": "Có thay đổi chưa lưu.",
       "upToDate": "Đã cập nhật.",
-      "savedRestart": "Đã lưu. Khởi động lại yoreni để áp dụng.",
+      "savedRestart": "Đã lưu. Khởi động lại Yoreni để áp dụng.",
       "restartAfterSaving": "Lưu thay đổi, rồi khởi động lại khi sẵn sàng.",
-      "savedRestartApply": "Đã lưu. Khởi động lại yoreni để áp dụng thay đổi.",
-      "imageProviderRestart": "Đã lưu thay đổi nhà cung cấp ảnh. Khởi động lại yoreni để áp dụng.",
-      "hostRestartAfterSaving": "Sau khi lưu, yoreni sẽ khởi động lại bộ máy.",
+      "savedRestartApply": "Đã lưu. Khởi động lại Yoreni để áp dụng thay đổi.",
+      "imageProviderRestart": "Đã lưu thay đổi nhà cung cấp ảnh. Khởi động lại Yoreni để áp dụng.",
+      "hostRestartAfterSaving": "Sau khi lưu, Yoreni sẽ khởi động lại bộ máy.",
       "hostRestartPending": "Đã lưu. Bộ máy sẽ khởi động lại khi sẵn sàng.",
       "hostApiUnavailable": "Các thao tác này chỉ có trong ứng dụng trên máy tính.",
       "logsOpened": "Đã mở thư mục nhật ký.",
@@ -1111,7 +1111,7 @@
       "saveCustom": "Lưu máy chủ",
       "configImport": "Nhập mcp.json",
       "importConfig": "Nhập",
-      "restartRequired": "Khởi động lại yoreni để kết nối các công cụ MCP đã cập nhật.",
+      "restartRequired": "Khởi động lại Yoreni để kết nối các công cụ MCP đã cập nhật.",
       "toolsFound_one": "{{count}} công cụ",
       "toolsFound_other": "{{count}} công cụ",
       "toolsFound": "{{count}} công cụ",
@@ -1141,14 +1141,14 @@
       "preparingSignIn": "Đang chuẩn bị đăng nhập an toàn…",
       "openSignInToContinue": "Mở trang đăng nhập để tiếp tục.",
       "finishSignInInBrowser": "Hoàn tất đăng nhập trong cửa sổ trình duyệt.",
-      "manualCallbackRequired": "Hoàn tất đăng nhập, rồi dán URL callback vào yoreni.",
+      "manualCallbackRequired": "Hoàn tất đăng nhập, rồi dán URL callback vào Yoreni.",
       "manualCallbackHelp": "Sau khi phê duyệt quyền truy cập, trang localhost sẽ không tải được. Hãy sao chép URL đầy đủ từ thanh địa chỉ và dán vào đây.",
       "finishingConnection": "Đang hoàn tất kết nối…",
       "activatingTools": "Đang kích hoạt công cụ…",
       "connected": "Đã kết nối.",
       "connectionFailed": "Kết nối thất bại.",
       "connectionCancelled": "Đã hủy kết nối.",
-      "reloadFailed": "Đã đăng nhập nhưng yoreni không thể kết nối các công cụ. Hãy thử khởi động lại yoreni.",
+      "reloadFailed": "Đã đăng nhập nhưng Yoreni không thể kết nối các công cụ. Hãy thử khởi động lại Yoreni.",
       "oauthFailed": "Không thể kết nối. Hãy thử đăng nhập lại.",
       "statusMissingDependency": "Cần cài thêm gói",
       "statusComingSoon": "Sắp ra mắt",
@@ -1201,8 +1201,8 @@
     },
     "observability": {
       "title": "Theo dõi chạy",
-      "configured": "yoreni đã có thông tin xác thực để ghi lại quá trình xử lý.",
-      "environment": "Đặt LANGFUSE_SECRET_KEY và LANGFUSE_PUBLIC_KEY rồi khởi động lại yoreni.",
+      "configured": "Yoreni đã có thông tin xác thực để ghi lại quá trình xử lý.",
+      "environment": "Đặt LANGFUSE_SECRET_KEY và LANGFUSE_PUBLIC_KEY rồi khởi động lại Yoreni.",
       "enable": "Bật theo dõi"
     },
     "legal": {
@@ -1231,7 +1231,7 @@
       "browseApps": "Xem ứng dụng",
       "browseIntegrations": "Xem công cụ MCP",
       "emptyIntegrationsHint": "Thêm máy chủ MCP tùy chỉnh ở bên dưới.",
-      "restartRequired": "Khởi động lại yoreni để áp dụng ứng dụng và công cụ MCP đã cập nhật."
+      "restartRequired": "Khởi động lại Yoreni để áp dụng ứng dụng và công cụ MCP đã cập nhật."
     },
     "channels": {
       "description": "Kết nối ứng dụng trò chuyện, email và WebUI.",
@@ -1241,8 +1241,8 @@
       "help": "Trợ giúp",
       "loading": "Đang tải kênh...",
       "empty": "Không có kênh nào phù hợp.",
-      "restartRequired": "Khởi động lại yoreni để áp dụng hỗ trợ kênh đã cập nhật.",
-      "restartBeforeInstall": "Khởi động lại yoreni trước khi cài đặt kênh khác.",
+      "restartRequired": "Khởi động lại Yoreni để áp dụng hỗ trợ kênh đã cập nhật.",
+      "restartBeforeInstall": "Khởi động lại Yoreni trước khi cài đặt kênh khác.",
       "requires": "Yêu cầu: {{requirements}}",
       "setUp": "Thiết lập",
       "setupGuide": "Hướng dẫn thiết lập",
@@ -1340,7 +1340,7 @@
       "installSupport": "Cài gói hỗ trợ",
       "installConfirmTitle": "Cài các gói cần thiết cho {{name}}?",
       "installConfirmDescription": "Cài gói phụ thuộc và bật {{name}}.",
-      "installOnlyConfirmDescription": "Cài gói hỗ trợ rồi kết nối.\n\nyoreni sẽ cài đặt gói hỗ trợ mà {{name}} cần. Bạn có thể kết nối sau khi cài đặt.",
+      "installOnlyConfirmDescription": "Cài gói hỗ trợ rồi kết nối.\n\nYoreni sẽ cài đặt gói hỗ trợ mà {{name}} cần. Bạn có thể kết nối sau khi cài đặt.",
       "installConfirmAction": "Cài và bật",
       "installOnlyConfirmAction": "Cài gói hỗ trợ",
       "websocketRequired": "Bắt buộc cho WebUI",
@@ -1373,7 +1373,7 @@
         "retry": "Tải lại cuộc trò chuyện",
         "confirm": "Xác nhận thay đổi",
         "saving": "Đang đổi…",
-        "available": "Trước tiên hãy gửi tin nhắn cho yoreni trong cuộc trò chuyện đích. Chỉ hiển thị cuộc trò chuyện đã kết nối, có cùng không gian làm việc và chế độ truy cập."
+        "available": "Trước tiên hãy gửi tin nhắn cho Yoreni trong cuộc trò chuyện đích. Chỉ hiển thị cuộc trò chuyện đã kết nối, có cùng không gian làm việc và chế độ truy cập."
       },
       "taskInfo": "Thông tin tác vụ",
       "runDetails": {
@@ -1386,7 +1386,7 @@
         "noOutput": "Bản ghi này không lưu nội dung phản hồi."
       },
       "create": "Tạo tác vụ",
-      "createPrompt": "Bạn muốn yoreni tự động làm gì?",
+      "createPrompt": "Bạn muốn Yoreni tự động làm gì?",
       "createInput": "Mô tả tác vụ tự động",
       "errors": {
         "legacyMissingDestination": "Tác vụ tự động cũ này thiếu nơi nhận. Hãy tạo lại từ cuộc trò chuyện liên kết để tiếp tục."
@@ -1435,7 +1435,7 @@
       "loading": "Đang tải tự động hóa...",
       "noMatches": "Không có tự động hóa phù hợp với chế độ xem này.",
       "empty": "Chưa có tự động hóa.",
-      "emptyHint": "Cho yoreni biết việc cần làm theo lịch.",
+      "emptyHint": "Cho Yoreni biết việc cần làm theo lịch.",
       "emptyAction": "Mở cuộc trò chuyện",
       "clearFilters": "Xóa bộ lọc",
       "oneShot": "Một lần",
@@ -1550,14 +1550,14 @@
       "signedInAs": "Đã đăng nhập bằng {{account}}",
       "signInHelp": "Đăng nhập từ thiết bị này. Khóa API không được lưu trong cấu hình.",
       "remoteSignInHelp": "Chọn Đăng nhập để mở xAI trên máy tính của bạn, sau đó dán mã ủy quyền được hiển thị sau khi đăng nhập.",
-      "codexRemoteSignInHelp": "Đăng nhập trong trình duyệt này, sau đó dán lại URL callback localhost đầy đủ vào yoreni.",
+      "codexRemoteSignInHelp": "Đăng nhập trong trình duyệt này, sau đó dán lại URL callback localhost đầy đủ vào Yoreni.",
       "signInRequired": "Cần đăng nhập",
       "signInBeforeSaving": "Hãy đăng nhập nhà cung cấp này trước khi lưu cấu hình đặt trước.",
       "signedIn": "Đã đăng nhập",
       "notSignedIn": "Chưa đăng nhập",
-      "localCodeHelp": "Hoàn tất đăng nhập trong trình duyệt. yoreni thường tự động hoàn tất; nếu không, hãy dán mã ủy quyền bên dưới.",
+      "localCodeHelp": "Hoàn tất đăng nhập trong trình duyệt. Yoreni thường tự động hoàn tất; nếu không, hãy dán mã ủy quyền bên dưới.",
       "remoteCodeHelp": "Chọn Đăng nhập để mở xAI trên máy tính của bạn. Sau khi đăng nhập, hãy dán mã ủy quyền do xAI hiển thị bên dưới.",
-      "localCallbackHelp": "Hoàn tất đăng nhập trong trình duyệt. Nếu yoreni không tự động kết nối, hãy sao chép URL đầy đủ từ thanh địa chỉ của trang localhost, ngay cả khi trang không tải được, dán vào bên dưới rồi chọn “Hoàn tất đăng nhập”.",
+      "localCallbackHelp": "Hoàn tất đăng nhập trong trình duyệt. Nếu Yoreni không tự động kết nối, hãy sao chép URL đầy đủ từ thanh địa chỉ của trang localhost, ngay cả khi trang không tải được, dán vào bên dưới rồi chọn “Hoàn tất đăng nhập”.",
       "remoteCallbackHelp": "Mở ChatGPT trong trình duyệt này và hoàn tất đăng nhập. Khi chuyển đến trang localhost, hãy sao chép URL đầy đủ từ thanh địa chỉ, ngay cả khi trang không tải được, dán vào bên dưới rồi chọn “Hoàn tất đăng nhập”.",
       "authorizationCode": "Mã ủy quyền",
       "callbackUrl": "URL callback",
@@ -1602,7 +1602,7 @@
       "deleteConfirmAction": "Xóa kỹ năng",
       "instructionsTitle": "Hướng dẫn kỹ năng",
       "setupRequired": "Cần thiết lập",
-      "setupDescription": "Cài gói phụ thuộc trên máy gateway rồi kiểm tra lại.\n\nCài các gói còn thiếu trên máy chạy yoreni rồi kiểm tra lại.",
+      "setupDescription": "Cài gói phụ thuộc trên máy gateway rồi kiểm tra lại.\n\nCài các gói còn thiếu trên máy chạy Yoreni rồi kiểm tra lại.",
       "copySetupCommand": "Sao chép lệnh",
       "checkAgain": "Kiểm tra lại",
       "marketplaceSearchFailed": "Không thể tìm kiếm trong các kho kỹ năng.",
@@ -1757,7 +1757,7 @@
     "empty": "Không tìm thấy tin nhắn phù hợp.",
     "failed": "Tìm kiếm hiện không khả dụng.",
     "you": "Bạn",
-    "assistant": "yoreni"
+    "assistant": "Yoreni"
   },
   "archiveConfirm": {
     "title": "Lưu trữ chủ đề này?",
@@ -1895,7 +1895,7 @@
       "imageQuickActions": {
         "icon": {
           "title": "Thiết kế biểu tượng",
-          "prompt": "Tạo một biểu tượng ứng dụng 1:1 gọn gàng cho yoreni: robot thân thiện, phong cách vector đơn giản, bảng màu xanh trắng dịu, không có chữ."
+          "prompt": "Tạo một biểu tượng ứng dụng 1:1 gọn gàng cho Yoreni: robot thân thiện, phong cách vector đơn giản, bảng màu xanh trắng dịu, không có chữ."
         },
         "sticker": {
           "title": "Tạo nhãn dán",
@@ -2364,7 +2364,7 @@
     "close": "Đóng xem trước tệp",
     "loading": "Đang tải bản xem trước...",
     "failed": "Không thể xem trước tệp này.",
-    "routeMissing": "Xem trước tệp cần gateway mới nhất. Hãy khởi động lại yoreni gateway rồi thử lại.",
+    "routeMissing": "Xem trước tệp cần gateway mới nhất. Hãy khởi động lại Yoreni gateway rồi thử lại.",
     "resize": "Đổi kích thước bản xem trước tệp",
     "truncated": "Bản xem trước bị cắt vì tệp này lớn."
   },

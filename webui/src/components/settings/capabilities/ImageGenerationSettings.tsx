@@ -241,7 +241,7 @@ export function ImageGenerationSettings({
                 ? tx("settings.image.missingCredential", "Configure this provider before enabling image generation.")
                 : error
             }
-            dirtyMessage={tx("settings.status.restartAfterSaving", "Save changes, then restart yoreni to apply them.")}
+            dirtyMessage={tx("settings.status.restartAfterSaving", "Save changes, then restart Yoreni to apply them.")}
             pendingMessage={tx("settings.status.savedRestartApply", "Saved. Restart to apply changes.")}
             onSave={onSave}
             onRestart={onRestart}

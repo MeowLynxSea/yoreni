@@ -24,7 +24,7 @@ for (const width of [412, 1440]) {
         expect(await shell.getByRole("textbox").count()).toBe(0);
         expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
         const status = shell.getByRole("status");
-        await expect(status).toHaveText("Loading yoreni…");
+        await expect(status).toHaveText("Loading Yoreni…");
         expect(await status.evaluate((element) => element.getBoundingClientRect().width)).toBe(1);
       });
     }
@@ -38,7 +38,7 @@ for (const width of [412, 1440]) {
       await page.goto("/#/settings");
       const shell = page.locator(".startup-shell");
       await expect(shell).toHaveAttribute("data-startup-surface", "settings");
-      await expect(shell.getByRole("status")).toHaveText("正在加载 yoreni…");
+      await expect(shell.getByRole("status")).toHaveText("正在加载 Yoreni…");
       await expect(page.locator("html")).toHaveClass(/dark/);
       await expect(shell).toHaveAttribute("data-startup-settings", "index");
     });

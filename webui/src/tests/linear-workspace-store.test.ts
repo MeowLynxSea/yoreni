@@ -3,7 +3,7 @@ import { YoreniClient } from "@/lib/yoreni-client";
 
 import { linearWorkspaceStore } from "../../../yoreni/channels/linear/webui/workspace-store";
 
-const installation = { organization_id: "org-1", organization_name: "yoreni" };
+const installation = { organization_id: "org-1", organization_name: "Yoreni" };
 const logo = "https://public.linear.app/org-1/logo";
 function fixture() {
   // Keep the real generic transport type; this client is never connected.

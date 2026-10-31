@@ -133,12 +133,12 @@ export function ReadingSettings({ preferences, onChange }: {
       data-reading-text-size={preferences.readingTextSize}
       style={{ "--custom-reading-size": `${preferences.customReadingTextSize}px` } as CSSProperties}>
       <div className="mb-4 flex items-center gap-2 text-caption font-medium text-foreground">
-        <img src="/brand/yoreni_mark.svg" className="h-5 w-5" alt="" />yoreni
+        <img src="/brand/yoreni_mark.svg" className="h-5 w-5" alt="" />Yoreni
       </div>
       <div data-reading-preview-content>
         <MarkdownText>{t("settings.appearance.previewText")}</MarkdownText>
         <div className="mt-4 overflow-x-auto rounded-control bg-foreground/[0.045] px-4 py-3 dark:bg-white/[0.06]">
-          <code className={`block font-mono text-code ${preferences.codeWrap ? "whitespace-pre-wrap break-words" : "whitespace-pre"}`}><span className="text-[color:var(--code-keyword)]">const</span>{' idea = '}<span className="text-[color:var(--code-string)]">{'"Hello, yoreni."'}</span>;</code>
+          <code className={`block font-mono text-code ${preferences.codeWrap ? "whitespace-pre-wrap break-words" : "whitespace-pre"}`}><span className="text-[color:var(--code-keyword)]">const</span>{' idea = '}<span className="text-[color:var(--code-string)]">{'"Hello, Yoreni."'}</span>;</code>
         </div>
       </div>
       <div className="mt-4 flex items-center gap-3 rounded-full border border-[color:var(--settings-glass-border)] bg-white/35 px-4 py-3 text-muted-foreground/80 dark:bg-white/[0.04]" aria-hidden>

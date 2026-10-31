@@ -697,7 +697,7 @@ describe("MarkdownTextRenderer", () => {
     const { container } = render(
       <MarkdownTextRenderer>
         {
-          "## Models\n\n| Model | Context | Price |\n| --- | ---: | ---: |\n| yoreni | 200k | $1 |\n\n## Notes"
+          "## Models\n\n| Model | Context | Price |\n| --- | ---: | ---: |\n| Yoreni | 200k | $1 |\n\n## Notes"
         }
       </MarkdownTextRenderer>,
     );
@@ -708,7 +708,7 @@ describe("MarkdownTextRenderer", () => {
     expect(surface).toHaveAttribute("tabindex", "0");
     expect(surface).toHaveAccessibleName("Data table");
     const table = screen.getByRole("table");
-    expect(table).toHaveTextContent("yoreni");
+    expect(table).toHaveTextContent("Yoreni");
     expect(table).not.toHaveClass("min-w-max");
     expect(table).toHaveClass(
       "table-fixed",

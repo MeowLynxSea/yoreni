@@ -18,7 +18,7 @@ export default {
     color: "#12B7F5",
     setup: {
       mode: "connect",
-      command: "yoreni channels login qq",
+      command: "Yoreni channels login qq",
       docsUrl: chatAppGuideUrl("qq"),
       manualFields: [
         { key: "channels.qq.appId", section: "credentials" },

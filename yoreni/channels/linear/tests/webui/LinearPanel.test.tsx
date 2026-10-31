@@ -499,7 +499,7 @@ describe("Linear channel UI", () => {
     expect(await screen.findByRole("link", { name: "Continue in Linear" })).toHaveAttribute(
       "href", "https://linear.app/oauth/authorize?client_id=test",
     );
-    expect(screen.getByText("Authorize in Linear, then return here. Continue in Linear to choose a workspace and authorize yoreni. Return here when you're done.")).toBeVisible();
+    expect(screen.getByText("Authorize in Linear, then return here. Continue in Linear to choose a workspace and authorize Yoreni. Return here when you're done.")).toBeVisible();
     expect(screen.queryByRole("img", { name: /QR/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/scan the QR code/i)).not.toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "OAuth client ID" })).toBeDisabled();
@@ -540,14 +540,14 @@ describe("Linear channel UI", () => {
     mockFeature({ ...savedFeature(), runtime_status });
     requestMutationMock.mockResolvedValue({
       session_id: "", status: "inspected", installations: [
-        { organization_id: "org-1", organization_name: "yoreni", authorization_status: "authorized" },
+        { organization_id: "org-1", organization_name: "Yoreni", authorization_status: "authorized" },
       ],
     });
     renderSettingsView({ initialSection: "channels" });
     fireEvent.click(await screen.findByRole("button", { name: "View Linear settings" }));
-    expect(await screen.findByRole("article", { name: "yoreni" })).toBeVisible();
+    expect(await screen.findByRole("article", { name: "Yoreni" })).toBeVisible();
     expect(within(screen.getByRole("dialog")).queryByText("Channel running", { exact: true })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Manage yoreni" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Manage Yoreni" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Connect Linear" })).toBeEnabled();
     expect(requestMutationMock).toHaveBeenCalledTimes(1);
     expect(requestMutationMock).toHaveBeenCalledWith(
@@ -571,7 +571,7 @@ describe("Linear channel UI", () => {
     mockFeature({ ...savedFeature(), enabled: true, running: true, runtime_status: "running" });
     requestMutationMock
       .mockResolvedValueOnce({ session_id: "", status: "inspected", installations: [
-        { organization_id: "org-1", organization_name: "yoreni", authorization_status: "authorized" },
+        { organization_id: "org-1", organization_name: "Yoreni", authorization_status: "authorized" },
       ] })
       .mockResolvedValueOnce({ session_id: "add", status: "pending",
         qr_url: "https://linear.app/oauth/authorize?client_id=test" });
@@ -582,7 +582,7 @@ describe("Linear channel UI", () => {
     fireEvent.click(add);
     expect(await screen.findByRole("link", { name: "Continue in Linear" })).toBeVisible();
     expect(screen.queryByRole("img", { name: /QR/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("article", { name: "yoreni" })).toBeVisible();
+    expect(screen.getByRole("article", { name: "Yoreni" })).toBeVisible();
     expect(requestMutationMock).toHaveBeenLastCalledWith(
       "settings.channel.connect.start", { channel: "linear", force: true }, 150_000,
     );
@@ -593,14 +593,14 @@ describe("Linear channel UI", () => {
     mockFeature({ ...savedFeature(), enabled: true, running: true, runtime_status: "running" });
     requestMutationMock
       .mockResolvedValueOnce({ session_id: "", status: "inspected", installations: [
-        { organization_id: "org-1", organization_name: "yoreni", authorization_status: "authorized" },
+        { organization_id: "org-1", organization_name: "Yoreni", authorization_status: "authorized" },
       ] })
       .mockResolvedValueOnce({ session_id: "another-workspace", status: "pending",
         qr_url: "https://linear.app/oauth/authorize?client_id=test" })
       .mockResolvedValueOnce({ session_id: "another-workspace", status: "cancelled" });
     renderSettingsView({ initialSection: "channels" });
     fireEvent.click(await screen.findByRole("button", { name: "View Linear settings" }));
-    const manage = await screen.findByRole("button", { name: "Manage yoreni" });
+    const manage = await screen.findByRole("button", { name: "Manage Yoreni" });
     expect(screen.queryByRole("button", { name: "Connect another workspace" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reauthorize" })).not.toBeInTheDocument();
     fireEvent.keyDown(manage, { key: "ArrowDown" });
@@ -615,7 +615,7 @@ describe("Linear channel UI", () => {
     await waitFor(() => expect(screen.getByRole("link", { name: "Continue in Linear" })).toHaveFocus());
     expect(reveal).toHaveBeenCalledWith({ block: "nearest" });
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Manage yoreni" })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Manage Yoreni" })).toBeEnabled());
     expect(within(screen.getByRole("dialog")).getByText("Channel running", { exact: true })).toBeVisible();
     expect(screen.queryByText("Authorization stopped.")).not.toBeInTheDocument();
     expect(requestMutationMock.mock.calls.some(([, params]) => params.operation === "disconnect")).toBe(false);
@@ -684,13 +684,13 @@ describe("Linear channel UI", () => {
     requestMutationMock
       .mockRejectedValueOnce(new Error("WebUI connection is not open"))
       .mockResolvedValue({ installations: [
-        { organization_id: "org-1", organization_name: "yoreni", authorization_status: "authorized" },
+        { organization_id: "org-1", organization_name: "Yoreni", authorization_status: "authorized" },
       ] });
     renderSettingsView({ initialSection: "channels", client });
     fireEvent.click(await screen.findByRole("button", { name: "View Linear settings" }));
     expect(await screen.findByText("WebUI connection is not open")).toBeVisible();
     act(() => onStatus?.("open"));
-    expect(await screen.findByRole("article", { name: "yoreni" })).toBeVisible();
+    expect(await screen.findByRole("article", { name: "Yoreni" })).toBeVisible();
     expect(screen.queryByText("WebUI connection is not open")).not.toBeInTheDocument();
     expect(requestMutationMock).toHaveBeenCalledTimes(2);
     // A second reconnect must revalidate even while the display cache is fresh.
@@ -742,7 +742,7 @@ describe("Linear channel UI", () => {
     fireEvent.keyDown(screen.getByRole("button", { name: "Manage Example workspace" }), { key: "ArrowDown" });
     fireEvent.click(await screen.findByRole("menuitem", { name: "Remove workspace" }));
     const confirm = await screen.findByRole("alertdialog", { name: "Remove Example workspace?" });
-    expect(confirm).toHaveTextContent("Linear issues, comments, and yoreni conversation history will be kept.");
+    expect(confirm).toHaveTextContent("Linear issues, comments, and Yoreni conversation history will be kept.");
     expect(confirm).toHaveTextContent("the Linear channel will also be turned off");
     expect(requestMutationMock).toHaveBeenCalledTimes(1);
     fireEvent.click(within(confirm).getByRole("button", { name: "Remove workspace" }));
@@ -758,7 +758,7 @@ describe("Linear channel UI", () => {
   });
 
   it("clears an old cancelled authorization after removing the last workspace", async () => {
-    const installation = { organization_id: "org-1", organization_name: "yoreni",
+    const installation = { organization_id: "org-1", organization_name: "Yoreni",
       authorization_status: "authorized" };
     let removed = false;
     mockFeature({ ...savedFeature(), enabled: true, running: true, runtime_status: "running" });
@@ -784,10 +784,10 @@ describe("Linear channel UI", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Connect workspace" }));
     await screen.findByRole("link", { name: "Continue in Linear" });
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Manage yoreni" })).toBeEnabled());
-    fireEvent.keyDown(screen.getByRole("button", { name: "Manage yoreni" }), { key: "ArrowDown" });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Manage Yoreni" })).toBeEnabled());
+    fireEvent.keyDown(screen.getByRole("button", { name: "Manage Yoreni" }), { key: "ArrowDown" });
     fireEvent.click(await screen.findByRole("menuitem", { name: "Remove workspace" }));
-    const confirm = await screen.findByRole("alertdialog", { name: "Remove yoreni?" });
+    const confirm = await screen.findByRole("alertdialog", { name: "Remove Yoreni?" });
     fireEvent.click(within(confirm).getByRole("button", { name: "Remove workspace" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Connect Linear" })).toBeEnabled());
     expect(screen.queryByText("Linear authorization cancelled.")).not.toBeInTheDocument();
@@ -797,26 +797,26 @@ describe("Linear channel UI", () => {
   it("cancels disconnect without a mutation and returns focus to workspace actions", async () => {
     mockFeature({ ...savedFeature(), enabled: true, running: true, runtime_status: "running" });
     requestMutationMock.mockResolvedValue({ session_id: "", status: "inspected", installations: [
-      { organization_id: "org-1", organization_name: "yoreni", authorization_status: "authorized" },
+      { organization_id: "org-1", organization_name: "Yoreni", authorization_status: "authorized" },
     ] });
     renderSettingsView({ initialSection: "channels" });
     fireEvent.click(await screen.findByRole("button", { name: "View Linear settings" }));
-    const manage = await screen.findByRole("button", { name: "Manage yoreni" });
+    const manage = await screen.findByRole("button", { name: "Manage Yoreni" });
     manage.focus();
     fireEvent.keyDown(manage, { key: "ArrowDown" });
     fireEvent.click(await screen.findByRole("menuitem", { name: "Remove workspace" }));
-    const confirm = await screen.findByRole("alertdialog", { name: "Remove yoreni?" });
+    const confirm = await screen.findByRole("alertdialog", { name: "Remove Yoreni?" });
     await waitFor(() => expect(within(confirm).getByRole("button", { name: "Cancel" })).toHaveFocus());
     fireEvent.click(within(confirm).getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     await waitFor(() => expect(manage).toHaveFocus());
     expect(requestMutationMock).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("article", { name: "yoreni" })).toBeVisible();
+    expect(screen.getByRole("article", { name: "Yoreni" })).toBeVisible();
   });
 
   it("keeps a failed disconnect retryable and only removes the selected workspace after confirmation", async () => {
     const installations = [
-      { organization_id: "org-1", organization_name: "yoreni", authorization_status: "authorized" },
+      { organization_id: "org-1", organization_name: "Yoreni", authorization_status: "authorized" },
       { organization_id: "org-2", organization_name: "Other workspace", authorization_status: "authorized" },
     ];
     let failDisconnect!: (error: Error) => void;
@@ -827,19 +827,19 @@ describe("Linear channel UI", () => {
       .mockResolvedValueOnce({ session_id: "", status: "disconnected", installations: [installations[1]] });
     renderSettingsView({ initialSection: "channels" });
     fireEvent.click(await screen.findByRole("button", { name: "View Linear settings" }));
-    fireEvent.keyDown(await screen.findByRole("button", { name: "Manage yoreni" }), { key: "ArrowDown" });
+    fireEvent.keyDown(await screen.findByRole("button", { name: "Manage Yoreni" }), { key: "ArrowDown" });
     fireEvent.click(await screen.findByRole("menuitem", { name: "Remove workspace" }));
-    const confirm = await screen.findByRole("alertdialog", { name: "Remove yoreni?" });
+    const confirm = await screen.findByRole("alertdialog", { name: "Remove Yoreni?" });
     expect(confirm).not.toHaveTextContent("last connected workspace");
     fireEvent.click(within(confirm).getByRole("button", { name: "Remove workspace" }));
     expect(within(confirm).getByRole("button", { name: "Removing…" })).toBeDisabled();
     expect(within(confirm).getByRole("button", { name: "Cancel" })).toBeDisabled();
     failDisconnect(new Error("Could not revoke authorization"));
     expect(await within(confirm).findByRole("alert")).toHaveTextContent("Could not revoke authorization");
-    expect(screen.getByRole("article", { name: "yoreni", hidden: true })).toBeInTheDocument();
+    expect(screen.getByRole("article", { name: "Yoreni", hidden: true })).toBeInTheDocument();
     fireEvent.click(within(confirm).getByRole("button", { name: "Remove workspace" }));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
-    expect(screen.queryByRole("article", { name: "yoreni" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("article", { name: "Yoreni" })).not.toBeInTheDocument();
     expect(screen.getByRole("article", { name: "Other workspace" })).toBeVisible();
     expect(requestMutationMock).toHaveBeenLastCalledWith("settings.channel.connect.start", {
       channel: "linear", operation: "disconnect", organization_id: "org-1",
@@ -854,17 +854,17 @@ describe("Linear channel UI", () => {
     mockFeature({ ...savedFeature(), enabled: true, running: true, runtime_status: "running" });
     requestMutationMock.mockImplementation(async (_method, params) => params.operation === "members"
       ? { session_id: "", status: "members", organization_id: "org-1", legacy_allow_all: false,
-        members: [{ id: "u1", name: "Xubin", teams: ["yoreni"], allowed: true }] }
+        members: [{ id: "u1", name: "Xubin", teams: ["Yoreni"], allowed: true }] }
       : { session_id: "", status: "inspected", installations: [
-        { organization_id: "org-1", organization_name: "yoreni", authorization_status: "authorized" },
+        { organization_id: "org-1", organization_name: "Yoreni", authorization_status: "authorized" },
       ] });
     renderSettingsView({ initialSection: "channels" });
     fireEvent.click(await screen.findByRole("button", { name: "View Linear settings" }));
-    const workspace = await screen.findByRole("article", { name: "yoreni" });
+    const workspace = await screen.findByRole("article", { name: "Yoreni" });
     await waitFor(() => expect(workspace.querySelector("img")).toHaveAttribute("src", "https://uploads.linear.app/org-1/logo"));
     expect(within(workspace).queryByRole("button", { name: /team/i })).not.toBeInTheDocument();
     fireEvent.click(within(workspace).getByRole("button", { name: "Member access" }));
-    expect(await within(workspace).findByRole("switch", { name: "Allow Xubin to use yoreni" })).toBeVisible();
+    expect(await within(workspace).findByRole("switch", { name: "Allow Xubin to use Yoreni" })).toBeVisible();
     expect(within(workspace).getAllByRole("switch")).toHaveLength(1);
     expect(within(workspace).queryByRole("combobox")).not.toBeInTheDocument();
     expect(requestMutationMock.mock.calls.some(([, params]) => params.operation === "member_access")).toBe(false);
@@ -876,19 +876,19 @@ describe("Linear channel UI", () => {
       if (params.operation === "members") return {
         session_id: "", status: "members", organization_id: params.organization_id,
         legacy_allow_all: false,
-        members: [{ id: "u1", name: "Xubin", teams: ["yoreni"], allowed: true }],
+        members: [{ id: "u1", name: "Xubin", teams: ["Yoreni"], allowed: true }],
       };
       return { session_id: "", status: "inspected", installations: [
-        { organization_id: "org-1", organization_name: "yoreni", authorization_status: "authorized" },
+        { organization_id: "org-1", organization_name: "Yoreni", authorization_status: "authorized" },
         { organization_id: "org-2", organization_name: "Design workspace", authorization_status: "authorized" },
       ] };
     });
     renderSettingsView({ initialSection: "channels" });
     fireEvent.click(await screen.findByRole("button", { name: "View Linear settings" }));
-    const workspace = await screen.findByRole("article", { name: "yoreni" });
+    const workspace = await screen.findByRole("article", { name: "Yoreni" });
     const other = screen.getByRole("article", { name: "Design workspace" });
     fireEvent.click(within(workspace).getByRole("button", { name: "Member access" }));
-    expect(await within(workspace).findByRole("switch", { name: "Allow Xubin to use yoreni" })).toBeVisible();
+    expect(await within(workspace).findByRole("switch", { name: "Allow Xubin to use Yoreni" })).toBeVisible();
     expect(within(other).getByRole("button", { name: "Member access" })).toHaveAttribute("aria-expanded", "false");
     expect(within(other).queryByRole("switch")).not.toBeInTheDocument();
     expect(requestMutationMock).toHaveBeenCalledWith("settings.channel.connect.start", {
@@ -900,12 +900,12 @@ describe("Linear channel UI", () => {
   it("keeps missing authorization scopes visible without opening a tooltip", async () => {
     mockFeature({ ...savedFeature(), enabled: true, running: true, runtime_status: "running" });
     requestMutationMock.mockResolvedValue({ session_id: "", status: "inspected", installations: [{
-      organization_id: "org-1", organization_name: "yoreni", authorization_status: "missing_scopes",
+      organization_id: "org-1", organization_name: "Yoreni", authorization_status: "missing_scopes",
       scopes: ["read"], missing_scopes: ["write", "app:mentionable"],
     }] });
     renderSettingsView({ initialSection: "channels" });
     fireEvent.click(await screen.findByRole("button", { name: "View Linear settings" }));
-    const workspace = await screen.findByRole("article", { name: "yoreni" });
+    const workspace = await screen.findByRole("article", { name: "Yoreni" });
     expect(within(workspace).getByText("Reconnect to grant: write, app:mentionable")).toBeVisible();
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });

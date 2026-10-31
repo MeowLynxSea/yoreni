@@ -5,9 +5,9 @@
     "closeAll": "미리보기 패널 닫기"
   },
   "starPrompt": {
-    "footerAction": "yoreni에 스타 남기기",
+    "footerAction": "Yoreni에 스타 남기기",
     "title": "도움이 되어 기뻐요.",
-    "intro": "yoreni 덕분에 일상이 조금 더 편해졌다면,",
+    "intro": "Yoreni 덕분에 일상이 조금 더 편해졌다면,",
     "invitation": "GitHub에 Star 하나 남겨 주세요.",
     "thanks": "작은 응원이 저희에겐 큰 힘이 돼요.",
     "action": "Star로 응원하기",
@@ -16,21 +16,21 @@
     "saveError": "네트워크에 문제가 있는 것 같습니다. 이 알림이 다시 표시될 수 있습니다."
   },
   "app": {
-    "brand": "yoreni",
+    "brand": "Yoreni",
     "loading": {
-      "connecting": "yoreni에 연결 중…",
-      "boot": "yoreni 불러오는 중…",
+      "connecting": "Yoreni에 연결 중…",
+      "boot": "Yoreni 불러오는 중…",
       "failed": "이 화면을 불러오지 못했습니다. 뒤로 가거나 페이지를 새로고침하여 다시 시도하세요."
     },
     "error": {
-      "title": "yoreni에 연결할 수 없습니다",
+      "title": "Yoreni에 연결할 수 없습니다",
       "gatewayHint": "gateway(`yoreni gateway`)가 실행 중이고 이 브라우저에서 WebUI 주소에 접근할 수 있는지 확인하세요."
     },
     "auth": {
-      "title": "yoreni에 연결",
+      "title": "Yoreni에 연결",
       "label": "WebUI 비밀번호",
       "helpTitle": "비밀번호는 어디에서 찾나요?",
-      "helpConfig": "yoreni을 실행 중인 기기에서 설정 파일을 여세요. 일반적으로 다음 위치에 있습니다:",
+      "helpConfig": "Yoreni을 실행 중인 기기에서 설정 파일을 여세요. 일반적으로 다음 위치에 있습니다:",
       "helpSecret": "이 필드의 값을 비밀번호로 복사하세요:",
       "helpFallback": "값이 비어 있으면 <code>channels.websocket.token</code>을 사용하세요.",
       "showPassword": "비밀번호 표시",
@@ -46,9 +46,9 @@
     },
     "system": {
       "section": "시스템",
-      "restartHint": "런타임 변경 사항을 적용하려면 yoreni을 다시 시작하세요.",
+      "restartHint": "런타임 변경 사항을 적용하려면 Yoreni을 다시 시작하세요.",
       "restartAction": "다시 시작",
-      "restart": "yoreni 다시 시작",
+      "restart": "Yoreni 다시 시작",
       "restarting": "다시 시작 중...",
       "restartEngine": "엔진 다시 시작",
       "restartingEngine": "엔진 다시 시작 중..."
@@ -57,11 +57,11 @@
       "completed": "{{seconds}}초 만에 다시 시작되었습니다."
     },
     "documentTitle": {
-      "base": "yoreni",
+      "base": "Yoreni",
       "chat": "{{title}}"
     },
     "meta": {
-      "description": "yoreni 웹 UI — yoreni 작업공간과 대화하세요."
+      "description": "Yoreni 웹 UI — Yoreni 작업공간과 대화하세요."
     },
     "pairing": {
       "haveCode": "이미 코드를 받으셨나요?",
@@ -329,7 +329,7 @@
     "timezoneNoMatches": "일치하는 시간대가 없습니다.",
     "configure": "설정",
     "exit": {
-      "title": "설정을 닫기 전에 yoreni을 다시 시작할까요?",
+      "title": "설정을 닫기 전에 Yoreni을 다시 시작할까요?",
       "description": "변경 사항이 저장되었습니다. 적용하려면 다시 시작하세요.",
       "later": "나중에 다시 시작"
     },
@@ -443,7 +443,7 @@
         },
         "network_proxy": {
           "label": "공유 프록시",
-          "help": "프록시 사용이 켜진 기능에서 공유하는 주소입니다. 127.0.0.1은 yoreni을 실행하는 기기를 뜻합니다."
+          "help": "프록시 사용이 켜진 기능에서 공유하는 주소입니다. 127.0.0.1은 Yoreni을 실행하는 기기를 뜻합니다."
         },
         "tools_web_use_proxy": {
           "label": "프록시 사용",
@@ -491,7 +491,7 @@
         },
         "tools_image_generation_save_dir": {
           "label": "저장 디렉터리",
-          "help": "미디어 디렉터리 내부의 상대 경로입니다. 기존 이미지는 이동하지 않습니다.\n\nyoreni 미디어 폴더 아래의 상대 경로입니다. 기존 이미지는 이동하지 않습니다."
+          "help": "미디어 디렉터리 내부의 상대 경로입니다. 기존 이미지는 이동하지 않습니다.\n\nYoreni 미디어 폴더 아래의 상대 경로입니다. 기존 이미지는 이동하지 않습니다."
         }
       },
       "groups": {
@@ -556,7 +556,7 @@
       "saving": "저장 중…",
       "discard": "변경 사항 취소",
       "saved": "저장했습니다.",
-      "restart": "yoreni 다시 시작",
+      "restart": "Yoreni 다시 시작",
       "restartHelp": "다시 시작하면 적용됩니다. 명령줄 인수와 환경 변수 설정이 우선 적용될 수 있습니다.",
       "search": "고급 설정 검색",
       "noResults": "일치하는 설정이 없습니다.",
@@ -638,8 +638,8 @@
       "test": "알림 테스트",
       "testBody": "테스트 알림입니다.",
       "waiting": "브라우저 응답 대기 중…",
-      "insecure": "알림을 사용하려면 HTTPS 또는 localhost로 yoreni을 여세요.",
-      "unsupported": "이 브라우저는 알림을 지원하지 않습니다. 다른 브라우저를 사용하세요. iPhone이나 iPad에서는 홈 화면에서 yoreni을 여세요.",
+      "insecure": "알림을 사용하려면 HTTPS 또는 localhost로 Yoreni을 여세요.",
+      "unsupported": "이 브라우저는 알림을 지원하지 않습니다. 다른 브라우저를 사용하세요. iPhone이나 iPad에서는 홈 화면에서 Yoreni을 여세요.",
       "denied": "알림이 차단되었습니다. 이 브라우저의 사이트 설정에서 알림을 허용한 후 여기에서 켜세요.",
       "dismissed": "알림 권한을 받지 못했습니다. 알림을 켜고 허용을 선택하세요.",
       "permissionFailed": "권한을 요청할 수 없습니다. 지원하는 브라우저에서 다시 시도하세요.",
@@ -672,7 +672,7 @@
       "refresh": "{{name}} 새로 고침",
       "delete": "{{name}} 삭제",
       "deleteTitle": "{{name}} 삭제할까요?",
-      "deleteDescription": "이 yoreni 설치에서 위젯과 데이터를 삭제합니다. 홈에 더 이상 표시되지 않습니다.",
+      "deleteDescription": "이 Yoreni 설치에서 위젯과 데이터를 삭제합니다. 홈에 더 이상 표시되지 않습니다.",
       "deleteAction": "위젯 삭제",
       "deleteFailed": "위젯을 삭제하지 못했습니다. 다시 시도하세요.",
       "alwaysOn": "자동",
@@ -693,7 +693,7 @@
       "language": "언어",
       "provider": "제공업체",
       "model": "모델",
-      "restart": "yoreni 다시 시작",
+      "restart": "Yoreni 다시 시작",
       "configPath": "설정 경로",
       "activePreset": "활성 프리셋",
       "gateway": "게이트웨이",
@@ -775,7 +775,7 @@
       "brandLogos": "설정에 제공업체와 앱 로고를 표시합니다.\n\n설정에서 타사 제공업체와 CLI 로고를 표시합니다.",
       "browserNotifications": "페이지가 백그라운드일 때 메시지가 도착하면 알립니다.",
       "notificationSound": "메시지가 도착하면 소리를 재생합니다. 백그라운드 탭에서도 재생됩니다.",
-      "cliAppsCatalog": "yoreni용 CLI 도구를 설치합니다. 데스크톱 앱은 변경되지 않습니다.\n\nyoreni이 이 컴퓨터에서 사용할 수 있는 명령줄 도구를 설치합니다. 데스크톱 앱은 변경하지 않습니다.",
+      "cliAppsCatalog": "Yoreni용 CLI 도구를 설치합니다. 데스크톱 앱은 변경되지 않습니다.\n\nYoreni이 이 컴퓨터에서 사용할 수 있는 명령줄 도구를 설치합니다. 데스크톱 앱은 변경하지 않습니다.",
       "cliAppsFilter": "이름, 분류 또는 기능으로 검색하세요.",
       "logs": "데스크톱 앱의 엔진 로그 폴더를 엽니다.",
       "diagnostics": "문제 진단을 돕는 보고서를 내보냅니다.",
@@ -828,11 +828,11 @@
       "loadError": "설정을 불러올 수 없습니다",
       "unsaved": "저장되지 않은 변경 사항이 있습니다.",
       "upToDate": "최신 상태입니다.",
-      "savedRestart": "저장했습니다. 적용하려면 yoreni을 다시 시작하세요.",
+      "savedRestart": "저장했습니다. 적용하려면 Yoreni을 다시 시작하세요.",
       "restartAfterSaving": "변경 사항을 저장한 뒤 준비되면 다시 시작하세요.",
-      "savedRestartApply": "저장했습니다. 변경 사항을 적용하려면 yoreni을 다시 시작하세요.",
-      "imageProviderRestart": "이미지 제공업체 변경 사항을 저장했습니다. 적용하려면 yoreni을 다시 시작하세요.",
-      "hostRestartAfterSaving": "저장하면 yoreni이 엔진을 다시 시작합니다.",
+      "savedRestartApply": "저장했습니다. 변경 사항을 적용하려면 Yoreni을 다시 시작하세요.",
+      "imageProviderRestart": "이미지 제공업체 변경 사항을 저장했습니다. 적용하려면 Yoreni을 다시 시작하세요.",
+      "hostRestartAfterSaving": "저장하면 Yoreni이 엔진을 다시 시작합니다.",
       "hostRestartPending": "저장했습니다. 준비되면 엔진을 다시 시작합니다.",
       "hostApiUnavailable": "이 작업은 데스크톱 앱에서만 사용할 수 있습니다.",
       "logsOpened": "로그 폴더를 열었습니다.",
@@ -1111,7 +1111,7 @@
       "saveCustom": "서버 저장",
       "configImport": "mcp.json 가져오기",
       "importConfig": "가져오기",
-      "restartRequired": "업데이트된 MCP 도구를 연결하려면 yoreni을 다시 시작하세요.",
+      "restartRequired": "업데이트된 MCP 도구를 연결하려면 Yoreni을 다시 시작하세요.",
       "toolsFound_one": "도구 {{count}}개",
       "toolsFound_other": "도구 {{count}}개",
       "toolsFound": "도구 {{count}}개",
@@ -1141,14 +1141,14 @@
       "preparingSignIn": "안전한 로그인을 준비하는 중…",
       "openSignInToContinue": "계속하려면 로그인 페이지를 여세요.",
       "finishSignInInBrowser": "브라우저 창에서 로그인을 완료하세요.",
-      "manualCallbackRequired": "로그인을 완료한 다음 콜백 URL을 yoreni에 붙여 넣으세요.",
+      "manualCallbackRequired": "로그인을 완료한 다음 콜백 URL을 Yoreni에 붙여 넣으세요.",
       "manualCallbackHelp": "접근을 승인하면 localhost 페이지가 열리지 않습니다. 주소 표시줄에서 전체 URL을 복사해 여기에 붙여 넣으세요.",
       "finishingConnection": "연결을 마무리하는 중…",
       "activatingTools": "도구를 활성화하는 중…",
       "connected": "연결됨.",
       "connectionFailed": "연결에 실패했습니다.",
       "connectionCancelled": "연결을 취소했습니다.",
-      "reloadFailed": "로그인했지만 yoreni에서 도구를 연결하지 못했습니다. yoreni을 다시 시작해 보세요.",
+      "reloadFailed": "로그인했지만 Yoreni에서 도구를 연결하지 못했습니다. Yoreni을 다시 시작해 보세요.",
       "oauthFailed": "연결할 수 없습니다. 다시 로그인해 보세요.",
       "statusMissingDependency": "의존성 필요",
       "statusComingSoon": "곧 제공",
@@ -1201,8 +1201,8 @@
     },
     "observability": {
       "title": "실행 추적",
-      "configured": "yoreni이 추적 인증 정보을 사용할 수 있습니다.",
-      "environment": "LANGFUSE_SECRET_KEY와 LANGFUSE_PUBLIC_KEY를 설정한 뒤 yoreni을 다시 시작하세요.",
+      "configured": "Yoreni이 추적 인증 정보을 사용할 수 있습니다.",
+      "environment": "LANGFUSE_SECRET_KEY와 LANGFUSE_PUBLIC_KEY를 설정한 뒤 Yoreni을 다시 시작하세요.",
       "enable": "추적 활성화"
     },
     "legal": {
@@ -1231,7 +1231,7 @@
       "browseApps": "앱 둘러보기",
       "browseIntegrations": "MCP 도구 둘러보기",
       "emptyIntegrationsHint": "아래에서 사용자 지정 MCP 서버를 추가하세요.",
-      "restartRequired": "업데이트된 앱과 MCP 도구를 적용하려면 yoreni을 다시 시작하세요."
+      "restartRequired": "업데이트된 앱과 MCP 도구를 적용하려면 Yoreni을 다시 시작하세요."
     },
     "channels": {
       "description": "채팅 앱, 이메일 및 WebUI를 연결하세요.",
@@ -1241,8 +1241,8 @@
       "help": "도움말",
       "loading": "채널을 불러오는 중...",
       "empty": "일치하는 채널이 없습니다.",
-      "restartRequired": "업데이트된 채널 지원을 적용하려면 yoreni을 다시 시작하세요.",
-      "restartBeforeInstall": "다른 채널을 설치하려면 yoreni을 다시 시작하세요.",
+      "restartRequired": "업데이트된 채널 지원을 적용하려면 Yoreni을 다시 시작하세요.",
+      "restartBeforeInstall": "다른 채널을 설치하려면 Yoreni을 다시 시작하세요.",
       "requires": "필요: {{requirements}}",
       "setUp": "설정",
       "setupGuide": "설정 가이드",
@@ -1340,7 +1340,7 @@
       "installSupport": "지원 패키지 설치",
       "installConfirmTitle": "{{name}}에 필요한 패키지를 설치할까요?",
       "installConfirmDescription": "의존성을 설치하고 {{name}}을 활성화합니다.",
-      "installOnlyConfirmDescription": "지원 패키지를 설치한 뒤 연결하세요.\n\nyoreni이 {{name}}에 필요한 지원 패키지를 설치합니다. 설치 후 연결할 수 있습니다.",
+      "installOnlyConfirmDescription": "지원 패키지를 설치한 뒤 연결하세요.\n\nYoreni이 {{name}}에 필요한 지원 패키지를 설치합니다. 설치 후 연결할 수 있습니다.",
       "installConfirmAction": "설치하고 활성화",
       "installOnlyConfirmAction": "지원 패키지 설치",
       "websocketRequired": "WebUI 필수",
@@ -1373,7 +1373,7 @@
         "retry": "채팅 다시 불러오기",
         "confirm": "변경 확인",
         "saving": "변경 중…",
-        "available": "먼저 대상 채팅에서 yoreni에 메시지를 보내세요. 같은 작업 공간과 접근 권한을 가진 연결된 채팅만 표시됩니다."
+        "available": "먼저 대상 채팅에서 Yoreni에 메시지를 보내세요. 같은 작업 공간과 접근 권한을 가진 연결된 채팅만 표시됩니다."
       },
       "taskInfo": "작업 정보",
       "runDetails": {
@@ -1386,7 +1386,7 @@
         "noOutput": "이 기록에는 응답 본문이 저장되지 않았습니다."
       },
       "create": "작업 만들기",
-      "createPrompt": "yoreni이 무엇을 자동으로 할까요?",
+      "createPrompt": "Yoreni이 무엇을 자동으로 할까요?",
       "createInput": "자동화 설명",
       "errors": {
         "legacyMissingDestination": "이전 형식의 자동화에 전송 대상이 없습니다. 계속하려면 연결된 채팅에서 다시 만들어 주세요."
@@ -1435,7 +1435,7 @@
       "loading": "자동화를 불러오는 중...",
       "noMatches": "이 보기와 일치하는 자동화가 없습니다.",
       "empty": "아직 자동화가 없습니다.",
-      "emptyHint": "yoreni에게 정기적으로 할 일을 알려 주세요.",
+      "emptyHint": "Yoreni에게 정기적으로 할 일을 알려 주세요.",
       "emptyAction": "채팅 열기",
       "clearFilters": "필터 지우기",
       "oneShot": "일회성",
@@ -1550,14 +1550,14 @@
       "signedInAs": "{{account}}로 로그인됨",
       "signInHelp": "이 기기에서 로그인합니다. API 키는 설정에 저장되지 않습니다.",
       "remoteSignInHelp": "로그인을 선택하여 사용자 컴퓨터에서 xAI를 연 다음, 로그인 후 표시되는 인증 코드를 붙여 넣으세요.",
-      "codexRemoteSignInHelp": "이 브라우저에서 로그인한 다음 전체 localhost 콜백 URL을 yoreni에 붙여 넣으세요.",
+      "codexRemoteSignInHelp": "이 브라우저에서 로그인한 다음 전체 localhost 콜백 URL을 Yoreni에 붙여 넣으세요.",
       "signInRequired": "로그인이 필요합니다",
       "signInBeforeSaving": "프리셋을 저장하기 전에 이 제공업체에 로그인하세요.",
       "signedIn": "로그인됨",
       "notSignedIn": "로그인 안 됨",
-      "localCodeHelp": "브라우저에서 로그인을 완료하세요. 일반적으로 yoreni이 자동으로 완료합니다. 완료되지 않으면 인증 코드를 아래에 붙여 넣으세요.",
+      "localCodeHelp": "브라우저에서 로그인을 완료하세요. 일반적으로 Yoreni이 자동으로 완료합니다. 완료되지 않으면 인증 코드를 아래에 붙여 넣으세요.",
       "remoteCodeHelp": "로그인을 선택하여 사용자 컴퓨터에서 xAI를 여세요. 로그인 후 xAI에 표시된 인증 코드를 아래에 붙여 넣으세요.",
-      "localCallbackHelp": "브라우저에서 로그인을 완료하세요. yoreni이 자동으로 연결되지 않으면 localhost 페이지가 열리지 않더라도 주소 표시줄의 전체 URL을 복사해 아래에 붙여 넣고 ‘로그인 완료’를 선택하세요.",
+      "localCallbackHelp": "브라우저에서 로그인을 완료하세요. Yoreni이 자동으로 연결되지 않으면 localhost 페이지가 열리지 않더라도 주소 표시줄의 전체 URL을 복사해 아래에 붙여 넣고 ‘로그인 완료’를 선택하세요.",
       "remoteCallbackHelp": "이 브라우저에서 ChatGPT를 열고 로그인을 완료하세요. localhost로 이동하면 페이지가 열리지 않더라도 주소 표시줄의 전체 URL을 복사해 아래에 붙여 넣고 ‘로그인 완료’를 선택하세요.",
       "authorizationCode": "인증 코드",
       "callbackUrl": "콜백 URL",
@@ -1602,7 +1602,7 @@
       "deleteConfirmAction": "스킬 삭제",
       "instructionsTitle": "스킬 안내",
       "setupRequired": "설정 필요",
-      "setupDescription": "게이트웨이 호스트에 의존성을 설치한 뒤 다시 확인하세요.\n\nyoreni을 실행하는 컴퓨터에 필요한 패키지를 설치한 후 다시 확인하세요.",
+      "setupDescription": "게이트웨이 호스트에 의존성을 설치한 뒤 다시 확인하세요.\n\nYoreni을 실행하는 컴퓨터에 필요한 패키지를 설치한 후 다시 확인하세요.",
       "copySetupCommand": "명령 복사",
       "checkAgain": "다시 확인",
       "marketplaceSearchFailed": "스킬 마켓을 검색할 수 없습니다.",
@@ -1757,7 +1757,7 @@
     "empty": "일치하는 메시지가 없습니다.",
     "failed": "지금은 검색을 사용할 수 없습니다.",
     "you": "나",
-    "assistant": "yoreni"
+    "assistant": "Yoreni"
   },
   "archiveConfirm": {
     "title": "이 주제를 보관할까요?",
@@ -1895,7 +1895,7 @@
       "imageQuickActions": {
         "icon": {
           "title": "아이콘 디자인",
-          "prompt": "yoreni을 위한 깔끔한 1:1 앱 아이콘을 생성해 주세요. 친근한 로봇, 단순한 벡터 스타일, 부드러운 파란색과 흰색 팔레트, 텍스트 없음."
+          "prompt": "Yoreni을 위한 깔끔한 1:1 앱 아이콘을 생성해 주세요. 친근한 로봇, 단순한 벡터 스타일, 부드러운 파란색과 흰색 팔레트, 텍스트 없음."
         },
         "sticker": {
           "title": "스티커 만들기",
@@ -2364,7 +2364,7 @@
     "close": "파일 미리보기 닫기",
     "loading": "미리보기 로딩 중...",
     "failed": "이 파일을 미리 볼 수 없습니다.",
-    "routeMissing": "파일 미리보기에는 최신 gateway가 필요합니다. yoreni gateway를 다시 시작한 뒤 다시 시도하세요.",
+    "routeMissing": "파일 미리보기에는 최신 gateway가 필요합니다. Yoreni gateway를 다시 시작한 뒤 다시 시도하세요.",
     "resize": "파일 미리보기 크기 조절",
     "truncated": "파일이 커서 미리보기가 잘렸습니다."
   },

@@ -5,9 +5,9 @@
     "closeAll": "Tutup panel pratinjau"
   },
   "starPrompt": {
-    "footerAction": "Beri bintang untuk yoreni",
+    "footerAction": "Beri bintang untuk Yoreni",
     "title": "Senang bisa membantu.",
-    "intro": "Kalau yoreni membuat harimu sedikit lebih mudah,",
+    "intro": "Kalau Yoreni membuat harimu sedikit lebih mudah,",
     "invitation": "yuk, beri kami bintang di GitHub.",
     "thanks": "Dukungan kecilmu sangat berarti bagi kami.",
     "action": "Beri bintang",
@@ -16,21 +16,21 @@
     "saveError": "Mungkin ada masalah jaringan. Pengingat ini mungkin muncul lagi."
   },
   "app": {
-    "brand": "yoreni",
+    "brand": "Yoreni",
     "loading": {
-      "connecting": "Menghubungkan ke yoreni…",
-      "boot": "Memuat yoreni…",
+      "connecting": "Menghubungkan ke Yoreni…",
+      "boot": "Memuat Yoreni…",
       "failed": "Tampilan ini tidak dapat dimuat. Kembali atau muat ulang halaman untuk mencoba lagi."
     },
     "error": {
-      "title": "Tidak dapat menjangkau yoreni",
+      "title": "Tidak dapat menjangkau Yoreni",
       "gatewayHint": "Pastikan gateway sedang berjalan (`yoreni gateway`) dan browser ini dapat menjangkau alamat WebUI-nya."
     },
     "auth": {
-      "title": "Hubungkan ke yoreni",
+      "title": "Hubungkan ke Yoreni",
       "label": "Kata sandi WebUI",
       "helpTitle": "Di mana saya bisa menemukan kata sandi?",
-      "helpConfig": "Pada perangkat yang menjalankan yoreni, buka file konfigurasi, biasanya di:",
+      "helpConfig": "Pada perangkat yang menjalankan Yoreni, buka file konfigurasi, biasanya di:",
       "helpSecret": "Salin nilai kolom ini sebagai kata sandi:",
       "helpFallback": "Jika nilainya kosong, gunakan <code>channels.websocket.token</code>.",
       "showPassword": "Tampilkan kata sandi",
@@ -46,9 +46,9 @@
     },
     "system": {
       "section": "Sistem",
-      "restartHint": "Mulai ulang yoreni untuk menerapkan perubahan runtime.",
+      "restartHint": "Mulai ulang Yoreni untuk menerapkan perubahan runtime.",
       "restartAction": "Mulai ulang",
-      "restart": "Mulai ulang yoreni",
+      "restart": "Mulai ulang Yoreni",
       "restarting": "Memulai ulang...",
       "restartEngine": "Mulai ulang mesin",
       "restartingEngine": "Memulai ulang mesin..."
@@ -57,11 +57,11 @@
       "completed": "Mulai ulang selesai dalam {{seconds}} dtk."
     },
     "documentTitle": {
-      "base": "yoreni",
+      "base": "Yoreni",
       "chat": "{{title}}"
     },
     "meta": {
-      "description": "UI web yoreni — ngobrol dengan ruang kerja yoreni Anda."
+      "description": "UI web Yoreni — ngobrol dengan ruang kerja Yoreni Anda."
     },
     "pairing": {
       "haveCode": "Sudah menerima kode?",
@@ -329,7 +329,7 @@
     "timezoneNoMatches": "Tidak ada zona waktu yang cocok.",
     "configure": "Konfigurasi",
     "exit": {
-      "title": "Mulai ulang yoreni sebelum keluar dari pengaturan?",
+      "title": "Mulai ulang Yoreni sebelum keluar dari pengaturan?",
       "description": "Perubahan sudah disimpan. Mulai ulang untuk menerapkannya.",
       "later": "Mulai ulang nanti"
     },
@@ -443,7 +443,7 @@
         },
         "network_proxy": {
           "label": "Proxy bersama",
-          "help": "Alamat untuk fitur yang mengaktifkan proxy. 127.0.0.1 adalah perangkat yang menjalankan yoreni."
+          "help": "Alamat untuk fitur yang mengaktifkan proxy. 127.0.0.1 adalah perangkat yang menjalankan Yoreni."
         },
         "tools_web_use_proxy": {
           "label": "Gunakan proxy",
@@ -491,7 +491,7 @@
         },
         "tools_image_generation_save_dir": {
           "label": "Direktori penyimpanan",
-          "help": "Lokasi relatif dalam direktori media; gambar yang ada tidak dipindahkan.\n\nJalur relatif di dalam folder media yoreni. Gambar yang ada tidak dipindahkan."
+          "help": "Lokasi relatif dalam direktori media; gambar yang ada tidak dipindahkan.\n\nJalur relatif di dalam folder media Yoreni. Gambar yang ada tidak dipindahkan."
         }
       },
       "groups": {
@@ -556,7 +556,7 @@
       "saving": "Menyimpan…",
       "discard": "Buang perubahan",
       "saved": "Tersimpan.",
-      "restart": "Mulai ulang yoreni",
+      "restart": "Mulai ulang Yoreni",
       "restartHelp": "Mulai ulang untuk menerapkan perubahan. Argumen baris perintah dan variabel lingkungan mungkin lebih diutamakan.",
       "search": "Cari pengaturan lanjutan",
       "noResults": "Tidak ada pengaturan yang cocok.",
@@ -638,8 +638,8 @@
       "test": "Uji notifikasi",
       "testBody": "Ini adalah notifikasi uji.",
       "waiting": "Menunggu browser…",
-      "insecure": "Buka yoreni melalui HTTPS atau localhost untuk menggunakan notifikasi.",
-      "unsupported": "Browser ini tidak mendukung notifikasi. Coba browser lain; di iPhone atau iPad, buka yoreni dari Layar Utama.",
+      "insecure": "Buka Yoreni melalui HTTPS atau localhost untuk menggunakan notifikasi.",
+      "unsupported": "Browser ini tidak mendukung notifikasi. Coba browser lain; di iPhone atau iPad, buka Yoreni dari Layar Utama.",
       "denied": "Notifikasi diblokir. Izinkan notifikasi di pengaturan situs pada browser ini, lalu aktifkan di sini.",
       "dismissed": "Izin belum diberikan. Aktifkan notifikasi dan pilih Izinkan.",
       "permissionFailed": "Tidak dapat meminta izin. Coba lagi di browser yang mendukung notifikasi.",
@@ -672,7 +672,7 @@
       "refresh": "Segarkan {{name}}",
       "delete": "Hapus {{name}}",
       "deleteTitle": "Hapus {{name}}?",
-      "deleteDescription": "Ini menghapus widget dan datanya dari instalasi yoreni ini. Widget tidak lagi tampil di beranda.",
+      "deleteDescription": "Ini menghapus widget dan datanya dari instalasi Yoreni ini. Widget tidak lagi tampil di beranda.",
       "deleteAction": "Hapus widget",
       "deleteFailed": "Widget tidak dapat dihapus. Coba lagi.",
       "alwaysOn": "Otomatis",
@@ -693,7 +693,7 @@
       "language": "Bahasa",
       "provider": "Penyedia",
       "model": "Model",
-      "restart": "Mulai ulang yoreni",
+      "restart": "Mulai ulang Yoreni",
       "configPath": "Lokasi konfigurasi",
       "activePreset": "Prasetel aktif",
       "gateway": "Gateway",
@@ -775,7 +775,7 @@
       "brandLogos": "Tampilkan logo penyedia dan aplikasi di Pengaturan.\n\nTampilkan logo penyedia pihak ketiga dan CLI di Pengaturan.",
       "browserNotifications": "Beri tahu saat pesan tiba ketika halaman berada di latar belakang.",
       "notificationSound": "Mainkan nada saat pesan tiba, termasuk di tab latar belakang.",
-      "cliAppsCatalog": "Pasang alat CLI untuk yoreni; aplikasi desktop tetap tidak berubah.\n\nMemasang alat baris perintah yang dapat digunakan yoreni di komputer ini. Aplikasi desktop tidak diubah.",
+      "cliAppsCatalog": "Pasang alat CLI untuk Yoreni; aplikasi desktop tetap tidak berubah.\n\nMemasang alat baris perintah yang dapat digunakan Yoreni di komputer ini. Aplikasi desktop tidak diubah.",
       "cliAppsFilter": "Cari berdasarkan nama, kategori, atau kemampuan.",
       "logs": "Buka folder log mesin aplikasi desktop.",
       "diagnostics": "Ekspor laporan untuk mendiagnosis masalah.",
@@ -828,11 +828,11 @@
       "loadError": "Tidak dapat memuat pengaturan",
       "unsaved": "Perubahan belum disimpan.",
       "upToDate": "Sudah terbaru.",
-      "savedRestart": "Tersimpan. Mulai ulang yoreni untuk menerapkan perubahan.",
+      "savedRestart": "Tersimpan. Mulai ulang Yoreni untuk menerapkan perubahan.",
       "restartAfterSaving": "Simpan perubahan, lalu mulai ulang saat siap.",
-      "savedRestartApply": "Tersimpan. Mulai ulang yoreni untuk menerapkan perubahan.",
-      "imageProviderRestart": "Perubahan penyedia gambar tersimpan. Mulai ulang yoreni untuk menerapkannya.",
-      "hostRestartAfterSaving": "Saat disimpan, yoreni akan memulai ulang mesinnya.",
+      "savedRestartApply": "Tersimpan. Mulai ulang Yoreni untuk menerapkan perubahan.",
+      "imageProviderRestart": "Perubahan penyedia gambar tersimpan. Mulai ulang Yoreni untuk menerapkannya.",
+      "hostRestartAfterSaving": "Saat disimpan, Yoreni akan memulai ulang mesinnya.",
       "hostRestartPending": "Tersimpan. Mesin akan dimulai ulang saat siap.",
       "hostApiUnavailable": "Tindakan ini hanya tersedia di aplikasi desktop.",
       "logsOpened": "Folder log dibuka.",
@@ -1111,7 +1111,7 @@
       "saveCustom": "Simpan server",
       "configImport": "Impor mcp.json",
       "importConfig": "Impor",
-      "restartRequired": "Mulai ulang yoreni untuk menyambungkan alat MCP yang diperbarui.",
+      "restartRequired": "Mulai ulang Yoreni untuk menyambungkan alat MCP yang diperbarui.",
       "toolsFound_one": "{{count}} alat",
       "toolsFound_other": "{{count}} alat",
       "toolsFound": "{{count}} alat",
@@ -1141,14 +1141,14 @@
       "preparingSignIn": "Menyiapkan proses masuk yang aman…",
       "openSignInToContinue": "Buka halaman masuk untuk melanjutkan.",
       "finishSignInInBrowser": "Selesaikan proses masuk di jendela browser.",
-      "manualCallbackRequired": "Selesaikan proses masuk, lalu tempel URL callback ke yoreni.",
+      "manualCallbackRequired": "Selesaikan proses masuk, lalu tempel URL callback ke Yoreni.",
       "manualCallbackHelp": "Setelah menyetujui akses, halaman localhost tidak akan terbuka. Salin URL lengkap dari bilah alamat lalu tempel di sini.",
       "finishingConnection": "Menyelesaikan koneksi…",
       "activatingTools": "Mengaktifkan alat…",
       "connected": "Terhubung.",
       "connectionFailed": "Koneksi gagal.",
       "connectionCancelled": "Koneksi dibatalkan.",
-      "reloadFailed": "Anda sudah masuk, tetapi yoreni tidak dapat menghubungkan alat. Coba mulai ulang yoreni.",
+      "reloadFailed": "Anda sudah masuk, tetapi Yoreni tidak dapat menghubungkan alat. Coba mulai ulang Yoreni.",
       "oauthFailed": "Tidak dapat terhubung. Coba masuk lagi.",
       "statusMissingDependency": "Dependensi belum terpasang",
       "statusComingSoon": "Segera hadir",
@@ -1201,8 +1201,8 @@
     },
     "observability": {
       "title": "Pelacakan eksekusi",
-      "configured": "Kredensial pelacakan sudah tersedia untuk yoreni.",
-      "environment": "Atur LANGFUSE_SECRET_KEY dan LANGFUSE_PUBLIC_KEY, lalu mulai ulang yoreni.",
+      "configured": "Kredensial pelacakan sudah tersedia untuk Yoreni.",
+      "environment": "Atur LANGFUSE_SECRET_KEY dan LANGFUSE_PUBLIC_KEY, lalu mulai ulang Yoreni.",
       "enable": "Aktifkan pelacakan"
     },
     "legal": {
@@ -1231,7 +1231,7 @@
       "browseApps": "Jelajahi aplikasi",
       "browseIntegrations": "Jelajahi alat MCP",
       "emptyIntegrationsHint": "Tambahkan server MCP khusus di bawah.",
-      "restartRequired": "Mulai ulang yoreni untuk menerapkan aplikasi dan alat MCP yang diperbarui."
+      "restartRequired": "Mulai ulang Yoreni untuk menerapkan aplikasi dan alat MCP yang diperbarui."
     },
     "channels": {
       "description": "Hubungkan aplikasi chat, email, dan WebUI.",
@@ -1241,8 +1241,8 @@
       "help": "Bantuan",
       "loading": "Memuat kanal...",
       "empty": "Tidak ada kanal yang cocok dengan filter ini.",
-      "restartRequired": "Mulai ulang yoreni untuk menerapkan dukungan kanal yang diperbarui.",
-      "restartBeforeInstall": "Mulai ulang yoreni sebelum memasang kanal lain.",
+      "restartRequired": "Mulai ulang Yoreni untuk menerapkan dukungan kanal yang diperbarui.",
+      "restartBeforeInstall": "Mulai ulang Yoreni sebelum memasang kanal lain.",
       "requires": "Memerlukan: {{requirements}}",
       "setUp": "Siapkan",
       "setupGuide": "Panduan penyiapan",
@@ -1340,7 +1340,7 @@
       "installSupport": "Pasang paket yang diperlukan",
       "installConfirmTitle": "Pasang paket yang diperlukan {{name}}?",
       "installConfirmDescription": "Pasang dependensi dan aktifkan {{name}}.",
-      "installOnlyConfirmDescription": "Pasang paket pendukung, lalu hubungkan.\n\nyoreni akan menginstal dukungan yang dibutuhkan {{name}}. Anda dapat menghubungkannya setelah instalasi.",
+      "installOnlyConfirmDescription": "Pasang paket pendukung, lalu hubungkan.\n\nYoreni akan menginstal dukungan yang dibutuhkan {{name}}. Anda dapat menghubungkannya setelah instalasi.",
       "installConfirmAction": "Instal dan aktifkan",
       "installOnlyConfirmAction": "Instal dukungan",
       "websocketRequired": "Wajib untuk WebUI",
@@ -1373,7 +1373,7 @@
         "retry": "Muat ulang chat",
         "confirm": "Konfirmasi perubahan",
         "saving": "Mengganti…",
-        "available": "Kirim pesan ke yoreni di chat tujuan terlebih dahulu. Hanya chat terhubung dengan ruang kerja dan mode akses yang sama yang ditampilkan."
+        "available": "Kirim pesan ke Yoreni di chat tujuan terlebih dahulu. Hanya chat terhubung dengan ruang kerja dan mode akses yang sama yang ditampilkan."
       },
       "taskInfo": "Informasi tugas",
       "runDetails": {
@@ -1386,7 +1386,7 @@
         "noOutput": "Catatan ini tidak menyimpan teks respons."
       },
       "create": "Tugas baru",
-      "createPrompt": "Apa yang ingin diotomatiskan yoreni?",
+      "createPrompt": "Apa yang ingin diotomatiskan Yoreni?",
       "createInput": "Jelaskan otomatisasi",
       "errors": {
         "legacyMissingDestination": "Otomatisasi lama ini tidak memiliki tujuan pengiriman. Buat ulang dari chat terkait untuk melanjutkan."
@@ -1435,7 +1435,7 @@
       "loading": "Memuat otomasi...",
       "noMatches": "Tidak ada otomasi yang cocok dengan tampilan ini.",
       "empty": "Belum ada otomasi.",
-      "emptyHint": "Beri tahu yoreni apa yang perlu dilakukan sesuai jadwal.",
+      "emptyHint": "Beri tahu Yoreni apa yang perlu dilakukan sesuai jadwal.",
       "emptyAction": "Buka chat",
       "clearFilters": "Hapus filter",
       "oneShot": "Satu kali",
@@ -1550,14 +1550,14 @@
       "signedInAs": "Masuk sebagai {{account}}",
       "signInHelp": "Masuk dari perangkat ini. Kunci API tidak disimpan dalam konfigurasi.",
       "remoteSignInHelp": "Pilih Masuk untuk membuka xAI di komputer Anda, lalu tempel kode otorisasi yang ditampilkan setelah masuk.",
-      "codexRemoteSignInHelp": "Masuk melalui browser ini, lalu tempel URL callback localhost lengkap kembali ke yoreni.",
+      "codexRemoteSignInHelp": "Masuk melalui browser ini, lalu tempel URL callback localhost lengkap kembali ke Yoreni.",
       "signInRequired": "Perlu masuk",
       "signInBeforeSaving": "Masuk ke penyedia ini sebelum menyimpan prasetel.",
       "signedIn": "Sudah masuk",
       "notSignedIn": "Belum masuk",
-      "localCodeHelp": "Selesaikan proses masuk di browser. yoreni biasanya menyelesaikannya secara otomatis; jika tidak, tempel kode otorisasi di bawah.",
+      "localCodeHelp": "Selesaikan proses masuk di browser. Yoreni biasanya menyelesaikannya secara otomatis; jika tidak, tempel kode otorisasi di bawah.",
       "remoteCodeHelp": "Pilih Masuk untuk membuka xAI di komputer Anda. Setelah masuk, tempel kode otorisasi yang ditampilkan xAI di bawah.",
-      "localCallbackHelp": "Selesaikan proses masuk di browser. Jika yoreni tidak terhubung otomatis, salin URL lengkap dari bilah alamat halaman localhost, meskipun halaman tidak dapat dimuat, tempel di bawah, lalu pilih “Selesaikan masuk”.",
+      "localCallbackHelp": "Selesaikan proses masuk di browser. Jika Yoreni tidak terhubung otomatis, salin URL lengkap dari bilah alamat halaman localhost, meskipun halaman tidak dapat dimuat, tempel di bawah, lalu pilih “Selesaikan masuk”.",
       "remoteCallbackHelp": "Buka ChatGPT di browser ini dan selesaikan proses masuk. Setelah diarahkan ke halaman localhost, salin URL lengkap dari bilah alamat, meskipun halaman tidak dapat dimuat, tempel di bawah, lalu pilih “Selesaikan masuk”.",
       "authorizationCode": "Kode otorisasi",
       "callbackUrl": "URL callback",
@@ -1602,7 +1602,7 @@
       "deleteConfirmAction": "Hapus keterampilan",
       "instructionsTitle": "Petunjuk keterampilan",
       "setupRequired": "Perlu penyiapan",
-      "setupDescription": "Pasang dependensi di host gateway, lalu periksa lagi.\n\nInstal dependensi yang belum tersedia di mesin yang menjalankan yoreni, lalu periksa lagi.",
+      "setupDescription": "Pasang dependensi di host gateway, lalu periksa lagi.\n\nInstal dependensi yang belum tersedia di mesin yang menjalankan Yoreni, lalu periksa lagi.",
       "copySetupCommand": "Salin perintah",
       "checkAgain": "Periksa lagi",
       "marketplaceSearchFailed": "Tidak dapat mencari marketplace keterampilan.",
@@ -1757,7 +1757,7 @@
     "empty": "Tidak ada pesan yang cocok.",
     "failed": "Pencarian tidak tersedia saat ini.",
     "you": "Anda",
-    "assistant": "yoreni"
+    "assistant": "Yoreni"
   },
   "archiveConfirm": {
     "title": "Arsipkan topik ini?",
@@ -1895,7 +1895,7 @@
       "imageQuickActions": {
         "icon": {
           "title": "Desain ikon",
-          "prompt": "Buat ikon aplikasi 1:1 yang bersih untuk yoreni: robot ramah, gaya vektor sederhana, palet biru dan putih lembut, tanpa teks."
+          "prompt": "Buat ikon aplikasi 1:1 yang bersih untuk Yoreni: robot ramah, gaya vektor sederhana, palet biru dan putih lembut, tanpa teks."
         },
         "sticker": {
           "title": "Buat stiker",
@@ -2364,7 +2364,7 @@
     "close": "Tutup pratinjau file",
     "loading": "Memuat pratinjau...",
     "failed": "Tidak dapat mempratinjau file ini.",
-    "routeMissing": "Pratinjau file memerlukan gateway terbaru. Mulai ulang yoreni gateway lalu coba lagi.",
+    "routeMissing": "Pratinjau file memerlukan gateway terbaru. Mulai ulang Yoreni gateway lalu coba lagi.",
     "resize": "Ubah ukuran pratinjau file",
     "truncated": "Pratinjau dipotong karena file ini besar."
   },

@@ -2,7 +2,7 @@
   "setup": {
     "docsLabel": "Mở hướng dẫn thiết lập tác nhân",
     "officialLabel": "Mở trợ giúp tác nhân WhatsApp",
-    "privacyNotice": "Cuộc trò chuyện với tác nhân không được mã hóa đầu cuối. Tin nhắn được xử lý bởi yoreni và nhà cung cấp mô hình bạn đã cấu hình.",
+    "privacyNotice": "Cuộc trò chuyện với tác nhân không được mã hóa đầu cuối. Tin nhắn được xử lý bởi Yoreni và nhà cung cấp mô hình bạn đã cấu hình.",
     "fields": {
       "token": {
         "label": "Mã thông báo API",

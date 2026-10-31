@@ -13,7 +13,7 @@ export function useFeishuConnectLabels(): ChannelQrConnectLabels {
     scanTitle: tx("custom.scanTitle", "Scan with Feishu"),
     scanDescription: tx(
       "custom.scanDescription",
-      "Use Feishu or Lark on your phone to scan this code. yoreni will finish setup automatically after authorization.",
+      "Use Feishu or Lark on your phone to scan this code. Yoreni will finish setup automatically after authorization.",
     ),
     waiting: tx("custom.waiting", "Waiting for authorization..."),
     connected: tx("custom.connected", "Feishu is connected."),

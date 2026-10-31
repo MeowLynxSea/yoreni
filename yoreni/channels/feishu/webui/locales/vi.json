@@ -79,7 +79,7 @@
     "needsSetup": "Cần cấp quyền",
     "qrAlt": "Mã QR kết nối Feishu",
     "scanTitle": "Quét bằng Feishu",
-    "scanDescription": "Quét bằng Feishu hoặc Lark trên điện thoại. yoreni sẽ hoàn tất cấu hình sau khi cấp quyền.",
+    "scanDescription": "Quét bằng Feishu hoặc Lark trên điện thoại. Yoreni sẽ hoàn tất cấu hình sau khi cấp quyền.",
     "waiting": "Đang chờ cấp quyền...",
     "connected": "Feishu đã kết nối.",
     "stopped": "Kết nối đã dừng.",

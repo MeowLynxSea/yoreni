@@ -25,7 +25,7 @@ export default {
     color: "#3370FF",
     setup: {
       mode: "connect",
-      command: "yoreni channels login feishu",
+      command: "Yoreni channels login feishu",
       docsUrl: chatAppGuideUrl("feishu"),
       manualFields: [
         { key: "channels.feishu.appId" },

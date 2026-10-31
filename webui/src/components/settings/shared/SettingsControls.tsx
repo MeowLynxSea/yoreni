@@ -75,12 +75,12 @@ export function YoreniFeatureInstallDialog({
             {installOnly
               ? tx(
                 "settings.yoreniFeatures.installOnlyConfirmDescription",
-                "yoreni will install what {{name}} needs. You can connect it after installation.",
+                "Yoreni will install what {{name}} needs. You can connect it after installation.",
                 { name },
               )
               : tx(
                 "settings.yoreniFeatures.installConfirmDescription",
-                "yoreni will add what {{name}} needs, then turn it on. Continue?",
+                "Yoreni will add what {{name}} needs, then turn it on. Continue?",
                 { name },
               )}
           </DialogDescription>

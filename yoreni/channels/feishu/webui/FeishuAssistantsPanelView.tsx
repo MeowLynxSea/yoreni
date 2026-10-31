@@ -62,7 +62,7 @@ export function FeishuAssistantsPanelView({
 function defaultFeishuInstance(feature: YoreniFeatureInfo): YoreniChannelInstanceInfo {
   return {
     id: "default",
-    name: "yoreni",
+    name: "Yoreni",
     enabled: feature.enabled,
     configured: Boolean(feature.configured),
     config_values: feature.config_values ?? {},

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 export function linearConnectLabels(tx: ReturnType<typeof channelTranslator>): ChannelQrConnectLabels {
   return {
     scanTitle: tx("custom.authorizeTitle", "Authorize in Linear"),
-    scanDescription: tx("custom.authorizeDescription", "Continue in Linear to choose a workspace and authorize yoreni. Return here when you're done."),
+    scanDescription: tx("custom.authorizeDescription", "Continue in Linear to choose a workspace and authorize Yoreni. Return here when you're done."),
     waiting: tx("custom.waiting", "Waiting for Linear authorization..."),
     connected: tx("custom.connected", "Linear is connected."),
     stopped: tx("custom.stopped", "Authorization stopped."),

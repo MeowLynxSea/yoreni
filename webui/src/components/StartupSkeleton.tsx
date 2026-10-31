@@ -20,7 +20,7 @@ function Block({ className = "" }: { className?: string }) {
 
 /** One markup/CSS contract for the HTML first paint and React's loading boundaries. */
 export function StartupSkeleton({
-  surface = "chat", settingsIndex = false, embedded = false, label = "Loading yoreni…",
+  surface = "chat", settingsIndex = false, embedded = false, label = "Loading Yoreni…",
 }: StartupSkeletonProps) {
   const Root = embedded ? "section" : "main";
   return (

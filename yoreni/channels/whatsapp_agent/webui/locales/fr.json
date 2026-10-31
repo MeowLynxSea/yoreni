@@ -2,7 +2,7 @@
   "setup": {
     "docsLabel": "Ouvrir le guide de configuration de l'agent",
     "officialLabel": "Ouvrir l'aide des agents WhatsApp",
-    "privacyNotice": "Les conversations avec l'agent ne sont pas chiffrées de bout en bout. Les messages sont traités par yoreni et le fournisseur de modèles que vous avez configuré.",
+    "privacyNotice": "Les conversations avec l'agent ne sont pas chiffrées de bout en bout. Les messages sont traités par Yoreni et le fournisseur de modèles que vous avez configuré.",
     "fields": {
       "token": {
         "label": "Jeton d'API",

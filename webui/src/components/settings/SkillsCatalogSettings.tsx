@@ -650,7 +650,7 @@ function RequirementsSection({
           <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
             {t("settings.skills.setupDescription", {
               defaultValue:
-                "Install the missing dependency on the machine running yoreni, then check again.",
+                "Install the missing dependency on the machine running Yoreni, then check again.",
             })}
           </p>
         </div>

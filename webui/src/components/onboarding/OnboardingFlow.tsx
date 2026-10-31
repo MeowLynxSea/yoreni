@@ -223,7 +223,7 @@ export function OnboardingFlow({
             className="h-8 w-8 select-none rounded-[0.6rem]"
           />
           <span className="display-serif text-[1.35rem] leading-none text-foreground/90">
-            yoreni
+            Yoreni
           </span>
         </div>
         <div className="flex flex-1 items-center gap-3">

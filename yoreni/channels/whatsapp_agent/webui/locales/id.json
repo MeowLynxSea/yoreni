@@ -2,7 +2,7 @@
   "setup": {
     "docsLabel": "Buka panduan penyiapan agen",
     "officialLabel": "Buka bantuan agen WhatsApp",
-    "privacyNotice": "Obrolan dengan agen tidak dienkripsi secara menyeluruh. Pesan diproses oleh yoreni dan penyedia model yang Anda konfigurasikan.",
+    "privacyNotice": "Obrolan dengan agen tidak dienkripsi secara menyeluruh. Pesan diproses oleh Yoreni dan penyedia model yang Anda konfigurasikan.",
     "fields": {
       "token": {
         "label": "Token API",

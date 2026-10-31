@@ -5,9 +5,9 @@
     "closeAll": "關閉預覽欄"
   },
   "starPrompt": {
-    "footerAction": "給 yoreni 一顆 Star",
+    "footerAction": "給 Yoreni 一顆 Star",
     "title": "很高興，能幫上你的忙。",
-    "intro": "如果 yoreni 讓你的日常輕鬆了一點，",
+    "intro": "如果 Yoreni 讓你的日常輕鬆了一點，",
     "invitation": "歡迎在 GitHub 留下一顆 Star。",
     "thanks": "這份小小的鼓勵，我們會認真珍惜。",
     "action": "去點顆 Star",
@@ -16,21 +16,21 @@
     "saveError": "網路可能出了點問題，之後可能還會跳出此提醒。"
   },
   "app": {
-    "brand": "yoreni",
+    "brand": "Yoreni",
     "loading": {
-      "connecting": "正在連線到 yoreni…",
-      "boot": "正在載入 yoreni…",
+      "connecting": "正在連線到 Yoreni…",
+      "boot": "正在載入 Yoreni…",
       "failed": "無法載入此頁面。請返回，或重新整理頁面再試。"
     },
     "error": {
-      "title": "無法連線到 yoreni",
+      "title": "無法連線到 Yoreni",
       "gatewayHint": "請確認閘道已啟動（`yoreni gateway`），並且目前瀏覽器可以存取它的 WebUI 位址。"
     },
     "auth": {
-      "title": "連線到 yoreni",
+      "title": "連線到 Yoreni",
       "label": "WebUI 密碼",
       "helpTitle": "在哪裡找到密碼？",
-      "helpConfig": "在執行 yoreni 的裝置上開啟設定檔，通常位於：",
+      "helpConfig": "在執行 Yoreni 的裝置上開啟設定檔，通常位於：",
       "helpSecret": "複製此欄位的值作為密碼：",
       "helpFallback": "若該值為空，請使用 <code>channels.websocket.token</code>。",
       "showPassword": "顯示密碼",
@@ -46,9 +46,9 @@
     },
     "system": {
       "section": "系統",
-      "restartHint": "重新啟動 yoreni 以套用執行階段變更。",
+      "restartHint": "重新啟動 Yoreni 以套用執行階段變更。",
       "restartAction": "重新啟動",
-      "restart": "重新啟動 yoreni",
+      "restart": "重新啟動 Yoreni",
       "restarting": "正在重新啟動…",
       "restartEngine": "重新啟動引擎",
       "restartingEngine": "正在重新啟動引擎…"
@@ -57,11 +57,11 @@
       "completed": "重新啟動已完成，耗時 {{seconds}} 秒。"
     },
     "documentTitle": {
-      "base": "yoreni",
+      "base": "Yoreni",
       "chat": "{{title}}"
     },
     "meta": {
-      "description": "yoreni Web UI —— 與你的 yoreni 工作區對話。"
+      "description": "Yoreni Web UI —— 與你的 Yoreni 工作區對話。"
     },
     "pairing": {
       "haveCode": "已收到配對碼？",
@@ -329,7 +329,7 @@
     "timezoneNoMatches": "沒有符合的時區。",
     "configure": "設定",
     "exit": {
-      "title": "離開設定前重新啟動 yoreni？",
+      "title": "離開設定前重新啟動 Yoreni？",
       "description": "變更已儲存，重新啟動後生效。",
       "later": "稍後重新啟動"
     },
@@ -443,7 +443,7 @@
         },
         "network_proxy": {
           "label": "共用代理",
-          "help": "啟用「使用代理」的功能共用此位址。127.0.0.1 指執行 yoreni 的裝置。"
+          "help": "啟用「使用代理」的功能共用此位址。127.0.0.1 指執行 Yoreni 的裝置。"
         },
         "tools_web_use_proxy": {
           "label": "使用代理",
@@ -491,7 +491,7 @@
         },
         "tools_image_generation_save_dir": {
           "label": "儲存目錄",
-          "help": "媒體目錄內相對路徑，不遷移已有圖片\n\nyoreni 媒體目錄內的子目錄。請使用相對路徑，已有圖片不會遷移。"
+          "help": "媒體目錄內相對路徑，不遷移已有圖片\n\nYoreni 媒體目錄內的子目錄。請使用相對路徑，已有圖片不會遷移。"
         }
       },
       "groups": {
@@ -556,7 +556,7 @@
       "saving": "儲存中…",
       "discard": "捨棄變更",
       "saved": "已儲存。",
-      "restart": "重新啟動 yoreni",
+      "restart": "重新啟動 Yoreni",
       "restartHelp": "重新啟動後生效；命令列與環境變數的設定可能優先。",
       "search": "搜尋進階設定",
       "noResults": "找不到相符設定。",
@@ -638,8 +638,8 @@
       "test": "測試通知",
       "testBody": "這是一則測試通知。",
       "waiting": "等待瀏覽器回應…",
-      "insecure": "請透過 HTTPS 或 localhost 開啟 yoreni，再啟用通知。",
-      "unsupported": "此瀏覽器不支援通知，請更換瀏覽器。iPhone 或 iPad 請從主畫面開啟 yoreni。",
+      "insecure": "請透過 HTTPS 或 localhost 開啟 Yoreni，再啟用通知。",
+      "unsupported": "此瀏覽器不支援通知，請更換瀏覽器。iPhone 或 iPad 請從主畫面開啟 Yoreni。",
       "denied": "通知已被瀏覽器封鎖。請先在瀏覽器的網站設定中允許通知，再於此處開啟。",
       "dismissed": "尚未取得通知權限。請重新啟用，並選擇「允許」。",
       "permissionFailed": "無法要求通知權限，請在支援的瀏覽器中重試。",
@@ -672,7 +672,7 @@
       "refresh": "重新整理{{name}}",
       "delete": "刪除{{name}}",
       "deleteTitle": "刪除{{name}}？",
-      "deleteDescription": "這會從本機 yoreni 移除該小工具及其資料，主頁將不再顯示。",
+      "deleteDescription": "這會從本機 Yoreni 移除該小工具及其資料，主頁將不再顯示。",
       "deleteAction": "刪除小工具",
       "deleteFailed": "刪除小工具失敗，請再試一次。",
       "alwaysOn": "自動顯示",
@@ -693,7 +693,7 @@
       "language": "語言",
       "provider": "供應商",
       "model": "模型",
-      "restart": "重新啟動 yoreni",
+      "restart": "重新啟動 Yoreni",
       "configPath": "配置路徑",
       "activePreset": "目前預設",
       "gateway": "閘道",
@@ -775,7 +775,7 @@
       "brandLogos": "在設定中顯示提供商與應用圖示\n\n在設定中顯示提供商和命令列應用的品牌圖示。",
       "browserNotifications": "頁面在背景時，收到 agent 訊息後提醒。",
       "notificationSound": "收到 agent 訊息時播放提示音，背景也會播放。",
-      "cliAppsCatalog": "安裝 CLI 工具，不改桌面應用\n\n安裝供 yoreni 使用的命令列工具，不會安裝或修改對應的桌面應用。",
+      "cliAppsCatalog": "安裝 CLI 工具，不改桌面應用\n\n安裝供 Yoreni 使用的命令列工具，不會安裝或修改對應的桌面應用。",
       "cliAppsFilter": "按名稱、分類或功能搜尋",
       "logs": "開啟桌面應用的引擎日誌資料夾",
       "diagnostics": "匯出診斷報告，幫助排查問題",
@@ -828,11 +828,11 @@
       "loadError": "無法載入設定",
       "unsaved": "有未儲存的變更。",
       "upToDate": "已是最新。",
-      "savedRestart": "已儲存。重新啟動 yoreni 後生效。",
-      "restartAfterSaving": "儲存變更後，重新啟動 yoreni 使其生效。",
+      "savedRestart": "已儲存。重新啟動 Yoreni 後生效。",
+      "restartAfterSaving": "儲存變更後，重新啟動 Yoreni 使其生效。",
       "savedRestartApply": "已儲存，重新啟動後生效。",
       "imageProviderRestart": "圖片生成設定已儲存，重新啟動後生效。",
-      "hostRestartAfterSaving": "儲存變更後，yoreni 將重新啟動引擎。",
+      "hostRestartAfterSaving": "儲存變更後，Yoreni 將重新啟動引擎。",
       "hostRestartPending": "設定已儲存，正在等待引擎重新啟動。",
       "hostApiUnavailable": "這些操作僅能在桌面應用程式中使用。",
       "logsOpened": "已開啟日誌資料夾。",
@@ -1064,7 +1064,7 @@
     "cliApps": {
       "statusInstalled": "應用程式已就緒",
       "readyStatus": "就緒",
-      "readyPrompt": "請 yoreni 使用 @{{name}} 完成這項任務。",
+      "readyPrompt": "請 Yoreni 使用 @{{name}} 完成這項任務。",
       "readyTry": "試用 @{{name}}",
       "readyCopied": "已複製",
       "openChat": "開啟聊天",
@@ -1111,7 +1111,7 @@
       "saveCustom": "儲存 MCP 服務",
       "configImport": "匯入 mcp.json",
       "importConfig": "匯入",
-      "restartRequired": "重新啟動 yoreni 以連線更新後的 MCP 工具。",
+      "restartRequired": "重新啟動 Yoreni 以連線更新後的 MCP 工具。",
       "toolsFound_one": "{{count}} 個工具",
       "toolsFound_other": "{{count}} 個工具",
       "toolsFound": "{{count}} 個工具",
@@ -1141,14 +1141,14 @@
       "preparingSignIn": "正在準備安全登入…",
       "openSignInToContinue": "開啟登入頁面以繼續。",
       "finishSignInInBrowser": "請在瀏覽器視窗中完成登入。",
-      "manualCallbackRequired": "完成登入後，將回呼 URL 貼到 yoreni。",
+      "manualCallbackRequired": "完成登入後，將回呼 URL 貼到 Yoreni。",
       "manualCallbackHelp": "授權後，localhost 頁面將無法開啟。請複製網址列中的完整 URL 並貼到這裡。",
       "finishingConnection": "正在完成連線…",
       "activatingTools": "正在啟用工具…",
       "connected": "已連線。",
       "connectionFailed": "連線失敗。",
       "connectionCancelled": "已取消連線。",
-      "reloadFailed": "已登入，但 yoreni 無法連接這些工具。請嘗試重新啟動 yoreni。",
+      "reloadFailed": "已登入，但 Yoreni 無法連接這些工具。請嘗試重新啟動 Yoreni。",
       "oauthFailed": "無法連線，請重新登入。",
       "statusMissingDependency": "缺少相依套件",
       "statusComingSoon": "即將推出",
@@ -1201,8 +1201,8 @@
     },
     "observability": {
       "title": "執行追蹤",
-      "configured": "yoreni 已偵測到追蹤憑證。",
-      "environment": "設定 LANGFUSE_SECRET_KEY 和 LANGFUSE_PUBLIC_KEY 後重新啟動 yoreni。",
+      "configured": "Yoreni 已偵測到追蹤憑證。",
+      "environment": "設定 LANGFUSE_SECRET_KEY 和 LANGFUSE_PUBLIC_KEY 後重新啟動 Yoreni。",
       "enable": "啟用追蹤"
     },
     "legal": {
@@ -1231,7 +1231,7 @@
       "browseApps": "瀏覽應用程式",
       "browseIntegrations": "瀏覽 MCP 工具",
       "emptyIntegrationsHint": "可在下方新增自訂 MCP 伺服器。",
-      "restartRequired": "重新啟動 yoreni 以套用更新後的應用程式與 MCP 工具。"
+      "restartRequired": "重新啟動 Yoreni 以套用更新後的應用程式與 MCP 工具。"
     },
     "channels": {
       "description": "連線聊天應用、郵箱和 WebUI",
@@ -1240,8 +1240,8 @@
       "catalog": "通訊管道",
       "loading": "正在載入通訊管道…",
       "empty": "沒有符合條件的通訊管道。",
-      "restartRequired": "重新啟動 yoreni 以套用更新後的通訊管道支援。",
-      "restartBeforeInstall": "重新啟動 yoreni 後即可繼續安裝。",
+      "restartRequired": "重新啟動 Yoreni 以套用更新後的通訊管道支援。",
+      "restartBeforeInstall": "重新啟動 Yoreni 後即可繼續安裝。",
       "requires": "需要：{{requirements}}",
       "setUp": "設定",
       "setupGuide": "設定指南",
@@ -1373,7 +1373,7 @@
         "retry": "重新載入聊天",
         "confirm": "確認並更換",
         "saving": "正在更換…",
-        "available": "先在目標聊天傳一則訊息給 yoreni。這裡只列出已連線、工作目錄和權限相同的聊天。"
+        "available": "先在目標聊天傳一則訊息給 Yoreni。這裡只列出已連線、工作目錄和權限相同的聊天。"
       },
       "taskInfo": "任務資訊",
       "runDetails": {
@@ -1386,7 +1386,7 @@
         "noOutput": "此記錄未儲存回覆正文。"
       },
       "create": "新建任務",
-      "createPrompt": "想讓 yoreni 自動做什麼？",
+      "createPrompt": "想讓 Yoreni 自動做什麼？",
       "createInput": "描述自動任務",
       "errors": {
         "legacyMissingDestination": "這個舊版自動任務缺少傳送目標，無法繼續執行。請從關聯對話中重新建立該任務。"
@@ -1435,7 +1435,7 @@
       "loading": "正在載入自動任務…",
       "noMatches": "目前沒有符合條件的自動任務。",
       "empty": "尚無自動任務。",
-      "emptyHint": "告訴 yoreni 想定期做什麼",
+      "emptyHint": "告訴 Yoreni 想定期做什麼",
       "emptyAction": "開啟聊天",
       "clearFilters": "清除篩選",
       "oneShot": "單次",
@@ -1550,14 +1550,14 @@
       "signedInAs": "已使用 {{account}} 登入",
       "signInHelp": "請從這臺裝置登入；系統不會將 API 金鑰儲存在設定中。",
       "remoteSignInHelp": "請點選 [登入]，在電腦上開啟 xAI，完成登入後貼上頁面顯示的授權碼。",
-      "codexRemoteSignInHelp": "請在此瀏覽器中登入，然後將完整的 localhost 回呼 URL 貼回 yoreni。",
+      "codexRemoteSignInHelp": "請在此瀏覽器中登入，然後將完整的 localhost 回呼 URL 貼回 Yoreni。",
       "signInRequired": "需要登入",
       "signInBeforeSaving": "請先登入此供應商，再儲存模型預設。",
       "signedIn": "已登入",
       "notSignedIn": "未登入",
-      "localCodeHelp": "請在瀏覽器中完成登入。yoreni 通常會自動完成；若未自動完成，請將授權碼貼到下方。",
+      "localCodeHelp": "請在瀏覽器中完成登入。Yoreni 通常會自動完成；若未自動完成，請將授權碼貼到下方。",
       "remoteCodeHelp": "請點選 [登入]，在電腦上開啟 xAI。完成登入後，請將 xAI 顯示的授權碼貼到下方。",
-      "localCallbackHelp": "在瀏覽器中完成登入。若 yoreni 未自動連線，請複製 localhost 頁面網址列中的完整連結（即使頁面無法開啟），貼到下方，再點選「完成登入」。",
+      "localCallbackHelp": "在瀏覽器中完成登入。若 Yoreni 未自動連線，請複製 localhost 頁面網址列中的完整連結（即使頁面無法開啟），貼到下方，再點選「完成登入」。",
       "remoteCallbackHelp": "在此瀏覽器中開啟 ChatGPT 並完成登入。跳轉至 localhost 頁面後，即使頁面無法開啟，也請複製網址列中的完整連結，貼到下方，再點選「完成登入」。",
       "authorizationCode": "授權碼",
       "callbackUrl": "回撥 URL",
@@ -1602,7 +1602,7 @@
       "deleteConfirmAction": "刪除技能",
       "instructionsTitle": "技能說明",
       "setupRequired": "需要設定",
-      "setupDescription": "在閘道器裝置安裝依賴，再重新檢查\n\n請在執行 yoreni 的裝置上安裝缺少的依賴，然後重新檢查。",
+      "setupDescription": "在閘道器裝置安裝依賴，再重新檢查\n\n請在執行 Yoreni 的裝置上安裝缺少的依賴，然後重新檢查。",
       "copySetupCommand": "複製命令",
       "checkAgain": "重新檢查",
       "marketplaceSearchFailed": "暫時無法搜尋技能市集。",
@@ -1757,7 +1757,7 @@
     "empty": "沒有找到相關記錄。",
     "failed": "搜尋暫時無法使用。",
     "you": "你",
-    "assistant": "yoreni"
+    "assistant": "Yoreni"
   },
   "archiveConfirm": {
     "title": "封存此話題？",
@@ -1895,7 +1895,7 @@
       "imageQuickActions": {
         "icon": {
           "title": "設計圖示",
-          "prompt": "請為 yoreni 產生一個簡潔的 1:1 應用程式圖示：友善的機器人、簡約向量風格、柔和的藍白配色，不含文字。"
+          "prompt": "請為 Yoreni 產生一個簡潔的 1:1 應用程式圖示：友善的機器人、簡約向量風格、柔和的藍白配色，不含文字。"
         },
         "sticker": {
           "title": "製作貼圖",
@@ -2364,7 +2364,7 @@
     "close": "關閉檔案預覽",
     "loading": "正在載入預覽…",
     "failed": "無法預覽這個檔案。",
-    "routeMissing": "檔案預覽需要最新版本的閘道。請重新啟動 yoreni 閘道後再試一次。",
+    "routeMissing": "檔案預覽需要最新版本的閘道。請重新啟動 Yoreni 閘道後再試一次。",
     "resize": "調整檔案預覽寬度",
     "truncated": "檔案較大，因此預覽內容已截斷。"
   },

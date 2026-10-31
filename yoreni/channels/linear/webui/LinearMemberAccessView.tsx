@@ -90,7 +90,7 @@ export function LinearMemberAccessView({ snapshot, disabled = false, onLoad, onS
             title={tx("members.refresh", "Refresh members")}>
             <RefreshCw className="h-4 w-4 text-muted-foreground" aria-hidden />
           </Button>
-          <SettingsHint description={tx("members.help", "Enable members to use yoreni without a pairing code. Linear's existing authorization still applies. This does not grant access to the yoreni admin UI. Turning access off blocks new requests, not tasks already running.")}>
+          <SettingsHint description={tx("members.help", "Enable members to use Yoreni without a pairing code. Linear's existing authorization still applies. This does not grant access to the Yoreni admin UI. Turning access off blocks new requests, not tasks already running.")}>
             <span className="flex h-9 w-9 items-center justify-center text-muted-foreground">
               <Info className="h-4 w-4" aria-hidden />
               <span className="sr-only">{tx("members.details", "About member access")}</span>
@@ -134,7 +134,7 @@ export function LinearMemberAccessView({ snapshot, disabled = false, onLoad, onS
                   <ToggleButton checked={member.allowed}
                     disabled={disabled || save?.status === "saving" || save?.status === "error"}
                     aria-describedby={save ? statusId : undefined} aria-invalid={save?.status === "error" || undefined}
-                    label={tx("members.allow", "Allow {{name}} to use yoreni", { name: member.name })}
+                    label={tx("members.allow", "Allow {{name}} to use Yoreni", { name: member.name })}
                     onChange={(allowed) => onSetAllowed(member.id, allowed,
                       tx("members.saveUnconfirmed", "Access was not confirmed. Refresh members before trying again."))} />
                 </SettingsRow>

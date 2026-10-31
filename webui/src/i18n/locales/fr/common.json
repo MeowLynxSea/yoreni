@@ -5,9 +5,9 @@
     "closeAll": "Fermer le panneau d’aperçu"
   },
   "starPrompt": {
-    "footerAction": "Ajouter une étoile à yoreni",
+    "footerAction": "Ajouter une étoile à Yoreni",
     "title": "Ravis de vous aider.",
-    "intro": "Si yoreni vous simplifie un peu le quotidien,",
+    "intro": "Si Yoreni vous simplifie un peu le quotidien,",
     "invitation": "offrez-nous une étoile sur GitHub.",
     "thanks": "Ce petit encouragement compte beaucoup pour nous.",
     "action": "Offrir une étoile",
@@ -16,21 +16,21 @@
     "saveError": "Il y a peut-être un problème de connexion. Ce rappel pourrait réapparaître."
   },
   "app": {
-    "brand": "yoreni",
+    "brand": "Yoreni",
     "loading": {
-      "connecting": "Connexion à yoreni…",
-      "boot": "Chargement de yoreni…",
+      "connecting": "Connexion à Yoreni…",
+      "boot": "Chargement de Yoreni…",
       "failed": "Impossible de charger cette vue. Revenez en arrière ou rechargez la page pour réessayer."
     },
     "error": {
-      "title": "Impossible de joindre yoreni",
+      "title": "Impossible de joindre Yoreni",
       "gatewayHint": "Assurez-vous que la gateway est en cours d’exécution (`yoreni gateway`) et que ce navigateur peut atteindre son adresse WebUI."
     },
     "auth": {
-      "title": "Se connecter à yoreni",
+      "title": "Se connecter à Yoreni",
       "label": "Mot de passe de la WebUI",
       "helpTitle": "Où trouver le mot de passe ?",
-      "helpConfig": "Sur l’appareil qui exécute yoreni, ouvrez le fichier de configuration, généralement situé ici :",
+      "helpConfig": "Sur l’appareil qui exécute Yoreni, ouvrez le fichier de configuration, généralement situé ici :",
       "helpSecret": "Copiez la valeur de ce champ comme mot de passe :",
       "helpFallback": "Si cette valeur est vide, utilisez <code>channels.websocket.token</code>.",
       "showPassword": "Afficher le mot de passe",
@@ -46,9 +46,9 @@
     },
     "system": {
       "section": "Système",
-      "restartHint": "Redémarrez yoreni pour appliquer les changements d’exécution.",
+      "restartHint": "Redémarrez Yoreni pour appliquer les changements d’exécution.",
       "restartAction": "Redémarrer",
-      "restart": "Redémarrer yoreni",
+      "restart": "Redémarrer Yoreni",
       "restarting": "Redémarrage...",
       "restartEngine": "Redémarrer le moteur",
       "restartingEngine": "Redémarrage du moteur..."
@@ -57,11 +57,11 @@
       "completed": "Redémarrage terminé en {{seconds}} s."
     },
     "documentTitle": {
-      "base": "yoreni",
+      "base": "Yoreni",
       "chat": "{{title}}"
     },
     "meta": {
-      "description": "Interface web yoreni — discutez avec votre espace de travail yoreni."
+      "description": "Interface web Yoreni — discutez avec votre espace de travail Yoreni."
     },
     "pairing": {
       "haveCode": "Vous avez déjà reçu un code ?",
@@ -329,7 +329,7 @@
     "timezoneNoMatches": "Aucun fuseau horaire correspondant.",
     "configure": "Configurer",
     "exit": {
-      "title": "Redémarrer yoreni avant de quitter les réglages ?",
+      "title": "Redémarrer Yoreni avant de quitter les réglages ?",
       "description": "Vos modifications sont enregistrées. Redémarrez pour les appliquer.",
       "later": "Redémarrer plus tard"
     },
@@ -443,7 +443,7 @@
         },
         "network_proxy": {
           "label": "Proxy partagé",
-          "help": "Adresse utilisée par les fonctions dont le proxy est activé. 127.0.0.1 désigne la machine qui exécute yoreni."
+          "help": "Adresse utilisée par les fonctions dont le proxy est activé. 127.0.0.1 désigne la machine qui exécute Yoreni."
         },
         "tools_web_use_proxy": {
           "label": "Utiliser le proxy",
@@ -491,7 +491,7 @@
         },
         "tools_image_generation_save_dir": {
           "label": "Dossier de sauvegarde",
-          "help": "Chemin relatif dans le dossier des médias ; les images existantes ne sont pas déplacées.\n\nChemin relatif sous le dossier multimédia de yoreni. Les images existantes ne sont pas déplacées."
+          "help": "Chemin relatif dans le dossier des médias ; les images existantes ne sont pas déplacées.\n\nChemin relatif sous le dossier multimédia de Yoreni. Les images existantes ne sont pas déplacées."
         }
       },
       "groups": {
@@ -556,7 +556,7 @@
       "saving": "Enregistrement…",
       "discard": "Annuler les modifications",
       "saved": "Enregistré.",
-      "restart": "Redémarrer yoreni",
+      "restart": "Redémarrer Yoreni",
       "restartHelp": "Redémarrez pour appliquer les modifications. Les arguments de ligne de commande et variables d’environnement peuvent avoir priorité.",
       "search": "Rechercher un paramètre avancé",
       "noResults": "Aucun paramètre correspondant.",
@@ -638,8 +638,8 @@
       "test": "Tester les notifications",
       "testBody": "Ceci est une notification de test.",
       "waiting": "En attente du navigateur…",
-      "insecure": "Ouvrez yoreni via HTTPS ou localhost pour utiliser les notifications.",
-      "unsupported": "Ce navigateur ne prend pas en charge les notifications. Essayez-en un autre ; sur iPhone ou iPad, ouvrez yoreni depuis l’écran d’accueil.",
+      "insecure": "Ouvrez Yoreni via HTTPS ou localhost pour utiliser les notifications.",
+      "unsupported": "Ce navigateur ne prend pas en charge les notifications. Essayez-en un autre ; sur iPhone ou iPad, ouvrez Yoreni depuis l’écran d’accueil.",
       "denied": "Les notifications sont bloquées. Autorisez-les dans les paramètres du navigateur pour ce site, puis activez-les ici.",
       "dismissed": "L’autorisation n’a pas été accordée. Activez les notifications et choisissez Autoriser.",
       "permissionFailed": "Impossible de demander l’autorisation. Réessayez dans un navigateur compatible.",
@@ -672,7 +672,7 @@
       "refresh": "Actualiser {{name}}",
       "delete": "Supprimer {{name}}",
       "deleteTitle": "Supprimer {{name}} ?",
-      "deleteDescription": "Cela supprime le widget et ses données de cette installation de yoreni. Il n'apparaîtra plus sur l'accueil.",
+      "deleteDescription": "Cela supprime le widget et ses données de cette installation de Yoreni. Il n'apparaîtra plus sur l'accueil.",
       "deleteAction": "Supprimer le widget",
       "deleteFailed": "Impossible de supprimer le widget. Réessayez.",
       "alwaysOn": "Automatique",
@@ -693,7 +693,7 @@
       "language": "Langue",
       "provider": "Fournisseur",
       "model": "Modèle",
-      "restart": "Redémarrer yoreni",
+      "restart": "Redémarrer Yoreni",
       "configPath": "Chemin de configuration",
       "activePreset": "Préréglage actif",
       "gateway": "Passerelle",
@@ -775,7 +775,7 @@
       "brandLogos": "Affichez les logos des fournisseurs et applications dans les réglages.\n\nAffiche les logos de fournisseurs tiers et CLI dans les Réglages.",
       "browserNotifications": "Avertissez lorsqu’un message arrive alors que la page est en arrière-plan.",
       "notificationSound": "Jouez un son lorsqu’un message arrive, y compris dans les onglets en arrière-plan.",
-      "cliAppsCatalog": "Installez des outils CLI pour yoreni ; les applications de bureau restent inchangées.\n\nInstalle les outils en ligne de commande que yoreni peut utiliser sur cette machine. Les applications de bureau ne sont pas modifiées.",
+      "cliAppsCatalog": "Installez des outils CLI pour Yoreni ; les applications de bureau restent inchangées.\n\nInstalle les outils en ligne de commande que Yoreni peut utiliser sur cette machine. Les applications de bureau ne sont pas modifiées.",
       "cliAppsFilter": "Recherchez par nom, catégorie ou fonction.",
       "logs": "Ouvrez le dossier des journaux du moteur de l’application de bureau.",
       "diagnostics": "Exportez un rapport pour diagnostiquer les problèmes.",
@@ -828,11 +828,11 @@
       "loadError": "Impossible de charger les réglages",
       "unsaved": "Modifications non enregistrées.",
       "upToDate": "À jour.",
-      "savedRestart": "Enregistré. Redémarrez yoreni pour appliquer les modifications.",
+      "savedRestart": "Enregistré. Redémarrez Yoreni pour appliquer les modifications.",
       "restartAfterSaving": "Enregistrez les changements, puis redémarrez quand vous êtes prêt.",
-      "savedRestartApply": "Enregistré. Redémarrez yoreni pour appliquer les modifications.",
-      "imageProviderRestart": "Fournisseur d’images enregistré. Redémarrez yoreni pour appliquer les modifications.",
-      "hostRestartAfterSaving": "En enregistrant, yoreni redémarrera son moteur.",
+      "savedRestartApply": "Enregistré. Redémarrez Yoreni pour appliquer les modifications.",
+      "imageProviderRestart": "Fournisseur d’images enregistré. Redémarrez Yoreni pour appliquer les modifications.",
+      "hostRestartAfterSaving": "En enregistrant, Yoreni redémarrera son moteur.",
       "hostRestartPending": "Enregistré. Le moteur redémarrera lorsqu’il sera prêt.",
       "hostApiUnavailable": "Ces actions sont disponibles uniquement dans l’application de bureau.",
       "logsOpened": "Dossier des journaux ouvert.",
@@ -1111,7 +1111,7 @@
       "saveCustom": "Enregistrer le serveur",
       "configImport": "Importer mcp.json",
       "importConfig": "Importer",
-      "restartRequired": "Redémarrez yoreni pour connecter les outils MCP mis à jour.",
+      "restartRequired": "Redémarrez Yoreni pour connecter les outils MCP mis à jour.",
       "toolsFound_one": "{{count}} outil",
       "toolsFound_other": "{{count}} outils",
       "toolsFound": "{{count}} outils",
@@ -1141,14 +1141,14 @@
       "preparingSignIn": "Préparation d’une connexion sécurisée…",
       "openSignInToContinue": "Ouvrez la page de connexion pour continuer.",
       "finishSignInInBrowser": "Terminez la connexion dans la fenêtre du navigateur.",
-      "manualCallbackRequired": "Terminez la connexion, puis collez l’URL de rappel dans yoreni.",
+      "manualCallbackRequired": "Terminez la connexion, puis collez l’URL de rappel dans Yoreni.",
       "manualCallbackHelp": "Après avoir autorisé l’accès, la page localhost ne se chargera pas. Copiez son URL complète depuis la barre d’adresse et collez-la ici.",
       "finishingConnection": "Finalisation de la connexion…",
       "activatingTools": "Activation des outils…",
       "connected": "Connecté.",
       "connectionFailed": "Échec de la connexion.",
       "connectionCancelled": "Connexion annulée.",
-      "reloadFailed": "Connexion réussie, mais yoreni n’a pas pu activer les outils. Essayez de redémarrer yoreni.",
+      "reloadFailed": "Connexion réussie, mais Yoreni n’a pas pu activer les outils. Essayez de redémarrer Yoreni.",
       "oauthFailed": "Connexion impossible. Essayez de vous reconnecter.",
       "statusMissingDependency": "Dépendance requise",
       "statusComingSoon": "Bientôt disponible",
@@ -1201,8 +1201,8 @@
     },
     "observability": {
       "title": "Traces d’exécution",
-      "configured": "Les identifiants de traçage sont disponibles pour yoreni.",
-      "environment": "Définissez LANGFUSE_SECRET_KEY et LANGFUSE_PUBLIC_KEY, puis redémarrez yoreni.",
+      "configured": "Les identifiants de traçage sont disponibles pour Yoreni.",
+      "environment": "Définissez LANGFUSE_SECRET_KEY et LANGFUSE_PUBLIC_KEY, puis redémarrez Yoreni.",
       "enable": "Activer les traces"
     },
     "legal": {
@@ -1231,7 +1231,7 @@
       "browseApps": "Parcourir les applications",
       "browseIntegrations": "Parcourir les outils MCP",
       "emptyIntegrationsHint": "Ajoutez un serveur MCP personnalisé ci-dessous.",
-      "restartRequired": "Redémarrez yoreni pour appliquer les applications et outils MCP mis à jour."
+      "restartRequired": "Redémarrez Yoreni pour appliquer les applications et outils MCP mis à jour."
     },
     "channels": {
       "description": "Connectez les applications de discussion, l’e-mail et WebUI.",
@@ -1241,8 +1241,8 @@
       "help": "Aide",
       "loading": "Chargement des canaux...",
       "empty": "Aucun canal ne correspond à ce filtre.",
-      "restartRequired": "Redémarrez yoreni pour appliquer le support de canal mis à jour.",
-      "restartBeforeInstall": "Redémarrez yoreni avant d’installer un autre canal.",
+      "restartRequired": "Redémarrez Yoreni pour appliquer le support de canal mis à jour.",
+      "restartBeforeInstall": "Redémarrez Yoreni avant d’installer un autre canal.",
       "requires": "Requiert : {{requirements}}",
       "setUp": "Configurer",
       "setupGuide": "Guide de configuration",
@@ -1340,7 +1340,7 @@
       "installSupport": "Installer les dépendances",
       "installConfirmTitle": "Installer les dépendances de {{name}} ?",
       "installConfirmDescription": "Installez les dépendances et activez {{name}}.",
-      "installOnlyConfirmDescription": "Installez les paquets requis, puis connectez-vous.\n\nyoreni installera les composants requis par {{name}}. Vous pourrez vous connecter après l’installation.",
+      "installOnlyConfirmDescription": "Installez les paquets requis, puis connectez-vous.\n\nYoreni installera les composants requis par {{name}}. Vous pourrez vous connecter après l’installation.",
       "installConfirmAction": "Installer et activer",
       "installOnlyConfirmAction": "Installer le support",
       "websocketRequired": "Requis pour la WebUI",
@@ -1373,7 +1373,7 @@
         "retry": "Recharger les discussions",
         "confirm": "Confirmer",
         "saving": "Modification…",
-        "available": "Envoyez d’abord un message à yoreni dans la discussion cible. Seules les discussions connectées avec le même espace de travail et mode d’accès sont proposées."
+        "available": "Envoyez d’abord un message à Yoreni dans la discussion cible. Seules les discussions connectées avec le même espace de travail et mode d’accès sont proposées."
       },
       "taskInfo": "Informations sur la tâche",
       "runDetails": {
@@ -1386,7 +1386,7 @@
         "noOutput": "Le texte de la réponse n’est pas conservé dans cet enregistrement."
       },
       "create": "Nouvelle tâche",
-      "createPrompt": "Que doit automatiser yoreni ?",
+      "createPrompt": "Que doit automatiser Yoreni ?",
       "createInput": "Décrire une automatisation",
       "errors": {
         "legacyMissingDestination": "Cette ancienne automatisation n’a plus de destination. Recréez-la depuis la discussion liée pour continuer."
@@ -1435,7 +1435,7 @@
       "loading": "Chargement des automatisations...",
       "noMatches": "Aucune automatisation ne correspond à cette vue.",
       "empty": "Aucune automatisation pour le moment.",
-      "emptyHint": "Dites à yoreni quoi faire à intervalles réguliers.",
+      "emptyHint": "Dites à Yoreni quoi faire à intervalles réguliers.",
       "emptyAction": "Ouvrir un chat",
       "clearFilters": "Effacer les filtres",
       "oneShot": "Ponctuelle",
@@ -1550,14 +1550,14 @@
       "signedInAs": "Connecté en tant que {{account}}",
       "signInHelp": "Connectez-vous depuis cet appareil ; aucune clé API n’est enregistrée dans la configuration.",
       "remoteSignInHelp": "Sélectionnez Se connecter pour ouvrir xAI sur votre ordinateur, puis collez le code d’autorisation affiché après la connexion.",
-      "codexRemoteSignInHelp": "Connectez-vous dans ce navigateur, puis recollez dans yoreni l’URL complète de rappel localhost.",
+      "codexRemoteSignInHelp": "Connectez-vous dans ce navigateur, puis recollez dans Yoreni l’URL complète de rappel localhost.",
       "signInRequired": "Connexion requise",
       "signInBeforeSaving": "Connectez-vous à ce fournisseur avant d’enregistrer le préréglage.",
       "signedIn": "Connecté",
       "notSignedIn": "Non connecté",
-      "localCodeHelp": "Terminez la connexion dans votre navigateur. yoreni termine généralement automatiquement ; sinon, collez le code d’autorisation ci-dessous.",
+      "localCodeHelp": "Terminez la connexion dans votre navigateur. Yoreni termine généralement automatiquement ; sinon, collez le code d’autorisation ci-dessous.",
       "remoteCodeHelp": "Sélectionnez Se connecter pour ouvrir xAI sur votre ordinateur. Après la connexion, collez ci-dessous le code d’autorisation affiché par xAI.",
-      "localCallbackHelp": "Terminez la connexion dans votre navigateur. Si yoreni ne se connecte pas automatiquement, copiez l’URL complète dans la barre d’adresse de la page localhost, même si elle ne se charge pas, collez-la ci-dessous, puis sélectionnez « Terminer la connexion ».",
+      "localCallbackHelp": "Terminez la connexion dans votre navigateur. Si Yoreni ne se connecte pas automatiquement, copiez l’URL complète dans la barre d’adresse de la page localhost, même si elle ne se charge pas, collez-la ci-dessous, puis sélectionnez « Terminer la connexion ».",
       "remoteCallbackHelp": "Ouvrez ChatGPT dans ce navigateur et terminez la connexion. Sur la page localhost, copiez l’URL complète dans la barre d’adresse, même si la page ne se charge pas, collez-la ci-dessous, puis sélectionnez « Terminer la connexion ».",
       "authorizationCode": "Code d’autorisation",
       "callbackUrl": "URL de callback",
@@ -1602,7 +1602,7 @@
       "deleteConfirmAction": "Supprimer la compétence",
       "instructionsTitle": "Instructions de la compétence",
       "setupRequired": "Configuration requise",
-      "setupDescription": "Installez les dépendances sur l’hôte de la passerelle, puis vérifiez à nouveau.\n\nInstallez la dépendance manquante sur la machine qui exécute yoreni, puis vérifiez à nouveau.",
+      "setupDescription": "Installez les dépendances sur l’hôte de la passerelle, puis vérifiez à nouveau.\n\nInstallez la dépendance manquante sur la machine qui exécute Yoreni, puis vérifiez à nouveau.",
       "copySetupCommand": "Copier la commande",
       "checkAgain": "Vérifier à nouveau",
       "marketplaceSearchFailed": "Impossible de rechercher dans les catalogues de compétences.",
@@ -1757,7 +1757,7 @@
     "empty": "Aucun message correspondant.",
     "failed": "La recherche est indisponible pour le moment.",
     "you": "Vous",
-    "assistant": "yoreni"
+    "assistant": "Yoreni"
   },
   "archiveConfirm": {
     "title": "Archiver ce sujet ?",
@@ -1895,7 +1895,7 @@
       "imageQuickActions": {
         "icon": {
           "title": "Créer une icône",
-          "prompt": "Générez une icône d’application 1:1 propre pour yoreni : robot sympathique, style vectoriel simple, palette douce bleu et blanc, sans texte."
+          "prompt": "Générez une icône d’application 1:1 propre pour Yoreni : robot sympathique, style vectoriel simple, palette douce bleu et blanc, sans texte."
         },
         "sticker": {
           "title": "Créer un sticker",
@@ -2364,7 +2364,7 @@
     "close": "Fermer l’aperçu du fichier",
     "loading": "Chargement de l’aperçu...",
     "failed": "Impossible de prévisualiser ce fichier.",
-    "routeMissing": "L’aperçu du fichier nécessite le dernier gateway. Redémarrez yoreni gateway puis réessayez.",
+    "routeMissing": "L’aperçu du fichier nécessite le dernier gateway. Redémarrez Yoreni gateway puis réessayez.",
     "resize": "Redimensionner l’aperçu du fichier",
     "truncated": "L’aperçu est tronqué car le fichier est volumineux."
   },

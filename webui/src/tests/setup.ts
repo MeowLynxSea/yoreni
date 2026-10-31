@@ -81,6 +81,6 @@ beforeAll(async () => {
 beforeEach(async () => {
   await i18n.changeLanguage("en");
   document.documentElement.lang = "en";
-  document.title = "yoreni";
+  document.title = "Yoreni";
   localStorage.setItem("yoreni.locale", "en");
 });

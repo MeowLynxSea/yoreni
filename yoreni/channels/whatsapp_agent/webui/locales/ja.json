@@ -2,7 +2,7 @@
   "setup": {
     "docsLabel": "エージェント設定ガイドを開く",
     "officialLabel": "WhatsApp エージェントのヘルプを開く",
-    "privacyNotice": "エージェントとのチャットはエンドツーエンド暗号化されません。メッセージは yoreni と設定したモデルプロバイダーによって処理されます。",
+    "privacyNotice": "エージェントとのチャットはエンドツーエンド暗号化されません。メッセージは Yoreni と設定したモデルプロバイダーによって処理されます。",
     "fields": {
       "token": {
         "label": "API トークン",

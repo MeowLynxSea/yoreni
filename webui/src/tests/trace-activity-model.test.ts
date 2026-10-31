@@ -14,7 +14,7 @@ describe("trace activity semantics", () => {
   });
 
   it.each([
-    ['web_search({"query":"yoreni latest release"})', "done", "Searched the web", "yoreni latest release"],
+    ['web_search({"query":"Yoreni latest release"})', "done", "Searched the web", "Yoreni latest release"],
     ['web_fetch({"url":"https://example.com/docs?token=private"})', "done", "Read", "example.com/docs"],
     ['read_file({"path":"/Users/alice/project/README.md"})', "done", "Read", "~/project/README.md"],
     ['exec({"command":"date +%Y-%m-%d"})', "done", "Checked current time", ""],

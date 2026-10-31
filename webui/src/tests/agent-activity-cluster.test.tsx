@@ -1156,8 +1156,8 @@ describe("AgentActivityCluster", () => {
             id: "t-search",
             role: "tool",
             kind: "trace",
-            content: 'web_search({"query":"yoreni architecture"})',
-            traces: ['web_search({"query":"yoreni architecture"})'],
+            content: 'web_search({"query":"Yoreni architecture"})',
+            traces: ['web_search({"query":"Yoreni architecture"})'],
             createdAt: 1,
           },
           {
@@ -1189,7 +1189,7 @@ describe("AgentActivityCluster", () => {
       />,
     );
 
-    const searchRow = screen.getByLabelText("Searched the web, yoreni architecture").closest('[data-testid="activity-step"]');
+    const searchRow = screen.getByLabelText("Searched the web, Yoreni architecture").closest('[data-testid="activity-step"]');
     const cliRow = screen.getByLabelText("Used Blender, --json project new").closest('[data-testid="activity-step"]');
     const fetchRow = screen.getByText("example.com/diagram").closest('[data-testid="activity-step"]');
 
@@ -1273,7 +1273,7 @@ describe("AgentActivityCluster", () => {
   });
 
   it("renders hosted X search as an explicit search activity", () => {
-    const line = 'x_search({"query":"yoreni oauth"})';
+    const line = 'x_search({"query":"Yoreni oauth"})';
     render(
       <AgentActivityCluster
         messages={[{
@@ -1286,7 +1286,7 @@ describe("AgentActivityCluster", () => {
             phase: "end",
             call_id: "x-search-1",
             name: "x_search",
-            arguments: { query: "yoreni oauth" },
+            arguments: { query: "Yoreni oauth" },
             result: { name: "x_semantic_search" },
           }],
           createdAt: 1,
@@ -1297,7 +1297,7 @@ describe("AgentActivityCluster", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /^Worked/ }));
 
-    expect(screen.getByLabelText("Searched X, yoreni oauth")).toBeInTheDocument();
+    expect(screen.getByLabelText("Searched X, Yoreni oauth")).toBeInTheDocument();
     expect(screen.queryByText(/Completed X search/i)).not.toBeInTheDocument();
     expect(screen.getAllByTestId("activity-step")).toHaveLength(1);
   });
@@ -2135,13 +2135,13 @@ describe("AgentActivityCluster", () => {
       id: "image-run",
       role: "tool",
       kind: "trace",
-      content: 'generate_image({"prompt":"an orange yoreni on a desk","aspect_ratio":"4:3"})',
-      traces: ['generate_image({"prompt":"an orange yoreni on a desk","aspect_ratio":"4:3"})'],
+      content: 'generate_image({"prompt":"an orange Yoreni on a desk","aspect_ratio":"4:3"})',
+      traces: ['generate_image({"prompt":"an orange Yoreni on a desk","aspect_ratio":"4:3"})'],
       toolEvents: [{
         phase: "start",
         call_id: "image-call",
         name: "generate_image",
-        arguments: { prompt: "an orange yoreni on a desk", aspect_ratio: "4:3" },
+        arguments: { prompt: "an orange Yoreni on a desk", aspect_ratio: "4:3" },
       }],
       createdAt: 1,
     };

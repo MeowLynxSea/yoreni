@@ -210,7 +210,7 @@ export function createSystemSettingsActions({
         setPendingRestartSections((prev) => ({ ...prev, runtime: true }));
       }
     } catch (err) {
-      console.error("yoreni feature action failed", {
+      console.error("Yoreni feature action failed", {
         action,
         name,
         installOnly: Boolean(options.installOnly),
@@ -377,7 +377,7 @@ export function createSystemSettingsActions({
       setMcpError(
         flow.hot_reload.message
         || t("settings.mcp.reloadFailed", {
-          defaultValue: "Signed in, but yoreni could not connect the tools. Try restarting yoreni.",
+          defaultValue: "Signed in, but Yoreni could not connect the tools. Try restarting Yoreni.",
         }),
       );
       return;

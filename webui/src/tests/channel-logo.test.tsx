@@ -128,7 +128,7 @@ describe("channel logos", () => {
     expect(container.firstElementChild).toHaveClass("bg-white");
   });
 
-  it("keeps the local yoreni mark and unknown channel initials readable", () => {
+  it("keeps the local Yoreni mark and unknown channel initials readable", () => {
     const { container, rerender } = render(<ChannelLogo feature={feature("websocket")} showBrandLogos />);
     expectFootprint(container.firstElementChild!);
     expect(container.querySelector("img")).toHaveAttribute("src", "/brand/yoreni_mark.svg");

@@ -19,8 +19,8 @@ describe("tool trace identity", () => {
   });
 
   it("keeps genuinely different calls separate", () => {
-    const first = 'web_search({"query":"yoreni"})';
-    const second = 'web_search({"query":"yoreni cloud"})';
+    const first = 'web_search({"query":"Yoreni"})';
+    const second = 'web_search({"query":"Yoreni cloud"})';
 
     expect(mergeUniqueToolTraceLines([first], [second])).toEqual({
       traces: [first, second],
@@ -32,13 +32,13 @@ describe("tool trace identity", () => {
     expect(mergeToolProgressTraceLines(
       ["web_search()"],
       [{ phase: "start", call_id: "ws-1", name: "web_search", arguments: {} }],
-      ['web_search({"query":"yoreni news"})'],
+      ['web_search({"query":"Yoreni news"})'],
       [{
         phase: "end",
         call_id: "ws-1",
         name: "web_search",
-        arguments: { query: "yoreni news" },
+        arguments: { query: "Yoreni news" },
       }],
-    )).toEqual(['web_search({"query":"yoreni news"})']);
+    )).toEqual(['web_search({"query":"Yoreni news"})']);
   });
 });

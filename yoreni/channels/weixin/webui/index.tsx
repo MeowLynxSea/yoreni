@@ -31,7 +31,7 @@ export default {
     color: "#07C160",
     setup: {
       mode: "connect",
-      command: "yoreni channels login weixin",
+      command: "Yoreni channels login weixin",
       docsUrl: chatAppGuideUrl("wechat"),
       fields: WEIXIN_PRIMARY_FIELD_KEYS.map((key) => ({ key })),
       manualFields: WEIXIN_ADVANCED_FIELD_KEYS.map((key) => ({ key })),

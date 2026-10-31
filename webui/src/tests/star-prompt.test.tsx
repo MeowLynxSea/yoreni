@@ -110,7 +110,7 @@ it("keeps a failed permanent dismissal retryable", async () => {
 
 it("the About link opens GitHub and persists permanent dismissal", async () => {
   render(<StarLink />);
-  const link = screen.getByRole("link", { name: "Star yoreni on GitHub" });
+  const link = screen.getByRole("link", { name: "Star Yoreni on GitHub" });
   expect(link).toHaveAttribute("href", "https://github.com/MeowLynxSea/yoreni");
   expect(link).toHaveAttribute("target", "_blank");
   await clickStarLink(link);

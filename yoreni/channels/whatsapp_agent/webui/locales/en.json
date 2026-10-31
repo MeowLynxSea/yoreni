@@ -2,7 +2,7 @@
   "setup": {
     "docsLabel": "Open agent setup guide",
     "officialLabel": "Open WhatsApp agent help",
-    "privacyNotice": "Agent chats are not end-to-end encrypted. Messages are processed by yoreni and your configured model provider.",
+    "privacyNotice": "Agent chats are not end-to-end encrypted. Messages are processed by Yoreni and your configured model provider.",
     "fields": {
       "token": {
         "label": "API token",

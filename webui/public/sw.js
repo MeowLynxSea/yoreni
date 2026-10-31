@@ -49,7 +49,7 @@ async function notifyClient(source, data) {
   const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   const visible = !data.test && windows.some((client) => client.visibilityState === "visible");
   if (!visible) {
-    await self.registration.showNotification("yoreni", {
+    await self.registration.showNotification("Yoreni", {
       body: data.body, tag: data.key, icon: "/brand/yoreni_icon_192.png",
       data: { url, clientId: source.id },
     });

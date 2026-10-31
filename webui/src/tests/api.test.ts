@@ -447,7 +447,7 @@ describe("webui API helpers", () => {
 
     await expect(fetchSettings("tok")).rejects.toMatchObject({
       status: 200,
-      message: "Gateway returned WebUI HTML instead of JSON. Restart yoreni gateway and try again.",
+      message: "Gateway returned WebUI HTML instead of JSON. Restart Yoreni gateway and try again.",
     });
   });
 
@@ -710,7 +710,7 @@ describe("webui API helpers", () => {
     );
   });
 
-  it("reads and toggles yoreni optional features", async () => {
+  it("reads and toggles Yoreni optional features", async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({

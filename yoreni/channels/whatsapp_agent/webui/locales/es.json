@@ -2,7 +2,7 @@
   "setup": {
     "docsLabel": "Abrir la guía de configuración del agente",
     "officialLabel": "Abrir la ayuda de agentes de WhatsApp",
-    "privacyNotice": "Los chats con el agente no están cifrados de extremo a extremo. yoreni y el proveedor de modelos que hayas configurado procesan los mensajes.",
+    "privacyNotice": "Los chats con el agente no están cifrados de extremo a extremo. Yoreni y el proveedor de modelos que hayas configurado procesan los mensajes.",
     "fields": {
       "token": {
         "label": "Token de API",

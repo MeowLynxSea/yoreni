@@ -80,7 +80,7 @@
     "needsSetup": "需要授权",
     "qrAlt": "飞书连接二维码",
     "scanTitle": "使用飞书扫码",
-    "scanDescription": "用手机上的飞书或 Lark 扫描二维码。授权完成后，yoreni 会自动完成配置。",
+    "scanDescription": "用手机上的飞书或 Lark 扫描二维码。授权完成后，Yoreni 会自动完成配置。",
     "waiting": "正在等待授权...",
     "connected": "飞书已连接。",
     "stopped": "连接已停止。",

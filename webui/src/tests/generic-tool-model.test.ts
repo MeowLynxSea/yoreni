@@ -91,7 +91,7 @@ describe("generic tool activity semantics", () => {
 
   it("leaves specialized tools to their dedicated activity surfaces", () => {
     for (const line of [
-      'web_search({"query":"yoreni"})',
+      'web_search({"query":"Yoreni"})',
       'web_fetch({"url":"https://example.com"})',
       'exec({"command":"date"})',
       'write_file({"path":"README.md"})',

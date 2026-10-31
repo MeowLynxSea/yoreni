@@ -114,8 +114,8 @@ describe("Automation task list and detail sheet", () => {
   const triggerTask: AutomationJob = {
     ...task, id: "trigger-review", name: "Review on request", kind: "local_trigger",
     schedule: { kind: "local" }, state: {},
-    payload: { kind: "local_trigger", message: "yoreni trigger trg_review \"message\"" },
-    trigger: { id: "trg_review", command: "yoreni trigger trg_review \"message\"" },
+    payload: { kind: "local_trigger", message: "Yoreni trigger trg_review \"message\"" },
+    trigger: { id: "trg_review", command: "Yoreni trigger trg_review \"message\"" },
   };
 
   it("keeps undated triggers in Tasks and opens their shared details with keyboard focus restored", async () => {
@@ -352,7 +352,7 @@ describe("Automation task list and detail sheet", () => {
     render(<Harness payload={{ jobs: [] }} onStartChat={() => {}} settingsSnapshot={modelSettings} />);
     expect(screen.getByRole("textbox", { name: "Describe an automation" })).toHaveAttribute(
       "placeholder",
-      "What should yoreni automate?",
+      "What should Yoreni automate?",
     );
   });
 
@@ -360,7 +360,7 @@ describe("Automation task list and detail sheet", () => {
     await act(() => i18n.changeLanguage("zh-CN"));
     render(<Harness payload={{ jobs: [] }} onStartChat={() => {}} settingsSnapshot={modelSettings} />);
     expect(screen.getByRole("textbox", { name: "描述一个自动任务" })).toHaveAttribute(
-      "placeholder", "想让 yoreni 自动做什么？",
+      "placeholder", "想让 Yoreni 自动做什么？",
     );
   });
 
@@ -765,11 +765,11 @@ describe("Automation task list and detail sheet", () => {
     const user = userEvent.setup();
     render(<Harness payload={{ jobs: [{
       ...task, kind: "local_trigger", schedule: { kind: "local" },
-      trigger: { id: "trigger-1", command: "yoreni trigger run trigger-1" },
+      trigger: { id: "trigger-1", command: "Yoreni trigger run trigger-1" },
     }] }} />);
     await user.click(screen.getByRole("button", { name: /PR watch/ }));
     expect(screen.getByText("Command")).toBeVisible();
-    expect(within(screen.getByRole("dialog")).getByText("yoreni trigger run trigger-1")).toBeVisible();
+    expect(within(screen.getByRole("dialog")).getByText("Yoreni trigger run trigger-1")).toBeVisible();
     expect(screen.getByRole("button", { name: "Copy" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Run now" })).not.toBeInTheDocument();
     expect(taskMenuItem("Delete")).toBeVisible();

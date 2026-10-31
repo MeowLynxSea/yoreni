@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from yoreni.config.paths import get_data_dir
+from yoreni.config.paths import get_config_path, get_data_dir
 from yoreni.profile.schema import UserProfile
 from yoreni.utils.file_io import write_text_atomic
 
@@ -101,6 +101,16 @@ def profile_store_for_config(config: "Config") -> UserProfileStore:
     """Locate the profile beside the instance config, not inside a project."""
     data_dir = config.runtime_data_dir
     return UserProfileStore(data_dir / PROFILE_FILENAME if data_dir is not None else None)
+
+
+def operator_state_files() -> tuple[Path, ...]:
+    """Instance files that only the operator or the gateway may write."""
+    config_path = get_config_path().expanduser().resolve(strict=False)
+    data_dir = config_path.parent
+    return (
+        config_path,
+        *(data_dir / name for name in (PROFILE_FILENAME, ONBOARDING_FILENAME)),
+    )
 
 
 class OnboardingRecord(BaseModel):

@@ -10,6 +10,8 @@ Additional filesystem roots must be capability-specific. `extra_allowed_dirs` is
 
 Shell execution (`ExecTool`, `agent/tools/shell.py`) also respects `restrict_to_workspace` as an application-level guard: if enabled and `working_dir` is outside the workspace, the command is rejected before execution, and command text is checked for obvious workspace escapes. This is not process-level isolation; use an exec sandbox backend for that.
 
+State ownership is separate from the access mode: writes to core memory files, the active config file, and the owner profile and onboarding files are refused on every agent path, including full access. Only `MemoryService` consolidation, `UserProfileStore` and the settings writers touch them. The guard lives in `ExecTool._guard_state_writes` and `_FsTool._refuse_memory_write`; trusted operator shells (`ExecTool.execute_to_completion`) are exempt.
+
 **Rule**: Any new path-handling logic must go through the workspace path resolver or perform an equivalent containment check with explicit read/write capability semantics.
 
 ## SSRF Protection

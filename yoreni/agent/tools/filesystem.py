@@ -20,6 +20,7 @@ from yoreni.agent.tools.schema import (
     StringSchema,
     tool_parameters_schema,
 )
+from yoreni.profile.store import operator_state_files
 from yoreni.security.workspace_access import current_tool_workspace
 from yoreni.utils.file_edit_events import FileDiff, FileEditResult, display_file_edit_path
 from yoreni.utils.helpers import build_image_content_blocks, detect_image_mime
@@ -59,6 +60,7 @@ class _FsTool(Tool):
         restrict_to_workspace: bool | None = None,
         sandbox_restricts_workspace: bool = False,
         extra_read_allowed_files: list[Path] | None = None,
+        protected_files: list[Path] | None = None,
     ):
         self._workspace = workspace
         self._allowed_dir = allowed_dir
@@ -77,6 +79,10 @@ class _FsTool(Tool):
             else allowed_dir is not None
         )
         self._sandbox_restricts_workspace = sandbox_restricts_workspace
+        self._protected_files = tuple(
+            Path(path).expanduser().resolve(strict=False)
+            for path in (protected_files or ())
+        )
         # Explicit state is used by isolated runners like Dream/subagents.
         # Main AgentLoop tools leave this unset and resolve state from the
         # current async task, which keeps shared tool instances safe between concurrent Runs.
@@ -104,6 +110,7 @@ class _FsTool(Tool):
             file_states=ctx.file_state_store,
             restrict_to_workspace=ctx.config.restrict_to_workspace,
             sandbox_restricts_workspace=sandbox_restricts,
+            protected_files=list(operator_state_files()),
         )
 
     @property
@@ -192,12 +199,19 @@ class _FsTool(Tool):
         return target
 
     def _refuse_memory_write(self, target: Path) -> None:
-        """Core memory and the fact store are only written by the memory system."""
+        """Core memory, the fact store and owner settings have their own writers."""
+        try:
+            resolved = target.expanduser().resolve(strict=False)
+        except (OSError, RuntimeError, ValueError):
+            return
+        if resolved in self._protected_files:
+            raise PermissionError(
+                f"{target.name} is maintained by Yoreni settings and cannot be edited here"
+            )
         if self._workspace is None:
             return
         try:
             root = Path(self._workspace).expanduser().resolve(strict=False)
-            resolved = target.expanduser().resolve(strict=False)
         except (OSError, RuntimeError, ValueError):
             return
         for relative in _MEMORY_OWNED_FILES:

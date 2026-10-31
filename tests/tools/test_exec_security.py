@@ -218,6 +218,27 @@ def test_exec_allows_reads_of_memory_owned_files(command):
     assert result is None
 
 
+def test_exec_blocks_memory_writes_without_workspace_restriction(tmp_path):
+    """Ownership of memory files does not depend on the access mode."""
+    tool = ExecTool(working_dir=str(tmp_path))
+    prepared = tool._prepare_command("echo x > USER.md")
+    assert isinstance(prepared, str)
+    assert "deny pattern" in prepared.lower()
+
+
+def test_exec_blocks_owner_profile_writes(tmp_path):
+    """Owner settings and the instance config are never writable through an agent shell."""
+    profile = tmp_path / "profile.json"
+    config_file = tmp_path / "config.json"
+    tool = ExecTool(
+        working_dir=str(tmp_path), protected_files=[profile, config_file],
+    )
+    for target in (profile, config_file):
+        result = tool._guard_state_writes(f"echo '{{}}' > {target}")
+        assert result is not None
+        assert "deny pattern" in result.lower()
+
+
 # --- #2826: working_dir must not escape the configured workspace ---------
 
 

@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from loguru import logger
 
-from yoreni.memory.core import CORE_WRITABLE, MEMORY_PATH, USER_PATH, validate_core_content
+from yoreni.memory.core import CORE_WRITABLE, validate_core_content
 from yoreni.memory.models import (
     Evidence,
     Fact,
@@ -304,7 +304,7 @@ class DreamConsolidator:
 
     def _render_core(self) -> str:
         lines = ["## Current core memory"]
-        for name in (USER_PATH, MEMORY_PATH):
+        for name in CORE_WRITABLE:
             text = self.core.read(name).strip() or "(empty)"
             lines.append(f"### {name}\n{text}")
         return "\n\n".join(lines)
@@ -403,7 +403,7 @@ class DreamConsolidator:
         if not commit and isinstance(files, dict) and files:
             try:
                 diff_body = self.service.git.summarize_working_tree(
-                    [USER_PATH, MEMORY_PATH],
+                    list(CORE_WRITABLE),
                 ) if self.service.git.is_initialized() else ""
                 if diff_body:
                     commit = self.service.git.auto_commit(

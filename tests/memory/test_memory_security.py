@@ -12,6 +12,7 @@ from yoreni.agent.tools.apply_patch import ApplyPatchTool
 from yoreni.agent.tools.filesystem import EditFileTool, WriteFileTool
 from yoreni.agent.tools.shell import ExecTool
 from yoreni.memory.core import MEMORY_PATH, SOUL_PATH, USER_PATH
+from yoreni.profile.store import operator_state_files
 from yoreni.runtime_context import RUNTIME_CONTEXT_TAG
 
 
@@ -68,6 +69,31 @@ async def test_file_tools_cannot_rewrite_memory_owned_files(tmp_path, relative):
         assert result.is_error is True
         assert "memory system" in result
     assert target.read_text(encoding="utf-8") == "original"
+
+
+def test_operator_state_files_cover_the_instance_config_and_profile(monkeypatch, tmp_path):
+    config_file = tmp_path / "config.json"
+    monkeypatch.setattr("yoreni.profile.store.get_config_path", lambda: config_file)
+
+    assert operator_state_files() == (
+        config_file,
+        tmp_path / "profile.json",
+        tmp_path / "onboarding.json",
+    )
+
+
+async def test_file_tools_cannot_edit_the_owner_profile(tmp_path):
+    profile = tmp_path / "profile.json"
+    profile.write_text("{}", encoding="utf-8")
+    writer = WriteFileTool(
+        workspace=tmp_path, allowed_dir=tmp_path, protected_files=[profile],
+    )
+
+    result = await writer.execute(path="profile.json", content='{"name": "x"}')
+
+    assert result.is_error is True
+    assert "Yoreni settings" in result
+    assert profile.read_text(encoding="utf-8") == "{}"
 
 
 @pytest.mark.parametrize(

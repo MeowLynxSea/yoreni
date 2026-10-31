@@ -2,7 +2,7 @@
 
 ## Workspace Guidance
 
-Use this file for project-specific preferences, recurring workflow conventions, and instructions you want the agent to remember for this workspace. Personality/style guidance belongs in `SOUL.md`; the agent maintains `USER.md` and `memory/MEMORY.md` from verified conversation evidence, so put durable facts in the conversation instead of editing those files.
+Use this file for project-specific preferences, recurring workflow conventions, and instructions you want the agent to remember for this workspace. Personality/style guidance belongs in `SOUL.md`; the agent maintains `SOUL.md`, `USER.md` and `memory/MEMORY.md` from verified conversation evidence, so put durable facts in the conversation instead of editing those files.
 
 ## Scheduled Reminders
 

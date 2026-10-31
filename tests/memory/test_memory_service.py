@@ -165,10 +165,12 @@ async def test_forget_requires_a_target(harness):
         await harness.service.forget(run_id="run-1")
 
 
-async def test_core_memory_refuses_to_write_identity(harness):
+async def test_core_memory_writes_identity_and_refuses_other_files(harness):
     core = CoreMemory(harness.workspace)
+    core.write(SOUL_PATH, "new identity")
+    assert core.read_soul() == "new identity"
     with pytest.raises(PermissionError, match="not maintained"):
-        core.write(SOUL_PATH, "new identity")
+        core.write("AGENTS.md", "not a core file")
 
 
 async def test_core_apply_rejects_a_stale_snapshot(harness):

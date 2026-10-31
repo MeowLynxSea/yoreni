@@ -1,7 +1,8 @@
 """Core Memory files: always-visible identity, profile and background.
 
-``SOUL.md`` is agent identity and behaviour. Only a trusted operator writes it;
-the memory system reads it and enforces behaviour through code, not prose.
+``SOUL.md`` is agent identity and behaviour. Consolidation rewrites it from
+verified facts under the same validation and Git audit as the other core
+files; agent tools and shell commands cannot write it directly.
 ``USER.md`` and ``memory/MEMORY.md`` are summaries maintained by consolidation
 and always rendered within an explicit token budget.
 """
@@ -24,7 +25,7 @@ SOUL_PATH = "SOUL.md"
 USER_PATH = "USER.md"
 MEMORY_PATH = "memory/MEMORY.md"
 
-CORE_WRITABLE = (USER_PATH, MEMORY_PATH)
+CORE_WRITABLE = (SOUL_PATH, USER_PATH, MEMORY_PATH)
 
 DEFAULT_CORE_TOKEN_BUDGET = 3_000
 # Shares are applied per file and then redistributed from leftovers, so one
@@ -116,10 +117,7 @@ class CoreMemory:
     def write(self, relative: str, content: str) -> str:
         """Replace one maintained core file and return its new hash."""
         if relative not in CORE_WRITABLE:
-            raise PermissionError(
-                f"{relative} is not maintained by the memory system; "
-                "only USER.md and memory/MEMORY.md may be rewritten"
-            )
+            raise PermissionError(f"{relative} is not maintained by the memory system")
         validate_core_content(content)
         target = self.path(relative)
         target.parent.mkdir(parents=True, exist_ok=True)

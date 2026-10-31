@@ -10,6 +10,7 @@ import shutil
 import signal
 import subprocess
 import sys
+from collections.abc import Sequence
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path, PureWindowsPath
@@ -39,6 +40,7 @@ from yoreni.agent.tools.schema import (
 )
 from yoreni.agent.tools.shell_config import ExecToolConfig
 from yoreni.config.paths import get_media_dir
+from yoreni.profile.store import operator_state_files
 from yoreni.security.workspace_access import current_scope_allows_loopback, current_tool_workspace
 from yoreni.security.workspace_policy import is_path_within
 
@@ -160,6 +162,17 @@ _MEMORY_INTERNAL_PATTERN = (
     r"|(?<![a-z0-9_.-])(?:soul|user)\.md)"
 )
 
+# Writes to owner- and memory-owned state are refused in every access mode.
+# Full access loosens the destructive-command rules; it never transfers
+# ownership of instance state to the agent.
+_STATE_WRITE_PATTERNS = (
+    r">>?\s*\S*{target}",                                    # > / >> redirect
+    r"\btee\b[^|;&<>]*{target}",                             # tee / tee -a
+    r"\b(?:cp|mv)\b(?:\s+[^\s|;&<>]+)+\s+\S*{target}",       # cp/mv target
+    r"\bdd\b[^|;&<>]*\bof=\S*{target}",                      # dd of=
+    r"\bsed\s+-i[^|;&<>]*{target}",                          # sed -i
+)
+
 
 class ExecTool(Tool):
     """Tool to execute shell commands."""
@@ -197,6 +210,7 @@ class ExecTool(Tool):
             allow_patterns=cfg.allow_patterns,
             deny_patterns=cfg.deny_patterns,
             session_manager=ctx.exec_session_manager,
+            protected_files=operator_state_files(),
         )
 
     def __init__(
@@ -215,6 +229,7 @@ class ExecTool(Tool):
         sandbox_rw_binds: list[str] | None = None,
         allowed_env_keys: list[str] | None = None,
         session_manager: ExecSessionManager | None = None,
+        protected_files: Sequence[Path] | None = None,
         *,
         max_runtime: int | None = None,
         max_runtime_limit: int | None = None,
@@ -241,15 +256,15 @@ class ExecTool(Tool):
             r">\s*/dev/sd",                  # write to disk
             r"\b(shutdown|reboot|poweroff)\b",  # system power
             r":\(\)\s*\{.*\};\s*:",          # fork bomb
-            # Block writes to yoreni internal state files. The memory database
-            # and the core memory documents are owned by the memory service;
-            # direct writes corrupt transactions or bypass provenance checks.
-            r">>?\s*\S*" + _MEMORY_INTERNAL_PATTERN,            # > / >> redirect
-            r"\btee\b[^|;&<>]*" + _MEMORY_INTERNAL_PATTERN,     # tee / tee -a
-            r"\b(?:cp|mv)\b(?:\s+[^\s|;&<>]+)+\s+\S*" + _MEMORY_INTERNAL_PATTERN,  # cp/mv target
-            r"\bdd\b[^|;&<>]*\bof=\S*" + _MEMORY_INTERNAL_PATTERN,  # dd of=
-            r"\bsed\s+-i[^|;&<>]*" + _MEMORY_INTERNAL_PATTERN,  # sed -i
         ]
+        self._protected_files = tuple(
+            Path(path).expanduser().resolve(strict=False)
+            for path in (protected_files or ())
+        )
+        self._state_patterns = [
+            pattern.format(target=_MEMORY_INTERNAL_PATTERN)
+            for pattern in _STATE_WRITE_PATTERNS
+        ] + self._protected_file_patterns()
         self.allow_patterns = allow_patterns or []
         self.restrict_to_workspace = restrict_to_workspace
         if allow_local_preview_access is not None:
@@ -328,7 +343,7 @@ class ExecTool(Tool):
     async def execute_to_completion(self, command: str, working_dir: str) -> str:
         """Return the complete result for a trusted user shell command, without an agent observer."""
         try:
-            prepared = self._prepare_command(command, working_dir)
+            prepared = self._prepare_command(command, working_dir, trusted=True)
         except ValueError as exc:
             return ToolResult.error(f"Error: {exc}")
         if isinstance(prepared, str):
@@ -392,6 +407,8 @@ class ExecTool(Tool):
         timeout: int | None = None,
         shell: str | None = None,
         login: bool | None = None,
+        *,
+        trusted: bool = False,
     ) -> _PreparedCommand | str:
         access = current_tool_workspace(
             self.working_dir,
@@ -427,6 +444,16 @@ class ExecTool(Tool):
                     "Error: working_dir is outside the configured workspace"
                     + _WORKSPACE_BOUNDARY_NOTE
                 )
+
+        # State ownership is not part of the access-mode decision, so the
+        # agent path always checks it. Trusted operator shells keep full
+        # control of their own files.
+        if not trusted:
+            state_error = self._guard_state_writes(
+                shlex.join(command) if isinstance(command, list) else command,
+            )
+            if state_error:
+                return state_error
 
         # Full access is an explicit trust decision. Keep the application-level
         # command guard aligned with the selected access mode instead of
@@ -824,6 +851,32 @@ class ExecTool(Tool):
                 env[key] = val
         return env
 
+    def _protected_file_patterns(self) -> list[str]:
+        patterns: list[str] = []
+        for path in self._protected_files:
+            forms = {str(path)}
+            with suppress(ValueError):
+                forms.add(f"~/{path.relative_to(Path.home())}")
+            for form in forms:
+                target = re.escape(form.lower())
+                patterns.extend(
+                    pattern.format(target=target) for pattern in _STATE_WRITE_PATTERNS
+                )
+        return patterns
+
+    def _guard_state_writes(self, command: str) -> str | None:
+        """Refuse writes to state owned by the memory system or the operator.
+
+        This check is not part of the access-mode decision: granting full
+        filesystem access relaxes destructive-command rules, not ownership of
+        memory, profile and onboarding files.
+        """
+        lower = command.lower()
+        for pattern in self._state_patterns:
+            if re.search(pattern, lower):
+                return ToolResult.error("Error: Command blocked by deny pattern filter")
+        return None
+
     def _guard_command(
         self,
         command: str,
@@ -835,6 +888,10 @@ class ExecTool(Tool):
         """Best-effort safety guard for potentially destructive commands."""
         cmd = command.strip()
         lower = cmd.lower()
+
+        state_error = self._guard_state_writes(cmd)
+        if state_error:
+            return state_error
 
         # allow_patterns take priority over deny_patterns so that users can
         # exempt specific commands (e.g. "rm -rf" inside a build directory)

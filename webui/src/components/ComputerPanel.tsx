@@ -80,6 +80,7 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [fit, setFit] = useState<{ width: number; height: number } | null>(null);
+  const [frame, setFrame] = useState<{ width: number; height: number } | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const morphFrom = useRef<DOMRect | null>(null);
   const grewFromAnchor = useRef(false);
@@ -138,9 +139,11 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, view]);
 
-  const ratio = status && status.desktop.height > 0
-    ? status.desktop.width / status.desktop.height
-    : 16 / 10;
+  const ratio = frame
+    ? frame.width / frame.height
+    : status && status.desktop.height > 0
+      ? status.desktop.width / status.desktop.height
+      : 16 / 10;
 
   useLayoutEffect(() => {
     if (view !== "full") {
@@ -213,6 +216,12 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
       rfb.viewOnly = session.control.owner !== "user";
       rfb.addEventListener("connect", () => {
         setPhase("connected");
+        window.requestAnimationFrame(() => {
+          // The canvas carries the remote framebuffer size; the image axis is
+          // authoritative because a VM may ignore the configured resolution.
+          const canvas = screenRef.current?.querySelector("canvas");
+          if (canvas?.width) setFrame({ width: canvas.width, height: canvas.height });
+        });
       });
       rfb.addEventListener("disconnect", () => {
         if (rfbRef.current === rfb) {

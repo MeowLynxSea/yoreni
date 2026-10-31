@@ -425,6 +425,21 @@ export interface ProjectDirectory {
   path: string;
 }
 
+/** One long-running project, as listed by the gateway. */
+export interface ProjectSummary {
+  id: string;
+  name: string;
+  description: string;
+  /** User-chosen emoji; empty when the project has none. */
+  emoji: string;
+  created_at_ms: number;
+  updated_at_ms: number;
+  /** WebUI path that opens this project directly. */
+  link: string;
+  /** Runs currently executing inside this project. */
+  active_runs: number;
+}
+
 export interface WorkspaceDirectoriesPayload {
   partial?: boolean;
   path: string;

@@ -20,6 +20,9 @@ interface DeleteConfirmProps {
   title: string;
   count?: number;
   automations?: AutomationJob[];
+  /** Replaces the topic wording when the confirmation covers another record. */
+  titleText?: string;
+  descriptionText?: string;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -29,6 +32,8 @@ export function DeleteConfirm({
   title,
   count = 1,
   automations = [],
+  titleText,
+  descriptionText,
   onCancel,
   onConfirm,
 }: DeleteConfirmProps) {
@@ -51,15 +56,15 @@ export function DeleteConfirm({
             aria-hidden
           />
           <AlertDialogTitle className="text-center text-[20px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
-            {multiple
+            {titleText ?? (multiple
               ? t("deleteConfirm.titleMany", {
                   defaultValue: "Delete {{count}} conversations?",
                   count,
                 })
-              : t("deleteConfirm.title", { title })}
+              : t("deleteConfirm.title", { title }))}
           </AlertDialogTitle>
           <AlertDialogDescription className="mt-3 max-w-[17rem] text-center text-[14px] leading-6 text-muted-foreground">
-            {hasAutomations
+            {descriptionText ?? (hasAutomations
               ? multiple
                 ? t("deleteConfirm.automationsDescriptionMany", {
                     defaultValue: "Linked automations will also be deleted.",
@@ -69,7 +74,7 @@ export function DeleteConfirm({
                 ? t("deleteConfirm.descriptionMany", {
                     defaultValue: "This action cannot be undone.",
                   })
-                : t("deleteConfirm.description")}
+                : t("deleteConfirm.description"))}
           </AlertDialogDescription>
           {hasAutomations ? (
             <div className="mt-4 max-h-40 w-full overflow-y-auto rounded-2xl bg-muted/55 px-3 py-2 text-left">

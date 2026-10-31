@@ -1,5 +1,5 @@
 
-import type { AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemoryBackfillPayload, MemorySettingsUpdate, OnboardingSnapshot, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
+import type { AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemoryBackfillPayload, MemorySettingsUpdate, OnboardingSnapshot, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, PairingPayload, ProjectSummary, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
 
 const API_READ_TIMEOUT_MS = 20_000;
@@ -1065,9 +1065,21 @@ export interface AgentHistoryRun {
   entries?: AgentHistoryEntry[];
 }
 
-export function fetchPersonalAgent(token: string, beforeSeq?: number): Promise<PersonalAgentInfo> {
-  const query = beforeSeq === undefined ? "" : `?before_seq=${beforeSeq}`;
-  return request<PersonalAgentInfo>(`/api/agent${query}`, token, undefined, API_READ_TIMEOUT_MS);
+export function fetchPersonalAgent(
+  token: string,
+  beforeSeq?: number,
+  projectId?: string | null,
+): Promise<PersonalAgentInfo> {
+  const params = new URLSearchParams();
+  if (beforeSeq !== undefined) params.set("before_seq", String(beforeSeq));
+  if (projectId) params.set("project_id", projectId);
+  const query = params.toString();
+  return request<PersonalAgentInfo>(`/api/agent${query ? `?${query}` : ""}`, token, undefined, API_READ_TIMEOUT_MS);
+}
+
+/** Every project the personal agent owns, newest activity first. */
+export function fetchProjects(token: string): Promise<{ projects: ProjectSummary[] }> {
+  return request<{ projects: ProjectSummary[] }>("/api/projects", token, undefined, API_READ_TIMEOUT_MS);
 }
 
 /** First-run state; the gateway owns this because it guards the whole WebUI. */
@@ -1145,18 +1157,33 @@ export function testEmbeddingEndpoint(
 }
 
 /** Search the whole durable transcript; the gateway owns the ranking. */
-export function fetchChatSearch(token: string, query: string): Promise<unknown> {
-  const params = new URLSearchParams({ q: query });
+export function fetchChatSearch(
+  token: string,
+  query: string,
+  projectId?: string | null,
+): Promise<unknown> {
+  const params = searchParams(query, projectId);
   return request<unknown>(`/api/webui/chat-search?${params}`, token, undefined, API_READ_TIMEOUT_MS);
 }
 
 /** The model-ranked tier may outlive an ordinary read, so it gets its own deadline. */
-export function fetchChatSearchSemantic(token: string, query: string): Promise<unknown> {
-  const params = new URLSearchParams({ q: query });
+export function fetchChatSearchSemantic(
+  token: string,
+  query: string,
+  projectId?: string | null,
+): Promise<unknown> {
+  const params = searchParams(query, projectId);
   return request<unknown>(
     `/api/webui/chat-search/semantic?${params}`,
     token,
     undefined,
     25_000,
   );
+}
+
+/** One transcript scope: the main chat, or the project the reader is standing in. */
+function searchParams(query: string, projectId?: string | null): URLSearchParams {
+  const params = new URLSearchParams({ q: query });
+  if (projectId) params.set("project_id", projectId);
+  return params;
 }

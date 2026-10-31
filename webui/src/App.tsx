@@ -2,14 +2,15 @@ import { cn } from "@/lib/utils";
 import { Disclosure } from "@/components/ui/disclosure";
 import { ChevronDown } from "lucide-react";
 import { Fragment, lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
-import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes, useLocation, useMatch, useNavigate, useParams } from "react-router-dom";
 import { AmbientBackground } from "@/components/AmbientBackground";
 import { AgentRunIndicator } from "@/components/AgentRunIndicator";
 import { AppHeader } from "@/components/AppHeader";
 import { ChatSearch, type ChatSearchProps } from "@/components/ChatSearch";
 import { HomePanel } from "@/components/home/HomePanel";
+import { ProjectsPage } from "@/components/projects/ProjectsPage";
 import { StartupShell } from "@/components/StartupShell";
 import { AgentRecovery } from "@/components/AgentRecovery";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -21,6 +22,7 @@ import { ThreadComposer } from "@/components/thread/ThreadComposer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAgentRun } from "@/hooks/useAgentRun";
+import { useProject } from "@/hooks/useProject";
 import { ThemeControlProvider, useTheme, useThemeControl } from "@/hooks/useTheme";
 import { useAppViewport } from "@/hooks/useAppViewport";
 import { useReadingTypography } from "@/hooks/useReadingTypography";
@@ -34,7 +36,7 @@ import {
   type ChatSearchHit,
 } from "@/lib/chat-search";
 import { formatMessageGroupTime } from "@/lib/format-time";
-import { readHomeView, writeHomeView, type HomeView } from "@/lib/local-ui-state";
+import { readHomeView, readLastLocation, restoreLocation, writeHomeView, writeLastLocation, writeLastProjectsPath, type HomeView } from "@/lib/local-ui-state";
 import { messageTimeGroups } from "@/lib/message-groups";
 import { messageCopyText } from "@/lib/message-text";
 import { createRuntimeHost } from "@/lib/runtime";
@@ -218,6 +220,32 @@ function BootError({ error, onRetry }: { error: string; onRetry: () => void }) {
   );
 }
 
+/**
+ * The URL is the only navigation state. Every route change is remembered, and a
+ * bare start reopens the last page; a deep link always wins over the memory.
+ */
+function NavigationPersistence() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const restored = useRef(false);
+  useEffect(() => {
+    const current = `${location.pathname}${location.search}`;
+    // Where the reader stood inside Projects, so the entry can reopen it.
+    // Leaving for another part of the app keeps that place on record.
+    if (location.pathname.startsWith("/projects")) writeLastProjectsPath(location.pathname);
+    if (!restored.current) {
+      restored.current = true;
+      const restoredPath = restoreLocation(current, readLastLocation());
+      if (restoredPath) {
+        navigate(restoredPath, { replace: true });
+        return;
+      }
+    }
+    writeLastLocation(current);
+  }, [location.pathname, location.search, navigate]);
+  return null;
+}
+
 export default function App() {
   useAppViewport();
   useReadingTypography();
@@ -312,6 +340,7 @@ export default function App() {
   }
   return <ClientProvider client={ready.client} token={ready.boot.api_token ?? ""} modelName={ready.boot.model_name ?? null} ingressLimits={ready.boot.limits ?? null} webuiCapabilities={ready.boot.terminal?.webui?.capabilities ?? []}>
     <HashRouter>
+      <NavigationPersistence />
       <AgentShell onLogout={() => { ++generation.current; ready.client.close(); clearSavedSecret(); window.history.replaceState(null, "", window.location.pathname + window.location.search); setReady(null); setAuth(true); }} />
     </HashRouter>
   </ClientProvider>;
@@ -414,13 +443,15 @@ function carriesMedia(message: UIMessage): boolean {
   return Boolean(message.rich || message.media?.length || message.images?.length);
 }
 
-function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocusHandled }: {
+function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocusHandled, onBackToProjects, projectId }: {
   greeting: string;
   run: ReturnType<typeof useAgentRun>;
   model: string | null;
   onOpenSettings?: () => void;
   focusMessageId?: string | null;
   onFocusHandled?: () => void;
+  onBackToProjects?: () => void;
+  projectId?: string | null;
 }) {
   const { t } = useTranslation();
   const viewport = useRef<HTMLDivElement>(null);
@@ -482,7 +513,7 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
   }, [focusMessageId, groups, onFocusHandled]);
   return (
     <main className="relative flex min-h-0 flex-1 flex-col">
-      <AgentRecovery />
+      <AgentRecovery projectId={projectId} />
       <MessageActionLayer
         containerRef={thread}
         messageText={messageText}
@@ -493,6 +524,18 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
           <HistorySkeleton />
         ) : empty ? (
           <div className="px-5 pb-8 pt-4 sm:pb-12">
+            {onBackToProjects ? (
+              <div className="mx-auto mb-4 flex max-w-[38rem] justify-center">
+                <button
+                  type="button"
+                  onClick={onBackToProjects}
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
+                  {t("projects.allProjects")}
+                </button>
+              </div>
+            ) : null}
             <h1 className="message-enter display-serif mx-auto max-w-[38rem] text-balance text-center text-[clamp(1.6rem,3.4vw,2.5rem)] leading-[1.15] text-foreground/90">
               {greeting}
             </h1>
@@ -603,7 +646,10 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
     setHomeView(view);
     writeHomeView(view);
   }, []);
-  const run = useAgentRun();
+  const projectMatch = useMatch("/projects/:projectId");
+  const projectId = projectMatch?.params.projectId ?? null;
+  const project = useProject(projectId);
+  const run = useAgentRun(projectId);
   const greeting = useMemo(() => {
     const key = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
     return t(`thread.empty.greetings.${key}`);
@@ -621,10 +667,17 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
   }, [modelName]);
   const location = useLocation();
   const homeOpen = location.pathname === "/" && homeView === "home";
+  // A linked or remembered project can be gone; the transcript request is what
+  // reports it, so the list is the only page left to show.
+  useEffect(() => {
+    if (projectId && run.projectMissing) navigate("/projects", { replace: true });
+  }, [navigate, projectId, run.projectMissing]);
   const clearFocusMessage = useCallback(() => setFocusMessageId(null), []);
   const focusSearchResult = useCallback(async (hit: ChatSearchHit) => {
-    changeHomeView("chat");
-    if (location.pathname !== "/") navigate("/", { viewTransition: true });
+    if (!projectId) {
+      changeHomeView("chat");
+      if (location.pathname !== "/") navigate("/", { viewTransition: true });
+    }
     // Search covers the whole store, so the target may predate this window.
     let present = run.messages.some((message) => message.id === hit.id);
     while (!present) {
@@ -633,13 +686,13 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
       present = page.some((message) => message.id === hit.id);
     }
     if (present) setFocusMessageId(hit.id);
-  }, [changeHomeView, location.pathname, navigate, run]);
+  }, [changeHomeView, location.pathname, navigate, projectId, run]);
   const requestLocalSearch: ChatSearchProps["requestLocal"] = useCallback(async (query) => {
-    return parseChatSearchResult(await fetchChatSearch(getToken(), query));
-  }, [getToken]);
+    return parseChatSearchResult(await fetchChatSearch(getToken(), query, projectId));
+  }, [getToken, projectId]);
   const requestSemanticSearch: ChatSearchProps["requestSemantic"] = useCallback(async (query) => {
-    return parseChatSemanticResult(await fetchChatSearchSemantic(getToken(), query));
-  }, [getToken]);
+    return parseChatSemanticResult(await fetchChatSearchSemantic(getToken(), query, projectId));
+  }, [getToken, projectId]);
   return <ThemeControlProvider control={control}>
     <AmbientBackground />
     <div className="relative z-10 flex h-full min-h-0 w-full text-foreground">
@@ -649,6 +702,19 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
       <div className="app-route-view flex min-h-0 flex-1 flex-col">
       <Routes>
         <Route path="/" element={<ChatView greeting={greeting} run={run} model={model} onOpenSettings={() => navigate("/settings", { viewTransition: true })} focusMessageId={focusMessageId} onFocusHandled={clearFocusMessage} />} />
+        <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/projects/:projectId" element={
+          <ChatView
+            greeting={project?.name ?? ""}
+            run={run}
+            model={model}
+            onOpenSettings={() => navigate("/settings", { viewTransition: true })}
+            onBackToProjects={() => navigate("/projects", { viewTransition: true })}
+            projectId={projectId}
+            focusMessageId={focusMessageId}
+            onFocusHandled={clearFocusMessage}
+          />
+        } />
         <Route path="/settings" element={
           <SettingsIndex
             onOpenSection={(section) => navigate(`/settings/${section}`, { viewTransition: true })}

@@ -209,6 +209,17 @@ SOFTWARE.
 
 ---
 
+## Twemoji and Emojibase — emoji artwork and names (CC-BY 4.0, MIT)
+
+- **Source**: https://github.com/jdecked/twemoji and https://github.com/milesj/emojibase
+- **Bundled**: `yoreni/web/dist/emoji/*.svg` and the lazily loaded `data-*.js` emoji name chunks
+
+The emoji images are unmodified Twemoji artwork, Copyright 2020 Twitter, Inc and other contributors, licensed under CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/legalcode). Emoji names and keywords come from Emojibase, which derives them from Unicode CLDR; the Emojibase package and CLDR data are distributed under MIT and the Unicode License v3 respectively.
+
+Full texts ship with the WebUI as `/licenses/twemoji.txt` and `/licenses/emojibase.txt`.
+
+---
+
 ## Motion — history-boundary springs (MIT)
 
 - **Source**: https://github.com/motiondivision/motion

@@ -71,10 +71,12 @@ export async function enableBrowserNotifications(): Promise<NotificationProblem 
   return workerProblem;
 }
 
-export function notificationAppUrl(): string {
-  // The app has one personal conversation; open its root without copying the
-  // page's query, fragment, userinfo, or any auth token.
-  return `${window.location.origin}/#/`;
+export function notificationAppUrl(projectId?: string | null): string {
+  // Each scope has one conversation; open it without copying the page's query,
+  // fragment, userinfo, or any auth token.
+  return projectId
+    ? `${window.location.origin}/#/projects/${encodeURIComponent(projectId)}`
+    : `${window.location.origin}/#/`;
 }
 
 export async function showBrowserNotification(body: string, options: {

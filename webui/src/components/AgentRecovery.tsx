@@ -4,21 +4,21 @@ import { fetchPersonalAgent, type PersonalAgentInfo } from "@/lib/api";
 import { useClient } from "@/providers/ClientProvider";
 import { Button } from "@/components/ui/button";
 
-export function AgentRecovery() {
+export function AgentRecovery({ projectId }: { projectId?: string | null }) {
   const { t } = useTranslation();
   const { client, getToken } = useClient();
   const [runs, setRuns] = useState<PersonalAgentInfo["pending_runs"]>([]);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const refresh = useCallback(async () => {
-    const info = await fetchPersonalAgent(getToken());
+    const info = await fetchPersonalAgent(getToken(), undefined, projectId);
     setRuns(info.pending_runs);
-  }, [getToken]);
+  }, [getToken, projectId]);
 
   useEffect(() => {
     let disposed = false;
     const update = () => {
-      void fetchPersonalAgent(getToken()).then((info) => {
+      void fetchPersonalAgent(getToken(), undefined, projectId).then((info) => {
         if (!disposed) setRuns(info.pending_runs);
       }).catch(() => {});
     };
@@ -30,7 +30,7 @@ export function AgentRecovery() {
       offReady();
       offUpdate();
     };
-  }, [client, getToken]);
+  }, [client, getToken, projectId]);
 
   if (!runs.length) return null;
   return (

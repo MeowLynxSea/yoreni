@@ -5,7 +5,7 @@ import { notificationAppUrl, showBrowserNotification } from "@/lib/browser-notif
 import { toMediaAttachment } from "@/lib/media";
 import { playMessageSound } from "@/lib/notification-sound";
 import type { ToolProgressEvent, UIMessage, UIMediaWireAttachment } from "@/lib/types";
-import { fetchPersonalAgent, type AgentHistoryRun } from "@/lib/api";
+import { ApiError, fetchPersonalAgent, type AgentHistoryRun } from "@/lib/api";
 import { useClient } from "@/providers/ClientProvider";
 import type { DraftAttachment } from "../../../packages/client-events/attachments";
 
@@ -241,7 +241,8 @@ export function projectAgentFrame(messages: UIMessage[], frame: AgentFrame): UIM
   return index >= 0 ? messages.map((entry, position) => position === index ? message : entry) : [...messages, message];
 }
 
-export function useAgentRun() {
+/** `projectId` selects the transcript; `null` is the main chat. */
+export function useAgentRun(projectId: string | null = null) {
   const { client, getToken } = useClient();
   const { t } = useTranslation();
   const [messages, setMessages] = useState<UIMessage[]>([]);
@@ -249,13 +250,33 @@ export function useAgentRun() {
   const [activityByRun, setActivityByRun] = useState<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [projectMissing, setProjectMissing] = useState(false);
   const notifiedMessageIds = useRef(new Set<string>());
   // The oldest event sequence the client holds; older pages load from here.
   const oldestSeq = useRef<number | null>(null);
   const olderExhausted = useRef(false);
+  // The transcript this hook reads right now. A request or frame for another
+  // scope must not land in it.
+  const scope = useRef<string | null>(projectId);
+  scope.current = projectId;
+  const previousScope = useRef<string | null>(projectId);
+  useEffect(() => {
+    if (previousScope.current === projectId) return;
+    previousScope.current = projectId;
+    setMessages([]);
+    setActiveRuns(new Map());
+    setActivityByRun(new Map());
+    setError(null);
+    setProjectMissing(false);
+    setHistoryLoaded(false);
+    oldestSeq.current = null;
+    olderExhausted.current = false;
+  }, [projectId]);
   const refreshHistory = useCallback(async () => {
+    const target = projectId;
     try {
-      const info = await fetchPersonalAgent(getToken());
+      const info = await fetchPersonalAgent(getToken(), undefined, target);
+      if (scope.current !== target) return;
       const runs = info.history ?? [];
       if (runs.length > 0) {
         const oldest = Math.min(...runs.map((run) => run.event_seq));
@@ -283,18 +304,27 @@ export function useAgentRun() {
         }
         return next;
       });
+    } catch (reason) {
+      // The saved or linked project can be deleted from another window, and the
+      // history request is what tells this reader it is gone.
+      if (target && scope.current === target && reason instanceof ApiError && reason.status === 404) {
+        setProjectMissing(true);
+      }
+      throw reason;
     } finally {
-      setHistoryLoaded(true);
+      if (scope.current === target) setHistoryLoaded(true);
     }
-  }, [getToken]);
+  }, [getToken, projectId]);
   useEffect(() => client.onEvent((frame) => {
+    // Every project Run stamps its frames; the main chat leaves the field out.
+    if ((frame.project_id ?? null) !== scope.current) return;
     setMessages((current) => projectAgentFrame(current, frame));
     if (frame.event === "message" && frame.id && frame.kind === undefined
       && !notifiedMessageIds.current.has(frame.id)) {
       notifiedMessageIds.current.add(frame.id);
       playMessageSound();
       const body = (frame.text ?? "").trim().slice(0, 300) || t("settings.notifications.newMessage");
-      void showBrowserNotification(body, { key: frame.id, url: notificationAppUrl() });
+      void showBrowserNotification(body, { key: frame.id, url: notificationAppUrl(frame.project_id) });
     }
     const run = runKey(frame);
     if (frame.event === "message") {
@@ -333,9 +363,11 @@ export function useAgentRun() {
   // Search reaches the whole transcript, so a hit can sit before the window the
   // client loaded; page backwards until the caller has the run it needs.
   const loadOlder = useCallback(async (): Promise<UIMessage[] | null> => {
+    const target = projectId;
     const before = oldestSeq.current;
     if (before === null || olderExhausted.current) return null;
-    const info = await fetchPersonalAgent(getToken(), before);
+    const info = await fetchPersonalAgent(getToken(), before, target);
+    if (scope.current !== target) return null;
     const runs = info.history ?? [];
     if (runs.length === 0) {
       olderExhausted.current = true;
@@ -346,18 +378,18 @@ export function useAgentRun() {
     if (nextOldest >= before) olderExhausted.current = true;
     oldestSeq.current = nextOldest;
     return historyMessages(runs);
-  }, [getToken]);
+  }, [getToken, projectId]);
   const send = useCallback(async (content: string, media: DraftAttachment[] = []) => {
     const eventId = crypto.randomUUID();
     setError(null);
     setMessages((current) => [...current, { id: eventId, turnId: eventId, role: "user", content, createdAt: Date.now(), deliveryStatus: "sending" }]);
-    try { await client.submit(content, media, { eventId }); }
+    try { await client.submit(content, media, { eventId, projectId }); }
     catch (reason) {
       setMessages((current) => current.map((message) => message.id === eventId ? { ...message, deliveryStatus: "failed" } : message));
       setError(reason instanceof Error ? reason.message : String(reason));
       throw reason;
     }
-  }, [client]);
+  }, [client, projectId]);
   const stop = useCallback(async () => {
     await Promise.all([...activeRuns.values()].map((runId) => client.requestMutation("agent.cancel", { run_id: runId })));
   }, [activeRuns, client]);
@@ -368,5 +400,5 @@ export function useAgentRun() {
   const activity = [...activityByRun.entries()]
     .filter(([runId]) => [...activeRuns.values()].includes(runId))
     .at(-1)?.[1] ?? null;
-  return { messages, send, stop, loadOlder, active: activeRuns.size > 0, sending, activity, error, historyLoaded };
+  return { messages, send, stop, loadOlder, active: activeRuns.size > 0, sending, activity, error, historyLoaded, projectMissing };
 }

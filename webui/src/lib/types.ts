@@ -784,6 +784,7 @@ export interface SettingsPayload {
       api_key_hint?: string | null;
       dimensions: number | null;
       batch_size: number;
+      multimodal: boolean;
     };
   };
   runtime: {
@@ -1389,6 +1390,7 @@ export interface MemorySettingsUpdate {
   embeddingApiKey?: string;
   embeddingDimensions: number | null;
   embeddingBatchSize: number;
+  embeddingMultimodal: boolean;
 }
 
 export type ChatStyleBase =

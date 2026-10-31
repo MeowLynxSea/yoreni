@@ -38,6 +38,7 @@ export const DEFAULT_MEMORY_SETTINGS: NonNullable<SettingsPayload["memory"]> = {
     api_key_hint: null,
     dimensions: null,
     batch_size: 32,
+    multimodal: false,
   },
 };
 
@@ -52,6 +53,7 @@ export const DEFAULT_MEMORY_FORM: MemorySettingsUpdate = {
   embeddingApiBase: "",
   embeddingDimensions: null,
   embeddingBatchSize: 32,
+  embeddingMultimodal: false,
 };
 
 export function memoryFormFromPayload(payload: SettingsPayload): MemorySettingsUpdate {
@@ -67,6 +69,7 @@ export function memoryFormFromPayload(payload: SettingsPayload): MemorySettingsU
     embeddingApiBase: memory.embedding.api_base ?? "",
     embeddingDimensions: memory.embedding.dimensions,
     embeddingBatchSize: memory.embedding.batch_size,
+    embeddingMultimodal: memory.embedding.multimodal,
   };
 }
 
@@ -258,6 +261,22 @@ export function MemorySettings({
                   />
                 </div>
               </div>
+            </SettingsRow>
+            <SettingsRow
+              title={tx("settings.rows.memoryEmbeddingMultimodal", "Multimodal embeddings")}
+              description={tx("settings.help.memoryEmbeddingMultimodal", "Embed images from tool results alongside text. Requires a multimodal embedding model such as Qwen3-VL-Embedding; changing it starts a new index.")}
+            >
+              <ToggleButton
+                checked={form.embeddingMultimodal}
+                onChange={(embeddingMultimodal) => {
+                  edits.complete();
+                  onChangeForm((prev) => ({ ...prev, embeddingMultimodal }));
+                }}
+                ariaLabel={tx("settings.rows.memoryEmbeddingMultimodal", "Multimodal embeddings")}
+                label={form.embeddingMultimodal
+                  ? tx("settings.values.on", "On")
+                  : tx("settings.values.off", "Off")}
+              />
             </SettingsRow>
             <SettingsAdvancedOptions>
               <SettingsRow title={tx("settings.rows.memoryEmbeddingBatch", "Embedding batch size")}>

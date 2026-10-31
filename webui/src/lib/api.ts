@@ -1018,6 +1018,7 @@ export async function updateMemorySettings(
       embedding_api_base: update.embeddingApiBase,
       embedding_dimensions: update.embeddingDimensions ?? "",
       embedding_batch_size: update.embeddingBatchSize,
+      embedding_multimodal: update.embeddingMultimodal,
       ...(update.embeddingApiKey !== undefined ? { embedding_api_key: update.embeddingApiKey } : {}),
     },
   );
@@ -1142,6 +1143,7 @@ export function testEmbeddingEndpoint(
     apiKey: string;
     model: string;
     dimensions: number | null;
+    multimodal: boolean;
   },
 ): Promise<{ ok: boolean; dimensions: number }> {
   return mutation<{ ok: boolean; dimensions: number }>(
@@ -1153,6 +1155,7 @@ export function testEmbeddingEndpoint(
       api_key: values.apiKey,
       model: values.model,
       dimensions: values.dimensions,
+      multimodal: values.multimodal,
     },
   );
 }

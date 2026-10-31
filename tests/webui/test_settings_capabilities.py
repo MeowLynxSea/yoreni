@@ -123,6 +123,7 @@ def test_memory_embedding_reuses_provider_credentials():
         "embedding_provider": [name],
         "embedding_model": ["text-embedding-3-small"],
         "embedding_dimensions": ["1536"],
+        "embedding_multimodal": ["true"],
     })
 
     embedding = config.memory.embedding
@@ -131,11 +132,13 @@ def test_memory_embedding_reuses_provider_credentials():
     assert embedding.api_base is None
     assert embedding.api_key is None
     assert embedding.dimensions == 1536
+    assert embedding.multimodal is True
     payload = capability_settings_payload(config, oauth_status=_oauth_status)["memory"]
     assert payload["enabled"] is True
     assert payload["embedding"]["enabled"] is True
     assert payload["embedding"]["provider"] == name
     assert payload["embedding"]["dimensions"] == 1536
+    assert payload["embedding"]["multimodal"] is True
     assert "sk-embed-secret" not in str(payload)
 
 

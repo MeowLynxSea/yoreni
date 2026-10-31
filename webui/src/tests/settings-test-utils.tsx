@@ -99,6 +99,7 @@ export function settingsPayload(): SettingsPayload {
         api_key_hint: null,
         dimensions: null,
         batch_size: 32,
+        multimodal: false,
       },
     },
     runtime: {

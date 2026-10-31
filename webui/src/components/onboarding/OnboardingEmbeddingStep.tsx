@@ -46,6 +46,8 @@ export function OnboardingEmbeddingStep({
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("");
   const [dimensions, setDimensions] = useState("");
+  const [multimodal, setMultimodal] = useState(false);
+  const [detectedDimensions, setDetectedDimensions] = useState<number | null>(null);
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tested, setTested] = useState(false);
@@ -72,6 +74,7 @@ export function OnboardingEmbeddingStep({
           setApiBase(embedding.api_base ?? "");
           setModel(embedding.model);
           setDimensions(embedding.dimensions ? String(embedding.dimensions) : "");
+          setMultimodal(embedding.multimodal);
           setTested(true);
         }
       })
@@ -99,9 +102,10 @@ export function OnboardingEmbeddingStep({
         apiKey: apiKey.trim(),
         model: model.trim(),
         dimensions: dimensions.trim() ? Number(dimensions) : null,
+        multimodal,
       });
       setTested(true);
-      if (result.dimensions) setDimensions((current) => current || String(result.dimensions));
+      setDetectedDimensions(result.dimensions || null);
     } catch (reason) {
       setTested(false);
       failure(reason);
@@ -132,6 +136,7 @@ export function OnboardingEmbeddingStep({
         embeddingApiBase: apiBase.trim(),
         ...(apiKey.trim() ? { embeddingApiKey: apiKey.trim() } : {}),
         embeddingDimensions: dimensions.trim() ? Number(dimensions) : null,
+        embeddingMultimodal: multimodal,
       });
       onDone();
     } catch (reason) {
@@ -210,7 +215,7 @@ export function OnboardingEmbeddingStep({
             <Input
               id="onboarding-embedding-model"
               value={model}
-              onChange={(event) => { setModel(event.target.value); setTested(false); }}
+              onChange={(event) => { setModel(event.target.value); setTested(false); setDetectedDimensions(null); }}
               placeholder="text-embedding-3-small"
               autoComplete="off"
               className="h-12 rounded-full border-white/60 bg-white/60 px-5 font-mono text-[13px] dark:border-white/10 dark:bg-white/[0.06]"
@@ -229,8 +234,28 @@ export function OnboardingEmbeddingStep({
               autoComplete="off"
               className="h-12 rounded-full border-white/60 bg-white/60 px-5 text-[13px] dark:border-white/10 dark:bg-white/[0.06]"
             />
+            {detectedDimensions ? (
+              <p className="mt-2 text-[12px] text-muted-foreground">
+                {t("onboarding.embedding.detectedDimensions", { count: detectedDimensions })}
+              </p>
+            ) : null}
           </div>
         </div>
+
+        <label className="flex items-start gap-3 rounded-[1.25rem] border border-white/60 bg-white/45 px-4 py-3 dark:border-white/10 dark:bg-white/[0.05]">
+          <input
+            type="checkbox"
+            checked={multimodal}
+            onChange={(event) => { setMultimodal(event.target.checked); setTested(false); }}
+            className="mt-0.5 size-4 accent-foreground"
+          />
+          <span>
+            <span className="block text-[13px] text-foreground">{t("onboarding.embedding.multimodal")}</span>
+            <span className="mt-0.5 block text-[12px] leading-5 text-muted-foreground">
+              {t("onboarding.embedding.multimodalHelp")}
+            </span>
+          </span>
+        </label>
 
         <div>
           <label className="mb-2 block text-[12.5px] text-muted-foreground" htmlFor="onboarding-embedding-base">

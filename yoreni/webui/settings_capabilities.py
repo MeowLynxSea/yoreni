@@ -175,6 +175,7 @@ def _memory_settings_payload(config: Config) -> dict[str, Any]:
             ),
             "dimensions": embedding.dimensions if embedding is not None else None,
             "batch_size": embedding.batch_size if embedding is not None else 32,
+            "multimodal": embedding.multimodal if embedding is not None else False,
         },
     }
 
@@ -702,6 +703,11 @@ def update_memory_settings(config: Config, query: QueryParams) -> bool:
         batch_size = (
             _bounded_optional_int(batch_size_raw, "embedding_batch_size", 1, 64) or 32
         )
+    multimodal_raw = query_first(query, "embedding_multimodal")
+    if multimodal_raw is None:
+        multimodal = current.multimodal if current is not None else False
+    else:
+        multimodal = parse_bool(multimodal_raw, "embedding_multimodal")
 
     try:
         embedding = EmbeddingConfig(
@@ -711,6 +717,7 @@ def update_memory_settings(config: Config, query: QueryParams) -> bool:
             api_key=api_key,
             dimensions=dimensions,
             batch_size=batch_size,
+            multimodal=multimodal,
         )
     except ValidationError as exc:
         message = exc.errors(include_input=False, include_url=False)[0]["msg"]

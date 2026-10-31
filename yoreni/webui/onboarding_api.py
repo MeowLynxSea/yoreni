@@ -221,6 +221,7 @@ class OnboardingService:
                 api_base=api_base,
                 api_key=api_key,
                 dimensions=dimensions,
+                multimodal=bool(data.get("multimodal")),
             )
             settings = resolve_embedding_settings(
                 candidate,

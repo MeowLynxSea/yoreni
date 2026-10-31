@@ -43,6 +43,15 @@ describe("composer attachment previews", () => {
     expect(shown?.textContent?.length).toBeLessThanOrEqual(24);
   });
 
+  it("accepts a file whose type the browser does not know", async () => {
+    const { container } = render(<ThreadComposer onSend={vi.fn()} />);
+    await stage(container, new File([new Uint8Array([1, 2, 3])], "weights.gguf", { type: "" }));
+
+    await waitFor(() => expect(container.querySelector('[data-composer-attachment="file"]')).not.toBeNull());
+    const chip = container.querySelector('[data-composer-attachment="file"]') as HTMLElement;
+    expect(chip.querySelector('[title="weights.gguf"]')).toHaveTextContent("weights.gguf");
+  });
+
   it("hands the staged preview to the sent message and can discard it", async () => {
     const user = userEvent.setup();
     const onSend = vi.fn().mockResolvedValue(undefined);

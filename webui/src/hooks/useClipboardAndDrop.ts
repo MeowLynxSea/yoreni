@@ -1,17 +1,14 @@
 import { useCallback, useRef, useState } from "react";
 
-import { acceptedAttachmentKind } from "@/hooks/useAttachedImages";
-
-/** Extract supported attachment ``File``s from a paste / drop event.
+/** Extract attachment ``File``s from a paste / drop event.
  *
  * Deliberate behaviour:
- *   - Only items whose ``kind === "file"`` and match the Composer whitelist
- *     are returned; HTML fragments are ignored (defending against remote URL
- *     fetch + XSS surfaces).
+ *   - Every file item is returned; HTML fragments are ignored (defending
+ *     against remote URL fetch + XSS surfaces).
  *   - Plain text pasted alongside attachments is *not* consumed by this helper,
  *     so the caller can still let the textarea receive it naturally.
  */
-function extractImageFilesFromPaste(
+function filesFromPaste(
   event: ClipboardEvent | React.ClipboardEvent,
 ): File[] {
   const clipboard = (event as ClipboardEvent).clipboardData
@@ -21,23 +18,18 @@ function extractImageFilesFromPaste(
   for (const item of Array.from(clipboard.items)) {
     if (item.kind !== "file") continue;
     const file = item.getAsFile();
-    if (file && acceptedAttachmentKind(file)) files.push(file);
+    if (file) files.push(file);
   }
   return files;
 }
 
-/** Extract dropped attachment files, mirroring ``extractImageFilesFromPaste``. */
-function extractImageFilesFromDrop(
+/** Extract dropped attachment files, mirroring ``filesFromPaste``. */
+function filesFromDrop(
   event: DragEvent | React.DragEvent,
 ): File[] {
   const dt = (event as DragEvent).dataTransfer
     ?? (event as React.DragEvent).dataTransfer;
-  if (!dt) return [];
-  const files: File[] = [];
-  for (const item of Array.from(dt.files)) {
-    if (acceptedAttachmentKind(item)) files.push(item);
-  }
-  return files;
+  return dt ? Array.from(dt.files) : [];
 }
 
 export interface UseClipboardAndDropApi {
@@ -66,7 +58,7 @@ export function useClipboardAndDrop(
 
   const onPaste = useCallback(
     (event: React.ClipboardEvent) => {
-      const files = extractImageFilesFromPaste(event);
+      const files = filesFromPaste(event);
       if (files.length === 0) return;
       // Consume only when an attachment is actually present; plain-text paste
       // still reaches the textarea unmolested.
@@ -100,7 +92,7 @@ export function useClipboardAndDrop(
     (event: React.DragEvent) => {
       dragDepth.current = 0;
       setIsDragging(false);
-      const files = extractImageFilesFromDrop(event);
+      const files = filesFromDrop(event);
       if (files.length === 0) return;
       event.preventDefault();
       onImageFiles(files);

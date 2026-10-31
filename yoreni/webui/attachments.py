@@ -23,7 +23,8 @@ class LocalAttachment(TypedDict):
     kind: Literal["image", "video", "file"]
 
 
-# Match the upload ingress formats even on hosts with different MIME registries.
+# Prefer stable MIME values over host-specific registries for common suffixes;
+# anything else falls back to ``mimetypes`` and finally ``application/octet-stream``.
 _MIME_BY_SUFFIX = {
     ".md": "text/markdown", ".log": "text/plain", ".txt": "text/plain",
     ".ini": "text/plain", ".cfg": "text/plain", ".csv": "text/csv",

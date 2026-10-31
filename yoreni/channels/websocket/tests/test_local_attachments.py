@@ -23,7 +23,7 @@ def test_inspect_literal_relative_path_without_reading_or_copying(tmp_path, monk
     assert [path for path in tmp_path.rglob("*") if path.is_file()] == [source]
 
 
-@pytest.mark.parametrize("name", ["image.png", "notes.md", "document.pdf", "video.mov", "video.webm"])
+@pytest.mark.parametrize("name", ["image.png", "notes.md", "document.pdf", "video.mov", "video.webm", "archive.zip"])
 def test_local_supported_formats_do_not_consume_upload_byte_limits(tmp_path, name):
     source = tmp_path / name
     size = 64 * 1024 * 1024 + 1

@@ -15,12 +15,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from yoreni.channels.websocket.attachment_policy import (
-    DOCUMENT_MIME_ALLOWED,
+    IMAGE_MIMES,
     MAX_VIDEOS_PER_MESSAGE,
     UPLOAD_IDLE_TIMEOUT_SECONDS,
-    UPLOAD_MIME_ALLOWED,
     UPLOAD_TIMEOUT_SECONDS,
+    VIDEO_MIMES,
     AttachmentIngressLimits,
+    is_valid_mime,
     validate_upload_batch,
     validate_upload_size,
 )
@@ -92,8 +93,8 @@ class AttachmentStore:
         self.prune()
         if not owner:
             raise AttachmentUploadError("Missing authenticated owner")
-        if mime not in UPLOAD_MIME_ALLOWED:
-            raise AttachmentUploadError("Unsupported attachment MIME")
+        if not is_valid_mime(mime):
+            raise AttachmentUploadError("Invalid attachment MIME")
         try:
             validate_upload_size(mime, size, limits=self.limits)
         except ValueError as exc:
@@ -112,7 +113,7 @@ class AttachmentStore:
             self.media_dir.mkdir(parents=True, exist_ok=True)
             path = media_destination(
                 self.media_dir, mime,
-                filename=filename if mime in DOCUMENT_MIME_ALLOWED else None,
+                filename=None if mime in IMAGE_MIMES or mime in VIDEO_MIMES else filename,
             )
             self._journal.mkdir(parents=True, exist_ok=True)
             (self._journal / path.name).touch(exist_ok=False)

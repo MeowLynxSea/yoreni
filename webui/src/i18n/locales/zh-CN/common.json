@@ -2027,7 +2027,6 @@
       "normalizedSizeHint": "{{orig}} → {{current}}（已自动压缩）",
       "textTooLarge": "消息文本过大（最大 {{max}}）",
       "imageRejected": {
-        "unsupported_type": "不支持的文件类型",
         "empty_file": "不能附加空文件",
         "too_many_attachments": "每条消息最多 {{max}} 个附件",
         "too_many_videos": "每条消息最多 1 个视频",

@@ -45,7 +45,6 @@ export type RestoredReadyImage = RestoredReadyAttachment;
  *
  * Callers localize these via the ``composer.imageRejected.*`` i18n table. */
 export type AttachmentError =
-  | "unsupported_type"   // server whitelist excludes this MIME
   | "empty_file"         // attachments must contain bytes
   | "too_many_attachments" // non-video per-message cap reached before enqueue
   | "too_many_videos"      // video slot is already occupied
@@ -66,7 +65,7 @@ const VIDEO_MIME_BY_EXTENSION = new Map([
   [".mp4", "video/mp4"], [".webm", "video/webm"], [".mov", "video/quicktime"],
 ]);
 
-/** MIME whitelist — mirrors the server's and the ``<input accept>`` attr. */
+/** Image MIME types the Worker can decode and the server can preview inline. */
 const ACCEPTED_IMAGE_MIMES: ReadonlySet<string> = new Set([
   "image/png",
   "image/jpeg",
@@ -94,16 +93,6 @@ const DOCUMENT_MIME_BY_EXTENSION: ReadonlyMap<string, string> = new Map([
   [".cfg", "text/plain"],
 ]);
 
-const ACCEPTED_DOCUMENT_MIMES: ReadonlySet<string> = new Set(DOCUMENT_MIME_BY_EXTENSION.values());
-
-export const ACCEPT_ATTR = [
-  ...ACCEPTED_IMAGE_MIMES,
-  ...ACCEPTED_DOCUMENT_MIMES,
-  ...DOCUMENT_MIME_BY_EXTENSION.keys(),
-  ...VIDEO_MIME_BY_EXTENSION.values(),
-  ...VIDEO_MIME_BY_EXTENSION.keys(),
-].join(",");
-
 function extensionOf(name: string): string {
   const dot = name.lastIndexOf(".");
   return dot < 0 ? "" : name.slice(dot).toLowerCase();
@@ -125,14 +114,13 @@ function positiveLimit(value: number | null | undefined, fallback: number): numb
     : fallback;
 }
 
-export function acceptedAttachmentKind(file: File): AttachmentKind | null {
+/** Classify an attachment for previews and limits. Any file is accepted; only
+ * images and videos get rich previews, and everything else travels as a file. */
+export function attachmentKind(file: File): AttachmentKind {
   if (VIDEO_MIME_BY_EXTENSION.has(extensionOf(file.name))
     || [...VIDEO_MIME_BY_EXTENSION.values()].includes(file.type)) return "video";
-  if (DOCUMENT_MIME_BY_EXTENSION.has(extensionOf(file.name))) return "file";
   if (ACCEPTED_IMAGE_MIMES.has(file.type)) return "image";
-  const mime = mimeForFile(file);
-  if (ACCEPTED_DOCUMENT_MIMES.has(mime)) return "file";
-  return null;
+  return "file";
 }
 
 function dataUrlMime(dataUrl: string): string {
@@ -307,11 +295,7 @@ export function useAttachedImages({
       );
 
       for (const file of files) {
-        const kind = acceptedAttachmentKind(file);
-        if (!kind) {
-          rejected.push({ file, reason: "unsupported_type" });
-          continue;
-        }
+        const kind = attachmentKind(file);
         if (file.size === 0) {
           rejected.push({ file, reason: "empty_file" });
           continue;
@@ -451,7 +435,6 @@ export function useAttachedImages({
       }
       if (!img.dataUrl) return [];
       const file = dataUrlToFile(img.dataUrl, img.name);
-      if (!acceptedAttachmentKind(file)) return [];
       const kind = img.kind ?? kindFromDataUrl(img.dataUrl);
       return [{
         id: uuid(), kind, file, status: "ready", dataUrl: img.dataUrl, encodedBytes: file.size,

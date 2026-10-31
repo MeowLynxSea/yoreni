@@ -56,6 +56,24 @@ async def test_document_and_video_layout_matches_legacy(tmp_path, mime, filename
     assert path.name[12:] == Path(legacy).name[12:]
 
 
+@pytest.mark.parametrize("mime,filename,suffix", [
+    ("application/zip", "bundle.zip", ".zip"),
+    ("text/javascript", "app.js", ".js"),
+    # An unregistered MIME would otherwise land as ``.bin`` and lose the only
+    # signal that tells the agent what the file is.
+    ("application/octet-stream", "weights.gguf", ".gguf"),
+])
+async def test_any_valid_mime_is_accepted_and_keeps_the_uploader_extension(
+    tmp_path, mime, filename, suffix,
+):
+    store = AttachmentStore(tmp_path)
+    ref = await upload(store, mime=mime, filename=filename)
+    path = Path(store.resolve([ref], owner="owner")[0])
+    stem = re.escape(Path(filename).stem)
+    assert re.fullmatch(rf"[0-9a-f]{{12}}_{stem}{re.escape(suffix)}", path.name)
+    assert path.suffix == suffix
+
+
 async def test_ownership_invalid_and_duplicate_refs_are_atomic(tmp_path):
     store = AttachmentStore(tmp_path)
     ref = await upload(store)
@@ -82,7 +100,7 @@ async def test_reject_metadata_before_reading_body(tmp_path):
         pytest.fail("Rejected request body was read")
         yield b""
 
-    for owner, mime, size in [("", "image/png", 1), ("owner", "text/javascript", 1),
+    for owner, mime, size in [("", "image/png", 1), ("owner", "text", 1),
                               ("owner", "image/png", 7 * 1024 * 1024),
                               ("owner", "image/png", 0)]:
         with pytest.raises(AttachmentUploadError):

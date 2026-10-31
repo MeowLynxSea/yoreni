@@ -5,7 +5,7 @@ import { EmojiText } from "@/components/EmojiText";
 import { FileReferenceIcon, fileKindForPath } from "@/components/FileReferenceChip";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useAttachedImages, ACCEPT_ATTR, MAX_VIDEO_BYTES, type AttachedAttachment, type AttachmentLimits } from "@/hooks/useAttachedImages";
+import { useAttachedImages, MAX_VIDEO_BYTES, type AttachedAttachment, type AttachmentLimits } from "@/hooks/useAttachedImages";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import { formatFileSize } from "@/lib/format";
 import { readComposerDraft, writeComposerDraft } from "@/lib/local-ui-state";
@@ -147,7 +147,7 @@ export function ThreadComposer({ onSend, onStop, disabled = false, isStreaming =
       onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(); } }} />
     {error && <p role="alert" className="px-3 py-1 text-xs text-destructive">{error}</p>}
     <div className="flex min-w-0 items-center gap-1 px-1 pb-0.5">
-      <input ref={files} type="file" multiple accept={ACCEPT_ATTR} className="hidden" onChange={(event) => { void attachments.enqueue(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
+      <input ref={files} type="file" multiple className="hidden" onChange={(event) => { void attachments.enqueue(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
       <Button variant="ghost" size="icon" aria-label={t("thread.composer.attachImage")} disabled={disabled || attachments.full} onClick={() => files.current?.click()}
         className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"><Paperclip className="h-[1.05rem] w-[1.05rem]" strokeWidth={1.75} /></Button>
       {modelPresets?.length && onModelPresetChange ? (

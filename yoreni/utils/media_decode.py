@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import mimetypes
+import re
 import uuid
 from pathlib import Path
 
@@ -14,6 +15,8 @@ from yoreni.utils.helpers import safe_filename
 
 DEFAULT_MAX_BYTES = 10 * 1024 * 1024
 MAX_FILE_SIZE = DEFAULT_MAX_BYTES
+
+_SAFE_SUFFIX = re.compile(r"\.[A-Za-z0-9]{1,15}")
 
 _MIME_EXTENSION_OVERRIDES = {
     # Python's ``mimetypes`` maps browser-recorded audio/webm to ``.weba`` and
@@ -91,7 +94,14 @@ def save_base64_data_url(
 
 def media_destination(media_dir: Path, mime_type: str, *, filename: str | None = None) -> Path:
     """Choose the shared media layout for binary and data-URL ingress."""
-    ext = _MIME_EXTENSION_OVERRIDES.get(mime_type) or mimetypes.guess_extension(mime_type) or ".bin"
+    ext = _MIME_EXTENSION_OVERRIDES.get(mime_type) or mimetypes.guess_extension(mime_type)
+    if ext in (None, ".bin"):
+        # Arbitrary uploads often arrive as ``application/octet-stream``. The
+        # uploader's own extension identifies the file far better than ``.bin``.
+        suffix = Path(safe_filename(filename or "")).suffix
+        if _SAFE_SUFFIX.fullmatch(suffix):
+            ext = suffix.lower()
+    ext = ext or ".bin"
     base = safe_filename(filename or "")
     stem = Path(base).stem[:80] if base else ""
     # Leave room for the 12-character ID, separator, and extension.

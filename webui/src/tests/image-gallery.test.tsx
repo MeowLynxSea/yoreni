@@ -82,7 +82,7 @@ describe("image presentation", () => {
   it("uses the loaded picture's shape for a sent user image and retains its accessible viewer action", async () => {
     const user = userEvent.setup();
     render(<MessageBubble message={{ id: "portrait", role: "user", content: "", createdAt: 1,
-      images: [{ url: "/portrait.png", name: "portrait.png" }] }} />);
+      media: [{ kind: "image", url: "/portrait.png", name: "portrait.png" }] }} />);
     const image = screen.getByRole("img", { name: "portrait.png" });
     Object.defineProperties(image, { naturalWidth: { value: 600 }, naturalHeight: { value: 900 } });
     fireEvent.load(image);

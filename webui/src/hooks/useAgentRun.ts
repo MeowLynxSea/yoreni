@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AgentFrame } from "@/lib/yoreni-client";
 import { notificationAppUrl, showBrowserNotification } from "@/lib/browser-notifications";
+import type { SendAttachment } from "@/lib/agent-input";
 import { toMediaAttachment } from "@/lib/media";
 import { playMessageSound } from "@/lib/notification-sound";
 import type { ToolProgressEvent, UIMessage, UIMediaWireAttachment } from "@/lib/types";
 import { ApiError, fetchPersonalAgent, type AgentHistoryRun } from "@/lib/api";
 import { useClient } from "@/providers/ClientProvider";
-import type { DraftAttachment } from "../../../packages/client-events/attachments";
 
 const TERMINAL_RUNS = new Set(["completed", "failed", "cancelled"]);
 
@@ -50,6 +50,7 @@ function historyMessages(runs: AgentHistoryRun[]): UIMessage[] {
       : run.event_seq * 2;
     const messages: UIMessage[] = [];
     if (run.kind === "user") {
+      const media = historyMedia(run.media_urls);
       messages.push({
         id: run.event_id,
         turnId: run.id,
@@ -57,6 +58,7 @@ function historyMessages(runs: AgentHistoryRun[]): UIMessage[] {
         content: run.content,
         createdAt: admittedAt,
         deliveryStatus: "accepted",
+        ...(media.length ? { media } : {}),
       });
     }
     for (const entry of run.projection ? run.entries ?? [] : []) {
@@ -66,6 +68,7 @@ function historyMessages(runs: AgentHistoryRun[]): UIMessage[] {
       if (entry.event === "user_message") {
         const id = entry.message_id;
         if (!id || messages.some((message) => message.id === id)) continue;
+        const media = historyMedia(entry.media_urls);
         messages.push({
           id,
           turnId: run.id,
@@ -73,6 +76,7 @@ function historyMessages(runs: AgentHistoryRun[]): UIMessage[] {
           content: entry.text ?? "",
           createdAt,
           deliveryStatus: "accepted",
+          ...(media.length ? { media } : {}),
         });
         continue;
       }
@@ -173,7 +177,16 @@ export function projectAgentFrame(messages: UIMessage[], frame: AgentFrame): UIM
     ? { ...message, deliveryStatus: "accepted", turnId: frame.run_id ?? message.turnId } : message);
   if (frame.event === "user_message") {
     const id = frame.message_id ?? frame.turn_id;
-    if (!id || messages.some((message) => message.id === id)) return messages;
+    if (!id) return messages;
+    const media = historyMedia(frame.media_urls);
+    const existing = messages.find((message) => message.id === id);
+    // The sender's optimistic bubble already shows its own previews; the
+    // signed copies replace them once the gateway has settled the upload.
+    if (existing) {
+      return media.length
+        ? messages.map((message) => (message.id === id ? { ...message, media } : message))
+        : messages;
+    }
     return [...messages, {
       id,
       turnId: run,
@@ -181,6 +194,7 @@ export function projectAgentFrame(messages: UIMessage[], frame: AgentFrame): UIM
       content: frame.text ?? "",
       createdAt: frame.created_at_ms ?? Date.now(),
       deliveryStatus: "accepted",
+      ...(media.length ? { media } : {}),
     }];
   }
   if (frame.event === "reaction") {
@@ -379,11 +393,17 @@ export function useAgentRun(projectId: string | null = null) {
     oldestSeq.current = nextOldest;
     return historyMessages(runs);
   }, [getToken, projectId]);
-  const send = useCallback(async (content: string, media: DraftAttachment[] = []) => {
+  const send = useCallback(async (content: string, attachments: SendAttachment[] = []) => {
     const eventId = crypto.randomUUID();
+    // The previews the composer already showed belong to this turn, so the
+    // waiting bubble renders the same attachments it is about to deliver.
+    const media = attachments.map((item) => item.preview);
     setError(null);
-    setMessages((current) => [...current, { id: eventId, turnId: eventId, role: "user", content, createdAt: Date.now(), deliveryStatus: "sending" }]);
-    try { await client.submit(content, media, { eventId, projectId }); }
+    setMessages((current) => [...current, {
+      id: eventId, turnId: eventId, role: "user", content, createdAt: Date.now(),
+      deliveryStatus: "sending", ...(media.length ? { media } : {}),
+    }]);
+    try { await client.submit(content, attachments.map((item) => item.media), { eventId, projectId }); }
     catch (reason) {
       setMessages((current) => current.map((message) => message.id === eventId ? { ...message, deliveryStatus: "failed" } : message));
       setError(reason instanceof Error ? reason.message : String(reason));

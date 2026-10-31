@@ -1054,6 +1054,8 @@ export interface AgentHistoryRun {
   source: string;
   kind: string;
   content: string;
+  /** Attachments the user input carried; the user turn renders these. */
+  media_urls?: UIMediaWireAttachment[];
   result: { content: string; stop_reason: string } | null;
   /** In-flight tool calls described for the working indicator. */
   activity?: { name: string; reason: string }[];

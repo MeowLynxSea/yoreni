@@ -440,7 +440,7 @@ function rendersInTranscript(message: UIMessage): boolean {
 }
 
 function carriesMedia(message: UIMessage): boolean {
-  return Boolean(message.rich || message.media?.length || message.images?.length);
+  return Boolean(message.rich || message.media?.length);
 }
 
 function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocusHandled, onBackToProjects, projectId }: {
@@ -494,7 +494,7 @@ function ChatView({ greeting, run, model, onOpenSettings, focusMessageId, onFocu
   const send = async (content: string, attachments?: SendAttachment[]) => {
     const pending = quote;
     const composed = pending ? formatQuotedUserMessage(content, pending.text, pending.messageId) : content;
-    await run.send(composed, attachments?.map((item) => item.media));
+    await run.send(composed, attachments ?? []);
     if (pending) setQuote(null);
   };
   // A search result lands on its message the same way a quote jump does.

@@ -19,7 +19,7 @@ export type MessageDeliveryErrorKind =
   | "workspace_scope_rejected"
   | "turn_rejected";
 
-/** One image attached to a UIMessage.
+/** One image shown in a gallery or lightbox.
  *
  * ``url`` can arrive in three different shapes, which the bubble renders
  * identically:
@@ -128,9 +128,8 @@ export interface UIMessage {
   compaction?: UIContextCompaction;
   /** Display-only localization marker for fixed /compact command replies. */
   compactReply?: "empty" | "failed";
-  /** User turn: optimistic blob URLs for preview. Replay: placeholder chips. */
-  images?: UIImage[];
-  /** Signed or local UI-renderable media attachments. */
+  /** Attachments the turn carried: optimistic previews while sending, signed
+   * media on replay. */
   media?: UIMediaAttachment[];
   /** App-specific CLI adapters explicitly attached to this user turn. */
   cliApps?: UICliAppAttachment[];

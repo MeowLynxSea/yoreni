@@ -480,10 +480,7 @@ function MessageBubbleView({
   if (message.kind === "trace") return null;
 
   if (message.role === "user") {
-    const images = message.images ?? [];
     const media = message.media ?? [];
-    const hasImages = images.length > 0;
-    const hasMedia = media.length > 0;
     const parsedMessage = parseQuotedUserMessage(message.content);
     const userContent = parsedMessage.content;
     const hasText = userContent.trim().length > 0;
@@ -513,8 +510,7 @@ function MessageBubbleView({
           />
         ) : null}
         {!hasText ? contextMenu : null}
-        {hasImages ? <ImageGallery images={images} align="right" size="compact" /> : null}
-        {!hasImages && hasMedia ? (
+        {media.length > 0 ? (
           <MessageMedia media={media} align="right" pending={message.deliveryStatus === "sending"} />
         ) : null}
         {!hasText ? <MessageReactions reactions={message.reactions} side="right" /> : null}

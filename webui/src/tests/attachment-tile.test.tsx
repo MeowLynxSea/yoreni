@@ -84,6 +84,22 @@ describe("delivered file type cards", () => {
     expect(within(cards[1] as HTMLElement).getByRole("link", { name: "Download another-config.json" })).toHaveAttribute("href", "/api/media/signed/second");
   });
 
+  it("keeps a user turn's images alongside its files and videos", () => {
+    const { container } = render(<MessageBubble message={{ id: "mixed", role: "user", content: "See these", createdAt: 1,
+      media: [
+        { kind: "image", name: "chart.png", url: "/api/media/signed/chart" },
+        { kind: "file", name: "report.pdf", url: "/api/media/signed/report", size: 2_048 },
+        { kind: "video", name: "clip.mp4", url: "/api/media/signed/clip" },
+      ] }} />);
+
+    expect(screen.getByRole("button", { name: "View image: chart.png" })).toBeVisible();
+    const file = container.querySelector("[data-file-attachment]") as HTMLElement;
+    expect(within(file).getByText("report.pdf")).toBeVisible();
+    expect(file).toHaveTextContent("2 KB");
+    expect(container.querySelector("video")).toHaveAttribute("src", "/api/media/signed/clip");
+    expect(screen.getByText("See these")).toBeVisible();
+  });
+
   it("keeps a file link inside its paragraph instead of extracting it into an attachment card", async () => {
     const { container } = render(<MessageBubble message={{ id: "inline-file", role: "assistant", createdAt: 1,
       content: "Before [notes.txt](https://example.com/notes.txt) after.",

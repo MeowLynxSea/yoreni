@@ -24,7 +24,6 @@ export function isReasoningOnlyAssistant(message: UIMessage): boolean {
     message.activityKind === "model"
     || message.content.trim().length > 0
     || !!message.media?.length
-    || !!message.images?.length
   ) return false;
   return !!(message.reasoning?.length || message.reasoningStreaming || message.isStreaming);
 }
@@ -257,7 +256,6 @@ function isCompletedDisplayNoop(message: UIMessage): boolean {
     && message.content.trim().length === 0
     && !message.reasoning?.trim()
     && !message.media?.length
-    && !message.images?.length
     && !message.traces?.some((line) => line.trim().length > 0)
     && !message.toolEvents?.length
     && !message.fileEdits?.length
@@ -273,7 +271,6 @@ function isAssistantAnswer(message: UIMessage): boolean {
     message.turnPhase === "answer"
     || message.content.trim().length > 0
     || !!message.media?.length
-    || !!message.images?.length
   );
 }
 
@@ -293,7 +290,6 @@ function mergeAssistantAnswers(answers: UIMessage[]): UIMessage {
   const first = answers[0];
   const last = answers.at(-1)!;
   const media = answers.flatMap((message) => message.media ?? []);
-  const images = answers.flatMap((message) => message.images ?? []);
   const merged: UIMessage = {
     ...first,
     ...last,
@@ -304,8 +300,6 @@ function mergeAssistantAnswers(answers: UIMessage[]): UIMessage {
   };
   if (media.length) merged.media = media;
   else delete merged.media;
-  if (images.length) merged.images = images;
-  else delete merged.images;
   return merged;
 }
 

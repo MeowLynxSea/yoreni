@@ -197,6 +197,56 @@ describe("live transcript", () => {
     client.close();
   });
 
+  it("keeps the composer's attachment previews on the sent user turn", async () => {
+    vi.mocked(fetchPersonalAgent).mockResolvedValue({ ...agentHistory("completed"), history: [] });
+    const { client, socket, wrapper } = setup();
+    const { result, unmount } = renderHook(() => useAgentRun(), { wrapper });
+    await waitFor(() => expect(result.current.historyLoaded).toBe(true));
+    const attachment = {
+      media: { path: "/tmp/chart.png", name: "chart.png" },
+      preview: { kind: "image" as const, url: "blob:preview", name: "chart.png", size: 12 },
+    };
+
+    let submitted!: Promise<void>;
+    act(() => { submitted = result.current.send("look", [attachment]); });
+    const sent = result.current.messages.at(-1)!;
+    expect(sent.deliveryStatus).toBe("sending");
+    expect(sent.media).toEqual([attachment.preview]);
+
+    await act(async () => {});
+    act(() => socket.receive({ event: "accepted", event_id: sent.id, run_id: "run-4" }));
+    // The gateway signs the stored copy once the upload has settled.
+    act(() => socket.receive({
+      event: "user_message", message_id: sent.id, run_id: "run-4", text: "look", created_at_ms: 1,
+      media_urls: [{ url: "/api/media/signed/chart", name: "chart.png" }],
+    }));
+    await act(async () => { await submitted; });
+
+    expect(result.current.messages.at(-1)?.media).toEqual([
+      { kind: "image", url: "/api/media/signed/chart", name: "chart.png" },
+    ]);
+
+    unmount();
+    client.close();
+  });
+
+  it("replays a user turn with the attachments it was sent with", async () => {
+    const history = agentHistory("completed");
+    history.history![0].media_urls = [{ url: "/api/media/signed/report", name: "report.pdf" }];
+    vi.mocked(fetchPersonalAgent).mockResolvedValue(history);
+    const { client, wrapper } = setup();
+    const { result, unmount } = renderHook(() => useAgentRun(), { wrapper });
+
+    await waitFor(() => expect(result.current.historyLoaded).toBe(true));
+
+    expect(result.current.messages[0].media).toEqual([
+      { kind: "file", url: "/api/media/signed/report", name: "report.pdf" },
+    ]);
+
+    unmount();
+    client.close();
+  });
+
   it("keeps the streamed answer mounted when the durable copy arrives", async () => {
     vi.mocked(fetchPersonalAgent).mockResolvedValue({ ...agentHistory("completed"), history: [] });
     const { client, socket, wrapper } = setup();

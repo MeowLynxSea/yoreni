@@ -272,6 +272,10 @@
   },
   "profile": {
     "intro": "Yoreni memakai detail ini untuk memahami kamu dan menyesuaikan cara bicaranya. Data tersimpan di perangkat ini, terpisah dari file ingatan.",
+    "sections": {
+      "identity": "Profil",
+      "notes": "Catatan tambahan"
+    },
     "name": "Yoreni harus memanggilmu apa?",
     "nameHint": "Dipakai saat Yoreni menyapamu.",
     "birthday": "Ulang tahun",
@@ -281,7 +285,6 @@
       "female": "Perempuan",
       "undisclosed": "Tidak ingin menyebutkan"
     },
-    "notes": "Ada hal lain yang perlu diingat?",
     "notesPlaceholder": "Preferensi, batasan, atau konteks yang ingin Yoreni ingat.",
     "save": "Simpan perubahan",
     "saved": "Tersimpan",

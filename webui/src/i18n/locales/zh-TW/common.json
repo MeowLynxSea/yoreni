@@ -272,6 +272,10 @@
   },
   "profile": {
     "intro": "Yoreni 用這些資訊理解你，並調整說話方式。它們保存在這台裝置上，與記憶檔案分開存放。",
+    "sections": {
+      "identity": "個人資料",
+      "notes": "額外注意事項"
+    },
     "name": "Yoreni 該怎麼稱呼你？",
     "nameHint": "Yoreni 稱呼你時使用。",
     "birthday": "生日",
@@ -281,7 +285,6 @@
       "female": "女",
       "undisclosed": "不願透露"
     },
-    "notes": "還有什麼需要我注意的嗎？",
     "notesPlaceholder": "希望 Yoreni 長期記住的偏好、界線或背景。",
     "save": "儲存變更",
     "saved": "已儲存",

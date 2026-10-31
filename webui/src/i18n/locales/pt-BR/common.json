@@ -272,6 +272,10 @@
   },
   "profile": {
     "intro": "O Yoreni usa estes dados para entender você e ajustar seu jeito de falar. Eles ficam neste dispositivo, separados dos arquivos de memória.",
+    "sections": {
+      "identity": "Perfil",
+      "notes": "Observações adicionais"
+    },
     "name": "Como o Yoreni deve te chamar?",
     "nameHint": "Usado quando o Yoreni fala com você.",
     "birthday": "Aniversário",
@@ -281,7 +285,6 @@
       "female": "Mulher",
       "undisclosed": "Prefiro não dizer"
     },
-    "notes": "Mais alguma coisa a ter em mente?",
     "notesPlaceholder": "Preferências, limites ou contexto que o Yoreni deva lembrar.",
     "save": "Salvar alterações",
     "saved": "Salvo",

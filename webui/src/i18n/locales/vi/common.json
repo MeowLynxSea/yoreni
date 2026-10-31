@@ -272,6 +272,10 @@
   },
   "profile": {
     "intro": "Yoreni dùng những thông tin này để hiểu bạn và điều chỉnh cách nói. Chúng được lưu trên thiết bị này, tách khỏi các tệp ký ức.",
+    "sections": {
+      "identity": "Hồ sơ",
+      "notes": "Ghi chú thêm"
+    },
     "name": "Yoreni nên gọi bạn là gì?",
     "nameHint": "Dùng khi Yoreni gọi bạn.",
     "birthday": "Sinh nhật",
@@ -281,7 +285,6 @@
       "female": "Nữ",
       "undisclosed": "Không muốn tiết lộ"
     },
-    "notes": "Còn điều gì cần lưu ý không?",
     "notesPlaceholder": "Sở thích, giới hạn hoặc bối cảnh bạn muốn Yoreni nhớ.",
     "save": "Lưu thay đổi",
     "saved": "Đã lưu",

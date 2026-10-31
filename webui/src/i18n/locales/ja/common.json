@@ -272,6 +272,10 @@
   },
   "profile": {
     "intro": "Yoreni はこの情報をもとにあなたを理解し、話し方を調整します。情報はこの端末に保存され、記憶ファイルとは別に管理されます。",
+    "sections": {
+      "identity": "プロフィール",
+      "notes": "補足事項"
+    },
     "name": "Yoreni は何とお呼びすればよいですか？",
     "nameHint": "Yoreni があなたに話しかけるときに使います。",
     "birthday": "誕生日",
@@ -281,7 +285,6 @@
       "female": "女性",
       "undisclosed": "答えたくない"
     },
-    "notes": "ほかに気をつけておくことはありますか？",
     "notesPlaceholder": "Yoreni に長く覚えておいてほしい好み、境界、背景。",
     "save": "変更を保存",
     "saved": "保存しました",

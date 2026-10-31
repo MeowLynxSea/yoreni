@@ -115,6 +115,16 @@
       "description": "Activa los widgets en Ajustes o pide a Yoreni que cree algo."
     },
     "widgets": {
+      "memoryBackfill": {
+        "title": "Actualización de memoria",
+        "running": "Actualizando",
+        "paused": "En pausa",
+        "progress": "{{done}} de {{total}} memorias",
+        "eta": "Quedan unos {{time}}",
+        "pause": "Pausar",
+        "resume": "Reanudar",
+        "failed": "No se pudo actualizar ahora."
+      },
       "goal": {
         "title": "Objetivo",
         "active": "En curso",
@@ -665,7 +675,9 @@
       "deleteDescription": "Esto elimina el widget y sus datos de esta instalación de yoreni. Dejará de aparecer en Inicio.",
       "deleteAction": "Eliminar widget",
       "deleteFailed": "No se pudo eliminar el widget. Inténtalo de nuevo.",
+      "alwaysOn": "Automático",
       "descriptions": {
+        "memory-backfill": "Aparece mientras se actualizan los recuerdos y desaparece solo.",
         "goal": "Muestra el objetivo en el que trabaja el agente.",
         "automations": "Muestra las tareas programadas y cuándo se ejecutan.",
         "dynamic": "Creado en el chat. Actualízalo o elimínalo aquí."

@@ -309,6 +309,17 @@ export interface GoalStateWsPayload {
   recap?: string;
 }
 
+/** Progress of the memory update task (`memory_backfill` events). */
+export interface MemoryBackfillPayload {
+  active: boolean;
+  status?: "running" | "paused";
+  model?: string;
+  done?: number;
+  total?: number;
+  remaining?: number;
+  eta_ms?: number | null;
+}
+
 /** Persisted layout for the Home widgets, shared by every WebUI client. */
 export interface HomeWidgetEntry {
   visible: boolean;

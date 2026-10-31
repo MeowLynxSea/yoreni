@@ -1,5 +1,5 @@
 
-import type { AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemorySettingsUpdate, OnboardingSnapshot, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
+import type { AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemoryBackfillPayload, MemorySettingsUpdate, OnboardingSnapshot, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, PairingPayload, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
 
 const API_READ_TIMEOUT_MS = 20_000;
@@ -172,6 +172,31 @@ export async function fetchGoal(
     API_READ_TIMEOUT_MS,
   );
   return payload.goal ?? { active: false };
+}
+
+export async function fetchMemoryBackfill(
+  token: string,
+  base: string = "",
+): Promise<MemoryBackfillPayload> {
+  const payload = await request<{ memory_backfill?: MemoryBackfillPayload }>(
+    `${base}/api/webui/memory-backfill`,
+    token,
+    { cache: "no-store" },
+    API_READ_TIMEOUT_MS,
+  );
+  return payload.memory_backfill ?? { active: false };
+}
+
+export async function setMemoryBackfillPaused(
+  transport: WebUIMutationTransport,
+  paused: boolean,
+): Promise<MemoryBackfillPayload> {
+  const payload = await mutation<{ memory_backfill?: MemoryBackfillPayload }>(
+    transport,
+    "memory.backfill.state",
+    { paused },
+  );
+  return payload.memory_backfill ?? { active: false };
 }
 
 export async function fetchAutomationRunResult(

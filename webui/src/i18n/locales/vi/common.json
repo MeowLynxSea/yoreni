@@ -115,6 +115,16 @@
       "description": "Bật tiện ích trong Cài đặt hoặc nhờ Yoreni tạo nội dung."
     },
     "widgets": {
+      "memoryBackfill": {
+        "title": "Cập nhật bộ nhớ",
+        "running": "Đang cập nhật",
+        "paused": "Đã tạm dừng",
+        "progress": "Đã sắp xếp {{done}} / {{total}} ký ức",
+        "eta": "Còn khoảng {{time}}",
+        "pause": "Tạm dừng",
+        "resume": "Tiếp tục",
+        "failed": "Hiện không thể cập nhật."
+      },
       "goal": {
         "title": "Mục tiêu",
         "active": "Đang thực hiện",
@@ -665,7 +675,9 @@
       "deleteDescription": "Thao tác này xóa tiện ích và dữ liệu của nó khỏi bản cài yoreni này. Tiện ích sẽ không còn hiển thị trên trang chính.",
       "deleteAction": "Xóa tiện ích",
       "deleteFailed": "Không thể xóa tiện ích. Hãy thử lại.",
+      "alwaysOn": "Tự động",
       "descriptions": {
+        "memory-backfill": "Hiện khi bộ nhớ đang được cập nhật và tự biến mất khi xong.",
         "goal": "Hiển thị mục tiêu agent đang thực hiện.",
         "automations": "Hiển thị tác vụ theo lịch và lần chạy tiếp theo.",
         "dynamic": "Được tạo trong chat. Làm mới hoặc xóa tại đây."

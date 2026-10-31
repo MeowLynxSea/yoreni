@@ -115,6 +115,16 @@
       "description": "從設定中啟用，或與Yoreni對話以建立"
     },
     "widgets": {
+      "memoryBackfill": {
+        "title": "記憶更新",
+        "running": "整理中",
+        "paused": "已暫停",
+        "progress": "已整理 {{done}} / {{total}} 條記憶",
+        "eta": "預計還需 {{time}}",
+        "pause": "暫停",
+        "resume": "繼續",
+        "failed": "暫時無法更新。"
+      },
       "goal": {
         "title": "目標",
         "active": "進行中",
@@ -665,7 +675,9 @@
       "deleteDescription": "這會從本機 yoreni 移除該小工具及其資料，主頁將不再顯示。",
       "deleteAction": "刪除小工具",
       "deleteFailed": "刪除小工具失敗，請再試一次。",
+      "alwaysOn": "自動顯示",
       "descriptions": {
+        "memory-backfill": "記憶整理時自動出現，完成後消失。",
         "goal": "顯示 agent 正在推進的目標。",
         "automations": "顯示定時任務與下次執行時間。",
         "dynamic": "在對話中建立，可在此重新整理或刪除。"

@@ -8,7 +8,7 @@ import { GoalWidget } from "@/components/home/GoalWidget";
 import { AutomationsWidget } from "@/components/home/AutomationsWidget";
 import { resetHomeWidgets } from "@/components/home/widget-layout";
 import { WidgetsSettings } from "@/components/settings/overview/WidgetsSettings";
-import { fetchAutomations, fetchGoal, fetchHomeWidgets, saveHomeWidgets } from "@/lib/api";
+import { fetchAutomations, fetchGoal, fetchHomeWidgets, fetchMemoryBackfill, saveHomeWidgets } from "@/lib/api";
 import type { AutomationJob, HomeWidgetsPayload } from "@/lib/types";
 import { ClientProvider } from "@/providers/ClientProvider";
 import type { AgentFrame, YoreniClient } from "@/lib/yoreni-client";
@@ -18,10 +18,12 @@ vi.mock("@/lib/api", () => ({
   fetchGoal: vi.fn(),
   fetchAutomations: vi.fn(),
   fetchHomeWidgets: vi.fn(),
+  fetchMemoryBackfill: vi.fn(),
   fetchWidget: vi.fn(),
   fetchWidgets: vi.fn(),
   refreshWidget: vi.fn(),
   saveHomeWidgets: vi.fn(),
+  setMemoryBackfillPaused: vi.fn(),
 }));
 
 function fakeClient() {
@@ -74,6 +76,7 @@ beforeEach(() => {
   window.localStorage.clear();
   resetHomeWidgets();
   vi.mocked(fetchGoal).mockResolvedValue({ active: false });
+  vi.mocked(fetchMemoryBackfill).mockResolvedValue({ active: false });
   vi.mocked(fetchAutomations).mockResolvedValue({ jobs: [] });
   vi.mocked(fetchHomeWidgets).mockResolvedValue(layout());
   vi.mocked(saveHomeWidgets).mockImplementation(async (_transport, next) => next);
@@ -217,7 +220,7 @@ describe("widget settings", () => {
 
     await waitFor(() => expect(saveHomeWidgets).toHaveBeenLastCalledWith(
       expect.anything(),
-      expect.objectContaining({ order: ["automations", "goal"] }),
+      expect.objectContaining({ order: ["automations", "goal", "memory-backfill"] }),
     ));
   });
 });

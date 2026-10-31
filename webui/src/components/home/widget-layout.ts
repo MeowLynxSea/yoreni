@@ -240,7 +240,9 @@ export function useHomeWidgets() {
     const entry = store.layout.widgets[id] ?? defaultEntry(true);
     return {
       id,
-      visible: entry.visible,
+      // A system widget renders whenever it has something to say; the stored
+      // preference cannot switch it off.
+      visible: definition?.dismissable === false ? true : entry.visible,
       collapsed: entry.collapsed,
       collapsible: definition?.collapsible ?? dynamic !== null,
       dynamic,

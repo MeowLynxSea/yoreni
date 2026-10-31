@@ -43,6 +43,8 @@ export interface AgentFrame {
   render_as?: "text";
   created_at_ms?: number;
   goal_state?: import("./types").GoalStateWsPayload;
+  /** Memory update progress carried by a `memory_backfill` frame. */
+  memory_backfill?: import("./types").MemoryBackfillPayload;
   /** Home widget named by a `widget_changed` frame. */
   widget_id?: string;
 }

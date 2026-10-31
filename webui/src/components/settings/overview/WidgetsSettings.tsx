@@ -122,12 +122,18 @@ export function WidgetsSettings() {
                         />
                       </button>
                     ) : null}
-                    <ToggleButton
-                      checked={state.visible}
-                      onChange={(next) => setVisible(state.id, next)}
-                      ariaLabel={title}
-                      label={t(state.visible ? "settings.values.on" : "settings.values.off")}
-                    />
+                    {definition?.dismissable === false ? (
+                      <span className="shrink-0 rounded-full bg-foreground/[0.06] px-2.5 py-1 text-[11px] leading-4 text-muted-foreground">
+                        {t("settings.widgets.alwaysOn")}
+                      </span>
+                    ) : (
+                      <ToggleButton
+                        checked={state.visible}
+                        onChange={(next) => setVisible(state.id, next)}
+                        ariaLabel={title}
+                        label={t(state.visible ? "settings.values.on" : "settings.values.off")}
+                      />
+                    )}
                     {dynamic ? (
                       <button
                         type="button"

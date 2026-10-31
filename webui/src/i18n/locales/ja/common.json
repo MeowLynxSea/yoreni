@@ -115,6 +115,16 @@
       "description": "設定でウィジェットを有効にするか、Yoreni に作成を頼めます。"
     },
     "widgets": {
+      "memoryBackfill": {
+        "title": "メモリ更新",
+        "running": "更新中",
+        "paused": "一時停止中",
+        "progress": "{{total}} 件中 {{done}} 件を整理済み",
+        "eta": "残り約 {{time}}",
+        "pause": "一時停止",
+        "resume": "再開",
+        "failed": "更新できませんでした。"
+      },
       "goal": {
         "title": "ゴール",
         "active": "進行中",
@@ -665,7 +675,9 @@
       "deleteDescription": "この yoreni のインストールからウィジェットとデータを削除します。ホームには表示されなくなります。",
       "deleteAction": "ウィジェットを削除",
       "deleteFailed": "ウィジェットを削除できませんでした。もう一度お試しください。",
+      "alwaysOn": "自動",
       "descriptions": {
+        "memory-backfill": "メモリの整理中に表示され、終わると消えます。",
         "goal": "エージェントが取り組んでいるゴールを表示します。",
         "automations": "予定されたタスクと次回の実行時刻を表示します。",
         "dynamic": "チャットで作成されました。ここで更新または削除できます。"

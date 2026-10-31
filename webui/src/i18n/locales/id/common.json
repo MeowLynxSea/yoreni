@@ -115,6 +115,16 @@
       "description": "Aktifkan widget di Pengaturan, atau minta Yoreni membuat sesuatu."
     },
     "widgets": {
+      "memoryBackfill": {
+        "title": "Pembaruan memori",
+        "running": "Memperbarui",
+        "paused": "Dijeda",
+        "progress": "{{done}} dari {{total}} memori",
+        "eta": "Sekitar {{time}} lagi",
+        "pause": "Jeda",
+        "resume": "Lanjutkan",
+        "failed": "Tidak dapat memperbarui sekarang."
+      },
       "goal": {
         "title": "Tujuan",
         "active": "Berjalan",
@@ -665,7 +675,9 @@
       "deleteDescription": "Ini menghapus widget dan datanya dari instalasi yoreni ini. Widget tidak lagi tampil di beranda.",
       "deleteAction": "Hapus widget",
       "deleteFailed": "Widget tidak dapat dihapus. Coba lagi.",
+      "alwaysOn": "Otomatis",
       "descriptions": {
+        "memory-backfill": "Muncul saat memori diperbarui dan hilang sendiri setelah selesai.",
         "goal": "Menampilkan tujuan yang sedang dikerjakan agen.",
         "automations": "Menampilkan tugas terjadwal dan waktu jalan berikutnya.",
         "dynamic": "Dibuat di chat. Segarkan atau hapus di sini."

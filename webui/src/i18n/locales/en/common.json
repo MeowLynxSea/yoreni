@@ -115,6 +115,16 @@
       "description": "Turn on widgets in Settings, or ask Yoreni to create something."
     },
     "widgets": {
+      "memoryBackfill": {
+        "title": "Memory update",
+        "running": "Updating",
+        "paused": "Paused",
+        "progress": "{{done}} of {{total}} memories",
+        "eta": "About {{time}} left",
+        "pause": "Pause",
+        "resume": "Resume",
+        "failed": "Couldn't update right now."
+      },
       "goal": {
         "title": "Goal",
         "active": "In progress",
@@ -720,7 +730,9 @@
       "deleteDescription": "This removes the widget and its data from this yoreni install. Home stops showing it.",
       "deleteAction": "Delete widget",
       "deleteFailed": "Couldn't delete the widget. Try again.",
+      "alwaysOn": "Automatic",
       "descriptions": {
+        "memory-backfill": "Appears while memories are being updated and leaves on its own.",
         "goal": "Shows the goal the agent is working on.",
         "automations": "Shows scheduled tasks and when they run next.",
         "dynamic": "Created in chat. Refresh or remove it here."

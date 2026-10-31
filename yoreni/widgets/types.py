@@ -12,7 +12,7 @@ from typing import Any, Literal, cast
 
 WIDGET_ID_RE = re.compile(r"[A-Za-z0-9_-]{1,64}")
 WIDGET_FILE_RE = re.compile(r"[A-Za-z0-9._-]{1,64}")
-RESERVED_WIDGET_IDS = frozenset({"goal", "automations"})
+RESERVED_WIDGET_IDS = frozenset({"goal", "automations", "memory-backfill"})
 
 MAX_WIDGETS = 24
 MAX_TITLE = 60

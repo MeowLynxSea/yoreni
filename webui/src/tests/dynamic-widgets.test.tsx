@@ -20,6 +20,7 @@ import {
   fetchAutomations,
   fetchGoal,
   fetchHomeWidgets,
+  fetchMemoryBackfill,
   fetchWidget,
   fetchWidgets,
   refreshWidget,
@@ -34,10 +35,12 @@ vi.mock("@/lib/api", () => ({
   fetchAutomations: vi.fn(),
   fetchGoal: vi.fn(),
   fetchHomeWidgets: vi.fn(),
+  fetchMemoryBackfill: vi.fn(),
   fetchWidget: vi.fn(),
   fetchWidgets: vi.fn(),
   refreshWidget: vi.fn(),
   saveHomeWidgets: vi.fn(),
+  setMemoryBackfillPaused: vi.fn(),
 }));
 
 const THEME: WidgetTheme = {
@@ -115,6 +118,7 @@ beforeEach(() => {
   window.localStorage.clear();
   resetHomeWidgets();
   vi.mocked(fetchGoal).mockResolvedValue({ active: false });
+  vi.mocked(fetchMemoryBackfill).mockResolvedValue({ active: false });
   vi.mocked(fetchAutomations).mockResolvedValue({ jobs: [] });
   vi.mocked(fetchHomeWidgets).mockResolvedValue(layout());
   vi.mocked(fetchWidgets).mockResolvedValue({ widgets: [summary()] });

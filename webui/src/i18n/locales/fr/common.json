@@ -115,6 +115,16 @@
       "description": "Activez les widgets dans Réglages ou demandez à Yoreni de créer quelque chose."
     },
     "widgets": {
+      "memoryBackfill": {
+        "title": "Mise à jour de la mémoire",
+        "running": "Mise à jour",
+        "paused": "En pause",
+        "progress": "{{done}} sur {{total}} souvenirs",
+        "eta": "Encore environ {{time}}",
+        "pause": "Pause",
+        "resume": "Reprendre",
+        "failed": "Mise à jour impossible pour le moment."
+      },
       "goal": {
         "title": "Objectif",
         "active": "En cours",
@@ -665,7 +675,9 @@
       "deleteDescription": "Cela supprime le widget et ses données de cette installation de yoreni. Il n'apparaîtra plus sur l'accueil.",
       "deleteAction": "Supprimer le widget",
       "deleteFailed": "Impossible de supprimer le widget. Réessayez.",
+      "alwaysOn": "Automatique",
       "descriptions": {
+        "memory-backfill": "Apparaît pendant la mise à jour des souvenirs et disparaît ensuite.",
         "goal": "Affiche l'objectif sur lequel travaille l'agent.",
         "automations": "Affiche les tâches planifiées et leur prochaine exécution.",
         "dynamic": "Créé dans le chat. Actualisez-le ou supprimez-le ici."

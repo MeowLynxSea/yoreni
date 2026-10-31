@@ -281,7 +281,14 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const leaveFullscreen = async () => {
+    if (!document.fullscreenElement) return;
+    try { await document.exitFullscreen(); } catch { /* already left */ }
+  };
+
   const releaseControl = async () => {
+    // The browser's own fullscreen outlives our layout, so drop it first.
+    await leaveFullscreen();
     const controller = controllerRef.current;
     if (controller && token && control?.owner === "user") {
       try {
@@ -298,6 +305,7 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
   };
 
   const close = async () => {
+    await leaveFullscreen();
     const controller = controllerRef.current;
     if (controller && control?.owner === "user" && token) {
       try { await setDesktopControl(client, controller, "release"); } catch { /* best effort */ }

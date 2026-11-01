@@ -2525,7 +2525,6 @@
     "connect": "連線",
     "continueInBrowser": "在瀏覽器中繼續",
     "secureNote": "憑證會直接傳送給 Yoreni，不會出現在對話中。",
-    "scope": "僅用於",
     "fields": {
       "username": "使用者名稱",
       "email": "電子郵件",

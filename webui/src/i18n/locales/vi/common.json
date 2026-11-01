@@ -2525,7 +2525,6 @@
     "connect": "Kết nối",
     "continueInBrowser": "Tiếp tục trong trình duyệt",
     "secureNote": "Thông tin đăng nhập được gửi trực tiếp tới Yoreni và không bao giờ xuất hiện trong cuộc trò chuyện.",
-    "scope": "Chỉ dùng cho",
     "fields": {
       "username": "Tên đăng nhập",
       "email": "Email",

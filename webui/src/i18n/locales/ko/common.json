@@ -2525,7 +2525,6 @@
     "connect": "연결",
     "continueInBrowser": "브라우저에서 계속",
     "secureNote": "자격 증명은 Yoreni로 바로 전송되며 대화에 나타나지 않습니다.",
-    "scope": "사용 대상",
     "fields": {
       "username": "사용자 이름",
       "email": "이메일",

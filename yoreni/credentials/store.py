@@ -43,8 +43,6 @@ CREATE TABLE IF NOT EXISTS accounts (
     created_at REAL NOT NULL,
     updated_at REAL NOT NULL,
     expires_at REAL,
-    allowed_tools TEXT NOT NULL DEFAULT '[]',
-    allowed_domains TEXT NOT NULL DEFAULT '[]',
     restorable INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS auth_requests (
@@ -57,9 +55,7 @@ CREATE TABLE IF NOT EXISTS auth_requests (
     status TEXT NOT NULL,
     purpose TEXT NOT NULL DEFAULT '',
     created_at REAL NOT NULL,
-    expires_at REAL NOT NULL,
-    allowed_tools TEXT NOT NULL DEFAULT '[]',
-    allowed_domains TEXT NOT NULL DEFAULT '[]'
+    expires_at REAL NOT NULL
 );
 CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
@@ -154,12 +150,11 @@ class CredentialStore:
         with self._connect() as connection:
             connection.execute(
                 "INSERT INTO accounts (id, connector_id, label, auth_method, status, payload, "
-                "created_at, updated_at, expires_at, allowed_tools, allowed_domains, restorable) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "created_at, updated_at, expires_at, restorable) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(id) DO UPDATE SET label=excluded.label, status=excluded.status, "
                 "payload=excluded.payload, updated_at=excluded.updated_at, "
-                "expires_at=excluded.expires_at, allowed_tools=excluded.allowed_tools, "
-                "allowed_domains=excluded.allowed_domains, restorable=excluded.restorable",
+                "expires_at=excluded.expires_at, restorable=excluded.restorable",
                 (
                     account.id,
                     account.connector_id,
@@ -170,8 +165,6 @@ class CredentialStore:
                     account.created_at,
                     account.updated_at,
                     account.expires_at,
-                    json.dumps(list(account.allowed_tools)),
-                    json.dumps(list(account.allowed_domains)),
                     1 if account.restorable else 0,
                 ),
             )
@@ -186,8 +179,6 @@ class CredentialStore:
             created_at=float(row["created_at"]),
             updated_at=float(row["updated_at"]),
             expires_at=cast(float | None, row["expires_at"]),
-            allowed_tools=_json_list(cast(str, row["allowed_tools"])),
-            allowed_domains=_json_list(cast(str, row["allowed_domains"])),
             restorable=bool(row["restorable"]),
             secret_fields=tuple(sorted(self._open_payload(row).keys())),
         )
@@ -246,8 +237,8 @@ class CredentialStore:
         with self._connect() as connection:
             connection.execute(
                 "INSERT OR REPLACE INTO auth_requests (id, connector_id, account_id, run_id, "
-                "method, fields, status, purpose, created_at, expires_at, allowed_tools, "
-                "allowed_domains) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "method, fields, status, purpose, created_at, expires_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     request["id"],
                     request["connector_id"],
@@ -259,8 +250,6 @@ class CredentialStore:
                     request.get("purpose") or "",
                     float(request["created_at"]),
                     float(request["expires_at"]),
-                    json.dumps(list(request.get("allowed_tools") or [])),
-                    json.dumps(list(request.get("allowed_domains") or [])),
                 ),
             )
 
@@ -282,8 +271,6 @@ class CredentialStore:
             "purpose": row["purpose"],
             "created_at": row["created_at"],
             "expires_at": row["expires_at"],
-            "allowed_tools": list(_json_list(row["allowed_tools"])),
-            "allowed_domains": list(_json_list(row["allowed_domains"])),
         }
 
     def set_auth_request_status(self, request_id: str, status: str) -> None:

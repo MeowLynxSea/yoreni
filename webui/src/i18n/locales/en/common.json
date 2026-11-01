@@ -2525,7 +2525,6 @@
     "connect": "Connect",
     "continueInBrowser": "Continue in browser",
     "secureNote": "Credentials are sent directly to Yoreni and never appear in chat.",
-    "scope": "Used only on",
     "fields": {
       "username": "Username",
       "email": "Email",

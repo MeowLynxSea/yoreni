@@ -73,19 +73,6 @@ export function AuthenticationCard({
       <p className="text-[15px] leading-6 text-foreground">
         {request.purpose || t("auth.title")}
       </p>
-      {request.allowed_domains?.length ? (
-        <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12px] text-muted-foreground">
-          <span>{t("auth.scope")}</span>
-          {request.allowed_domains.map((domain) => (
-            <span
-              key={domain}
-              className="rounded-full border border-border/55 px-2 py-0.5 text-[11px] text-foreground/80"
-            >
-              {domain}
-            </span>
-          ))}
-        </p>
-      ) : null}
 
       {isOAuth ? (
         <div className="mt-4 flex items-center justify-end gap-2">

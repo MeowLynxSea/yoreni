@@ -14,7 +14,7 @@ import logging
 import os
 import threading
 import time
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
@@ -33,13 +33,8 @@ from yoreni.credentials.models import (
     ConnectorField,
     ConnectorSpec,
     CredentialKind,
-    validate_connector_id,
-)
-from yoreni.credentials.policy import (
     CredentialUseDeniedError,
-    is_tool_denied,
-    normalize_domains,
-    restore_tool_arguments,
+    validate_connector_id,
 )
 from yoreni.credentials.store import (
     CredentialStore,
@@ -245,8 +240,6 @@ class CredentialManager:
         label: str,
         method: AuthMethod,
         values: Mapping[str, str],
-        allowed_tools: Iterable[str] = (),
-        allowed_domains: Iterable[str] = (),
         restorable: bool = True,
         expires_at: float | None = None,
         account_id: str | None = None,
@@ -257,23 +250,6 @@ class CredentialManager:
         if method not in spec.auth_methods:
             raise ValueError(f"{connector_id} does not support {method.value} authentication")
         payload = self._validated_payload(spec, method, values)
-        tools = tuple(
-            dict.fromkeys(str(tool) for tool in allowed_tools if str(tool).strip())
-        ) or spec.tool_patterns
-        denied_tools = [tool for tool in tools if is_tool_denied(tool)]
-        if denied_tools:
-            raise ValueError(
-                "these tools can never receive a credential: " + ", ".join(denied_tools)
-            )
-        if restorable and not tools:
-            raise ValueError(
-                "a credential that tools may use needs at least one allowed tool"
-            )
-        domains = normalize_domains(allowed_domains) or normalize_domains(spec.allowed_domains)
-        if restorable and not domains:
-            raise ValueError(
-                "a credential that tools may use needs at least one allowed domain"
-            )
         now = time.time()
         account = Account(
             id=account_id or new_account_id(),
@@ -284,8 +260,6 @@ class CredentialManager:
             created_at=now,
             updated_at=now,
             expires_at=expires_at,
-            allowed_tools=tools,
-            allowed_domains=domains,
             restorable=restorable,
             secret_fields=tuple(sorted(payload)),
         )
@@ -311,8 +285,6 @@ class CredentialManager:
         account_id: str,
         *,
         label: str | None = None,
-        allowed_tools: Iterable[str] | None = None,
-        allowed_domains: Iterable[str] | None = None,
         restorable: bool | None = None,
     ) -> Account:
         stored = self.store.get_account(account_id)
@@ -322,26 +294,8 @@ class CredentialManager:
         self.vault.suppress_account(account_id)
         if label is not None:
             account.label = label.strip() or account.label
-        tools = account.allowed_tools if allowed_tools is None else tuple(
-            dict.fromkeys(str(tool) for tool in allowed_tools if str(tool).strip())
-        )
-        domains = (
-            account.allowed_domains if allowed_domains is None
-            else normalize_domains(allowed_domains)
-        )
-        restorable_now = account.restorable if restorable is None else restorable
-        if restorable_now and not tools:
-            raise ValueError("a credential that tools may use needs at least one allowed tool")
-        if restorable_now and not domains:
-            raise ValueError("a credential that tools may use needs at least one allowed domain")
-        denied_tools = [tool for tool in tools if is_tool_denied(tool)]
-        if denied_tools:
-            raise ValueError(
-                "these tools can never receive a credential: " + ", ".join(denied_tools)
-            )
-        account.allowed_tools = tools
-        account.allowed_domains = domains
-        account.restorable = restorable_now
+        if restorable is not None:
+            account.restorable = restorable
         account.updated_at = time.time()
         self.store.save_account(account, stored.payload)
         with self._lock:
@@ -382,23 +336,12 @@ class CredentialManager:
         method: AuthMethod,
         purpose: str,
         run_id: str | None,
-        allowed_tools: Iterable[str] = (),
-        allowed_domains: Iterable[str] = (),
         ttl_seconds: float | None = None,
     ) -> AuthRequest:
         self.load()
         spec = self.connector(connector_id)
         if method not in spec.auth_methods:
             raise ValueError(f"{connector_id} does not support {method.value} authentication")
-        tools = tuple(
-            dict.fromkeys(str(tool) for tool in allowed_tools if str(tool).strip())
-        ) or spec.tool_patterns
-        domains = normalize_domains(allowed_domains) or normalize_domains(spec.allowed_domains)
-        denied_tools = [tool for tool in tools if is_tool_denied(tool)]
-        if denied_tools:
-            raise ValueError(
-                "these tools can never receive a credential: " + ", ".join(denied_tools)
-            )
         request = self.auth.create(
             new_auth_request_id(),
             connector_id=connector_id,
@@ -406,8 +349,6 @@ class CredentialManager:
             fields=tuple(field.name for field in spec.fields_for(method)),
             purpose=purpose,
             run_id=run_id,
-            allowed_tools=tools,
-            allowed_domains=domains,
             ttl_seconds=ttl_seconds,
         )
         self.store.save_auth_request(request.public_dict())
@@ -437,8 +378,6 @@ class CredentialManager:
                 label=label or spec.name,
                 method=request.method,
                 values=values,
-                allowed_tools=request.allowed_tools,
-                allowed_domains=request.allowed_domains,
                 restorable=True,
             )
             self.auth.complete(request_id, account.id)
@@ -481,8 +420,6 @@ class CredentialManager:
                 created_at=now,
                 updated_at=now,
                 expires_at=expires_at,
-                allowed_tools=request.allowed_tools,
-                allowed_domains=request.allowed_domains,
                 restorable=False,
                 secret_fields=tuple(sorted(payload)),
             )
@@ -552,18 +489,10 @@ class CredentialManager:
     def redact_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return self.vault.redact_messages(messages)
 
-    def restore_arguments(
-        self,
-        tool_name: str,
-        params: dict[str, Any],
-        *,
-        run_id: str | None,
-        destination: str | None = None,
-    ) -> dict[str, Any]:
+    def restore_arguments(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Replace credential placeholders in a tool call with their secrets."""
         self._assert_accounts_usable(params)
-        restored = restore_tool_arguments(
-            tool_name, params, self.vault, run_id=run_id, destination=destination,
-        )
+        restored = cast(dict[str, Any], self.vault.restore_value(params))
         for value in _walk_strings(params):
             for token in self.vault.placeholders_in(value):
                 entry = self.vault.entry_for_token(token)
@@ -768,15 +697,12 @@ class CredentialManager:
                 and not account.expired
                 and field_name in _RESTORABLE_FIELDS
                 and field_name not in _NON_RESTORABLE_FIELDS
-                and bool(account.allowed_tools)
             )
             self.vault.register(SecretEntry(
                 secret=str(value),
                 account_id=account.id,
                 field=field_name,
                 restorable=restorable,
-                allowed_tools=account.allowed_tools,
-                allowed_domains=account.allowed_domains,
                 kind=kinds.get(field_name, CredentialKind.PERSISTENT),
             ))
 
@@ -813,8 +739,6 @@ def _connector_from_dict(raw: dict[str, Any]) -> ConnectorSpec:
             ))
     auth_methods = data.get("auth_methods")
     scopes = data.get("scopes")
-    domains = data.get("allowed_domains")
-    tools = data.get("tool_patterns")
     oauth_scopes = data.get("oauth_scopes")
 
     def _strings(value: object, fallback: tuple[str, ...] = ()) -> tuple[str, ...]:
@@ -833,8 +757,6 @@ def _connector_from_dict(raw: dict[str, Any]) -> ConnectorSpec:
         ),
         fields=tuple(fields),
         scopes=_strings(scopes),
-        allowed_domains=_strings(domains),
-        tool_patterns=_strings(tools),
         oauth_authorization_url=str(data.get("oauth_authorization_url") or ""),
         oauth_token_url=str(data.get("oauth_token_url") or ""),
         oauth_client_id=str(data.get("oauth_client_id") or ""),

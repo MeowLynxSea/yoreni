@@ -19,7 +19,7 @@ import threading
 from dataclasses import dataclass, field, replace
 from typing import Any, cast
 
-from yoreni.credentials.models import CredentialKind
+from yoreni.credentials.models import CredentialKind, CredentialUseDeniedError
 
 PLACEHOLDER_RE = re.compile(r"\{\{YORENI_SECRET_[0-9a-f]{16}\}\}")
 _UNKNOWN_PLACEHOLDER_PREFIX = "{{YORENI_SECRET_REDACTED_"
@@ -52,8 +52,6 @@ class SecretEntry:
     account_id: str
     field: str
     restorable: bool
-    allowed_tools: tuple[str, ...] = ()
-    allowed_domains: tuple[str, ...] = ()
     kind: CredentialKind = CredentialKind.PERSISTENT
 
 
@@ -145,7 +143,7 @@ class SecretVault:
             return self._state.tokens.get(token)
 
     def entries(self) -> list[SecretEntry]:
-        """Return registered credential entries for policy evaluation."""
+        """Return every registered credential entry."""
         with self._lock:
             return list(self._state.tokens.values())
 
@@ -154,6 +152,33 @@ class SecretVault:
 
     def is_unknown_placeholder(self, text: str) -> bool:
         return text.startswith(_UNKNOWN_PLACEHOLDER_PREFIX)
+
+    # -- restoration ------------------------------------------------------
+
+    def restore_value(self, value: object) -> object:
+        """Replace placeholders in a JSON-shaped value with their secrets.
+
+        Only entries an account still marks restorable are expanded; a revoked,
+        expired, or consumed credential raises instead of passing the literal
+        token through to the tool.
+        """
+        if isinstance(value, str):
+            for token in self.placeholders_in(value):
+                entry = self.entry_for_token(token)
+                if entry is None:
+                    raise CredentialUseDeniedError("unknown credential placeholder")
+                if not entry.restorable:
+                    raise CredentialUseDeniedError(
+                        f"account {entry.account_id} cannot restore this credential"
+                    )
+                value = value.replace(token, entry.secret)
+            return value
+        if isinstance(value, dict):
+            mapping = cast(dict[object, object], value)
+            return {key: self.restore_value(item) for key, item in mapping.items()}
+        if isinstance(value, list):
+            return [self.restore_value(item) for item in cast(list[object], value)]
+        return value
 
     # -- redaction --------------------------------------------------------
 

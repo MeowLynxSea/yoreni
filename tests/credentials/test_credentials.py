@@ -13,8 +13,7 @@ from yoreni.agent.tools.execution import _redact_tool_payload
 from yoreni.credentials.auth import AuthRequestStatus
 from yoreni.credentials.crypto import SecretBox
 from yoreni.credentials.manager import CredentialManager, reset_credential_manager
-from yoreni.credentials.models import AuthMethod
-from yoreni.credentials.policy import CredentialUseDeniedError
+from yoreni.credentials.models import AuthMethod, CredentialUseDeniedError
 from yoreni.credentials.store import CredentialStore
 from yoreni.credentials.vault import (
     RedactionError,
@@ -44,14 +43,12 @@ def manager(tmp_path, monkeypatch) -> CredentialManager:
         reset_vault(None)
 
 
-def _connect(manager: CredentialManager, *, tools=("browser_type",), domains=("example.com",)):
+def _connect(manager: CredentialManager):
     return manager.connect(
         "api_key",
         label="Example",
         method=AuthMethod.API_KEY,
         values={"api_key": SECRET},
-        allowed_tools=tools,
-        allowed_domains=domains,
         restorable=True,
     )
 
@@ -109,40 +106,19 @@ async def test_provider_blocks_request_when_redaction_fails(manager, monkeypatch
     assert response.finish_reason == "error"
 
 
-def test_restoration_requires_binding_fields_and_destination(manager):
+def test_restoration_reaches_any_tool_and_argument(manager):
     _connect(manager)
     token = manager.vault.token_for(SECRET)
-    restored = manager.restore_arguments(
-        "browser_type",
-        {"selector": "#password", "text": token, "url": "https://example.com/login"},
-        run_id="run-1",
-    )
-    assert restored["text"] == SECRET
 
-    with pytest.raises(CredentialUseDeniedError):
-        manager.restore_arguments(
-            "browser_type",
-            {"text": token, "url": "https://example.com.evil.test/login"},
-            run_id="run-1",
-        )
-    with pytest.raises(CredentialUseDeniedError):
-        manager.restore_arguments(
-            "browser_type",
-            {"selector": token, "url": "https://example.com/login"},
-            run_id="run-1",
-        )
-    with pytest.raises(CredentialUseDeniedError):
-        manager.restore_arguments(
-            "shell",
-            {"command": token},
-            run_id="run-1",
-        )
-    with pytest.raises(CredentialUseDeniedError):
-        manager.restore_arguments(
-            "some_other_tool",
-            {"text": token, "url": "https://example.com/login"},
-            run_id="run-1",
-        )
+    assert manager.restore_arguments(
+        {"selector": "#password", "text": token, "url": "https://example.com/login"},
+    )["text"] == SECRET
+    assert manager.restore_arguments(
+        {"command": token},
+    )["command"] == SECRET
+    assert manager.restore_arguments(
+        {"selector": token, "url": "https://elsewhere.test/login"},
+    )["selector"] == SECRET
 
 
 def test_tool_output_is_redacted_before_it_reaches_context(manager):
@@ -153,113 +129,22 @@ def test_tool_output_is_redacted_before_it_reaches_context(manager):
     assert manager.vault.token_for(SECRET) in str(result)
 
 
-def test_sub_action_grant_covers_the_grouped_tool(manager):
-    """A grant may name an action ('browser_type') and the tool is 'browser'."""
-    _connect(manager, tools=("browser_type",))
-    token = manager.vault.token_for(SECRET)
+async def test_a_card_opens_with_only_a_connector_and_purpose(manager):
+    from yoreni.agent.tools.credentials import RequestAuthenticationTool
 
-    restored = manager.restore_arguments(
-        "browser",
-        {"action": "type", "selector": "#password", "text": token},
-        run_id="run-1",
-        destination="https://example.com/login",
+    manager.set_auth_listener(lambda request: None)
+    task = asyncio.create_task(
+        RequestAuthenticationTool().execute(connector_id="api_key", purpose="Sign in")
     )
+    await asyncio.sleep(0)
+    pending = manager.auth.pending()
+    assert len(pending) == 1
 
-    assert restored["text"] == SECRET
+    manager.submit_auth_request(pending[0].id, {"api_key": "card-secret-value"})
+    payload = json.loads(await asyncio.wait_for(task, 5))
 
-
-def test_domain_grants_accept_urls_and_ports(manager):
-    _connect(manager, domains=("https://Example.com:8443/login", "*.other.test"))
-    token = manager.vault.token_for(SECRET)
-
-    restored = manager.restore_arguments(
-        "browser",
-        {"action": "type", "selector": "#password", "text": token},
-        run_id="run-1",
-        destination="example.com",
-    )
-    assert restored["text"] == SECRET
-    assert manager.restore_arguments(
-        "browser",
-        {"action": "type", "selector": "#password", "text": token},
-        run_id="run-1",
-        destination="deep.other.test",
-    )["text"] == SECRET
-
-
-def test_tool_reported_destination_replaces_a_missing_url(manager):
-    _connect(manager)
-    token = manager.vault.token_for(SECRET)
-    args = {"action": "type", "selector": "#password", "text": token}
-
-    assert manager.restore_arguments(
-        "browser", dict(args), run_id="run-1", destination="https://example.com/signin",
-    )["text"] == SECRET
-
-    with pytest.raises(CredentialUseDeniedError):
-        manager.restore_arguments(
-            "browser", dict(args), run_id="run-1", destination="https://evil.test/signin",
-        )
-    with pytest.raises(CredentialUseDeniedError):
-        manager.restore_arguments("browser", dict(args), run_id="run-1")
-
-
-def test_restorable_account_requires_tools_and_domains(manager):
-    with pytest.raises(ValueError):
-        manager.connect(
-            "api_key",
-            label="Example",
-            method=AuthMethod.API_KEY,
-            values={"api_key": SECRET},
-            allowed_tools=(),
-            allowed_domains=("example.com",),
-            restorable=True,
-        )
-    with pytest.raises(ValueError):
-        manager.connect(
-            "api_key",
-            label="Example",
-            method=AuthMethod.API_KEY,
-            values={"api_key": SECRET},
-            allowed_tools=("browser",),
-            allowed_domains=(),
-            restorable=True,
-        )
-
-
-async def test_a_secret_request_must_name_its_tool_and_site(monkeypatch):
-    from yoreni.agent.tools import credentials as credentials_module
-
-    class _Connector:
-        id = "basic_auth"
-        auth_methods = [AuthMethod.BASIC]
-
-        def fields_for(self, method):
-            return ["username", "password"]
-
-    class _Auth:
-        has_listener = True
-
-    class _Manager:
-        auth = _Auth()
-
-        def connectors(self):
-            return [{"id": "basic_auth"}]
-
-        def connector(self, connector_id):
-            assert connector_id == "basic_auth"
-            return _Connector()
-
-    monkeypatch.setattr(credentials_module, "get_credential_manager", lambda: _Manager())
-    tool = credentials_module.RequestAuthenticationTool()
-
-    missing_tool = await tool.execute(connector_id="basic_auth", purpose="Sign in")
-    assert "allowed_tools" in missing_tool
-
-    missing_site = await tool.execute(
-        connector_id="basic_auth", purpose="Sign in", allowed_tools=["mcp_docs"],
-    )
-    assert "allowed_domains" in missing_site
+    assert payload["status"] == "connected"
+    assert payload["placeholders"]["api_key"] == manager.vault.token_for("card-secret-value")
 
 
 def test_store_never_contains_plaintext_and_rewraps(tmp_path):
@@ -271,8 +156,6 @@ def test_store_never_contains_plaintext_and_rewraps(tmp_path):
         label="Example",
         method=AuthMethod.BASIC,
         values={"username": "alice", "password": "correct-horse-battery"},
-        allowed_tools=("browser_type",),
-        allowed_domains=("example.com",),
     )
     raw = (tmp_path / "db.sqlite3").read_bytes()
     assert b"correct-horse-battery" not in raw
@@ -298,8 +181,6 @@ async def test_submitted_auth_request_creates_account_and_resumes_run(manager):
         method=AuthMethod.API_KEY,
         purpose="Connect the billing service",
         run_id="run-42",
-        allowed_tools=("browser_type",),
-        allowed_domains=("example.com",),
     )
     wait = asyncio.create_task(manager.auth.wait(request.id, 5))
     await asyncio.sleep(0)
@@ -316,9 +197,7 @@ async def test_submitted_auth_request_creates_account_and_resumes_run(manager):
 
     token = manager.vault.token_for("another-secret-value")
     restored = manager.restore_arguments(
-        "browser_type",
         {"text": token, "url": "https://example.com/settings"},
-        run_id="run-42",
     )
     assert restored["text"] == "another-secret-value"
 
@@ -384,17 +263,13 @@ def test_one_time_code_is_memory_only_and_consumed_after_use(tmp_path):
         label="SMS",
         method=AuthMethod.ONE_TIME_CODE,
         values={"code": "654321"},
-        allowed_tools=("browser_type",),
-        allowed_domains=("example.com",),
     )
     assert b"654321" not in (tmp_path / "db.sqlite3").read_bytes()
     assert manager.account(account.id) is not None
 
     token = vault.token_for("654321")
     restored = manager.restore_arguments(
-        "browser_type",
         {"text": token, "url": "https://example.com/verify"},
-        run_id="run-1",
     )
     assert restored["text"] == "654321"
     assert manager.account(account.id) is None
@@ -402,9 +277,7 @@ def test_one_time_code_is_memory_only_and_consumed_after_use(tmp_path):
     assert "654321" not in manager.redact("code=654321")
     with pytest.raises(CredentialUseDeniedError):
         manager.restore_arguments(
-            "browser_type",
             {"text": token, "url": "https://example.com/verify"},
-            run_id="run-1",
         )
 
 
@@ -556,7 +429,6 @@ async def test_execution_middleware_hides_secret_from_hooks_and_redacts_output(m
         workspace_violation_counts={},
         hook=hook,
         context=context,
-        run_id="run-1",
     )
     assert EchoTool.observed == [SECRET]
     assert hook.params[0]["text"] == token
@@ -564,45 +436,27 @@ async def test_execution_middleware_hides_secret_from_hooks_and_redacts_output(m
     assert SECRET not in events[0]["detail"]
 
 
-def test_browser_tool_without_a_verifiable_destination_is_denied(manager):
-    _connect(manager)
-    token = manager.vault.token_for(SECRET)
-    with pytest.raises(CredentialUseDeniedError):
-        manager.restore_arguments(
-            "browser_type",
-            {"selector": "#password", "text": token},
-            run_id="run-1",
-        )
-
-
-def test_accounts_cannot_lend_each_others_domains(manager):
+def test_two_accounts_restore_independently(manager):
     first = manager.connect(
         "api_key",
         label="First",
         method=AuthMethod.API_KEY,
         values={"api_key": "first.example-secret"},
-        allowed_tools=("browser_fill",),
-        allowed_domains=("first.example",),
     )
     second = manager.connect(
         "api_key",
         label="Second",
         method=AuthMethod.API_KEY,
         values={"api_key": "second.example-secret"},
-        allowed_tools=("browser_fill",),
-        allowed_domains=("second.example",),
     )
     assert first.id != second.id
     mixed = (
         f"{manager.vault.token_for('first.example-secret')} "
         f"{manager.vault.token_for('second.example-secret')}"
     )
-    with pytest.raises(CredentialUseDeniedError):
-        manager.restore_arguments(
-            "browser_fill",
-            {"text": mixed, "url": "https://second.example/login"},
-            run_id="run-1",
-        )
+    assert manager.restore_arguments({"text": mixed})["text"] == (
+        "first.example-secret second.example-secret"
+    )
 
 
 async def test_provider_context_pending_messages_are_redacted(manager):
@@ -643,7 +497,7 @@ def test_revoked_account_loses_restoration_after_reload(tmp_path, monkeypatch):
     account = _connect(manager)
     token = manager.vault.token_for(SECRET)
     assert manager.restore_arguments(
-        "browser_type", {"text": token, "url": "https://example.com"}, run_id="r",
+        {"text": token, "url": "https://example.com"},
     )["text"] == SECRET
     manager.revoke(account.id)
 
@@ -651,7 +505,7 @@ def test_revoked_account_loses_restoration_after_reload(tmp_path, monkeypatch):
     reloaded.load()
     with pytest.raises(CredentialUseDeniedError):
         reloaded.restore_arguments(
-            "browser_type", {"text": token, "url": "https://example.com"}, run_id="r",
+            {"text": token, "url": "https://example.com"},
         )
     # Revocation removes permission, not the ability to redact an echo.
     assert SECRET not in reloaded.redact(SECRET)
@@ -693,8 +547,6 @@ def test_accounts_are_created_only_by_connects(manager):
         label="Example",
         method=AuthMethod.API_KEY,
         values={"api_key": SECRET},
-        allowed_tools=("browser_type",),
-        allowed_domains=("example.com",),
     )
     assert [item["id"] for item in manager.accounts()] == [account.id]
 

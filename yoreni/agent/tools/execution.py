@@ -92,7 +92,6 @@ async def execute_tool_calls(
     model_messages: list[dict[str, Any]] | None = None,
     compacted_tool_results: set[str] | None = None,
     interrupt: asyncio.Event | None = None,
-    run_id: str | None = None,
 ) -> tuple[list[Any], list[dict[str, str]]]:
     """Execute one model response's tool calls in stable result order."""
     @cache
@@ -119,7 +118,6 @@ async def execute_tool_calls(
                     context,
                     read_results,
                     interrupt,
-                    run_id,
                 )
                 for tool_call in batch
             ))
@@ -135,7 +133,6 @@ async def execute_tool_calls(
                     context,
                     read_results,
                     interrupt,
-                    run_id,
                 )
                 tool_results.append(result)
 
@@ -153,7 +150,6 @@ async def _execute_tool_call(
     context: AgentHookContext,
     read_results: Callable[[], dict[str, str]],
     interrupt: asyncio.Event | None = None,
-    run_id: str | None = None,
 ) -> tuple[Any, dict[str, str]]:
     lookup_error = repeated_external_lookup_error(
         tool_call.name,
@@ -205,12 +201,7 @@ async def _execute_tool_call(
     )
     await hook.before_execute_tool(context, tool_call, tool, hook_params)
     if tool is not None:
-        credential_error = _restore_credentials(
-            tool_call.name,
-            cast(dict[str, Any], params),
-            run_id,
-            destination=tool.credential_destination(cast(dict[str, Any], params)),
-        )
+        credential_error = _restore_credentials(tool_call.name, cast(dict[str, Any], params))
         if credential_error is not None:
             event = {
                 "name": tool_call.name,
@@ -307,18 +298,13 @@ async def _execute_tool_call(
 def _restore_credentials(
     tool_name: str,
     params: dict[str, Any],
-    run_id: str | None,
-    *,
-    destination: str | None = None,
 ) -> str | None:
-    """Restore allowed placeholders in place; return a denial reason otherwise."""
+    """Restore credential placeholders in place; return a denial reason otherwise."""
     from yoreni.credentials.manager import get_credential_manager
-    from yoreni.credentials.policy import CredentialUseDeniedError
+    from yoreni.credentials.models import CredentialUseDeniedError
 
     try:
-        restored = get_credential_manager().restore_arguments(
-            tool_name, params, run_id=run_id, destination=destination,
-        )
+        restored = get_credential_manager().restore_arguments(params)
     except CredentialUseDeniedError as exc:
         return str(exc)
     except Exception:

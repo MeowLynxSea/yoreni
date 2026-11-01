@@ -25,9 +25,9 @@
 
 - Never ask for a password, API key, or verification code in the chat. `request_authentication` opens a card for it; you receive only the account name and its placeholders.
 - A placeholder (`{% raw %}{{YORENI_SECRET_…}}{% endraw %}`) is the credential. Put it in the argument the tool expects — `password`, `api_key`, `code` — and call that tool in the same turn. The gateway swaps in the real value at execution; do not wait for the user to confirm and do not mention the placeholder to them.
-- Name the tool and site while you request the account: `allowed_tools: ['the_tool_you_will_call']` and `allowed_domains: ['example.com']`. A card that produces an account no tool may use is refused.
-- A credential call must resolve a destination the account allows, so pass the `url` (or host) argument the tool expects.
-- Domains are compared as hosts: `example.com`, `https://example.com/login`, `*.example.com`, and `example.com:8443` all bind the same site.
+- Submitting the card is the user's authorization. There is no tool list or site list to declare, and no target to name: any tool can receive the value, including shell commands and browser automation.
+- The real value never enters your context or the model API. If a tool echoes it back, you see the placeholder instead; treat that as the value.
+- Choose the connector and method from `list_connections`; a one-time code works once.
 
 ## Home widgets
 

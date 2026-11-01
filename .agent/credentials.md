@@ -4,9 +4,9 @@
 
 ## Vocabulary and ownership
 
-A **connector** is an authentication definition (`ConnectorSpec`): allowed methods, required fields, scopes, optional OAuth endpoints, and default destinations. Built-in connectors cover API keys, basic auth, one-time codes, public services, and MCP servers; operators can register more connectors, which are persisted beside accounts.
+A **connector** is an authentication definition (`ConnectorSpec`): allowed methods, required fields, scopes, and optional OAuth endpoints. Built-in connectors cover API keys, basic auth, one-time codes, public services, and MCP servers; operators can register more connectors, which are persisted beside accounts.
 
-An **account** is one user's connection through a connector, including its bound tool names and allowed domains. An **authentication request** is the structured card the agent asks for; it carries the connector, method, field names, purpose, requesting Run, and the bindings the account will receive. A **credential** is one field of an account's encrypted payload.
+An **account** is one user's connection through a connector, including whether its secrets may be restored into tool calls. An **authentication request** is the structured card the agent asks for; it carries the connector, method, field names, purpose, and the requesting Run. A **credential** is one field of an account's encrypted payload.
 
 `CredentialManager` is the single entry point: it owns the encrypted store, the in-memory secret vault, the connector catalog, and pending authentication requests. WebUI routes and agent tools call it; neither touches `credentials.sqlite3` or the key file directly.
 
@@ -28,13 +28,15 @@ Provider API keys are registered as redaction-only secrets at gateway startup. L
 
 Restoration happens in `agent/tools/execution.py` after `before_execute_tool` and immediately before `tool.execute`, so hooks, events, transcripts, and checkpoints only ever see the placeholder arguments.
 
-A call is denied unless every placeholder sits in a credential-shaped field (`text`, `value`, `password`, `api_key`, …), belongs to an account that is connected and unexpired, is marked restorable, and names the tool or a matching glob in its `allowed_tools`. A grant may name an action of a grouped tool (`browser_type` covers `browser`), which narrows the grant without widening it to another tool. Every credential-bearing call must also resolve a destination: from an argument (`url`, `host`, …) or from `Tool.credential_destination`, which a tool that acts on a target of its own can implement. Each account's own `allowed_domains` must match the resolved host, so one account never lends its domains to another. A call with no knowable destination is a denial, not an implicit wildcard. Domains are compared as hosts: grants may be written as `https://host/path`, `*.host`, or `host:port`, and are normalized on write. Shell, exec, HTTP fetch, messaging, filesystem writes, and unrelated tools are denied outright, so a placeholder cannot be smuggled out through a command line or a URL. One-time codes stop restoring after their first use, but their mapping stays available for redaction. Revoking or expiring an account removes restoration while keeping redaction.
+Any tool can receive a credential. `CredentialManager.restore_arguments` checks only that each placeholder belongs to an account that is connected, unexpired, and marked restorable, then asks `SecretVault.restore_value` to substitute the value anywhere in the argument tree. There is no tool allowlist, no argument-field allowlist, and no destination check: submitting a card is the user's authorization, and the model decides where the value goes. Shell, exec, HTTP, messaging, and filesystem tools are not excluded.
+
+One-time codes stop restoring after their first use, but their mapping stays available for redaction. Revoking or expiring an account removes restoration while keeping redaction.
 
 Agents receive placeholders from `request_authentication` and `list_connections`; these are opaque references, never secrets. Tool output, including errors and exceptions, is redacted before it enters the model context, run record, memory, or WebUI activity detail.
 
 ## Authentication cards and OAuth
 
-`request_authentication` creates a persisted auth request and blocks the Run. It resolves the grant before the card appears, because a card that produces an account no tool can use wastes the user's input: a secret-bearing request without `allowed_tools` or `allowed_domains` is an error rather than a stored dead account. The gateway pushes an `auth_request` frame; the WebUI renders a card and submits values through `/api/webui/credentials/submit`, never through chat or MCP elicitation. Submission seals the payload, binds the account to the resolved tool and domain list, resolves the waiting future thread-safely, and the Run continues.
+`request_authentication` creates a persisted auth request and blocks the Run. The card asks only for the connector and its fields; nothing is inferred from the current page. The gateway pushes an `auth_request` frame; the WebUI renders a card and submits values through `/api/webui/credentials/submit`, never through chat or MCP elicitation. Submission seals the payload, marks the account restorable, resolves the waiting future thread-safely, and the Run continues.
 
 Settings → Accounts (`webui/src/components/settings/accounts/`) is the operator surface for the same records. It lists only connectors that exist in the runtime — API key and username/password today, plus any connector the operator registered — and groups them by connection kind. It offers connect, manage, and disconnect. MCP authorization, one-time codes, and public endpoints stay in their own surfaces. There are deliberately no vendor presets: a service appears here only after its integration and OAuth client actually exist, so the page never advertises a connection that cannot complete.
 
@@ -42,6 +44,8 @@ OAuth uses authorization code with PKCE and a server-side `state`. The browser i
 
 ## Boundaries and limits
 
-Tools that are granted an account still see the real value at execution time. The system guarantees that the value does not enter a model request, transcript, memory, or log, and it limits which tools and destinations may receive it; it cannot make an arbitrary untrusted tool safe with a password.
+The single guarantee is that a stored secret never enters a model request. Redaction enforces it at the provider boundary, fails closed, and covers every model call the process makes. It detects the literal value; a value the model transforms first — base64, a split string, a re-encoding — is no longer the registered secret and will pass through. Treat that as the residual risk of the design.
 
-Generic OAuth uses public-client PKCE (no client secret). Connectors whose provider requires a confidential client secret are not supported yet. Browser automation is not part of this package: Playwright and browser MCP tools are covered by the same restoration and redaction middleware, and a browser tool that cannot report its target URL must not be granted a network credential.
+Any tool that receives a placeholder sees the real value at execution time, so the model can send it anywhere a tool can reach. Nothing restricts which tool or destination gets it.
+
+Generic OAuth uses public-client PKCE (no client secret). Connectors whose provider requires a confidential client secret are not supported yet.

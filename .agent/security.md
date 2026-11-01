@@ -34,6 +34,6 @@ HTTP/SSE MCP transports are part of this boundary: validate configured MCP URLs 
 
 ## Credential Boundary
 
-Stored credentials belong to `yoreni/credentials/`. Model-bound text is redacted at the provider boundary, and a placeholder is restored only inside `agent/tools/execution.py` for an account that explicitly binds the tool, the field, and the destination. Shell, exec, HTTP fetch, messaging, and filesystem-write tools never receive a restored secret.
+Stored credentials belong to `yoreni/credentials/`. Model-bound text is redacted at the provider boundary, and a placeholder is restored only inside `agent/tools/execution.py`, for an account that is still connected and restorable. Any tool can receive the restored value; the guarantee is that it never enters a model request, not that it stays away from any particular tool.
 
 **Rule**: Do not log, echo, persist, or forward a decrypted credential. New outbound model paths must go through `LLMProvider._safe_chat`/`_safe_chat_stream` or call `CredentialManager.redact_messages`; new tool paths that can carry a placeholder must rely on the execution middleware rather than restoring values themselves.

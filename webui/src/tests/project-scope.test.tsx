@@ -149,6 +149,47 @@ describe("project transcripts", () => {
     client.close();
   });
 
+  it("alerts for a reply in another conversation and opens that one", async () => {
+    vi.mocked(fetchPersonalAgent).mockResolvedValue(emptyHistory());
+    const { client, socket, wrapper } = setup();
+    const { result, unmount } = renderHook(() => useAgentRun("p-1"), { wrapper });
+    await waitFor(() => expect(result.current.historyLoaded).toBe(true));
+
+    act(() => socket.receive({ event: "message", id: "m-9", text: "other project", project_id: "p-2" }));
+    expect(showBrowserNotification).toHaveBeenCalledWith(
+      "other project",
+      { key: "m-9", url: expect.stringMatching(/#\/projects\/p-2$/) },
+    );
+    expect(result.current.messages).toEqual([]);
+
+    unmount();
+    client.close();
+  });
+
+  it("alerts for a reply that has no conversation row", async () => {
+    vi.mocked(fetchPersonalAgent).mockResolvedValue(emptyHistory());
+    const { client, socket, wrapper } = setup();
+    const { result, unmount } = renderHook(() => useAgentRun("p-1"), { wrapper });
+    await waitFor(() => expect(result.current.historyLoaded).toBe(true));
+
+    // The frame a Run sends when its agent never called send_message carries
+    // no row ID, but the transcript still shows this text.
+    act(() => socket.receive({ event: "message", run_id: "run-2", text: "  ", project_id: "p-1" }));
+    expect(showBrowserNotification).not.toHaveBeenCalled();
+
+    act(() => socket.receive({ event: "message", run_id: "run-2", text: "All done.", project_id: "p-1" }));
+    expect(showBrowserNotification).toHaveBeenCalledWith(
+      "All done.",
+      { key: "run-2:answer", url: expect.stringMatching(/#\/projects\/p-1$/) },
+    );
+
+    act(() => socket.receive({ event: "message", run_id: "run-2", text: "All done.", project_id: "p-1" }));
+    expect(showBrowserNotification).toHaveBeenCalledOnce();
+
+    unmount();
+    client.close();
+  });
+
   it("starts a new transcript when the project changes", async () => {
     vi.mocked(fetchPersonalAgent)
       .mockResolvedValueOnce(answerHistory("first project"))

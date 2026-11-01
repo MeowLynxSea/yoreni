@@ -124,6 +124,8 @@ async def test_install_stages_the_extension_and_records_its_version(tmp_path, mo
         (str(browser_assets.EXTENSION_DIR), f"{browser_assets.VM_ASSET_ROOT}/extension.staging"),
     ]
     assert f"{browser_assets.VM_ASSET_ROOT}/VERSION" in backend.files
+    keyring = [cmd for kind, cmd in backend.calls if kind == "exec" and isinstance(cmd, tuple) and cmd[:2] == ("sh", "-c")]
+    assert keyring and "brave-keyring" in keyring[0][2]
 
 
 async def test_install_refuses_an_extension_without_a_manifest(tmp_path, monkeypatch) -> None:

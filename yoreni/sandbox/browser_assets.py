@@ -223,6 +223,22 @@ async def install(backend: SandboxBackend) -> None:
     )
 
 
+# Brave's .deb depends on `brave-keyring`, which only exists in their apt
+# repository. Yoreni installs a pinned package instead of using that repository,
+# so a local placeholder satisfies the dependency and keeps dpkg consistent
+# when the repository host is unreachable.
+_BRAVE_KEYRING_STUB = (
+    "set -eu; "
+    "rm -rf /tmp/brave-keyring; mkdir -p /tmp/brave-keyring/DEBIAN; "
+    "printf 'Package: brave-keyring\\nVersion: 1.20\\nArchitecture: all\\n"
+    "Maintainer: Yoreni <yoreni@localhost>\\n"
+    "Description: local placeholder, the Brave apt repository is unused\\n' "
+    "> /tmp/brave-keyring/DEBIAN/control; "
+    "dpkg-deb -b /tmp/brave-keyring /tmp/brave-keyring.deb >/dev/null; "
+    "dpkg -i /tmp/brave-keyring.deb >/dev/null"
+)
+
+
 async def _install_brave(backend: SandboxBackend, arch: str) -> None:
     """Install the presented browser; the bundled Chromium stays as a fallback."""
     installed = await backend.exec(
@@ -235,6 +251,14 @@ async def _install_brave(backend: SandboxBackend, arch: str) -> None:
     try:
         package = await asyncio.to_thread(ensure_brave_package, arch)
         await backend.copy_in(str(package), VM_BRAVE_DEB)
+        keyring = await backend.exec(
+            ("sh", "-c", _BRAVE_KEYRING_STUB), cwd="/", timeout_s=120, user="root"
+        )
+        if keyring.exit_code != 0:
+            raise SandboxUnavailableError(
+                (keyring.stderr or keyring.stdout).strip()[-400:]
+                or "could not prepare the Brave dependency"
+            )
         result = await backend.exec(
             ("apt-get", "install", "-y", "--no-install-recommends", VM_BRAVE_DEB),
             cwd="/",

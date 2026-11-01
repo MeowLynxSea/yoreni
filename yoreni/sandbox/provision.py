@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import shlex
+from pathlib import Path
 
 from loguru import logger
 
@@ -24,8 +25,13 @@ from yoreni.sandbox.browser_assets import BSK_HOME, VM_EXTENSION_DIR
 from yoreni.sandbox.config import SandboxConfig
 from yoreni.sandbox.errors import SandboxUnavailableError
 
-PROVISION_MARKER = "/workspace/.yoreni/provisioned-v2"
+PROVISION_MARKER = "/workspace/.yoreni/provisioned-v3"
 _BROWSER_PATH = "/workspace/.yoreni/ms-playwright"
+# Yoreni's wallpaper lives on the VM root filesystem: the workspace mount would
+# hide a file copied in from the host, and the desktop user needs to read it.
+_WALLPAPER_ASSET = Path(__file__).parent / "assets" / "theme" / "yoreni-wallpaper.jpg"
+VM_THEME_ROOT = "/opt/yoreni/theme"
+VM_WALLPAPER = f"{VM_THEME_ROOT}/yoreni-wallpaper.jpg"
 
 _PROVISION = r"""
 set -eu
@@ -43,6 +49,41 @@ if [ ! -f {marker} ]; then
     python3 -m pip install --no-cache-dir playwright
   python3 -m playwright install --with-deps chromium
   touch {marker}
+fi
+# The session belongs to the image: Yoreni only restyles it. LXQt keeps the
+# theme under the desktop user's home and reapplies the theme's own wallpaper
+# file on every session start, so the way to change it is to replace that file
+# and let the session restart read it back.
+if [ -d /config ] && id abc >/dev/null 2>&1 && [ -f {wallpaper} ]; then
+  CONF=/config/.config/lxqt/lxqt.conf
+  mkdir -p /config/.config/lxqt
+  touch "$CONF"
+  changed=0
+  for line in 'icon_theme=breeze-dark' 'theme=dark'; do
+    key=$(echo "$line" | cut -d= -f1)
+    grep -q "^$key=" "$CONF" || {{ echo "$line" >> "$CONF"; changed=1; }}
+  done
+  chown -R abc:abc /config/.config/lxqt
+  CURRENT=$(sed -n 's/^Wallpaper=//p' /config/.config/pcmanfm-qt/lxqt/settings.conf 2>/dev/null | head -n 1)
+  case "$CURRENT" in
+    /usr/share/lxqt/themes/*)
+      if [ -f "$CURRENT" ] && ! cmp -s {wallpaper} "$CURRENT"; then
+        cp {wallpaper} "$CURRENT"
+        changed=1
+      fi
+      ;;
+  esac
+  if [ "$changed" = 1 ]; then
+    old=$(pgrep -x lxqt-panel | sort | tr "\n" " ")
+    s6-svc -r /run/service/svc-de >/dev/null 2>&1 || true
+    for _ in $(seq 1 60); do
+      new=$(pgrep -x lxqt-panel | sort | tr "\n" " ")
+      if [ -n "$new" ] && [ "$new" != "$old" ] && pgrep -f "pcmanfm-qt --desktop" >/dev/null 2>&1; then
+        break
+      fi
+      sleep 1
+    done
+  fi
 fi
 """
 
@@ -150,8 +191,8 @@ _READINESS = (
 
 _STYLE_DESKTOP = r"""
 export DISPLAY={display}
-# XFCE panels repaint the root window; a solid root also keeps the surface flat
-# on window managers without a desktop component (for example Openbox).
+# A solid root keeps the surface flat on window managers that do not paint a
+# desktop of their own (for example Openbox).
 xsetroot -solid '#0b0d10' >/dev/null 2>&1 || true
 # The stock wallpaper is a photo of someone else's desktop. A flat Yoreni
 # surface reads as one continuous app instead of a remote computer.
@@ -187,9 +228,11 @@ class DesktopServices:
         return self._browser_ready
 
     async def provision(self) -> None:
+        await self._install_wallpaper()
         script = _PROVISION.format(
             marker=shlex.quote(PROVISION_MARKER),
             browser_path=shlex.quote(_BROWSER_PATH),
+            wallpaper=shlex.quote(VM_WALLPAPER),
         )
         result = await self._backend.exec(
             script,
@@ -202,6 +245,13 @@ class DesktopServices:
                 "VM provisioning failed. The desktop image needs network access to "
                 f"install x11vnc, noVNC and Chromium: {result.stderr.strip()[-800:]}"
             )
+
+    async def _install_wallpaper(self) -> None:
+        """Put Yoreni's wallpaper where the desktop session can read it."""
+        await self._backend.exec(
+            ("mkdir", "-p", VM_THEME_ROOT), cwd="/", timeout_s=10, user="root"
+        )
+        await self._backend.write_bytes(VM_WALLPAPER, _WALLPAPER_ASSET.read_bytes())
 
     async def start(self) -> None:
         if self._config.desktop_enabled:

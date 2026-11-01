@@ -18,9 +18,9 @@ class SandboxConfig(Base):
     enabled: bool = True
     backend: str = "boxlite"
     box_name: str = "yoreni"
-    # Openbox keeps the webtop desktop working while downloading 400 MB less
-    # than the XFCE tag.
-    image: str = "lscr.io/linuxserver/webtop:ubuntu-openbox"
+    # LXQt is the tidiest of the webtop desktops at this size: a Qt toolkit,
+    # one panel and a desktop that stays out of the way of the browser.
+    image: str = "lscr.io/linuxserver/webtop:ubuntu-lxqt"
     # Runtime home for images, box disks and the runtime database. Empty means
     # `<instance data dir>/sandbox`, so one backup or deletion covers all
     # Yoreni state.

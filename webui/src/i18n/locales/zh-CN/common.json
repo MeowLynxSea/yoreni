@@ -2524,7 +2524,8 @@
     "cancel": "取消",
     "connect": "连接",
     "continueInBrowser": "在浏览器中继续",
-    "secureNote": "凭证直接发送给 Yoreni，不会出现在对话里。",
+    "sessionOnly": "仅本次会话使用，不写入磁盘，也不会出现在对话里。",
+    "keepStored": "保存到「设置 → 账户」，之后仍可使用，但不会出现在对话里。",
     "fields": {
       "username": "用户名",
       "email": "邮箱",

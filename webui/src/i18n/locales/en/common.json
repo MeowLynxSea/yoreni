@@ -2524,7 +2524,8 @@
     "cancel": "Cancel",
     "connect": "Connect",
     "continueInBrowser": "Continue in browser",
-    "secureNote": "Credentials are sent directly to Yoreni and never appear in chat.",
+    "sessionOnly": "Used for this session only. Not written to disk, and never shown in chat.",
+    "keepStored": "Saved under Settings → Accounts for later, and never shown in chat.",
     "fields": {
       "username": "Username",
       "email": "Email",

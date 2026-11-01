@@ -23,7 +23,6 @@ class AuthRequestStatus(str, Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
-    EXPIRED = "expired"
     FAILED = "failed"
 
 
@@ -40,12 +39,7 @@ class AuthRequest:
     status: AuthRequestStatus = AuthRequestStatus.PENDING
     account_id: str | None = None
     created_at: float = field(default_factory=time.time)
-    expires_at: float = 0.0
     error: str | None = None
-
-    @property
-    def expired(self) -> bool:
-        return self.status is AuthRequestStatus.PENDING and self.expires_at <= time.time()
 
     def public_dict(self) -> dict[str, Any]:
         return {
@@ -60,21 +54,23 @@ class AuthRequest:
             "status": self.status.value,
             "account_id": self.account_id,
             "created_at": self.created_at,
-            "expires_at": self.expires_at,
             "error": self.error,
         }
 
 
 class AuthRequestManager:
-    """Tracks pending authentication requests and their waiting runs."""
+    """Tracks pending authentication requests and their waiting runs.
+
+    A request lives until the user answers it or the Run that asked for it is
+    cancelled. There is no time limit: a card left open is still valid, and
+    nothing disappears while the user is signing in.
+    """
 
     def __init__(
         self,
         *,
-        ttl_seconds: float = 600,
         notify: Callable[[AuthRequest], None] | None = None,
     ) -> None:
-        self._ttl = ttl_seconds
         self._notify = notify
         self._requests: dict[str, AuthRequest] = {}
         self._waiters: dict[str, asyncio.Future[AuthRequest]] = {}
@@ -91,11 +87,9 @@ class AuthRequestManager:
         fields: tuple[str, ...],
         purpose: str,
         run_id: str | None,
-        ttl_seconds: float | None = None,
         label: str = "",
         ephemeral: bool = False,
     ) -> AuthRequest:
-        now = time.time()
         request = AuthRequest(
             id=request_id,
             connector_id=connector_id,
@@ -105,12 +99,9 @@ class AuthRequestManager:
             run_id=run_id,
             label=label,
             ephemeral=ephemeral,
-            created_at=now,
-            expires_at=now + (ttl_seconds if ttl_seconds is not None else self._ttl),
         )
         loop = asyncio.get_running_loop()
         with self._guard:
-            self._expire_locked()
             self._requests[request_id] = request
             self._waiters[request_id] = loop.create_future()
             self._loops[request_id] = loop
@@ -120,7 +111,6 @@ class AuthRequestManager:
 
     def get(self, request_id: str) -> AuthRequest | None:
         with self._guard:
-            self._expire_locked()
             return self._requests.get(request_id)
 
     def set_notify(self, notify: Callable[[AuthRequest], None] | None) -> None:
@@ -133,7 +123,6 @@ class AuthRequestManager:
 
     def pending(self) -> list[AuthRequest]:
         with self._guard:
-            self._expire_locked()
             return [request for request in self._requests.values() if request.status is AuthRequestStatus.PENDING]
 
     def lock(self, request_id: str) -> threading.Lock:
@@ -197,34 +186,24 @@ class AuthRequestManager:
         else:
             loop.call_soon_threadsafe(resolve)
 
-    async def wait(self, request_id: str, timeout: float) -> AuthRequest:
+    async def wait(self, request_id: str, timeout: float | None = None) -> AuthRequest:
+        """Wait for the user to answer. ``timeout`` bounds the caller's patience,
+        not the request: a timeout leaves the card pending."""
         waiter = self._waiters.get(request_id)
         if waiter is None:
             request = self.get(request_id)
             if request is None:
                 raise KeyError(request_id)
             return request
+        if timeout is None:
+            return await asyncio.shield(waiter)
         try:
             return await asyncio.wait_for(asyncio.shield(waiter), timeout=timeout)
         except asyncio.TimeoutError:
-            return self.get(request_id) or AuthRequest(
-                id=request_id,
-                connector_id="",
-                method=AuthMethod.NONE,
-                fields=(),
-                purpose="",
-                run_id=None,
-                status=AuthRequestStatus.EXPIRED,
-            )
-
-    def _expire_locked(self) -> None:
-        now = time.time()
-        for request_id, request in list(self._requests.items()):
-            if request.status is not AuthRequestStatus.PENDING:
-                continue
-            if request.expires_at <= now:
-                request.status = AuthRequestStatus.EXPIRED
-                self._settle_locked(request_id, request)
+            request = self.get(request_id)
+            if request is None:
+                raise KeyError(request_id) from None
+            return request
 
     def _emit(self, request: AuthRequest) -> None:
         if self._notify is None:

@@ -2524,7 +2524,8 @@
     "cancel": "Cancelar",
     "connect": "Conectar",
     "continueInBrowser": "Continuar en el navegador",
-    "secureNote": "Las credenciales se envían directamente a Yoreni y nunca aparecen en el chat.",
+    "sessionOnly": "Solo para esta sesión: no se guarda en el disco y nunca aparece en el chat.",
+    "keepStored": "Se guarda en Configuración → Cuentas para usarla más adelante, y nunca aparece en el chat.",
     "fields": {
       "username": "Usuario",
       "email": "Correo electrónico",

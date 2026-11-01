@@ -2524,7 +2524,8 @@
     "cancel": "Annuler",
     "connect": "Se connecter",
     "continueInBrowser": "Continuer dans le navigateur",
-    "secureNote": "Les identifiants sont envoyés directement à Yoreni et n'apparaissent jamais dans la conversation.",
+    "sessionOnly": "Utilisé uniquement pour cette session : rien n'est écrit sur le disque et rien n'apparaît dans la conversation.",
+    "keepStored": "Enregistré dans Paramètres → Comptes pour plus tard, et jamais affiché dans la conversation.",
     "fields": {
       "username": "Nom d’utilisateur",
       "email": "E-mail",

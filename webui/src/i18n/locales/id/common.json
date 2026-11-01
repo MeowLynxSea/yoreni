@@ -2524,7 +2524,8 @@
     "cancel": "Batal",
     "connect": "Hubungkan",
     "continueInBrowser": "Lanjutkan di browser",
-    "secureNote": "Kredensial dikirim langsung ke Yoreni dan tidak pernah muncul di obrolan.",
+    "sessionOnly": "Hanya untuk sesi ini: tidak ditulis ke disk dan tidak pernah muncul di obrolan.",
+    "keepStored": "Disimpan di Pengaturan → Akun untuk dipakai lagi, dan tidak pernah muncul di obrolan.",
     "fields": {
       "username": "Nama pengguna",
       "email": "Email",

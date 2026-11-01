@@ -32,7 +32,7 @@ def manager(tmp_path, monkeypatch) -> CredentialManager:
     monkeypatch.setattr(manager_module, "_mcp_token_path", lambda: None)
     vault = SecretVault(b"\x02" * 32)
     store = CredentialStore(tmp_path / "credentials.sqlite3", box=SecretBox(b"\x01" * 32))
-    instance = CredentialManager(store=store, vault=vault, auth_ttl_seconds=60)
+    instance = CredentialManager(store=store, vault=vault)
     instance.load()
     reset_credential_manager(instance)
     reset_vault(vault)
@@ -170,12 +170,24 @@ async def test_an_ephemeral_request_is_named_and_never_persisted(manager):
     assert payload["label"] == "Status page"
     assert payload["ephemeral"] is True
     assert manager.store.get_account(account.id) is None
+    assert account.id not in [item["id"] for item in manager.accounts()]
 
     listed = json.loads(await ListConnectionsTool().execute())
     [reported] = [item for item in listed["accounts"] if item["id"] == account.id]
     assert reported["label"] == "Status page"
     assert reported["ephemeral"] is True
     assert reported["placeholders"]["api_key"] == manager.vault.token_for("session-only-key")
+
+
+async def test_a_one_time_code_request_is_session_only_even_when_asked_to_save(manager):
+    request = manager.request_auth(
+        connector_id="one_time_code",
+        method=AuthMethod.ONE_TIME_CODE,
+        purpose="Enter the code shown on your phone",
+        run_id="run-7",
+        ephemeral=False,
+    )
+    assert request.ephemeral is True
 
 
 def test_store_never_contains_plaintext_and_rewraps(tmp_path):

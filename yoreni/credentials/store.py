@@ -249,7 +249,7 @@ class CredentialStore:
                     request["status"],
                     request.get("purpose") or "",
                     float(request["created_at"]),
-                    float(request["expires_at"]),
+                    0.0,
                 ),
             )
 
@@ -280,11 +280,16 @@ class CredentialStore:
             )
 
     def expire_auth_requests(self, now: float | None = None) -> int:
+        """Close rows left pending by a previous process.
+
+        Requests are not timed any more, so ``expires_at`` is zero for current
+        rows; a nonzero value means the row predates that change.
+        """
         moment = now if now is not None else time.time()
         with self._connect() as connection:
             cursor = connection.execute(
                 "UPDATE auth_requests SET status = 'expired' "
-                "WHERE status = 'pending' AND expires_at <= ?",
+                "WHERE status = 'pending' AND expires_at > 0 AND expires_at <= ?",
                 (moment,),
             )
             return cursor.rowcount

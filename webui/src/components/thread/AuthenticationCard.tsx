@@ -134,7 +134,7 @@ export function AuthenticationCard({
 
       <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-4 text-muted-foreground">
         <Lock className="mt-0.5 size-3 shrink-0" strokeWidth={1.75} aria-hidden />
-        {t("auth.secureNote")}
+        {request.ephemeral ? t("auth.sessionOnly") : t("auth.keepStored")}
       </p>
     </form>
   );

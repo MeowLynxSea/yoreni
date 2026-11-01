@@ -2524,7 +2524,8 @@
     "cancel": "取消",
     "connect": "連線",
     "continueInBrowser": "在瀏覽器中繼續",
-    "secureNote": "憑證會直接傳送給 Yoreni，不會出現在對話中。",
+    "sessionOnly": "僅在本次工作階段使用，不寫入磁碟，也不會出現在對話中。",
+    "keepStored": "儲存到「設定 → 帳戶」，之後仍可使用，但不會出現在對話中。",
     "fields": {
       "username": "使用者名稱",
       "email": "電子郵件",

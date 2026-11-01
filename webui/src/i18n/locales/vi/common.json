@@ -2524,7 +2524,8 @@
     "cancel": "Hủy",
     "connect": "Kết nối",
     "continueInBrowser": "Tiếp tục trong trình duyệt",
-    "secureNote": "Thông tin đăng nhập được gửi trực tiếp tới Yoreni và không bao giờ xuất hiện trong cuộc trò chuyện.",
+    "sessionOnly": "Chỉ dùng cho phiên này: không ghi xuống đĩa và không bao giờ xuất hiện trong cuộc trò chuyện.",
+    "keepStored": "Được lưu trong Cài đặt → Tài khoản để dùng sau, và không bao giờ xuất hiện trong cuộc trò chuyện.",
     "fields": {
       "username": "Tên đăng nhập",
       "email": "Email",

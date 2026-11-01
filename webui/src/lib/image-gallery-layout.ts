@@ -11,9 +11,14 @@ export interface ImageRow {
 
 export const IMAGE_GAP = 8;
 
-// Extreme screenshots keep their full content inside a bounded portrait/landscape frame.
+/** Previews stay between 1:3 and 3:1; a picture outside that range is cropped to the bound. */
+export const MIN_IMAGE_RATIO = 1 / 3;
+export const MAX_IMAGE_RATIO = 3;
+
 export function imageFrameRatio(image: ImageDimensions | null): number {
-  return image ? Math.max(0.5, Math.min(3, image.width / image.height)) : 1.5;
+  return image
+    ? Math.max(MIN_IMAGE_RATIO, Math.min(MAX_IMAGE_RATIO, image.width / image.height))
+    : 1.5;
 }
 
 /** Choose ordered, equal-height rows for the gallery's at most four previews. */

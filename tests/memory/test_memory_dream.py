@@ -9,9 +9,9 @@ import pytest
 from memory_helpers import MemoryHarness, ScriptedProvider
 
 from yoreni.memory.core import SOUL_PATH, USER_PATH
-from yoreni.memory.dream import DreamConsolidator, validate_operations
+from yoreni.memory.dream import MAX_TOOL_ROUNDS, DreamConsolidator, validate_operations
 from yoreni.memory.models import DreamError, FactStatus
-from yoreni.providers.base import LLMResponse
+from yoreni.providers.base import LLMResponse, ToolCallRequest
 from yoreni.utils.llm_runtime import LLMRuntime
 
 
@@ -453,6 +453,95 @@ async def test_dream_tool_lists_pending_skill_proposals(site):
     payload = json.loads(await DreamTool(site.service, None).execute(action="proposals"))
     assert payload["proposals"][0]["name"] == "test-first"
     assert payload["proposals"][0]["status"] == "pending"
+
+
+async def test_dream_ends_with_a_change_set_when_its_tool_rounds_run_out(site):
+    site.commit("run-1", text="The user prefers Chinese.")
+
+    def search(messages):
+        return LLMResponse(
+            content=None,
+            tool_calls=[ToolCallRequest(
+                id=f"call-{len(messages)}", name="memory_search",
+                arguments={"query": "user"},
+            )],
+            finish_reason="tool_calls",
+        )
+
+    provider = ScriptedProvider(*[search] * (MAX_TOOL_ROUNDS - 1), _proposal())
+    result = await DreamConsolidator(site.service).consolidate(_runtime_from(provider))
+
+    assert result.status == "completed"
+    assert len(provider.calls) == MAX_TOOL_ROUNDS
+    # The last round has no tools left, so it cannot consume the budget again.
+    assert provider.options[-1]["tools"] is None
+    assert provider.options[0]["tools"] is not None
+
+
+async def test_dream_repairs_one_non_json_reply(site):
+    site.commit("run-1", text="The user prefers Chinese.")
+    provider = ScriptedProvider(
+        LLMResponse(content="I will consolidate the memory now."),
+        _proposal(),
+    )
+
+    result = await DreamConsolidator(site.service).consolidate(_runtime_from(provider))
+
+    assert result.status == "completed"
+    assert len(provider.calls) == 2
+    assert provider.calls[-1][-1]["role"] == "user"
+
+
+async def test_a_failed_dream_tool_does_not_abort_the_pass(site):
+    from yoreni.memory.embeddings import EmbeddingError
+
+    site.commit("run-1", text="The user prefers Chinese.")
+
+    class UnreachableEmbedder:
+        settings = type("Settings", (), {"model": "unreachable", "dimensions": 2})()
+
+        async def embed(self, texts):
+            raise EmbeddingError("embedding request failed: ConnectError")
+
+        async def embed_query(self, text):
+            raise EmbeddingError("embedding request failed: ConnectError")
+
+    site.service.embedder = UnreachableEmbedder()
+    site.service.retriever.embedder = site.service.embedder
+    provider = ScriptedProvider(
+        LLMResponse(
+            content=None,
+            tool_calls=[ToolCallRequest(
+                id="call-1", name="memory_search", arguments={"query": "language"},
+            )],
+            finish_reason="tool_calls",
+        ),
+        _proposal(),
+    )
+
+    result = await DreamConsolidator(site.service).consolidate(_runtime_from(provider))
+
+    assert result.status == "completed"
+    tool_messages = [item for item in provider.calls[-1] if item.get("role") == "tool"]
+    assert tool_messages[0]["content"].startswith("Error:")
+
+
+async def test_a_failed_pass_still_records_its_token_cost(site):
+    from yoreni.llm_usage.types import LLMUsage
+
+    site.commit("run-1", text="The user prefers Chinese.")
+    provider = ScriptedProvider(LLMResponse(
+        content=None,
+        usage=LLMUsage(
+            input_tokens=120, output_tokens=30, total_tokens=150, reported_tokens=150,
+        ),
+    ))
+
+    result = await DreamConsolidator(site.service).consolidate(_runtime_from(provider))
+
+    assert result.status == "failed"
+    record = site.service.store.dream_run(result.run_id)
+    assert (record["tokens_in"], record["tokens_out"]) == (120, 30)
 
 
 async def test_dream_cannot_resolve_a_disputed_fact(site):

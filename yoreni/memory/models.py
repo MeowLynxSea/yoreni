@@ -336,19 +336,46 @@ _CJK_STOPWORDS = frozenset(
 
 
 _IDENTIFIER_RE = re.compile(r"\b\d+(?:\.\d+)+[a-z0-9_-]*\b", re.IGNORECASE)
+_CJK_RUN_RE = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff]+")
 
 
 def content_tokens(text: str) -> set[str]:
-    """Tokens that can establish correspondence between a claim and evidence."""
+    """Tokens that can establish correspondence between a claim and evidence.
+
+    This is deliberately not the FTS token stream: indexing splits CJK into
+    single characters so substring queries work, but one character matches
+    almost any sentence and proves nothing. A CJK run therefore contributes
+    overlapping bigrams, while words in other scripts stay whole — evidence and
+    claims often differ in language, and identifiers are what survives that.
+    """
     tokens: set[str] = set()
-    for token in fts_tokens(text):
-        if token in _STOPWORDS or token in _CJK_STOPWORDS:
-            continue
-        if len(token) == 1 and not token.isdigit() and not _CJK_RE.match(token):
-            continue
-        tokens.add(token)
+    normalized = unicodedata.normalize("NFKC", text).casefold()
+    for match in _WORD_RE.finditer(normalized):
+        word = match.group(0)
+        if _CJK_RE.search(word):
+            for run in _CJK_RUN_RE.findall(word):
+                tokens.update(_cjk_bigrams(run))
+            word = _CJK_RUN_RE.sub(" ", word)
+        for part in word.split():
+            if len(part) == 1 and not part.isdigit():
+                continue
+            if part in _STOPWORDS or len(part) > _MAX_TOKEN_CHARS:
+                continue
+            tokens.add(part)
     tokens.update(match.group(0).casefold() for match in _IDENTIFIER_RE.finditer(text))
     return tokens
+
+
+def _cjk_bigrams(run: str) -> set[str]:
+    if len(run) == 1:
+        return set() if run in _CJK_STOPWORDS else {run}
+    grams: set[str] = set()
+    for index in range(len(run) - 1):
+        gram = run[index:index + 2]
+        if gram[0] in _CJK_STOPWORDS and gram[1] in _CJK_STOPWORDS:
+            continue
+        grams.add(gram)
+    return grams
 
 
 _USER_DOMAIN_KINDS = frozenset({
@@ -357,77 +384,47 @@ _USER_DOMAIN_KINDS = frozenset({
     FactKind.GOAL,
     FactKind.DECISION,
 })
-_LEGACY_SOURCE_TYPES = frozenset({
-    SourceType.EXTERNAL_DOCUMENT,
-    SourceType.LEGACY_IMPORT,
-})
+_USER_EVIDENCE_KINDS = frozenset({EvidenceKind.USER_MESSAGE, EvidenceKind.LEGACY_ENTRY})
 
 
-def validate_claim_support(draft: FactDraft, cited: Sequence["Evidence"]) -> None:
-    """Reject citations that cannot plausibly support the claim.
+def supporting_evidence(
+    text: str,
+    kind: FactKind,
+    cited: Sequence["Evidence"],
+) -> tuple["Evidence", ...]:
+    """The cited evidence that may establish this claim's provenance.
 
-    A user request is authority for what the user wants, not proof of an
-    external state. World facts therefore need a verified tool result, an
-    imported document, or a user statement that actually mentions the claim.
+    Citing an id is not support: the evidence text has to be about the claim.
+    Provenance must come from this subset rather than from the whole citation
+    list, because an unrelated verified result listed alongside a claim would
+    otherwise lend it authority it never had.
+
+    A user statement about the user is authority for what the user wants, so it
+    needs no further proof. For a world fact it proves nothing by itself: it
+    must say more than a shared topic word, which is why a bare topical match
+    is not enough.
     """
-    if not cited:
-        raise MemorySchemaError("a fact must cite at least one evidence item")
-
-    def mentions(item: "Evidence") -> bool:
-        return bool(content_tokens(draft.text) & content_tokens(item.content))
-
-    def user_mentions(item: "Evidence") -> bool:
-        """A user statement needs more than a shared topic word for a world fact."""
-        shared = content_tokens(draft.text) & content_tokens(item.content)
+    if kind in _USER_DOMAIN_KINDS:
+        stated = tuple(
+            item for item in cited
+            if item.kind in _USER_EVIDENCE_KINDS
+            and item.source_type in {SourceType.USER_STATEMENT, SourceType.USER_CORRECTION}
+        )
+        if stated:
+            return stated
+    claim = content_tokens(text)
+    supporting: list[Evidence] = []
+    for item in cited:
+        shared = claim & content_tokens(item.content)
         if not shared:
-            return False
-        if any(any(char.isdigit() for char in token) for token in shared):
-            return True
-        return len(shared) >= 2
-
-    user_items = [
-        item for item in cited
-        if item.kind in {EvidenceKind.USER_MESSAGE, EvidenceKind.LEGACY_ENTRY}
-        and item.source_type in {SourceType.USER_STATEMENT, SourceType.USER_CORRECTION}
-    ]
-    if draft.kind in _USER_DOMAIN_KINDS:
-        if user_items:
-            return
-        if any(mentions(item) for item in cited):
-            return
-        raise MemorySchemaError(
-            "the cited evidence does not mention the user fact it is meant to support"
-        )
-
-    # An inference or a failed tool call carries no proof of external state,
-    # but the cited text still has to be about the claimed subject.
-    if draft.source_type in {SourceType.AGENT_INFERENCE, SourceType.UNVERIFIED}:
-        if any(mentions(item) for item in cited):
-            return
-        raise MemorySchemaError(
-            "an inferred fact must be supported by the text of the evidence it cites"
-        )
-
-    verified = [
-        item for item in cited
-        if item.kind is EvidenceKind.TOOL_RESULT
-        and item.source_type is SourceType.TOOL_RESULT
-    ]
-    if verified:
-        if any(mentions(item) for item in verified):
-            return
-        raise MemorySchemaError(
-            "the cited tool result does not mention the fact it is meant to support"
-        )
-    imported = [item for item in cited if item.source_type in _LEGACY_SOURCE_TYPES]
-    if any(mentions(item) for item in imported) or any(
-        user_mentions(item) for item in user_items
-    ):
-        return
-    raise MemorySchemaError(
-        "a world fact must cite a verified tool result, an imported source, "
-        "or a user statement that mentions it"
-    )
+            continue
+        if kind not in _USER_DOMAIN_KINDS and item.kind in _USER_EVIDENCE_KINDS:
+            if len(shared) < 2 and not any(
+                char.isdigit() for token in shared for char in token
+            ):
+                continue
+        supporting.append(item)
+    return tuple(supporting)
 
 
 # ---------------------------------------------------------------------------

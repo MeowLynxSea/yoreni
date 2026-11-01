@@ -289,7 +289,7 @@ async def test_world_fact_cannot_cite_only_the_users_request(harness):
     harness.record("run-1", ("user", "Please look up the latest version."))
     user_evidence = harness.evidence_id("run-1", "user")
 
-    with pytest.raises(MemoryError, match="verified tool result"):
+    with pytest.raises(MemoryError, match="does not mention"):
         await harness.service.remember(
             run_id="run-1",
             subject="project:yoreni",

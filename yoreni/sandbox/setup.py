@@ -82,12 +82,16 @@ class SandboxSetup:
         return self.snapshot()
 
     async def rebuild(self) -> dict[str, Any]:
-        """Recreate the VM with the configured size, keeping its workspace."""
+        """Recreate the VM, keeping its workspace.
+
+        This is also the recovery path for a VM that failed to start, for
+        example after the default image changed, so it must not require a
+        running gateway: the rebuild boots the old box itself to take the
+        backup.
+        """
         gateway = self._gateway()
         if gateway is None or self._unsupported_reason(gateway) is not None:
             return self.snapshot()
-        if not gateway.started:
-            raise SandboxUnavailableError("The virtual machine is not running")
         async with self._lock:
             if self._task is not None and not self._task.done():
                 return self.snapshot()

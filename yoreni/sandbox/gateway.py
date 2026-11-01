@@ -441,7 +441,7 @@ class SandboxGateway:
             return
         try:
             self.progress.set_stage("browser")
-            await browser_assets.install(self.backend, on_progress=self.progress.set_bytes)
+            await browser_assets.install(self.backend)
             self._browser_assets_error = ""
         except Exception as exc:
             self._browser_assets_error = f"BrowserSkill is not available in the VM: {exc}"
@@ -503,6 +503,14 @@ class SandboxGateway:
             # A retried rebuild must not merge leftovers into the next backup.
             shutil.rmtree(staging, ignore_errors=True)
             staging.mkdir(parents=True, exist_ok=True)
+            # The workspace only exists on the old disk, so a stopped VM has to
+            # boot once more before the backup can read it. A failed backup
+            # leaves the box untouched: destroy comes after it.
+            status = await self.backend.status()
+            if status.state != "running":
+                await asyncio.wait_for(
+                    self.backend.start(), timeout=self.config.start_timeout_s
+                )
             await self.backend.copy_out(f"{self.config.workspace}/.", str(staging))
             await self.backend.destroy()
             self.desktop.reset()

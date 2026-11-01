@@ -77,6 +77,30 @@ def test_skill_detail_exposes_copyable_install_commands(tmp_path: Path) -> None:
     ]
 
 
+def test_skill_install_commands_target_the_alpine_guest(tmp_path: Path) -> None:
+    _write_skill(
+        tmp_path,
+        "custom-skill",
+        metadata=(
+            'metadata: {"yoreni":{"requires":{"bins":["demo"]},'
+            '"install":[{"id":"apk","kind":"apk","package":"demo",'
+            '"label":"Install demo"}]}}\n'
+        ),
+    )
+
+    detail = webui_skill_detail_payload(tmp_path, "custom-skill")
+
+    assert detail is not None
+    assert detail["install_options"] == [
+        {
+            "id": "apk",
+            "kind": "apk",
+            "label": "Install demo",
+            "command": "apk add --no-cache demo",
+        }
+    ]
+
+
 @pytest.mark.parametrize("detail", [False, True], ids=["list", "detail"])
 def test_skill_payload_verifies_plugins_once_per_request(
     tmp_path: Path,

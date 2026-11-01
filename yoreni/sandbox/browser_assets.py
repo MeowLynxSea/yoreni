@@ -1,9 +1,9 @@
 """Host-side preparation of the BrowserSkill CLI and its VM extension.
 
-The host fetches the pinned ``bsk`` release and the Brave package, verifies
-both against recorded checksums, and writes them into the VM. The Chromium
-extension ships with Yoreni as an unpacked build. Playwright's Chromium is the
-one thing downloaded inside the VM, and only when Brave could not be installed.
+The host fetches the pinned 'bsk' release, verifies it against a recorded
+checksum, and writes it into the VM together with the bundled extension. The
+browser itself belongs to the desktop image: an Alpine webtop ships Chromium,
+so nothing is downloaded inside the VM.
 """
 
 from __future__ import annotations
@@ -12,11 +12,9 @@ import asyncio
 import hashlib
 import io
 import os
-import shlex
 import tarfile
 import tempfile
 import urllib.request
-from collections.abc import Callable
 from pathlib import Path
 
 from filelock import FileLock
@@ -24,9 +22,6 @@ from loguru import logger
 
 from yoreni.sandbox.backend import SandboxBackend
 from yoreni.sandbox.errors import SandboxUnavailableError
-
-# (downloaded bytes, total bytes when the server reports it)
-ProgressCallback = Callable[[int, int | None], None]
 
 BSK_VERSION = "0.4.0"
 _RELEASE_BASE = (
@@ -44,19 +39,6 @@ _ARCHIVES = {
         "dcee46ef93959ed9656689803e6c013488d38c174ba201f674ca574e1f1ed99d",
     ),
 }
-# Brave is the browser the VM presents to the agent: a normal release build,
-# unlike Playwright's Chrome for Testing binary, and it publishes both Linux
-# architectures. Chrome and Edge have no arm64 Linux build, and Ubuntu ships
-# Chromium only as a snap, which a container cannot run.
-BRAVE_VERSION = "1.98.63"
-_BRAVE = {
-    "x64": ("amd64", "24227cd5a9259ebdc5108db394cc5998df5ac3635f84f8838a7464a7b5cddd55"),
-    "arm64": ("arm64", "8d0b4a0155c2810ec9c2e2b755159b9a278bd51fb9d0d776ca7ac4f42e0cc2f3"),
-}
-_BRAVE_URL = (
-    "https://github.com/brave/brave-browser/releases/download/"
-    "v{version}/brave-browser_{version}_{arch}.deb"
-)
 
 _MACHINES = {
     "x86_64": "x64",
@@ -72,10 +54,6 @@ EXTENSION_DIR = ASSETS_DIR / "extension"
 # and does not reliably support the daemon's Unix socket and lock file.
 VM_ASSET_ROOT = "/opt/yoreni/browser-skill"
 VM_EXTENSION_DIR = f"{VM_ASSET_ROOT}/extension"
-VM_BRAVE_DEB = f"{VM_ASSET_ROOT}/brave-browser.deb"
-# The desktop image ships no browser of its own, so Playwright's Chromium is the
-# fallback for a VM where Brave is unavailable for this architecture or blocked.
-VM_PLAYWRIGHT_BROWSERS = "/workspace/.yoreni/ms-playwright"
 BSK_HOME = "/var/lib/yoreni/bsk"
 VM_BINARY = "/usr/local/bin/bsk"
 _MAX_ARCHIVE_BYTES = 64 * 1024 * 1024
@@ -87,7 +65,7 @@ def extension_version() -> str:
 
 
 def guest_arch(machine: str) -> str:
-    """Map a VM ``uname -m`` value onto a release architecture."""
+    """Map a VM 'uname -m' value onto a release architecture."""
     arch = _MACHINES.get(machine.strip().lower())
     if arch is None:
         raise SandboxUnavailableError(
@@ -110,7 +88,7 @@ def _cache_is_valid(executable: Path, digest: Path) -> bool:
 
 
 def ensure_bsk_binary(arch: str, *, cache_dir: Path | None = None) -> Path:
-    """Return the pinned CLI binary for ``arch``, downloading it once."""
+    """Return the pinned CLI binary for 'arch', downloading it once."""
     try:
         filename, checksum = _ARCHIVES[arch]
     except KeyError as exc:
@@ -140,10 +118,10 @@ def ensure_bsk_binary(arch: str, *, cache_dir: Path | None = None) -> Path:
                 member = archive.getmember("bsk")
                 if member.size > _MAX_ARCHIVE_BYTES:
                     raise SandboxUnavailableError("BrowserSkill archive holds an oversized binary")
-                content = archive.extractfile(member)
-                if content is None:
+                extracted = archive.extractfile(member)
+                if extracted is None:
                     raise SandboxUnavailableError("BrowserSkill archive has no CLI binary")
-                data = content.read()
+                data = extracted.read()
             with tempfile.TemporaryDirectory(prefix=".install-", dir=directory) as temporary:
                 candidate = Path(temporary) / "bsk"
                 candidate.write_bytes(data)
@@ -157,60 +135,7 @@ def ensure_bsk_binary(arch: str, *, cache_dir: Path | None = None) -> Path:
     return executable
 
 
-def ensure_brave_package(
-    arch: str,
-    *,
-    cache_dir: Path | None = None,
-    on_progress: ProgressCallback | None = None,
-) -> Path:
-    """Return the pinned Brave package for ``arch``, downloading it once."""
-    try:
-        deb_arch, checksum = _BRAVE[arch]
-    except KeyError as exc:
-        raise SandboxUnavailableError(
-            f"No browser build is available for the VM architecture {arch!r}"
-        ) from exc
-    root = cache_dir or Path.home() / ".yoreni" / "tools" / "brave"
-    directory = root / BRAVE_VERSION / arch
-    directory.mkdir(parents=True, exist_ok=True)
-    package = directory / "brave-browser.deb"
-    with FileLock(str(directory / "install.lock"), timeout=180):
-        if package.is_file() and hashlib.sha256(package.read_bytes()).hexdigest() == checksum:
-            return package
-        logger.info("Downloading Brave {} ({})", BRAVE_VERSION, arch)
-        url = _BRAVE_URL.format(version=BRAVE_VERSION, arch=deb_arch)
-        try:
-            with urllib.request.urlopen(url, timeout=300) as response:
-                length = response.headers.get("Content-Length")
-                expected = int(length) if length and length.isdigit() else None
-                chunks: list[bytes] = []
-                received = 0
-                while chunk := response.read(256 * 1024):
-                    chunks.append(chunk)
-                    received += len(chunk)
-                    if on_progress is not None:
-                        on_progress(received, expected)
-                    if received > 512 * 1024 * 1024:
-                        break
-                raw = b"".join(chunks)
-            if len(raw) > 512 * 1024 * 1024:
-                raise SandboxUnavailableError("The Brave package is unexpectedly large")
-            if hashlib.sha256(raw).hexdigest() != checksum:
-                raise SandboxUnavailableError(
-                    "The Brave download failed checksum verification. Retry the download."
-                )
-            with tempfile.TemporaryDirectory(prefix=".install-", dir=directory) as temporary:
-                candidate = Path(temporary) / package.name
-                candidate.write_bytes(raw)
-                os.replace(candidate, package)
-        except (OSError, ValueError) as exc:
-            raise SandboxUnavailableError(
-                f"Could not prepare Brave {BRAVE_VERSION}: {exc}"
-            ) from exc
-    return package
-
-
-async def install(backend: SandboxBackend, *, on_progress: ProgressCallback | None = None) -> None:
+async def install(backend: SandboxBackend) -> None:
     """Place the CLI and the extension inside the VM."""
     machine = await backend.exec("uname -m", cwd="/", timeout_s=10)
     if machine.exit_code != 0:
@@ -235,8 +160,7 @@ async def install(backend: SandboxBackend, *, on_progress: ProgressCallback | No
         await backend.exec("bsk daemon stop", cwd="/", timeout_s=30)
 
     await backend.exec(("mkdir", "-p", VM_ASSET_ROOT), cwd="/", timeout_s=10, user="root")
-    if not await _install_brave(backend, arch, on_progress):
-        await _install_chromium(backend)
+    await _require_browser(backend)
 
     marker = f"{VM_ASSET_ROOT}/VERSION"
     installed = await backend.exec(f"cat {marker} 2>/dev/null", cwd="/", timeout_s=10)
@@ -249,89 +173,19 @@ async def install(backend: SandboxBackend, *, on_progress: ProgressCallback | No
     )
 
 
-# Brave's .deb depends on `brave-keyring`, which only exists in their apt
-# repository. Yoreni installs a pinned package instead of using that repository,
-# so a local placeholder satisfies the dependency and keeps dpkg consistent
-# when the repository host is unreachable.
-_BRAVE_KEYRING_STUB = (
-    "set -eu; "
-    "rm -rf /tmp/brave-keyring; mkdir -p /tmp/brave-keyring/DEBIAN; "
-    "printf 'Package: brave-keyring\\nVersion: 1.20\\nArchitecture: all\\n"
-    "Maintainer: Yoreni <yoreni@localhost>\\n"
-    "Description: local placeholder, the Brave apt repository is unused\\n' "
-    "> /tmp/brave-keyring/DEBIAN/control; "
-    "dpkg-deb -b /tmp/brave-keyring /tmp/brave-keyring.deb >/dev/null; "
-    "dpkg -i /tmp/brave-keyring.deb >/dev/null"
-)
+async def _require_browser(backend: SandboxBackend) -> None:
+    """Refuse to finish without the browser the extension must attach to.
 
-
-async def _install_brave(
-    backend: SandboxBackend,
-    arch: str,
-    on_progress: ProgressCallback | None = None,
-) -> bool:
-    """Install the presented browser; the bundled Chromium stays as a fallback."""
-    installed = await backend.exec(
-        ("dpkg-query", "-W", "-f=${Version}", "brave-browser"),
-        cwd="/",
-        timeout_s=20,
+    Provisioning installs Chromium with apk, so a missing binary means the VM
+    is not the image this backend expects.
+    """
+    found = await backend.exec(
+        "command -v chromium || command -v chromium-browser", cwd="/", timeout_s=10
     )
-    if installed.exit_code == 0 and installed.stdout.strip() == BRAVE_VERSION:
-        return True
-    try:
-        package = await asyncio.to_thread(
-            lambda: ensure_brave_package(arch, on_progress=on_progress)
-        )
-        await backend.copy_in(str(package), VM_BRAVE_DEB)
-        keyring = await backend.exec(
-            ("sh", "-c", _BRAVE_KEYRING_STUB), cwd="/", timeout_s=120, user="root"
-        )
-        if keyring.exit_code != 0:
-            raise SandboxUnavailableError(
-                (keyring.stderr or keyring.stdout).strip()[-400:]
-                or "could not prepare the Brave dependency"
-            )
-        result = await backend.exec(
-            ("apt-get", "install", "-y", "--no-install-recommends", VM_BRAVE_DEB),
-            cwd="/",
-            timeout_s=900,
-            user="root",
-        )
-        await backend.exec(("rm", "-f", VM_BRAVE_DEB), cwd="/", timeout_s=10, user="root")
-        if result.exit_code != 0:
-            raise SandboxUnavailableError(
-                (result.stderr or result.stdout).strip()[-400:] or "apt-get failed"
-            )
-    except Exception as exc:
-        logger.warning("Brave could not be installed, preparing Chromium instead: {}", exc)
-        return False
-    return True
-
-
-_INSTALL_CHROMIUM = r"""set -eu
-export PLAYWRIGHT_BROWSERS_PATH={browsers}
-if ls -d "$PLAYWRIGHT_BROWSERS_PATH"/chromium-*/chrome-linux*/chrome >/dev/null 2>&1; then
-  exit 0
-fi
-python3 -m pip install --break-system-packages --no-cache-dir playwright >/dev/null 2>&1 || \
-  python3 -m pip install --no-cache-dir playwright
-python3 -m playwright install --with-deps chromium
-"""
-
-
-async def _install_chromium(backend: SandboxBackend) -> None:
-    """Install Playwright's Chromium for a VM where Brave is unavailable."""
-    logger.info("Installing the fallback Chromium in the VM")
-    result = await backend.exec(
-        _INSTALL_CHROMIUM.format(browsers=shlex.quote(VM_PLAYWRIGHT_BROWSERS)),
-        cwd="/",
-        timeout_s=900,
-        user="root",
-    )
-    if result.exit_code != 0:
+    if found.exit_code != 0 or not found.stdout.strip():
         raise SandboxUnavailableError(
-            "The fallback browser could not be installed in the VM: "
-            + (result.stderr or result.stdout).strip()[-400:]
+            "The VM has no Chromium to drive. Rebuild the VM so it uses the "
+            "Alpine webtop image, which ships the browser."
         )
 
 
@@ -345,9 +199,9 @@ async def _extension_is_present(backend: SandboxBackend) -> bool:
 async def _copy_extension(backend: SandboxBackend) -> None:
     """Copy the extension and normalize however the backend laid the tree down.
 
-    ``copy_in`` of a directory may place its contents at the target or nest
-    them under the source name, so the staged result is found by its manifest
-    and moved into place instead of guessing.
+    'copy_in' of a directory may place its contents at the target or nest them
+    under the source name, so the staged result is found by its manifest and
+    moved into place instead of guessing.
     """
     staging = f"{VM_ASSET_ROOT}/extension.staging"
     await backend.remove(staging, recursive=True)

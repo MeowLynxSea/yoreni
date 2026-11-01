@@ -60,7 +60,6 @@ def test_the_bundled_extension_matches_the_recorded_version() -> None:
 
 def test_the_browser_service_starts_the_daemon_with_the_extension() -> None:
     script = provision._START_BROWSER.format(
-        browser_path="/browsers",
         profile="/workspace/.yoreni/chromium",
         extension=browser_assets.VM_EXTENSION_DIR,
         bsk_home=browser_assets.BSK_HOME,
@@ -69,14 +68,58 @@ def test_the_browser_service_starts_the_daemon_with_the_extension() -> None:
     assert f"--load-extension={browser_assets.VM_EXTENSION_DIR}" in script
     assert "daemon start" in script
     assert "su -s /bin/sh" in script
+    assert "command -v chromium" in script
+    assert "brave" not in script
     assert "remote-debugging-port" not in script
+
+
+def test_provisioning_installs_alpine_packages_and_names_the_image() -> None:
+    script = provision._PROVISION.format(
+        packages=provision._DESKTOP_PACKAGES, log=provision.PROVISION_LOG
+    )
+
+    assert "apk add --no-cache" in script
+    assert "apk info -e" in script
+    assert "not Alpine" in script
+    assert "apt-get" not in script
+
+
+def test_the_desktop_packages_are_the_alpine_set() -> None:
+    packages = provision._DESKTOP_PACKAGES.split()
+
+    assert "python3" in packages
+    assert "chromium" in packages
+    assert "x11vnc" in packages
+    assert "websockify" in packages
+    assert "python3-pip" not in packages
+
+
+def test_process_probes_cannot_match_their_own_shell() -> None:
+    """The scripts run as one sh -c string, so a bare pattern matches itself."""
+
+    desktop = provision._START_DESKTOP.format(display=":1")
+
+    assert "pkill -f" not in desktop
+    assert "pid" in desktop
+    assert "[x]11vnc" in provision._DESKTOP_READY
+    assert "[w]ebsockify" in provision._DESKTOP_READY
+
+
+def test_the_desktop_serves_rfb_through_websockify() -> None:
+    script = provision._START_DESKTOP.format(display=":1")
+
+    assert "/usr/share/novnc" in script
+    assert "-viewonly" in script
+    assert "-localhost" in script
+    assert "6080 127.0.0.1:5900" in script
 
 
 class _InstallBackend:
     """Records the VM calls of one install pass."""
 
-    def __init__(self, *, manifest_present: bool) -> None:
+    def __init__(self, *, manifest_present: bool, browser_present: bool = True) -> None:
         self.manifest_present = manifest_present
+        self.browser_present = browser_present
         self.binary_installed = False
         self.calls: list[tuple[str, Any]] = []
         self.files: dict[str, bytes] = {}
@@ -88,6 +131,14 @@ class _InstallBackend:
             return ExecResult(command=str(command), exit_code=code, stdout="", stderr="")
         if command == "uname -m":
             return ExecResult(command="uname -m", exit_code=0, stdout="aarch64\n", stderr="")
+        if isinstance(command, str) and command.startswith("command -v chromium"):
+            found = "/usr/bin/chromium\n" if self.browser_present else ""
+            return ExecResult(
+                command=command,
+                exit_code=0 if self.browser_present else 1,
+                stdout=found,
+                stderr="",
+            )
         if command == "bsk --version":
             code = 0 if self.binary_installed else 1
             return ExecResult(
@@ -112,7 +163,6 @@ async def test_install_stages_the_extension_and_records_its_version(tmp_path, mo
     binary = tmp_path / "bsk"
     binary.write_bytes(b"binary")
     monkeypatch.setattr(browser_assets, "ensure_bsk_binary", lambda arch: binary)
-    monkeypatch.setattr(browser_assets, "ensure_brave_package", lambda arch, **kwargs: binary)
     backend = _InstallBackend(manifest_present=True)
 
     await browser_assets.install(backend)
@@ -120,22 +170,35 @@ async def test_install_stages_the_extension_and_records_its_version(tmp_path, mo
     copies = [value for kind, value in backend.calls if kind == "copy_in"]
     assert copies == [
         (str(binary), browser_assets.VM_BINARY),
-        (str(binary), browser_assets.VM_BRAVE_DEB),
         (str(browser_assets.EXTENSION_DIR), f"{browser_assets.VM_ASSET_ROOT}/extension.staging"),
     ]
     assert f"{browser_assets.VM_ASSET_ROOT}/VERSION" in backend.files
-    keyring = [cmd for kind, cmd in backend.calls if kind == "exec" and isinstance(cmd, tuple) and cmd[:2] == ("sh", "-c")]
-    assert keyring and "brave-keyring" in keyring[0][2]
+    browser_check = [
+        cmd
+        for kind, cmd in backend.calls
+        if kind == "exec" and isinstance(cmd, str) and "command -v chromium" in cmd
+    ]
+    assert browser_check
 
 
 async def test_install_refuses_an_extension_without_a_manifest(tmp_path, monkeypatch) -> None:
     binary = tmp_path / "bsk"
     binary.write_bytes(b"binary")
     monkeypatch.setattr(browser_assets, "ensure_bsk_binary", lambda arch: binary)
-    monkeypatch.setattr(browser_assets, "ensure_brave_package", lambda arch, **kwargs: binary)
     backend = _InstallBackend(manifest_present=False)
 
     with pytest.raises(Exception, match="manifest.json is missing"):
+        await browser_assets.install(backend)
+    assert f"{browser_assets.VM_ASSET_ROOT}/VERSION" not in backend.files
+
+
+async def test_install_refuses_a_vm_without_a_browser(tmp_path, monkeypatch) -> None:
+    binary = tmp_path / "bsk"
+    binary.write_bytes(b"binary")
+    monkeypatch.setattr(browser_assets, "ensure_bsk_binary", lambda arch: binary)
+    backend = _InstallBackend(manifest_present=True, browser_present=False)
+
+    with pytest.raises(Exception, match="no Chromium"):
         await browser_assets.install(backend)
     assert f"{browser_assets.VM_ASSET_ROOT}/VERSION" not in backend.files
 
@@ -147,19 +210,24 @@ def test_runtime_assets_live_outside_the_shared_workspace() -> None:
     assert not browser_assets.VM_EXTENSION_DIR.startswith("/workspace")
 
 
-def test_a_cached_brave_package_is_reused(tmp_path, monkeypatch) -> None:
-    import hashlib
+class _RefusingBackend:
+    """A VM that answers every command with the same failure."""
 
-    package = tmp_path / browser_assets.BRAVE_VERSION / "arm64" / "brave-browser.deb"
-    package.parent.mkdir(parents=True)
-    package.write_bytes(b"deb")
-    monkeypatch.setitem(
-        browser_assets._BRAVE, "arm64", ("arm64", hashlib.sha256(b"deb").hexdigest())
+    def __init__(self, *, exit_code: int, stderr: str) -> None:
+        self.exit_code = exit_code
+        self.stderr = stderr
+
+    async def exec(self, command: Any, **kwargs: Any) -> ExecResult:
+        return ExecResult(
+            command=str(command), exit_code=self.exit_code, stdout="", stderr=self.stderr
+        )
+
+
+async def test_provisioning_surfaces_the_image_mismatch() -> None:
+    services = provision.DesktopServices(
+        _RefusingBackend(exit_code=12, stderr="This desktop image is not Alpine."),
+        provision.SandboxConfig(),
     )
 
-    def fail(*args, **kwargs):
-        raise AssertionError("a cached package must not be downloaded again")
-
-    monkeypatch.setattr("urllib.request.urlopen", fail)
-
-    assert browser_assets.ensure_brave_package("arm64", cache_dir=tmp_path) == package
+    with pytest.raises(Exception, match="previous desktop image"):
+        await services.provision()

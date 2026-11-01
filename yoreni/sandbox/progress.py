@@ -93,6 +93,10 @@ class SandboxProgress:
             self._rate_bytes_per_s = None
             self._last_bytes_at = None
             self._last_bytes = 0
+            # A stage without a byte signal must render indeterminate: the
+            # previous stage's totals would otherwise freeze its bar.
+            self._downloaded_bytes = None
+            self._total_bytes = None
             if stage == "ready":
                 self._percent = 100.0
             elif self._percent is None or self._percent < _STAGE_SPAN[stage][0]:

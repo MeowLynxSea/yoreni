@@ -215,7 +215,7 @@ def _install_options(metadata: dict[str, Any] | None) -> list[dict[str, str]]:
             continue
         install_item = cast(dict[str, object], item)
         kind = install_item.get("kind")
-        if not isinstance(kind, str) or kind not in {"brew", "apt"}:
+        if not isinstance(kind, str) or kind not in {"brew", "apt", "apk"}:
             continue
         package = (
             install_item.get("formula") if kind == "brew" else install_item.get("package")
@@ -225,7 +225,9 @@ def _install_options(metadata: dict[str, Any] | None) -> list[dict[str, str]]:
         if kind == "brew":
             command = f"brew install {shlex.quote(package.strip())}"
         else:
-            command = f"sudo apt-get install -y {shlex.quote(package.strip())}"
+            # The guest is Alpine, so Debian-style manifests land on apk, and
+            # the shell tool already runs as root: no sudo.
+            command = f"apk add --no-cache {shlex.quote(package.strip())}"
         option_id = install_item.get("id")
         label = install_item.get("label")
         options.append(

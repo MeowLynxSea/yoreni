@@ -1,15 +1,15 @@
 """First-boot provisioning for the Yoreni desktop VM.
 
-The base image is a maintained LinuxServer webtop image: it already owns a
-display, a window manager and a Chromium-capable X server. This module adds
-the three pieces Yoreni needs and keeps them inside the VM:
+The base image is a maintained LinuxServer webtop image (Alpine, XFCE). It
+already owns a display, a window manager and an X server; this module adds the
+pieces Yoreni needs and keeps them inside the VM:
 
 * x11vnc for a raw RFB surface that the gateway can proxy and gate
 * websockify so the WebUI speaks RFB over WebSocket through the gateway
-* the system packages the desktop, the terminal and MCP servers need
+* the Alpine packages the desktop, the terminal and MCP servers need
 
-The browser itself (a bundled Chromium with the BrowserSkill extension, driven
-by the `bsk` CLI) is installed by `browser_assets`.
+The browser is the image's own Chromium; 'browser_assets' only places the
+BrowserSkill CLI and its extension next to it.
 
 Every command runs inside the VM. Nothing here touches the host filesystem.
 """
@@ -18,105 +18,79 @@ from __future__ import annotations
 
 import asyncio
 import shlex
-from pathlib import Path
 
 from loguru import logger
 
 from yoreni.sandbox.backend import SandboxBackend
-from yoreni.sandbox.browser_assets import BSK_HOME, VM_EXTENSION_DIR, VM_PLAYWRIGHT_BROWSERS
+from yoreni.sandbox.browser_assets import BSK_HOME, VM_EXTENSION_DIR
 from yoreni.sandbox.config import SandboxConfig
 from yoreni.sandbox.errors import SandboxUnavailableError
 
-# What the desktop, the shell and the agent's file tools need from apt.
+# What the desktop, the shell and the agent's file tools need from apk.
+# Chromium is listed so an image without a browser still gains one.
 _DESKTOP_PACKAGES = (
-    "x11vnc novnc websockify xdotool xclip scrot ripgrep python3 python3-pip "
-    "curl ca-certificates"
+    "x11vnc novnc websockify xdotool xclip scrot ripgrep python3 "
+    "curl ca-certificates chromium xsetroot xfconf iproute2 ttf-dejavu font-wqy-zenhei"
 )
 PROVISION_LOG = "/workspace/.yoreni/logs/provision.log"
-# Yoreni's wallpaper lives on the VM root filesystem: the workspace mount would
-# hide a file copied in from the host, and the desktop user needs to read it.
-_WALLPAPER_ASSET = Path(__file__).parent / "assets" / "theme" / "yoreni-wallpaper.jpg"
-VM_THEME_ROOT = "/opt/yoreni/theme"
-VM_WALLPAPER = f"{VM_THEME_ROOT}/yoreni-wallpaper.jpg"
 
 _PROVISION = r"""
 set -eu
+if ! command -v apk >/dev/null 2>&1; then
+  echo 'This desktop image is not Alpine. Rebuild the VM so it uses the default Alpine image.' >&2
+  exit 12
+fi
 mkdir -p /workspace/.yoreni/media /workspace/.yoreni/logs /workspace/downloads
 mkdir -p /workspace/projects
 chmod 0777 /workspace /workspace/.yoreni /workspace/.yoreni/media /workspace/downloads /workspace/projects
-if command -v apt-get >/dev/null 2>&1; then
-  missing=""
-  for package in {packages}; do
-    dpkg-query -W -f='${{Status}}' "$package" 2>/dev/null | grep -q 'install ok installed' || missing=1
-  done
-  if [ -n "$missing" ]; then
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update
-    : > {log}
-    # The whole list, not only the missing packages: apt resolves other
-    # packages against it, and asking for less has dead-ended before. It
-    # leaves what is already current alone.
-    if ! apt-get install -y --no-install-recommends {packages} >>{log} 2>&1; then
-      head -n 15 {log} >&2
-      echo '...' >&2
-      tail -n 40 {log} >&2
-      exit 1
-    fi
-  fi
-  # Node only serves npx-based MCP servers. The desktop must come up without
-  # it, so a dead end here is recorded instead of failing the whole provision.
-  if ! command -v npx >/dev/null 2>&1; then
-    apt-get install -y --no-install-recommends nodejs >>{log} 2>&1 ||
-      apt-get install -y --no-install-recommends nodejs npm >>{log} 2>&1 ||
-      echo 'Node.js is unavailable; npx-based MCP servers will not start' >>{log} 2>&1
+missing=""
+for package in {packages}; do
+  apk info -e "$package" >/dev/null 2>&1 || missing=1
+done
+if [ -n "$missing" ]; then
+  : > {log}
+  # The whole list, not only the missing packages: apk resolves other
+  # packages against it, and asking for less has dead-ended before. It
+  # leaves what is already current alone.
+  if ! apk add --no-cache {packages} >>{log} 2>&1; then
+    head -n 15 {log} >&2
+    echo '...' >&2
+    tail -n 40 {log} >&2
+    exit 1
   fi
 fi
-# The session belongs to the image: Yoreni only restyles it. LXQt keeps the
-# theme under the desktop user's home and reapplies the theme's own wallpaper
-# file on every session start, so the way to change it is to replace that file
-# and let the session restart read it back.
-if [ -d /config ] && id abc >/dev/null 2>&1 && [ -f {wallpaper} ]; then
-  CONF=/config/.config/lxqt/lxqt.conf
-  mkdir -p /config/.config/lxqt
-  touch "$CONF"
-  changed=0
-  for line in 'icon_theme=breeze-dark' 'theme=dark'; do
-    key=$(echo "$line" | cut -d= -f1)
-    grep -q "^$key=" "$CONF" || {{ echo "$line" >> "$CONF"; changed=1; }}
-  done
-  chown -R abc:abc /config/.config/lxqt
-  CURRENT=$(sed -n 's/^Wallpaper=//p' /config/.config/pcmanfm-qt/lxqt/settings.conf 2>/dev/null | head -n 1)
-  case "$CURRENT" in
-    /usr/share/lxqt/themes/*)
-      if [ -f "$CURRENT" ] && ! cmp -s {wallpaper} "$CURRENT"; then
-        cp {wallpaper} "$CURRENT"
-        changed=1
-      fi
-      ;;
-  esac
-  if [ "$changed" = 1 ]; then
-    old=$(pgrep -x lxqt-panel | sort | tr "\n" " ")
-    s6-svc -r /run/service/svc-de >/dev/null 2>&1 || true
-    for _ in $(seq 1 60); do
-      new=$(pgrep -x lxqt-panel | sort | tr "\n" " ")
-      if [ -n "$new" ] && [ "$new" != "$old" ] && pgrep -f "pcmanfm-qt --desktop" >/dev/null 2>&1; then
-        break
-      fi
-      sleep 1
-    done
-  fi
+# Node only serves npx-based MCP servers. The desktop must come up without
+# it, so a dead end here is recorded instead of failing the whole provision.
+if ! command -v npx >/dev/null 2>&1; then
+  apk add --no-cache nodejs npm >>{log} 2>&1 ||
+    echo 'Node.js is unavailable; npx-based MCP servers will not start' >>{log} 2>&1
 fi
 """
 
 _START_DESKTOP = r"""
 set -eu
 LOGS=/workspace/.yoreni/logs
-pkill -x x11vnc 2>/dev/null || true
-pkill -x websockify 2>/dev/null || true
-nohup x11vnc -display {display} -rfbport 5900 -forever -shared -viewonly \
-  -nopw -localhost -quiet -noxdamage -noshm >"$LOGS/x11vnc.log" 2>&1 &
-nohup websockify --web=/usr/share/novnc 6080 127.0.0.1:5900 \
-  >"$LOGS/websockify.log" 2>&1 &
+NOVNC=/usr/share/novnc
+# Stop whatever holds the two ports, then the process groups this script
+# recorded. A command-line match is not usable here: this script runs as one
+# shell string, so its own text would match.
+for port in 5900 6080; do
+  pid=$(ss -lntp 2>/dev/null | sed -n "s/.*:$port .*pid=\([0-9]*\).*/\1/p" | head -n 1)
+  if [ -n "$pid" ]; then kill "$pid" 2>/dev/null || true; fi
+done
+for name in x11vnc websockify; do
+  pidfile=$LOGS/$name.pid
+  if [ ! -f "$pidfile" ]; then continue; fi
+  kill -- "-$(cat "$pidfile")" 2>/dev/null || true
+  rm -f "$pidfile"
+done
+sleep 1
+setsid x11vnc -display {display} -rfbport 5900 -forever -shared -viewonly \
+  -nopw -localhost -quiet -noxdamage -noshm >"$LOGS/x11vnc.log" 2>&1 </dev/null &
+echo $! >"$LOGS/x11vnc.pid"
+setsid websockify --web="$NOVNC" 6080 127.0.0.1:5900 \
+  >"$LOGS/websockify.log" 2>&1 </dev/null &
+echo $! >"$LOGS/websockify.pid"
 sleep 1
 """
 
@@ -146,17 +120,12 @@ if ! as_bsk_user status --json >/dev/null 2>&1; then
   rm -f {bsk_home}/daemon.json {bsk_home}/run/daemon.sock
   as_bsk_user daemon start >>"$LOGS/bsk-daemon.log" 2>&1 || true
 fi
-pkill -x chrome 2>/dev/null || true
-pkill -x brave 2>/dev/null || true
+pkill -x chromium >/dev/null 2>&1 || true
 sleep 1
-# Prefer the release browser; Playwright's Chrome for Testing build is only
-# the fallback when Brave is unavailable for this VM.
-BROWSER=$(command -v brave-browser 2>/dev/null || true)
+# The image's Chromium is the only browser: there is no second download.
+BROWSER=$(command -v chromium-browser 2>/dev/null || command -v chromium 2>/dev/null || true)
 if [ -z "$BROWSER" ]; then
-  BROWSER=$(ls -d {browser_path}/chromium-*/chrome-linux*/chrome 2>/dev/null | head -n 1)
-fi
-if [ -z "$BROWSER" ]; then
-  echo "No browser is installed" >&2
+  echo "No Chromium is installed in the VM" >&2
   exit 11
 fi
 mkdir -p {profile}
@@ -169,13 +138,13 @@ nohup "$BROWSER" --user-data-dir={profile} --no-sandbox --disable-gpu \
 """
 
 _PORT_OPEN = (
-    "python3 -c \"import socket,sys;socket.create_connection(('127.0.0.1',{}),2).close()\""
+    'python3 -c "import socket,sys;socket.create_connection((\'127.0.0.1\',{}),2).close()"'
 )
 _DESKTOP_READY = (
     "xdotool getdisplaygeometry >/dev/null 2>&1 && "
-    "pgrep -f 'x11vnc .*-rfbport 5900' >/dev/null && "
+    "pgrep -f '[x]11vnc .*-rfbport 5900' >/dev/null && "
     + _PORT_OPEN.format(5900)
-    + " && pgrep -f 'websockify .*6080' >/dev/null && "
+    + " && pgrep -f '[w]ebsockify .*6080' >/dev/null && "
     + _PORT_OPEN.format(6080)
 )
 # BrowserSkill's extension connects to the daemon on loopback and registers
@@ -192,13 +161,13 @@ _BROWSERS = (
     "        return 0\n"
 )
 _BROWSER_READY = (
-    "(pgrep -x chrome >/dev/null || pgrep -x brave >/dev/null) && "
-    "python3 -c \"" + _BROWSERS + "print(int(browsers() > 0))\" | grep -qx 1"
+    "(pgrep -x chromium >/dev/null || pgrep -x chromium-browser >/dev/null) && "
+    'python3 -c "' + _BROWSERS + 'print(int(browsers() > 0))" | grep -qx 1'
 )
 # One round trip for both services: spawning a shell per probe dominates the
 # latency the WebUI sees while it polls status.
 _READINESS = (
-    "python3 -c \"import json, os, socket, subprocess\n"
+    'python3 -c "import json, os, socket, subprocess\n'
     "def ok(port):\n"
     "    try:\n"
     "        socket.create_connection(('127.0.0.1', port), 2).close()\n"
@@ -206,28 +175,8 @@ _READINESS = (
     "    except OSError:\n"
     "        return False\n"
     + _BROWSERS
-    + "print(int(ok(5900) and ok(6080)), int(ok(52800) and browsers() > 0))\""
+    + 'print(int(ok(5900) and ok(6080)), int(ok(52800) and browsers() > 0))"'
 )
-
-
-_STYLE_DESKTOP = r"""
-export DISPLAY={display}
-# A solid root keeps the surface flat on window managers that do not paint a
-# desktop of their own (for example Openbox).
-xsetroot -solid '#0b0d10' >/dev/null 2>&1 || true
-# The stock wallpaper is a photo of someone else's desktop. A flat Yoreni
-# surface reads as one continuous app instead of a remote computer.
-for prop in $(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep '/last-image$'); do
-  xfconf-query -c xfce4-desktop -p "${{prop%/last-image}}/image-style" -s 0 >/dev/null 2>&1 || true
-done
-for prop in $(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep '/color-style$'); do
-  xfconf-query -c xfce4-desktop -p "$prop" -s 0 >/dev/null 2>&1 || true
-done
-for prop in $(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep '/rgba1$'); do
-  xfconf-query -c xfce4-desktop -p "$prop" -t double -s 0.043 -s 0.051 -s 0.063 -s 1.0 \
-    >/dev/null 2>&1 || true
-done
-"""
 
 
 
@@ -254,11 +203,9 @@ class DesktopServices:
         self._browser_ready = False
 
     async def provision(self) -> None:
-        await self._install_wallpaper()
         script = _PROVISION.format(
             packages=_DESKTOP_PACKAGES,
             log=shlex.quote(PROVISION_LOG),
-            wallpaper=shlex.quote(VM_WALLPAPER),
         )
         result = await self._backend.exec(
             script,
@@ -266,19 +213,17 @@ class DesktopServices:
             timeout_s=self._config.provision_timeout_s,
             user="root",
         )
+        if result.exit_code == 12:
+            raise SandboxUnavailableError(
+                "The VM still runs the previous desktop image and cannot be provisioned. "
+                "Rebuild the virtual machine to move it to the Alpine image."
+            )
         if result.exit_code != 0:
             raise SandboxUnavailableError(
                 "VM provisioning failed. The desktop image needs network access to "
                 f"install its system packages. Full output in {PROVISION_LOG}: "
                 f"{result.stderr.strip()[-800:]}"
             )
-
-    async def _install_wallpaper(self) -> None:
-        """Put Yoreni's wallpaper where the desktop session can read it."""
-        await self._backend.exec(
-            ("mkdir", "-p", VM_THEME_ROOT), cwd="/", timeout_s=10, user="root"
-        )
-        await self._backend.write_bytes(VM_WALLPAPER, _WALLPAPER_ASSET.read_bytes())
 
     async def start(self) -> None:
         if self._config.desktop_enabled:
@@ -299,7 +244,6 @@ class DesktopServices:
                 + (result.stderr.strip() or result.stdout.strip())[-800:]
                 + await self._log_tail("/workspace/.yoreni/logs/x11vnc.log")
             )
-        await self._apply_desktop_style()
         self._desktop_ready = await self._wait(_DESKTOP_READY, timeout_s=30, user="root")
         if not self._desktop_ready:
             raise SandboxUnavailableError(
@@ -308,23 +252,8 @@ class DesktopServices:
                 + await self._log_tail("/workspace/.yoreni/logs/websockify.log")
             )
 
-    async def _apply_desktop_style(self) -> None:
-        """Give the VM desktop Yoreni's flat surface instead of stock art."""
-        script = _STYLE_DESKTOP.format(display=shlex.quote(self._config.display))
-        try:
-            await self._backend.exec(
-                script,
-                cwd="/",
-                env={"DISPLAY": self._config.display, "HOME": "/root"},
-                timeout_s=20,
-                user="root",
-            )
-        except Exception as exc:
-            logger.debug("Could not restyle the VM desktop: {}", exc)
-
     async def _start_browser(self) -> None:
         script = _START_BROWSER.format(
-            browser_path=shlex.quote(VM_PLAYWRIGHT_BROWSERS),
             profile=shlex.quote(self._config.browser_profile_dir),
             extension=shlex.quote(VM_EXTENSION_DIR),
             bsk_home=shlex.quote(BSK_HOME),
@@ -348,7 +277,7 @@ class DesktopServices:
         if not self._browser_ready:
             raise SandboxUnavailableError(
                 "The VM browser did not connect to BrowserSkill.\n"
-                + await self._process_snapshot("chromium|chrome|brave|bsk")
+                + await self._process_snapshot("chromium|bsk")
                 + await self._log_tail("/workspace/.yoreni/logs/chromium.log")
                 + await self._log_tail("/workspace/.yoreni/logs/bsk-daemon.log")
             )

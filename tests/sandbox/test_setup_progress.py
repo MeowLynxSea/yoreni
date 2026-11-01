@@ -245,3 +245,16 @@ async def test_the_monitor_switches_to_configuring_once_layers_are_downloaded(
     assert snapshot["stage"] == "configuring"
     assert snapshot["percent"] == 58.0
     assert snapshot["eta_seconds"] is None
+
+
+def test_a_stage_without_a_byte_signal_clears_the_previous_totals() -> None:
+    progress = SandboxProgress()
+    progress.start()
+    progress.set_stage("image")
+    progress.set_bytes(4_000_000, 4_000_000)
+
+    progress.set_stage("browser")
+    snapshot = progress.snapshot()
+
+    assert snapshot["downloaded_bytes"] is None
+    assert snapshot["total_bytes"] is None

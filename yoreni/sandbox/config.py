@@ -18,9 +18,10 @@ class SandboxConfig(Base):
     enabled: bool = True
     backend: str = "boxlite"
     box_name: str = "yoreni"
-    # LXQt is the tidiest of the webtop desktops at this size: a Qt toolkit,
-    # one panel and a desktop that stays out of the way of the browser.
-    image: str = "lscr.io/linuxserver/webtop:ubuntu-lxqt"
+    # Alpine + XFCE is the same guest the Android backend runs, so one
+    # provisioning path covers both hosts. The image ships Chromium.
+    # LinuxServer has no alpine-xfce tag: latest is the XFCE Alpine build.
+    image: str = "lscr.io/linuxserver/webtop:latest"
     # Runtime home for images, box disks and the runtime database. Empty means
     # `<instance data dir>/sandbox`, so one backup or deletion covers all
     # Yoreni state.

@@ -1,7 +1,7 @@
 ---
 name: github
 description: "Manage GitHub issues and pull requests, inspect CI runs, and query repository data."
-metadata: {"yoreni":{"emoji":"🐙","requires":{"bins":["gh"]},"install":[{"id":"brew","kind":"brew","formula":"gh","bins":["gh"],"label":"Install GitHub CLI (brew)"},{"id":"apt","kind":"apt","package":"gh","bins":["gh"],"label":"Install GitHub CLI (apt)"}]}}
+metadata: {"yoreni":{"emoji":"🐙","requires":{"bins":["gh"]},"install":[{"id":"brew","kind":"brew","formula":"gh","bins":["gh"],"label":"Install GitHub CLI (brew)"},{"id":"apk","kind":"apk","package":"gh","bins":["gh"],"label":"Install GitHub CLI (apk)"}]}}
 ---
 
 # GitHub Skill

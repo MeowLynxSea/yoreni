@@ -31,7 +31,7 @@ from yoreni.memory.models import (
     require_list,
     require_object,
     require_str,
-    validate_claim_support,
+    supporting_evidence,
 )
 from yoreni.memory.store import FactStore
 from yoreni.utils.llm_runtime import LLMRuntime
@@ -63,7 +63,10 @@ Rules:
 - subject: a stable lowercase identifier ("user", "project:yoreni", a tool or system name).
 - predicate: lowercase snake_case property ("preferred_language", "default_branch").
 - text: one self-contained sentence, in the language of the evidence, with no pronoun that
-  depends on the conversation.
+  depends on the conversation. Keep tool names, parameter names and paths verbatim so the
+  claim stays traceable to the evidence that supports it.
+- Only cite evidence whose text actually mentions the claim. Citing a successful call
+  alongside an unrelated one does not support a claim about the failure.
 - kind: one of user_fact, user_preference, project_knowledge, decision, goal,
   event_experience, procedure.
 - scope: "global", or "project:<name>" for project-local knowledge.
@@ -128,11 +131,23 @@ class FactExtractor:
                 )
             if not response.content:
                 raise MemoryExtractionError("extraction model returned no content")
-            drafts = parse_candidates(response.content, chunk, self.max_candidates)
-            if not drafts:
-                continue
-            candidates += len(drafts)
-            fact_ids.extend(self.store.commit_candidates(drafts))
+            parsed = parse_candidates(response.content, chunk, self.max_candidates)
+            if parsed.rejected:
+                # Candidates are independent claims: one bad citation must not
+                # discard the facts the model cited correctly.
+                logger.warning(
+                    "extraction rejected {} of {} candidate(s): {}",
+                    len(parsed.rejected), len(parsed.rejected) + len(parsed.drafts),
+                    parsed.rejected[0],
+                )
+            if not parsed.drafts:
+                if not parsed.rejected:
+                    continue
+                raise MemorySchemaError(
+                    f"extraction produced no usable candidate: {parsed.rejected[0]}"
+                )
+            candidates += len(parsed.drafts)
+            fact_ids.extend(self.store.commit_candidates(list(parsed.drafts)))
         logger.info(
             "memory extraction committed {} fact(s) from {} evidence item(s)",
             len(fact_ids), len(usable),
@@ -140,45 +155,55 @@ class FactExtractor:
         return ExtractionResult(fact_ids=tuple(fact_ids), candidates=candidates)
 
 
+@dataclass(frozen=True, slots=True)
+class CandidateSet:
+    """Drafts that survived candidate validation, plus why the others did not."""
+
+    drafts: tuple[FactDraft, ...]
+    rejected: tuple[str, ...]
+
+
 def parse_candidates(
     raw: str,
     evidence: list[Evidence],
     limit: int,
-) -> list[FactDraft]:
-    """Validate a model response into drafts; raise rather than guess."""
+) -> CandidateSet:
+    """Validate a model response into drafts; raise rather than guess.
+
+    A malformed response fails the batch, because the model broke the output
+    contract. A malformed candidate only costs that candidate: dropping one
+    claim says nothing about the others in the same response.
+    """
     payload = parse_json_object(raw)
     items = require_list(payload.get("facts", []), field_name="facts")
     by_id = {item.id: item for item in evidence}
     drafts: list[FactDraft] = []
+    rejected: list[str] = []
     for item in items:
         if len(drafts) >= limit:
             break
-        draft = _parse_candidate(require_object(item, field_name="facts[]"), by_id)
-        if draft is not None:
-            drafts.append(draft)
-    return drafts
+        try:
+            drafts.append(_parse_candidate(require_object(item, field_name="facts[]"), by_id))
+        except MemorySchemaError as exc:
+            rejected.append(str(exc))
+    return CandidateSet(tuple(drafts), tuple(rejected))
 
 
 def _parse_candidate(
-    item: dict[str, Any],
+    payload: dict[str, Any],
     by_id: dict[str, Evidence],
-) -> FactDraft | None:
-    subject = normalize_key(require_str(item.get("subject"), field_name="subject"))
-    predicate = normalize_key(require_str(item.get("predicate"), field_name="predicate"))
-    text = require_str(item.get("text"), field_name="text")
+) -> FactDraft:
+    subject = normalize_key(require_str(payload.get("subject"), field_name="subject"))
+    predicate = normalize_key(require_str(payload.get("predicate"), field_name="predicate"))
+    text = require_str(payload.get("text"), field_name="text")
     if not subject or not predicate or not text.strip():
-        return None
-    kind: FactKind = parse_kind(item.get("kind"))
-    scope = normalize_scope(str(item.get("scope") or "global"))
-    raw_sources = require_list(item.get("sources"), field_name="sources")
-    sources = tuple(
-        source for source in (
-            require_str(entry, field_name="sources[]") for entry in raw_sources
-        )
-        if source
-    )
+        raise MemorySchemaError("candidate has an empty subject, predicate or text")
+    kind: FactKind = parse_kind(payload.get("kind"))
+    scope = normalize_scope(str(payload.get("scope") or "global"))
+    raw_sources = require_list(payload.get("sources"), field_name="sources")
     cited: list[Evidence] = []
-    for source_id in sources:
+    for entry in raw_sources:
+        source_id = require_str(entry, field_name="sources[]")
         found = by_id.get(source_id)
         if found is None:
             raise MemorySchemaError(
@@ -186,41 +211,41 @@ def _parse_candidate(
             )
         if found.suppressed or not found.content.strip():
             raise MemorySchemaError(f"candidate cites deleted evidence {source_id!r}")
-        cited.append(found)
+        if found not in cited:
+            cited.append(found)
     if not cited:
         raise MemorySchemaError("candidate has no evidence")
-    source_type = derive_source_type(cited)
+    # Citing an id is not enough: the cited text has to be about the claim, and
+    # only the evidence that mentions it may establish the claim's provenance.
+    supporting = supporting_evidence(text, kind, cited)
+    if not supporting:
+        raise MemorySchemaError(
+            "the cited evidence does not mention the fact it is meant to support"
+        )
     observed_at = max(
-        (item.observed_at or item.created_at for item in cited),
+        (item.observed_at or item.created_at for item in supporting),
         default=None,
     )
-    confidence = item.get("confidence")
-    supersedes = optional_str(item.get("supersedes"), field_name="supersedes")
-    attributes = item.get("attributes")
-    draft = FactDraft(
+    confidence = payload.get("confidence")
+    supersedes = optional_str(payload.get("supersedes"), field_name="supersedes")
+    attributes = payload.get("attributes")
+    return FactDraft(
         subject=subject,
         predicate=predicate,
         text=text,
         kind=kind,
         scope=scope,
-        sources=tuple(cited_ids(cited)),
-        source_type=source_type,
+        sources=tuple(item.id for item in supporting),
+        source_type=derive_source_type(list(supporting)),
         observed_at=observed_at,
         supersedes=supersedes,
         attributes=cast(dict[str, Any], attributes) if isinstance(attributes, dict) else {},
         confidence=float(confidence) if isinstance(confidence, (int, float)) and not isinstance(confidence, bool) else None,
     )
-    # Citing an id is not enough: the cited text has to be about the claim.
-    validate_claim_support(draft, cited)
-    return draft
-
-
-def cited_ids(cited: list[Evidence]) -> list[str]:
-    return [item.id for item in cited]
 
 
 def derive_source_type(cited: list[Evidence]) -> SourceType:
-    """Provenance comes from the cited evidence, never from the model."""
+    """Provenance comes from the evidence that supports the claim, never the model."""
     candidates: list[SourceType] = []
     for item in cited:
         if item.kind in {EvidenceKind.USER_MESSAGE, EvidenceKind.LEGACY_ENTRY}:
@@ -263,4 +288,4 @@ def _render_existing(existing: list[dict[str, Any]]) -> str:
     return "\n".join(rows)
 
 
-__all__ = ["ExtractionResult", "FactExtractor", "parse_candidates"]
+__all__ = ["CandidateSet", "ExtractionResult", "FactExtractor", "parse_candidates"]

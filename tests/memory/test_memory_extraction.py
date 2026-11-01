@@ -11,6 +11,7 @@ from yoreni.memory.models import (
     MemoryExtractionError,
     MemorySchemaError,
     SourceType,
+    supporting_evidence,
 )
 from yoreni.providers.base import LLMResponse
 from yoreni.utils.llm_runtime import LLMRuntime
@@ -49,18 +50,31 @@ async def test_extraction_commits_a_cited_candidate(harness):
     assert evidence_id in provider.calls[0][0]["content"]
 
 
-def test_parse_rejects_a_world_fact_cited_to_the_users_request(harness):
+def test_a_rejected_candidate_does_not_discard_the_supported_one(harness):
     harness.record("run-1", ("user", "Please look up the latest version."))
     evidence = harness.service.store.evidence_for_run("run-1")
 
-    with pytest.raises(MemorySchemaError, match="verified tool result"):
-        parse_candidates(facts_payload({
+    parsed = parse_candidates(facts_payload(
+        {
             "subject": "project:yoreni",
             "predicate": "version",
             "text": "Yoreni is on version 2.4.1.",
             "kind": "project_knowledge",
             "sources": [evidence[0].id],
-        }), evidence, 20)
+        },
+        {
+            "subject": "user",
+            "predicate": "asked_for_version",
+            "text": "The user asked for the latest version.",
+            "kind": "user_fact",
+            "sources": [evidence[0].id],
+        },
+    ), evidence, 20)
+
+    assert [draft.predicate for draft in parsed.drafts] == ["asked_for_version"]
+    assert parsed.rejected == (
+        "the cited evidence does not mention the fact it is meant to support",
+    )
 
 
 async def test_assistant_prose_is_only_an_inference(harness):
@@ -110,6 +124,40 @@ async def test_a_verified_tool_result_establishes_provenance(harness):
     assert fact.source_type is SourceType.TOOL_RESULT
 
 
+async def test_provenance_comes_from_the_evidence_that_supports_the_claim(harness):
+    harness.record(
+        "run-1",
+        (
+            "tool",
+            "Error: Invalid parameters for tool 'request_authentication':"
+            " allowed_domains should be array",
+        ),
+        ("tool", '{"status": "connected", "account_id": "acct_1"}'),
+    )
+    failed = harness.evidence_id("run-1", "tool")
+    connected = harness.evidence_id("run-1", "tool", index=1)
+    provider = ScriptedProvider(LLMResponse(content=facts_payload({
+        "subject": "request_authentication",
+        "predicate": "allowed_domains_type",
+        "text": "request_authentication requires allowed_domains to be an array.",
+        "kind": "event_experience",
+        "sources": [failed, connected],
+    })))
+
+    result = await FactExtractor(harness.service.store).extract(
+        harness.service.store.evidence_for_run("run-1"),
+        runtime=_runtime(provider),
+    )
+
+    fact = harness.service.store.fact(result.fact_ids[0])
+    assert fact is not None
+    # An unrelated success cited alongside the failure neither lends the claim
+    # verified authority nor gets it rejected.
+    assert fact.source_type is SourceType.UNVERIFIED
+    sources = harness.service.store.sources_for([fact.id])[fact.id]
+    assert [source.evidence_id for source in sources] == [failed]
+
+
 async def test_a_failed_tool_result_is_not_trusted(harness):
     harness.record("run-1", ("user", "delete it"), ("tool", "Error: permission denied"))
     tool_evidence = harness.evidence_id("run-1", "tool")
@@ -135,31 +183,43 @@ def test_parse_rejects_unknown_evidence(harness):
     harness.record("run-1", ("user", "hello"))
     evidence = harness.service.store.evidence_for_run("run-1")
 
-    with pytest.raises(MemorySchemaError, match="not provided"):
-        parse_candidates(facts_payload({
-            "subject": "user", "predicate": "name", "text": "The user is Ada.",
-            "kind": "user_fact", "sources": ["ev_invented"],
-        }), evidence, 20)
+    parsed = parse_candidates(facts_payload({
+        "subject": "user", "predicate": "name", "text": "The user is Ada.",
+        "kind": "user_fact", "sources": ["ev_invented"],
+    }), evidence, 20)
+
+    assert parsed.drafts == ()
+    assert "not provided" in parsed.rejected[0]
 
 
 @pytest.mark.parametrize(
     "raw",
-    [
-        "",
-        "not json",
-        "[]",
-        '{"facts": {}}',
-        '{"facts": [{"subject": "user"}]}',
-        '{"facts": [{"subject": "user", "predicate": "x", "text": "y", '
-        '"kind": "made_up", "sources": []}]}',
-    ],
+    ["", "not json", "[]", '{"facts": {}}'],
 )
-def test_parse_never_guesses_on_malformed_output(harness, raw):
+def test_parse_never_guesses_on_a_malformed_response(harness, raw):
     harness.record("run-1", ("user", "hello"))
     evidence = harness.service.store.evidence_for_run("run-1")
 
     with pytest.raises(MemorySchemaError):
         parse_candidates(raw, evidence, 20)
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        '{"facts": [{"subject": "user"}]}',
+        '{"facts": [{"subject": "user", "predicate": "x", "text": "y", '
+        '"kind": "made_up", "sources": []}]}',
+    ],
+)
+def test_parse_rejects_a_malformed_candidate(harness, raw):
+    harness.record("run-1", ("user", "hello"))
+    evidence = harness.service.store.evidence_for_run("run-1")
+
+    parsed = parse_candidates(raw, evidence, 20)
+
+    assert parsed.drafts == ()
+    assert parsed.rejected
 
 
 def test_candidate_limit_bounds_one_batch(harness):
@@ -173,8 +233,9 @@ def test_candidate_limit_bounds_one_batch(harness):
         for index in range(5)
     ])
 
-    drafts = parse_candidates(payload, evidence, 2)
-    assert [draft.predicate for draft in drafts] == ["p0", "p1"]
+    parsed = parse_candidates(payload, evidence, 2)
+
+    assert [draft.predicate for draft in parsed.drafts] == ["p0", "p1"]
 
 
 async def test_failed_extraction_keeps_evidence_and_the_job_retryable(harness):
@@ -210,6 +271,28 @@ async def test_provider_error_is_an_explicit_extraction_failure(harness):
             harness.service.store.evidence_for_run("run-1"),
             runtime=_runtime(provider),
         )
+
+
+def test_a_shared_character_does_not_make_the_evidence_about_the_claim(harness):
+    harness.record("run-1", ("tool", "空口说白话"))
+    evidence = harness.service.store.evidence_for_run("run-1")
+
+    assert supporting_evidence("接口返回结果为空。", FactKind.PROJECT_KNOWLEDGE, evidence) == ()
+
+
+async def test_a_batch_whose_candidates_all_fail_keeps_the_job_retryable(harness):
+    harness.record("run-1", ("user", "I prefer Chinese."))
+    provider = ScriptedProvider(LLMResponse(content=facts_payload({
+        "subject": "user",
+        "predicate": "preferred_language",
+        "text": "The user prefers Chinese.",
+        "kind": "user_preference",
+        "sources": ["ev_invented"],
+    })))
+
+    assert await harness.service.extract_pending(_runtime(provider), limit=1) == 0
+    assert harness.service.store.job_counts() == (0, 1)
+    assert harness.service.stats()["active_facts"] == 0
 
 
 async def test_assistant_only_runs_do_not_queue_extraction(harness):

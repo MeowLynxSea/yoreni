@@ -43,6 +43,7 @@ from yoreni.memory.models import (
     MemoryError,
     MemoryHit,
     MemoryRetrievalError,
+    MemorySchemaError,
     SearchFilter,
     SourceType,
     TrustLevel,
@@ -50,8 +51,8 @@ from yoreni.memory.models import (
     fts_index_text,
     fts_match_query,
     normalize_scope,
+    supporting_evidence,
     utc_now,
-    validate_claim_support,
 )
 from yoreni.memory.retrieval import Retriever
 from yoreni.memory.store import FactStore
@@ -454,17 +455,24 @@ class MemoryService:
         evidence_ids: Sequence[str] | None = None,
     ) -> list[str]:
         evidence = self._explicit_evidence(run_id, evidence_ids)
+        supporting = supporting_evidence(text, kind, evidence)
+        if not supporting:
+            raise MemorySchemaError(
+                "the cited evidence does not mention the fact it is meant to support"
+            )
         draft = FactDraft(
             subject=subject,
             predicate=predicate,
             text=text,
             kind=kind,
             scope=normalize_scope(scope),
-            sources=tuple(item.id for item in evidence),
-            source_type=derive_source_type(evidence),
-            observed_at=max((item.observed_at or item.created_at for item in evidence), default=None),
+            sources=tuple(item.id for item in supporting),
+            source_type=derive_source_type(list(supporting)),
+            observed_at=max(
+                (item.observed_at or item.created_at for item in supporting),
+                default=None,
+            ),
         ).normalized()
-        validate_claim_support(draft, evidence)
         fact_ids = self.store.commit_candidates([draft], evidence={item.id: item for item in evidence})
         await self.embed_facts(fact_ids)
         return fact_ids
@@ -485,25 +493,30 @@ class MemoryService:
         if target is None:
             raise MemoryError(f"unknown fact {fact_id!r}")
         evidence = self._explicit_evidence(run_id, evidence_ids)
+        fact_kind = kind or target.kind
+        supporting = supporting_evidence(text, fact_kind, evidence)
+        if not supporting:
+            raise MemorySchemaError(
+                "the cited evidence does not mention the correction it is meant to support"
+            )
         user_evidence = [
-            item for item in evidence
+            item for item in supporting
             if item.kind in {EvidenceKind.USER_MESSAGE, EvidenceKind.LEGACY_ENTRY}
         ]
         draft = FactDraft(
             subject=subject or target.subject,
             predicate=predicate or target.predicate,
             text=text,
-            kind=kind or target.kind,
+            kind=fact_kind,
             scope=scope or target.scope,
-            sources=tuple(item.id for item in evidence),
+            sources=tuple(item.id for item in supporting),
             source_type=(
                 SourceType.USER_CORRECTION if user_evidence
-                else derive_source_type(evidence)
+                else derive_source_type(list(supporting))
             ),
             observed_at=utc_now(),
             supersedes=fact_id,
         ).normalized()
-        validate_claim_support(draft, evidence)
         fact_ids = self.store.commit_candidates([draft], evidence={item.id: item for item in evidence})
         if not fact_ids:
             raise MemoryError("the correction did not create a fact")

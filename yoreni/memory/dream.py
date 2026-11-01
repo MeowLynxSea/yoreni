@@ -16,20 +16,20 @@ from typing import TYPE_CHECKING, Any, cast
 from loguru import logger
 
 from yoreni.memory.core import CORE_WRITABLE, validate_core_content
+from yoreni.memory.extraction import derive_source_type
 from yoreni.memory.models import (
     Evidence,
     Fact,
-    FactDraft,
     FactKind,
     FactStatus,
+    MemoryError,
     MemorySchemaError,
-    SourceType,
     parse_json_object,
     parse_kind,
     require_list,
     require_object,
     require_str,
-    validate_claim_support,
+    supporting_evidence,
 )
 from yoreni.memory.store import FactStore
 from yoreni.utils.helpers import (
@@ -41,6 +41,7 @@ from yoreni.utils.prompt_templates import render_template
 
 if TYPE_CHECKING:
     from yoreni.memory.service import MemoryService
+    from yoreni.providers.base import LLMResponse
     from yoreni.utils.llm_runtime import LLMRuntime
 
 DEFAULT_BATCH_FACTS = 60
@@ -138,14 +139,19 @@ class DreamConsolidator:
         if run_id is None:
             return DreamResult(status="busy", run_id=None, changes=0, detail="another consolidation is active")
         snapshot = self.core.snapshot()
+        # Billed tokens stay visible even when the pass fails.
+        usage = [0, 0]
         try:
-            proposal, tokens = await self._propose(runtime, batch)
+            proposal = await self._propose(runtime, batch, usage)
         except Exception as exc:
-            self.store.update_dream_run(run_id, status="failed", error=f"{type(exc).__name__}: {exc}")
+            self.store.update_dream_run(
+                run_id, status="failed", error=f"{type(exc).__name__}: {exc}",
+                tokens_in=usage[0], tokens_out=usage[1],
+            )
             logger.warning("Dream proposal failed: {}", exc)
             return DreamResult(status="failed", run_id=run_id, changes=0, detail=str(exc))
         self.store.update_dream_run(
-            run_id, proposal=proposal, tokens_in=tokens[0], tokens_out=tokens[1],
+            run_id, proposal=proposal, tokens_in=usage[0], tokens_out=usage[1],
         )
         return self._apply(run_id, proposal, batch, snapshot)
 
@@ -213,9 +219,19 @@ class DreamConsolidator:
     # -- proposal ------------------------------------------------------------
 
     async def _propose(
-        self, runtime: "LLMRuntime", batch: DreamBatch,
-    ) -> tuple[dict[str, Any], tuple[int, int]]:
-        prompt = render_template("agent/dream.md", strip=True)
+        self, runtime: "LLMRuntime", batch: DreamBatch, usage: list[int],
+    ) -> dict[str, Any]:
+        """Run the bounded tool loop and return the model's change set.
+
+        The budget is spent on inspection only: the last call is made without
+        tools, so the loop always ends with a change set instead of exhausting
+        its rounds and discarding the work. ``usage`` accumulates billed tokens
+        even when the pass raises.
+        """
+        # The final round has no tools, so it is not a tool round.
+        prompt = render_template(
+            "agent/dream.md", strip=True, tool_rounds=MAX_TOOL_ROUNDS - 1,
+        )
         sections = [prompt, self._render_core()]
         if batch.facts:
             sections.append("## New facts\n" + self._render_facts(batch.facts))
@@ -235,27 +251,17 @@ class DreamConsolidator:
                 f"dream input does not fit the model context: {estimated}/"
                 f"{input_budget} via {source}; lower memory.dream_batch_facts"
             )
-        tokens_in = 0
-        tokens_out = 0
-        for _round in range(MAX_TOOL_ROUNDS):
-            from yoreni.credentials.manager import get_credential_manager
-
-            response = await runtime.provider.chat(
-                messages=get_credential_manager().redact_messages(messages),
-                model=runtime.model,
-                temperature=0.0,
-                max_tokens=runtime.generation.max_tokens,
-                reasoning_effort=runtime.generation.reasoning_effort,
-                tools=_DREAM_TOOLS,
-            )
-            if response.usage is not None:
-                tokens_in += response.usage.input_tokens
-                tokens_out += response.usage.output_tokens
+        round_index = 0
+        while True:
+            final = round_index >= MAX_TOOL_ROUNDS - 1
+            round_index += 1
+            response = await self._chat(runtime, messages, None if final else _DREAM_TOOLS)
+            self._count_usage(usage, response)
             if response.finish_reason == "error":
                 raise MemorySchemaError(
                     f"dream model failed: {response.error_kind or 'provider error'}"
                 )
-            if response.should_execute_tools:
+            if not final and response.should_execute_tools:
                 messages.append(build_assistant_message(
                     response.content,
                     tool_calls=[call.to_openai_tool_call() for call in response.tool_calls],
@@ -272,10 +278,59 @@ class DreamConsolidator:
                 continue
             if not response.content:
                 raise MemorySchemaError("dream model returned no content")
-            return parse_json_object(response.content), (tokens_in, tokens_out)
-        raise MemorySchemaError(
-            f"dream did not return a change set within {MAX_TOOL_ROUNDS} tool rounds"
+            return await self._change_set(runtime, messages, response.content, usage)
+
+    async def _change_set(
+        self,
+        runtime: "LLMRuntime",
+        messages: list[dict[str, Any]],
+        content: str,
+        usage: list[int],
+    ) -> dict[str, Any]:
+        """Parse the change set, repairing one malformed reply at the boundary."""
+        try:
+            return parse_json_object(content)
+        except MemorySchemaError:
+            messages.append({"role": "assistant", "content": content})
+            messages.append({
+                "role": "user",
+                "content": (
+                    "That reply was not the JSON change set. Return only the JSON object "
+                    "described above, with no prose and no code fence."
+                ),
+            })
+        response = await self._chat(runtime, messages, None)
+        self._count_usage(usage, response)
+        if response.finish_reason == "error":
+            raise MemorySchemaError(
+                f"dream model failed: {response.error_kind or 'provider error'}"
+            )
+        if not response.content:
+            raise MemorySchemaError("dream model returned no content")
+        return parse_json_object(response.content)
+
+    async def _chat(
+        self,
+        runtime: "LLMRuntime",
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+    ) -> "LLMResponse":
+        from yoreni.credentials.manager import get_credential_manager
+
+        return await runtime.provider.chat(
+            messages=get_credential_manager().redact_messages(messages),
+            model=runtime.model,
+            temperature=0.0,
+            max_tokens=runtime.generation.max_tokens,
+            reasoning_effort=runtime.generation.reasoning_effort,
+            tools=tools,
         )
+
+    @staticmethod
+    def _count_usage(usage: list[int], response: "LLMResponse") -> None:
+        if response.usage is not None:
+            usage[0] += response.usage.input_tokens
+            usage[1] += response.usage.output_tokens
 
     async def _run_tool(self, name: str, arguments: dict[str, Any]) -> str:
         try:
@@ -302,7 +357,10 @@ class DreamConsolidator:
                     return f"Error: unknown fact {fact_id!r}"
             else:
                 return f"Error: unknown tool {name!r}"
-        except MemorySchemaError as exc:
+        except MemoryError as exc:
+            # A retrieval index that is down is a failed lookup, not a failed
+            # consolidation: the model decides what to do with the error.
+            logger.warning("dream tool {} failed: {}", name, exc)
             return f"Error: {exc}"
         rendered = json.dumps(payload, ensure_ascii=False)
         return truncate_text_to_tokens(rendered, _MAX_TOOL_RESULT_TOKENS)
@@ -487,23 +545,17 @@ def _validate_add_fact(
     supersedes = operation.get("supersedes")
     if supersedes is not None and not isinstance(supersedes, str):
         raise MemorySchemaError("supersedes must be a fact id or null")
-    source_type = _derive_source_type(evidence_rows, evidence)
+    cited = [evidence_rows[item] for item in evidence]
+    supporting = supporting_evidence(text, kind, cited)
+    if not supporting:
+        raise MemorySchemaError(
+            f"add_fact cites evidence that does not mention it: {text!r}"
+        )
+    source_type = derive_source_type(list(supporting))
     observed_at = max(
-        (evidence_rows[item].observed_at or evidence_rows[item].created_at for item in evidence),
+        (item.observed_at or item.created_at for item in supporting),
         default=None,
     )
-    draft = FactDraft(
-        subject=subject,
-        predicate=predicate,
-        text=text,
-        kind=kind,
-        scope=scope,
-        sources=tuple(evidence),
-        source_type=source_type,
-        observed_at=observed_at,
-        supersedes=supersedes,
-    ).normalized()
-    validate_claim_support(draft, [evidence_rows[item] for item in evidence])
     return {
         "op": "add_fact",
         "subject": subject,
@@ -511,7 +563,7 @@ def _validate_add_fact(
         "text": text,
         "kind": kind.value,
         "scope": scope,
-        "evidence": evidence,
+        "evidence": [item.id for item in supporting],
         "source_type": source_type,
         "observed_at": observed_at,
         "supersedes": supersedes,
@@ -582,12 +634,6 @@ def _validate_skill(operation: dict[str, Any]) -> dict[str, Any]:
         "description": description,
         "body": body,
     }
-
-
-def _derive_source_type(evidence_rows: dict[str, Evidence], ids: list[str]) -> SourceType:
-    from yoreni.memory.extraction import derive_source_type
-
-    return derive_source_type([evidence_rows[item] for item in ids])
 
 
 def serialize_proposal(operations: list[dict[str, Any]]) -> str:

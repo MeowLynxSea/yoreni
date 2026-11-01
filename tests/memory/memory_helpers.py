@@ -21,6 +21,7 @@ class ScriptedProvider(LLMProvider):
         super().__init__(provider_name="scripted")
         self._responses = list(responses)
         self.calls: list[list[dict[str, Any]]] = []
+        self.options: list[dict[str, Any]] = []
         self.generation = GenerationSettings(temperature=0.0, max_tokens=512)
 
     def get_default_model(self) -> str:
@@ -28,6 +29,7 @@ class ScriptedProvider(LLMProvider):
 
     async def chat(self, messages: list[dict[str, Any]], **kwargs: Any) -> LLMResponse:
         self.calls.append(messages)
+        self.options.append(kwargs)
         if not self._responses:
             raise AssertionError("scripted provider has no response left")
         response = self._responses.pop(0)

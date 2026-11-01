@@ -214,6 +214,9 @@ class SandboxGateway:
                 self.progress.set_stage("image")
                 monitor = asyncio.create_task(self._monitor_image_pull())
                 try:
+                    # The image transfer is network-bound and can outlast any
+                    # boot budget; only the boot itself is bounded.
+                    await self.backend.prepare()
                     await asyncio.wait_for(
                         self.backend.start(),
                         timeout=self.config.start_timeout_s,
@@ -326,31 +329,33 @@ class SandboxGateway:
         if directory is None:
             return
         total: int | None = None
-        total_task: asyncio.Task[int | None] | None = None
+        sizes: dict[str, int] | None = None
+        total_task: asyncio.Task[dict[str, int] | None] | None = None
         next_total_at = 0.0
         try:
             while True:
                 now = asyncio.get_running_loop().time()
                 if total is None:
                     if total_task is None and now >= next_total_at:
-                        # Resolving the image size talks to the registry; keep
+                        # Resolving the layer list talks to the registry; keep
                         # it off the loop and report bytes while it is in flight.
                         total_task = asyncio.create_task(
                             asyncio.to_thread(
-                                image_manifest.image_pull_bytes, self.config.image
+                                image_manifest.image_layer_sizes, self.config.image
                             )
                         )
                     if total_task is not None and total_task.done():
                         if not total_task.cancelled():
                             with suppress(Exception):
-                                total = total_task.result()
+                                sizes = total_task.result()
+                                total = sum(sizes.values()) if sizes else None
                         total_task = None
                         # A pull that started before the network returned can
                         # miss the registry; retry instead of downloading blind.
                         next_total_at = now + _IMAGE_TOTAL_RETRY_S
                 try:
                     downloaded = await asyncio.to_thread(
-                        _directory_bytes, directory / "images" / "layers"
+                        _layer_bytes, directory / "images" / "layers", sizes
                     )
                 except OSError:
                     downloaded = 0
@@ -1060,13 +1065,27 @@ class SandboxGateway:
             )
 
 
-def _directory_bytes(root: Path) -> int:
-    """Sum the size of every regular file under ``root``."""
-    total = 0
+def _layer_bytes(root: Path, sizes: Mapping[str, int] | None) -> int:
+    """Sum each image layer once, even while a retry leaves two files behind.
+
+    The runtime downloads a layer to ``sha256-<digest>.<id>.downloading`` and
+    keeps the verified copy as ``sha256-<digest>.tar.gz``. An aborted attempt
+    leaves its temporary file in place, so adding every file would count one
+    layer twice and report the image as downloaded before it is.
+    """
+    per_digest: dict[str, int] = {}
     for path in root.rglob("*"):
         try:
-            if path.is_file():
-                total += path.stat().st_size
+            if not path.is_file():
+                continue
+            size = path.stat().st_size
         except OSError:
             continue
-    return total
+        digest = path.name.removeprefix("sha256-").split(".", 1)[0]
+        if sizes is not None:
+            expected = sizes.get(digest)
+            if expected is None:
+                continue
+            size = min(size, expected)
+        per_digest[digest] = max(per_digest.get(digest, 0), size)
+    return sum(per_digest.values())

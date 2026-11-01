@@ -1,7 +1,7 @@
-"""Best-effort size of an OCI image, used to estimate the first image pull.
+"""Best-effort layer sizes of an OCI image, used to report the first image pull.
 
-The registry is only consulted for a progress total: any failure is silent and
-the caller falls back to an indeterminate stage.
+The registry is only consulted for progress: any failure is silent and the
+caller falls back to an indeterminate stage.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ _ACCEPT = ", ".join(
         "application/vnd.docker.distribution.manifest.v2+json",
     )
 )
-_CACHE: dict[str, int | None] = {}
+_CACHE: dict[str, dict[str, int] | None] = {}
 _LOCK = threading.Lock()
 _TIMEOUT = 6.0
 
@@ -57,37 +57,43 @@ def _token(client: httpx.Client, challenge: str, repository: str) -> str | None:
     return token if isinstance(token, str) else None
 
 
-def _total_for_manifest(payload: dict[str, Any]) -> int | None:
+def _layer_sizes(payload: dict[str, Any]) -> dict[str, int] | None:
     layers = payload.get("layers")
     if not isinstance(layers, list):
         return None
-    total = 0
+    sizes: dict[str, int] = {}
     for layer in cast(list[Any], layers):
-        size = cast(dict[str, Any], layer).get("size") if isinstance(layer, dict) else None
-        if not isinstance(size, int):
+        if not isinstance(layer, dict):
             return None
-        total += size
-    return total or None
+        digest = cast(dict[str, Any], layer).get("digest")
+        size = cast(dict[str, Any], layer).get("size")
+        if not isinstance(digest, str) or not isinstance(size, int):
+            return None
+        # The runtime names a downloaded layer after its bare hex digest.
+        sizes[digest.removeprefix("sha256:")] = size
+    return sizes or None
 
 
-def image_pull_bytes(image: str) -> int | None:
-    """Return the compressed size of ``image`` for this machine, if known.
+def image_layer_sizes(image: str) -> dict[str, int] | None:
+    """Return the compressed size of each layer of ``image``, if known.
 
-    Only a resolved size is cached. The lookup runs when a pull begins, which
-    can be right after a restart before the network is back; caching that miss
-    would leave the download without a total for the rest of the process.
+    The digests let the caller count an in-flight download against the layers
+    that actually belong to this image. Only a resolved answer is cached: the
+    lookup runs when a pull begins, which can be right after a restart before
+    the network is back, and caching that miss would leave the download without
+    a total for the rest of the process.
     """
     with _LOCK:
         if image in _CACHE:
             return _CACHE[image]
-    total = _fetch(image)
-    if total is not None:
+    sizes = _fetch(image)
+    if sizes is not None:
         with _LOCK:
-            _CACHE[image] = total
-    return total
+            _CACHE[image] = sizes
+    return sizes
 
 
-def _fetch(image: str) -> int | None:
+def _fetch(image: str) -> dict[str, int] | None:
     host, repository, tag = _split_reference(image)
     scheme = "https"
     base = f"{scheme}://{host}/v2/{repository}"
@@ -118,7 +124,7 @@ def _fetch(image: str) -> int | None:
                 )
                 response.raise_for_status()
                 payload = cast(dict[str, Any], response.json())
-            return _total_for_manifest(payload)
+            return _layer_sizes(payload)
     except (httpx.HTTPError, ValueError, KeyError) as exc:
         logger.debug("Could not read the size of {}: {}", image, exc)
         return None

@@ -60,13 +60,13 @@ def test_a_total_arriving_late_restores_the_position() -> None:
 def test_a_failed_size_lookup_is_not_cached(monkeypatch) -> None:
     from yoreni.sandbox import image_manifest
 
-    answers = [None, 4096]
+    answers = [None, {"a" * 64: 4096}]
     monkeypatch.setattr(image_manifest, "_CACHE", {})
     monkeypatch.setattr(image_manifest, "_fetch", lambda image: answers.pop(0))
 
-    assert image_manifest.image_pull_bytes("example/yoreni:1") is None
-    assert image_manifest.image_pull_bytes("example/yoreni:1") == 4096
-    assert image_manifest.image_pull_bytes("example/yoreni:1") == 4096
+    assert image_manifest.image_layer_sizes("example/yoreni:1") is None
+    assert image_manifest.image_layer_sizes("example/yoreni:1") == {"a" * 64: 4096}
+    assert image_manifest.image_layer_sizes("example/yoreni:1") == {"a" * 64: 4096}
 
 
 def test_failure_keeps_the_reason_for_the_user() -> None:
@@ -105,8 +105,10 @@ async def test_image_monitor_reports_bytes_from_the_runtime_home(monkeypatch, tm
     gateway = SandboxGateway(SandboxConfig(), backend=_Backend())  # type: ignore[arg-type]
     gateway.progress.start()
     gateway.progress.set_stage("image")
-    monkeypatch.setattr("yoreni.sandbox.image_manifest.image_pull_bytes", lambda image: 1000)
-    monkeypatch.setattr("yoreni.sandbox.gateway._directory_bytes", lambda root: 500)
+    monkeypatch.setattr(
+        "yoreni.sandbox.image_manifest.image_layer_sizes", lambda image: {"a" * 64: 1000}
+    )
+    monkeypatch.setattr("yoreni.sandbox.gateway._layer_bytes", lambda root, sizes: 500)
 
     task = asyncio.create_task(gateway._monitor_image_pull())
     try:
@@ -133,16 +135,16 @@ async def test_the_monitor_retries_a_failed_size_lookup(monkeypatch, tmp_path) -
         def data_dir(self):
             return tmp_path
 
-    answers = [None, 1000]
+    answers: list[dict[str, int] | None] = [None, {"a" * 64: 1000}]
     gateway = SandboxGateway(SandboxConfig(), backend=_Backend())  # type: ignore[arg-type]
     gateway.progress.start()
     gateway.progress.set_stage("image")
     monkeypatch.setattr("yoreni.sandbox.gateway._IMAGE_TOTAL_RETRY_S", 0.0)
     monkeypatch.setattr(
-        "yoreni.sandbox.image_manifest.image_pull_bytes",
-        lambda image: answers.pop(0) if answers else 1000,
+        "yoreni.sandbox.image_manifest.image_layer_sizes",
+        lambda image: answers.pop(0) if answers else {"a" * 64: 1000},
     )
-    monkeypatch.setattr("yoreni.sandbox.gateway._directory_bytes", lambda root: 500)
+    monkeypatch.setattr("yoreni.sandbox.gateway._layer_bytes", lambda root, sizes: 500)
 
     task = asyncio.create_task(gateway._monitor_image_pull())
     try:
@@ -184,6 +186,32 @@ def test_byte_progress_never_exceeds_the_image_size() -> None:
     assert snapshot["eta_seconds"] is None
 
 
+def test_a_retried_layer_counts_once(tmp_path) -> None:
+    from yoreni.sandbox.gateway import _layer_bytes
+
+    layers = tmp_path / "layers"
+    layers.mkdir()
+    retried = "a" * 64
+    # An aborted attempt leaves its partial download beside the verified copy.
+    (layers / f"sha256-{retried}.0123456789abcdef.downloading").write_bytes(b"x" * 400)
+    (layers / f"sha256-{retried}.tar.gz").write_bytes(b"x" * 600)
+    # Layers of another image in the same runtime home are not part of this pull.
+    (layers / f"sha256-{'b' * 64}.tar.gz").write_bytes(b"x" * 50)
+
+    assert _layer_bytes(layers, {retried: 1000}) == 600
+
+
+def test_a_layer_never_reports_more_than_its_manifest_size(tmp_path) -> None:
+    from yoreni.sandbox.gateway import _layer_bytes
+
+    layers = tmp_path / "layers"
+    layers.mkdir()
+    digest = "a" * 64
+    (layers / f"sha256-{digest}.tar.gz").write_bytes(b"x" * 1200)
+
+    assert _layer_bytes(layers, {digest: 1000}) == 1000
+
+
 async def test_the_monitor_switches_to_configuring_once_layers_are_downloaded(
     monkeypatch, tmp_path
 ) -> None:
@@ -199,8 +227,10 @@ async def test_the_monitor_switches_to_configuring_once_layers_are_downloaded(
     gateway = SandboxGateway(SandboxConfig(), backend=_Backend())  # type: ignore[arg-type]
     gateway.progress.start()
     gateway.progress.set_stage("image")
-    monkeypatch.setattr("yoreni.sandbox.image_manifest.image_pull_bytes", lambda image: 1000)
-    monkeypatch.setattr("yoreni.sandbox.gateway._directory_bytes", lambda root: 1000)
+    monkeypatch.setattr(
+        "yoreni.sandbox.image_manifest.image_layer_sizes", lambda image: {"a" * 64: 1000}
+    )
+    monkeypatch.setattr("yoreni.sandbox.gateway._layer_bytes", lambda root, sizes: 1000)
 
     task = asyncio.create_task(gateway._monitor_image_pull())
     try:

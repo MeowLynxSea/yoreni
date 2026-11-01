@@ -15,6 +15,9 @@ from yoreni.sandbox.gateway import SandboxGateway, set_sandbox_gateway
 class DownBackend:
     name = "down"
 
+    async def prepare(self) -> None:
+        raise SandboxUnavailableError("no virtualization")
+
     async def start(self) -> None:
         raise SandboxUnavailableError("no virtualization")
 

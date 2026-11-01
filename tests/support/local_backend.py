@@ -64,6 +64,9 @@ class LocalBackend:
         self._running = True
         self._staging = Path(tempfile.mkdtemp(prefix="yoreni-test-sandbox-"))
 
+    async def prepare(self) -> None:
+        self._running = True
+
     async def start(self) -> None:
         self._running = True
 

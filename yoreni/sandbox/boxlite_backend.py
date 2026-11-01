@@ -135,6 +135,11 @@ class BoxLiteBackend:
         self._box = box
         return box
 
+    async def prepare(self) -> None:
+        """Pull the image and create the VM without booting it."""
+        async with self._lock:
+            await self._ensure_box()
+
     async def start(self) -> None:
         async with self._lock:
             box = await self._ensure_box()

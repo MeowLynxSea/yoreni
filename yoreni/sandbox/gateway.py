@@ -45,6 +45,9 @@ _SERVICE_RETRY_S = 60.0
 # Health probes cost one VM round trip. The WebUI polls status every few
 # seconds, so serve the last measurement and refresh it in the background.
 _HEALTH_TTL_S = 5.0
+# A pull can begin before a restarted gateway has network; retry the image size
+# lookup until it answers so the download keeps its percentage and ETA.
+_IMAGE_TOTAL_RETRY_S = 10.0
 
 
 def set_sandbox_gateway(gateway: "SandboxGateway | None") -> None:
@@ -322,16 +325,29 @@ class SandboxGateway:
         directory = candidate if isinstance(candidate, Path) else None
         if directory is None:
             return
-        # Resolving the image size talks to the registry; keep it off the loop
-        # and report bytes while it is still in flight.
-        total_task = asyncio.create_task(
-            asyncio.to_thread(image_manifest.image_pull_bytes, self.config.image)
-        )
         total: int | None = None
+        total_task: asyncio.Task[int | None] | None = None
+        next_total_at = 0.0
         try:
             while True:
-                if total is None and total_task.done() and not total_task.cancelled():
-                    total = total_task.result()
+                now = asyncio.get_running_loop().time()
+                if total is None:
+                    if total_task is None and now >= next_total_at:
+                        # Resolving the image size talks to the registry; keep
+                        # it off the loop and report bytes while it is in flight.
+                        total_task = asyncio.create_task(
+                            asyncio.to_thread(
+                                image_manifest.image_pull_bytes, self.config.image
+                            )
+                        )
+                    if total_task is not None and total_task.done():
+                        if not total_task.cancelled():
+                            with suppress(Exception):
+                                total = total_task.result()
+                        total_task = None
+                        # A pull that started before the network returned can
+                        # miss the registry; retry instead of downloading blind.
+                        next_total_at = now + _IMAGE_TOTAL_RETRY_S
                 try:
                     downloaded = await asyncio.to_thread(
                         _directory_bytes, directory / "images" / "layers"
@@ -344,7 +360,8 @@ class SandboxGateway:
                     self.progress.set_stage("configuring")
                 await asyncio.sleep(0.5)
         finally:
-            total_task.cancel()
+            if total_task is not None:
+                total_task.cancel()
 
     async def _install_browser_assets(self) -> None:
         """Place the BrowserSkill CLI and extension inside the VM.

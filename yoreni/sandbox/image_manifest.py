@@ -71,13 +71,19 @@ def _total_for_manifest(payload: dict[str, Any]) -> int | None:
 
 
 def image_pull_bytes(image: str) -> int | None:
-    """Return the compressed size of ``image`` for this machine, if known."""
+    """Return the compressed size of ``image`` for this machine, if known.
+
+    Only a resolved size is cached. The lookup runs when a pull begins, which
+    can be right after a restart before the network is back; caching that miss
+    would leave the download without a total for the rest of the process.
+    """
     with _LOCK:
         if image in _CACHE:
             return _CACHE[image]
     total = _fetch(image)
-    with _LOCK:
-        _CACHE[image] = total
+    if total is not None:
+        with _LOCK:
+            _CACHE[image] = total
     return total
 
 

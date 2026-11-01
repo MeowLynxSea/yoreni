@@ -116,6 +116,13 @@ class SandboxProgress:
             self._downloaded_bytes = downloaded
             self._total_bytes = total
             if not total or total <= 0:
+                # Bytes are moving but the size is unknown, so the bar has no
+                # position to show: stay indeterminate instead of freezing on
+                # the stage floor while the transfer runs.
+                low, _ = _STAGE_SPAN[self._stage]
+                if self._percent is None or self._percent <= low:
+                    self._percent = None
+                self._eta_seconds = None
                 return
             fraction = min(1.0, max(0.0, downloaded / total))
             low, high = _STAGE_SPAN[self._stage]

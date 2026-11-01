@@ -34,12 +34,39 @@ def test_byte_progress_reports_rate_and_eta() -> None:
 def test_an_unknown_total_stays_indeterminate() -> None:
     progress = SandboxProgress()
     progress.start()
-    progress.set_stage("packages")
+    progress.set_stage("image")
     progress.set_bytes(1024, None)
 
     snapshot = progress.snapshot()
     assert snapshot["downloaded_bytes"] == 1024
     assert snapshot["total_bytes"] is None
+    # The bar must not park on the stage floor while bytes are moving.
+    assert snapshot["percent"] is None
+    assert snapshot["eta_seconds"] is None
+
+
+def test_a_total_arriving_late_restores_the_position() -> None:
+    progress = SandboxProgress()
+    progress.start()
+    progress.set_stage("image")
+    progress.set_bytes(500, None)
+    progress.set_bytes(500, 1000)
+
+    snapshot = progress.snapshot()
+    assert snapshot["percent"] is not None and snapshot["percent"] > 3.0
+    assert snapshot["total_bytes"] == 1000
+
+
+def test_a_failed_size_lookup_is_not_cached(monkeypatch) -> None:
+    from yoreni.sandbox import image_manifest
+
+    answers = [None, 4096]
+    monkeypatch.setattr(image_manifest, "_CACHE", {})
+    monkeypatch.setattr(image_manifest, "_fetch", lambda image: answers.pop(0))
+
+    assert image_manifest.image_pull_bytes("example/yoreni:1") is None
+    assert image_manifest.image_pull_bytes("example/yoreni:1") == 4096
+    assert image_manifest.image_pull_bytes("example/yoreni:1") == 4096
 
 
 def test_failure_keeps_the_reason_for_the_user() -> None:
@@ -85,7 +112,7 @@ async def test_image_monitor_reports_bytes_from_the_runtime_home(monkeypatch, tm
     try:
         for _ in range(60):
             await asyncio.sleep(0.05)
-            if gateway.progress.snapshot()["percent"] > 3.0:
+            if gateway.progress.snapshot()["total_bytes"] == 1000:
                 break
     finally:
         task.cancel()
@@ -94,6 +121,41 @@ async def test_image_monitor_reports_bytes_from_the_runtime_home(monkeypatch, tm
     assert snapshot["downloaded_bytes"] == 500
     assert snapshot["total_bytes"] == 1000
     assert snapshot["percent"] > 3.0
+
+
+async def test_the_monitor_retries_a_failed_size_lookup(monkeypatch, tmp_path) -> None:
+    import asyncio
+
+    from yoreni.sandbox.config import SandboxConfig
+    from yoreni.sandbox.gateway import SandboxGateway
+
+    class _Backend:
+        def data_dir(self):
+            return tmp_path
+
+    answers = [None, 1000]
+    gateway = SandboxGateway(SandboxConfig(), backend=_Backend())  # type: ignore[arg-type]
+    gateway.progress.start()
+    gateway.progress.set_stage("image")
+    monkeypatch.setattr("yoreni.sandbox.gateway._IMAGE_TOTAL_RETRY_S", 0.0)
+    monkeypatch.setattr(
+        "yoreni.sandbox.image_manifest.image_pull_bytes",
+        lambda image: answers.pop(0) if answers else 1000,
+    )
+    monkeypatch.setattr("yoreni.sandbox.gateway._directory_bytes", lambda root: 500)
+
+    task = asyncio.create_task(gateway._monitor_image_pull())
+    try:
+        for _ in range(80):
+            await asyncio.sleep(0.05)
+            if gateway.progress.snapshot()["total_bytes"] == 1000:
+                break
+    finally:
+        task.cancel()
+
+    snapshot = gateway.progress.snapshot()
+    assert snapshot["total_bytes"] == 1000
+    assert snapshot["percent"] is not None and snapshot["percent"] > 3.0
 
 
 def test_the_runtime_home_lives_in_the_instance_directory(tmp_path) -> None:

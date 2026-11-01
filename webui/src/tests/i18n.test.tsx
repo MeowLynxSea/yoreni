@@ -11,6 +11,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { StartupSkeleton } from "@/components/StartupSkeleton";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ContextCompactionNotice } from "@/components/thread/ContextCompactionNotice";
+import { TurnFailureNotice } from "@/components/thread/TurnFailureNotice";
 import { ThreadComposer } from "@/components/thread/ThreadComposer";
 import { resources, setAppLanguage } from "@/i18n";
 import {
@@ -412,6 +413,28 @@ describe("webui i18n", () => {
         compactReply, createdAt: 1,
       }} />);
       expect(screen.getByText(copy[compactReply])).toBeInTheDocument();
+    }
+  });
+
+  it.each(supportedLocales)("localizes turn failure notices in $code", async ({ code }) => {
+    await setAppLanguage(code);
+    const copy = resources[code].common.thread.failure;
+    const { container, rerender } = render(<TurnFailureNotice failureKind="server" />);
+    const kinds = [
+      ["server", "server"],
+      ["rate_limit", "rateLimit"],
+      ["timeout", "timeout"],
+      ["connection", "connection"],
+      ["authentication", "authentication"],
+      ["billing", "billing"],
+      ["configuration", "configuration"],
+      [undefined, "unknown"],
+      ["unmapped", "unknown"],
+    ] as const;
+    for (const [kind, key] of kinds) {
+      rerender(<TurnFailureNotice failureKind={kind} />);
+      expect(copy[key]).toBeTruthy();
+      expect(container.querySelector("[data-turn-failure]")?.textContent).toBe(copy[key]);
     }
   });
 

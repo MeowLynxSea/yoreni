@@ -1055,7 +1055,7 @@ export interface AgentHistoryRun {
   content: string;
   /** Attachments the user input carried; the user turn renders these. */
   media_urls?: UIMediaWireAttachment[];
-  result: { content: string; stop_reason: string } | null;
+  result: { content: string; stop_reason: string; failure_error_kind?: string | null } | null;
   /** In-flight tool calls described for the working indicator. */
   activity?: { name: string; reason: string }[];
   /** Wall-clock admission time; ordering key for rows from different Runs. */

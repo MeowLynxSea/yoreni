@@ -1905,6 +1905,16 @@
       "failed": "Pemadatan konteks gagal",
       "succeeded": "Konteks dipadatkan"
     },
+    "failure": {
+      "server": "Layanan model sementara tidak tersedia. Coba lagi sebentar lagi.",
+      "rateLimit": "Model menerima terlalu banyak permintaan. Coba lagi sebentar lagi.",
+      "timeout": "Model terlalu lama merespons. Coba lagi.",
+      "connection": "Tidak dapat menghubungi layanan model. Periksa jaringan lalu coba lagi.",
+      "authentication": "Kredensial model tidak valid. Masuk lagi di Setelan → Model.",
+      "billing": "Kuota kunci API habis. Periksa saldo akun lalu coba lagi.",
+      "configuration": "Belum ada model yang dikonfigurasi. Pilih satu di Setelan → Model.",
+      "unknown": "Permintaan ke model gagal. Coba lagi."
+    },
     "loadingConversation": "Memuat percakapan…",
     "empty": {
       "greetings": {

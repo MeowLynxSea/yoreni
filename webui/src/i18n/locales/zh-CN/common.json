@@ -1905,6 +1905,16 @@
       "failed": "上下文压缩失败",
       "succeeded": "上下文已压缩"
     },
+    "failure": {
+      "server": "模型服务暂时不可用，请稍后重试。",
+      "rateLimit": "请求过于频繁，请稍后重试。",
+      "timeout": "模型响应超时，请重试。",
+      "connection": "无法连接模型服务，请检查网络后重试。",
+      "authentication": "模型凭据无效，请在设置 → 模型中重新登录。",
+      "billing": "API 额度不足，请检查账户余额后重试。",
+      "configuration": "尚未配置模型，请在设置 → 模型中选择。",
+      "unknown": "模型调用失败，请重试。"
+    },
     "loadingConversation": "正在加载话题…",
     "empty": {
       "greetings": {

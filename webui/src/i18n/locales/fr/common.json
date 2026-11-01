@@ -1905,6 +1905,16 @@
       "failed": "Échec de la compression du contexte",
       "succeeded": "Contexte compressé"
     },
+    "failure": {
+      "server": "Le service du modèle est temporairement indisponible. Réessayez dans un instant.",
+      "rateLimit": "Le modèle reçoit trop de requêtes. Réessayez dans un instant.",
+      "timeout": "Le modèle a mis trop de temps à répondre. Réessayez.",
+      "connection": "Impossible de joindre le service du modèle. Vérifiez le réseau et réessayez.",
+      "authentication": "Les identifiants du modèle sont invalides. Reconnectez-vous dans Paramètres → Modèles.",
+      "billing": "Le quota de la clé API est épuisé. Vérifiez le solde du compte et réessayez.",
+      "configuration": "Aucun modèle n’est configuré. Choisissez-en un dans Paramètres → Modèles.",
+      "unknown": "La requête au modèle a échoué. Réessayez."
+    },
     "loadingConversation": "Chargement de la conversation…",
     "empty": {
       "greetings": {

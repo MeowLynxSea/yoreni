@@ -27,6 +27,7 @@ import { InlineImageProvider, useInlineImages } from "@/components/InlineImageCo
 import { MarkdownText } from "@/components/MarkdownText";
 import { ContextCompactionNotice } from "@/components/thread/ContextCompactionNotice";
 import { QuotedMessageLink } from "@/components/thread/QuotedMessageLink";
+import { TurnFailureNotice } from "@/components/thread/TurnFailureNotice";
 import { UserMessageText } from "@/components/UserMessageText";
 import { HoverHint } from "@/components/ui/tooltip";
 import { EmojiText } from "@/components/EmojiText";
@@ -473,6 +474,10 @@ function MessageBubbleView({
 
   if (message.kind === "compaction" && message.compaction) {
     return <ContextCompactionNotice compaction={message.compaction} />;
+  }
+
+  if (message.kind === "failure") {
+    return <TurnFailureNotice failureKind={message.failureKind} />;
   }
 
   // Tool calls and their progress are runtime detail, not conversation; the

@@ -1905,6 +1905,16 @@
       "failed": "上下文壓縮失敗",
       "succeeded": "上下文已壓縮"
     },
+    "failure": {
+      "server": "模型服務暫時無法使用，請稍後重試。",
+      "rateLimit": "請求過於頻繁，請稍後重試。",
+      "timeout": "模型回應逾時，請重試。",
+      "connection": "無法連線模型服務，請檢查網路後重試。",
+      "authentication": "模型憑證無效，請在設定 → 模型中重新登入。",
+      "billing": "API 額度不足，請檢查帳戶餘額後重試。",
+      "configuration": "尚未設定模型，請在設定 → 模型中選擇。",
+      "unknown": "模型呼叫失敗，請重試。"
+    },
     "loadingConversation": "正在載入話題…",
     "empty": {
       "greetings": {

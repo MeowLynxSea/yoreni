@@ -530,7 +530,11 @@ class PersistentAgent:
             ))],
         )
         messages = result.messages[1 + context_count:]
-        outcome: RunOutcome = {"content": result.final_content or "", "stop_reason": result.stop_reason}
+        outcome: RunOutcome = {
+            "content": result.final_content or "",
+            "stop_reason": result.stop_reason,
+            "failure_error_kind": result.failure_error_kind,
+        }
         if not event.ephemeral:
             await asyncio.to_thread(
                 self.store.finish, run_id, messages, outcome,

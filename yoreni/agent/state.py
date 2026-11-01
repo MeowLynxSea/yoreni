@@ -11,7 +11,7 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Generator, Literal, TypedDict, cast
+from typing import Any, Generator, Literal, NotRequired, TypedDict, cast
 from uuid import uuid4
 
 from yoreni.projects.models import Project, ProjectHandoff
@@ -35,6 +35,9 @@ RunStatus = Literal["queued", "running", "completed", "failed", "interrupted", "
 class RunOutcome(TypedDict):
     content: str
     stop_reason: str
+    # Stable public category of a model failure, so clients can explain a
+    # failed turn without reading provider text.
+    failure_error_kind: NotRequired[str | None]
 
 
 class PendingRun(TypedDict):

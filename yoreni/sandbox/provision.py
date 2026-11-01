@@ -27,13 +27,12 @@ from yoreni.sandbox.browser_assets import BSK_HOME, VM_EXTENSION_DIR, VM_PLAYWRI
 from yoreni.sandbox.config import SandboxConfig
 from yoreni.sandbox.errors import SandboxUnavailableError
 
-# Everything the desktop and the agent's tooling need from apt. Adding node here
-# is not incidental: MCP stdio servers run inside the VM and the published ones
-# ship through npx, which the desktop image does not include.
+# What the desktop, the shell and the agent's file tools need from apt.
 _DESKTOP_PACKAGES = (
     "x11vnc novnc websockify xdotool xclip scrot ripgrep python3 python3-pip "
-    "curl ca-certificates nodejs npm"
+    "curl ca-certificates"
 )
+PROVISION_LOG = "/workspace/.yoreni/logs/provision.log"
 # Yoreni's wallpaper lives on the VM root filesystem: the workspace mount would
 # hide a file copied in from the host, and the desktop user needs to read it.
 _WALLPAPER_ASSET = Path(__file__).parent / "assets" / "theme" / "yoreni-wallpaper.jpg"
@@ -53,10 +52,23 @@ if command -v apt-get >/dev/null 2>&1; then
   if [ -n "$missing" ]; then
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
-    # The whole list, not only the missing packages: asking for npm without
-    # nodejs lets apt resolve a dependency it then refuses to install, and
-    # the transaction dies. apt leaves what is already current alone.
-    apt-get install -y --no-install-recommends {packages}
+    : > {log}
+    # The whole list, not only the missing packages: apt resolves other
+    # packages against it, and asking for less has dead-ended before. It
+    # leaves what is already current alone.
+    if ! apt-get install -y --no-install-recommends {packages} >>{log} 2>&1; then
+      head -n 15 {log} >&2
+      echo '...' >&2
+      tail -n 40 {log} >&2
+      exit 1
+    fi
+  fi
+  # Node only serves npx-based MCP servers. The desktop must come up without
+  # it, so a dead end here is recorded instead of failing the whole provision.
+  if ! command -v npx >/dev/null 2>&1; then
+    apt-get install -y --no-install-recommends nodejs >>{log} 2>&1 ||
+      apt-get install -y --no-install-recommends nodejs npm >>{log} 2>&1 ||
+      echo 'Node.js is unavailable; npx-based MCP servers will not start' >>{log} 2>&1
   fi
 fi
 # The session belongs to the image: Yoreni only restyles it. LXQt keeps the
@@ -245,6 +257,7 @@ class DesktopServices:
         await self._install_wallpaper()
         script = _PROVISION.format(
             packages=_DESKTOP_PACKAGES,
+            log=shlex.quote(PROVISION_LOG),
             wallpaper=shlex.quote(VM_WALLPAPER),
         )
         result = await self._backend.exec(
@@ -256,7 +269,8 @@ class DesktopServices:
         if result.exit_code != 0:
             raise SandboxUnavailableError(
                 "VM provisioning failed. The desktop image needs network access to "
-                f"install its system packages: {result.stderr.strip()[-800:]}"
+                f"install its system packages. Full output in {PROVISION_LOG}: "
+                f"{result.stderr.strip()[-800:]}"
             )
 
     async def _install_wallpaper(self) -> None:

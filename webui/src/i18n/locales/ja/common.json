@@ -2622,6 +2622,10 @@
     "fullscreen": "全画面",
     "paste": "クリップボードを貼り付け",
     "clipboardDenied": "クリップボードへのアクセスが拒否されました。",
-    "loading": "コンピューターを確認しています…"
+    "loading": "コンピューターを確認しています…",
+    "keyboard": "キーボード",
+    "pointerMode": "マウスモード",
+    "touch": "タッチ",
+    "trackpad": "トラックパッド"
   }
 }

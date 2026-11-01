@@ -1,10 +1,14 @@
-import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { ClipboardPaste, Expand, Hand, Loader2, Minimize2, Monitor, RotateCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ComputerInputBar, type PointerMode } from "@/components/ComputerInputBar";
+import { useTrackpad } from "@/hooks/useTrackpad";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { createDesktopSession, fetchSandboxStatus, setDesktopControl, type SandboxControlSnapshot, type SandboxStatusPayload } from "@/lib/api";
 import { deriveWsUrl } from "@/lib/bootstrap";
+import { SINK_KEYS, REMOTE_KEYS, charKeysym, type RemoteKey } from "@/lib/vnc-keys";
 import { useClient } from "@/providers/ClientProvider";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +20,8 @@ type RfbInstance = {
   focusOnClick: boolean;
   background: string;
   disconnect(): void;
+  sendKey(keysym: number, code: string, down?: boolean): void;
+  sendCtrlAltDel(): void;
   clipboardPasteFrom(text: string): void;
   addEventListener(type: string, listener: (event: Event) => void): void;
   removeEventListener(type: string, listener: EventListenerOrEventListenerObject): void;
@@ -91,6 +97,18 @@ export const ComputerPanel = forwardRef<ComputerPanelHandle, Props>(function Com
   const morphFrom = useRef<DOMRect | null>(null);
   const grewFromAnchor = useRef(false);
   const [arrowX, setArrowX] = useState<number | null>(null);
+
+  // Touch input: a hidden sink owns the software keyboard, and the trackpad
+  // surface paints relative mouse events on the canvas.
+  const sinkRef = useRef<HTMLTextAreaElement>(null);
+  const modifiersRef = useRef<string[]>([]);
+  const namedKeyAt = useRef(0);
+  const [modifiers, setModifiers] = useState<string[]>([]);
+  const [pointerMode, setPointerMode] = useState<PointerMode>("touch");
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const coarsePointer = useMediaQuery("(pointer: coarse)");
+  const trackpad = useTrackpad(screenRef);
 
   // Grow and shrink the desktop from its small preview rect instead of sliding
   // a differently shaped panel in from the edge.
@@ -206,7 +224,117 @@ export const ComputerPanel = forwardRef<ComputerPanelHandle, Props>(function Com
     setView(next);
   };
 
+  const releaseModifiers = () => {
+    if (!modifiersRef.current.length) return;
+    const rfb = rfbRef.current;
+    if (rfb) {
+      for (const id of modifiersRef.current) {
+        const key = REMOTE_KEYS[id as keyof typeof REMOTE_KEYS];
+        if (key) rfb.sendKey(key.keysym, key.code, false);
+      }
+    }
+    modifiersRef.current = [];
+    setModifiers([]);
+  };
+
+  // Sticky modifiers: they stay down until the next key, the way a phone
+  // remote keyboard offers Ctrl+C rather than held keys.
+  const toggleModifier = (key: RemoteKey) => {
+    const rfb = rfbRef.current;
+    if (!rfb) return;
+    const active = modifiersRef.current.includes(key.id);
+    rfb.sendKey(key.keysym, key.code, !active);
+    modifiersRef.current = active
+      ? modifiersRef.current.filter((id) => id !== key.id)
+      : [...modifiersRef.current, key.id];
+    setModifiers(modifiersRef.current);
+  };
+
+  const tapKey = (key: RemoteKey) => {
+    const rfb = rfbRef.current;
+    if (!rfb) return;
+    rfb.sendKey(key.keysym, key.code, true);
+    rfb.sendKey(key.keysym, key.code, false);
+    releaseModifiers();
+  };
+
+  const typeText = (text: string) => {
+    const rfb = rfbRef.current;
+    if (!rfb) return;
+    for (const character of text) {
+      if (character === "\n" || character === "\r") {
+        rfb.sendKey(REMOTE_KEYS.enter.keysym, REMOTE_KEYS.enter.code, true);
+        rfb.sendKey(REMOTE_KEYS.enter.keysym, REMOTE_KEYS.enter.code, false);
+        continue;
+      }
+      const codePoint = character.codePointAt(0);
+      if (codePoint === undefined) continue;
+      const keysym = charKeysym(codePoint);
+      rfb.sendKey(keysym, "", true);
+      rfb.sendKey(keysym, "", false);
+    }
+    releaseModifiers();
+  };
+
+  const handleSinkKeyDown = (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.nativeEvent.isComposing) return;
+    const key = SINK_KEYS[event.key];
+    if (!key) return; // printable characters arrive through the input event
+    event.preventDefault();
+    namedKeyAt.current = Date.now();
+    tapKey(key);
+  };
+
+  const handleSinkBeforeInput = (event: FormEvent<HTMLTextAreaElement>) => {
+    const native = event.nativeEvent as InputEvent;
+    if (native.isComposing || !native.inputType?.startsWith("delete")) return;
+    // Android drops the keydown and only reports the edit, so send it here.
+    if (Date.now() - namedKeyAt.current < 60) return;
+    event.preventDefault();
+    tapKey(REMOTE_KEYS.backspace);
+  };
+
+  const drainSink = (element: HTMLTextAreaElement) => {
+    const text = element.value;
+    element.value = "";
+    if (text) typeText(text);
+  };
+
+  const handleSinkInput = (event: FormEvent<HTMLTextAreaElement>) => {
+    const element = event.currentTarget;
+    // Composition is still in progress; the final input or compositionend
+    // carries the committed characters.
+    if ((event.nativeEvent as InputEvent).isComposing) return;
+    drainSink(element);
+  };
+
+  const toggleKeyboard = () => {
+    const sink = sinkRef.current;
+    if (!sink) return;
+    if (document.activeElement === sink) sink.blur();
+    else sink.focus({ preventScroll: true });
+  };
+
+  // The software keyboard shortens the visual viewport; the panel has to end
+  // above it or the on-screen keys and the control bar sit underneath.
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const update = () => setViewportHeight(viewport.height);
+    update();
+    viewport.addEventListener("resize", update);
+    return () => viewport.removeEventListener("resize", update);
+  }, []);
+
+  useEffect(() => {
+    if (control?.owner === "user") return;
+    sinkRef.current?.blur();
+    releaseModifiers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [control?.owner]);
+
   const disconnect = () => {
+    releaseModifiers();
     generationRef.current += 1;
     const rfb = rfbRef.current;
     rfbRef.current = null;
@@ -393,6 +521,7 @@ export const ComputerPanel = forwardRef<ComputerPanelHandle, Props>(function Com
   const running = status?.sandbox.state === "running";
   const live = running && desktopReady;
   const full = view === "full";
+  const touchControls = full && coarsePointer && userControls;
   const stateLabel = !status
     ? t("computer.loading")
     : !live
@@ -446,6 +575,7 @@ export const ComputerPanel = forwardRef<ComputerPanelHandle, Props>(function Com
 
       <div
         ref={shellRef}
+        style={full && keyboardOpen && viewportHeight ? { height: viewportHeight } : undefined}
         className={cn(
           "relative flex flex-col",
           full
@@ -535,8 +665,58 @@ export const ComputerPanel = forwardRef<ComputerPanelHandle, Props>(function Com
               </div>
             </div>
           ) : null}
+          {touchControls && pointerMode === "trackpad" ? (
+            <div
+              className="absolute inset-0 z-10 touch-none select-none"
+              onPointerDown={trackpad.onPointerDown}
+              onPointerMove={trackpad.onPointerMove}
+              onPointerUp={trackpad.onPointerUp}
+              onPointerCancel={trackpad.onPointerCancel}
+              onContextMenu={(event) => event.preventDefault()}
+            />
+          ) : null}
         </div>
         </div>
+
+        {touchControls ? (
+          <div className="relative z-10 mx-auto mt-3 flex w-full max-w-xl shrink-0 justify-center">
+            <ComputerInputBar
+              mode={pointerMode}
+              onModeChange={setPointerMode}
+              keyboardOpen={keyboardOpen}
+              onKeyboardToggle={toggleKeyboard}
+              activeModifiers={modifiers}
+              onToggleModifier={toggleModifier}
+              onTapKey={tapKey}
+              onCtrlAltDel={() => {
+                rfbRef.current?.sendCtrlAltDel();
+                releaseModifiers();
+              }}
+            />
+          </div>
+        ) : null}
+
+        {coarsePointer && userControls ? (
+          <textarea
+            ref={sinkRef}
+            aria-hidden
+            tabIndex={-1}
+            autoCapitalize="off"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            className="pointer-events-none fixed left-0 top-0 h-px w-px resize-none border-0 bg-transparent p-0 text-base text-transparent caret-transparent outline-none"
+            onFocus={() => setKeyboardOpen(true)}
+            onBlur={() => {
+              setKeyboardOpen(false);
+              releaseModifiers();
+            }}
+            onKeyDown={handleSinkKeyDown}
+            onBeforeInput={handleSinkBeforeInput}
+            onInput={handleSinkInput}
+            onCompositionEnd={(event) => drainSink(event.currentTarget)}
+          />
+        ) : null}
 
         {error ? (
           <p

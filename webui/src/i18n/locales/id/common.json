@@ -2622,6 +2622,10 @@
     "fullscreen": "Layar penuh",
     "paste": "Tempel papan klip",
     "clipboardDenied": "Akses papan klip ditolak.",
-    "loading": "Memeriksa komputer…"
+    "loading": "Memeriksa komputer…",
+    "keyboard": "Papan ketik",
+    "pointerMode": "Mode penunjuk",
+    "touch": "Sentuh",
+    "trackpad": "Trackpad"
   }
 }

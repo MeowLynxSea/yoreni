@@ -2622,6 +2622,10 @@
     "fullscreen": "Plein écran",
     "paste": "Coller le presse-papiers",
     "clipboardDenied": "L'accès au presse-papiers a été refusé.",
-    "loading": "Vérification de l'ordinateur…"
+    "loading": "Vérification de l'ordinateur…",
+    "keyboard": "Clavier",
+    "pointerMode": "Mode de pointage",
+    "touch": "Tactile",
+    "trackpad": "Pavé tactile"
   }
 }

@@ -2622,6 +2622,10 @@
     "fullscreen": "全螢幕",
     "paste": "貼上剪貼簿",
     "clipboardDenied": "剪貼簿存取被拒絕。",
-    "loading": "正在檢查電腦…"
+    "loading": "正在檢查電腦…",
+    "keyboard": "鍵盤",
+    "pointerMode": "滑鼠模式",
+    "touch": "觸控",
+    "trackpad": "觸控板"
   }
 }

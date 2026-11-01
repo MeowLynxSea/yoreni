@@ -2622,6 +2622,10 @@
     "fullscreen": "Pantalla completa",
     "paste": "Pegar portapapeles",
     "clipboardDenied": "Se ha denegado el acceso al portapapeles.",
-    "loading": "Comprobando el ordenador…"
+    "loading": "Comprobando el ordenador…",
+    "keyboard": "Teclado",
+    "pointerMode": "Modo de puntero",
+    "touch": "Táctil",
+    "trackpad": "Panel táctil"
   }
 }

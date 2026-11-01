@@ -2622,6 +2622,10 @@
     "fullscreen": "Fullscreen",
     "paste": "Paste clipboard",
     "clipboardDenied": "Clipboard access was denied.",
-    "loading": "Checking the computer..."
+    "loading": "Checking the computer...",
+    "keyboard": "Keyboard",
+    "pointerMode": "Pointer mode",
+    "touch": "Touch",
+    "trackpad": "Trackpad"
   }
 }

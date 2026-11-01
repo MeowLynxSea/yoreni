@@ -2622,6 +2622,10 @@
     "fullscreen": "全屏",
     "paste": "粘贴剪贴板",
     "clipboardDenied": "剪贴板访问被拒绝。",
-    "loading": "正在检查电脑..."
+    "loading": "正在检查电脑...",
+    "keyboard": "键盘",
+    "pointerMode": "鼠标模式",
+    "touch": "触控",
+    "trackpad": "触摸板"
   }
 }

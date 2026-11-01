@@ -2622,6 +2622,10 @@
     "fullscreen": "Toàn màn hình",
     "paste": "Dán bộ nhớ tạm",
     "clipboardDenied": "Quyền truy cập bộ nhớ tạm bị từ chối.",
-    "loading": "Đang kiểm tra máy tính…"
+    "loading": "Đang kiểm tra máy tính…",
+    "keyboard": "Bàn phím",
+    "pointerMode": "Chế độ con trỏ",
+    "touch": "Cảm ứng",
+    "trackpad": "Bàn di chuột"
   }
 }

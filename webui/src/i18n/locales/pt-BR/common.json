@@ -2622,6 +2622,10 @@
     "fullscreen": "Tela cheia",
     "paste": "Colar área de transferência",
     "clipboardDenied": "O acesso à área de transferência foi negado.",
-    "loading": "Verificando o computador…"
+    "loading": "Verificando o computador…",
+    "keyboard": "Teclado",
+    "pointerMode": "Modo de ponteiro",
+    "touch": "Toque",
+    "trackpad": "Touchpad"
   }
 }

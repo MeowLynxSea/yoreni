@@ -55,8 +55,8 @@ class ComputerTool(Tool):
     def description(self) -> str:
         return (
             "Control the Yoreni VM desktop directly: screenshot, mouse, keyboard, "
-            "drag, scroll, and clipboard. Use the browser tool for structured web "
-            "tasks and this tool when a GUI application needs real input."
+            "drag, scroll, and clipboard. Use the browser-skill for web pages and "
+            "this tool when a GUI application needs real input."
         )
 
     @property

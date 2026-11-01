@@ -23,6 +23,7 @@ from typing import Any, cast
 from loguru import logger
 
 from yoreni.sandbox.backend import ExecutionHandle, split_command
+from yoreni.sandbox.browser_assets import BSK_HOME
 from yoreni.sandbox.config import SandboxConfig
 from yoreni.sandbox.errors import SandboxUnavailableError
 from yoreni.sandbox.models import ExecResult, FileInfo, SandboxHealth, SandboxStatus
@@ -182,6 +183,10 @@ class BoxLiteBackend:
             "LC_ALL": "C.UTF-8",
             "TMPDIR": "/tmp",
             "TERM": "xterm-256color",
+            # The BrowserSkill daemon is started by provisioning, not by agent
+            # commands; every shell sees the same state directory.
+            "BSK_HOME": BSK_HOME,
+            "BSK_AUTO_START": "0",
         }
         for key, value in (extra or {}).items():
             if not key or "=" in key or "\x00" in key or "\x00" in str(value):

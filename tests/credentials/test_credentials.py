@@ -227,20 +227,39 @@ def test_restorable_account_requires_tools_and_domains(manager):
         )
 
 
-def test_browser_reports_the_page_it_will_type_into(monkeypatch):
-    from yoreni.agent.tools import browser as browser_module
+async def test_a_secret_request_must_name_its_tool_and_site(monkeypatch):
+    from yoreni.agent.tools import credentials as credentials_module
 
-    class _Browser:
-        current_url = "https://example.com/login"
+    class _Connector:
+        id = "basic_auth"
+        auth_methods = [AuthMethod.BASIC]
 
-    class _Gateway:
-        browser = _Browser()
+        def fields_for(self, method):
+            return ["username", "password"]
 
-    monkeypatch.setattr(browser_module, "get_sandbox_gateway", lambda: _Gateway())
-    tool = browser_module.BrowserTool()
+    class _Auth:
+        has_listener = True
 
-    assert tool.credential_destination({"action": "type"}) == "https://example.com/login"
-    assert tool.credential_destination({"action": "navigate", "url": "https://x"}) is None
+    class _Manager:
+        auth = _Auth()
+
+        def connectors(self):
+            return [{"id": "basic_auth"}]
+
+        def connector(self, connector_id):
+            assert connector_id == "basic_auth"
+            return _Connector()
+
+    monkeypatch.setattr(credentials_module, "get_credential_manager", lambda: _Manager())
+    tool = credentials_module.RequestAuthenticationTool()
+
+    missing_tool = await tool.execute(connector_id="basic_auth", purpose="Sign in")
+    assert "allowed_tools" in missing_tool
+
+    missing_site = await tool.execute(
+        connector_id="basic_auth", purpose="Sign in", allowed_tools=["mcp_docs"],
+    )
+    assert "allowed_domains" in missing_site
 
 
 def test_store_never_contains_plaintext_and_rewraps(tmp_path):

@@ -489,18 +489,11 @@ def _run_claimed_gateway(
 
     from yoreni.config.paths import get_media_dir
     from yoreni.sandbox import SandboxGateway, set_sandbox_gateway
-    from yoreni.security.network import validate_url_target
-
-    def _sandbox_url_guard(url: str) -> None:
-        ok, error = validate_url_target(url)
-        if not ok:
-            raise ValueError(error or "URL is not allowed")
 
     sandbox_gateway = SandboxGateway(
         config.tools.sandbox,
         host_workspace=str(config.workspace_path),
         host_media_dir=str(get_media_dir()),
-        url_guard=_sandbox_url_guard,
     )
     set_sandbox_gateway(sandbox_gateway)
 

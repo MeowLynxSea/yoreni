@@ -295,17 +295,24 @@ async def test_a_failed_browser_service_keeps_the_vm_usable(monkeypatch) -> None
 
     gateway = _gateway(_PortBackend(), browser_enabled=True)
 
-    async def broken(_cdp_url: str) -> None:
-        raise SandboxUnavailableError("Chromium did not open its CDP endpoint")
+    async def broken() -> None:
+        raise SandboxUnavailableError("Chromium did not connect to BrowserSkill")
+
+    async def unhealthy() -> tuple[bool, bool]:
+        return False, False
+
+    async def installed() -> None: ...
 
     gateway._started = False
-    monkeypatch.setattr(gateway.browser, "connect", broken)
+    monkeypatch.setattr(gateway, "_install_browser_assets", installed)
+    monkeypatch.setattr(gateway.desktop, "health", unhealthy)
+    monkeypatch.setattr(gateway.desktop, "start_browser", broken)
 
     await gateway.start()
 
     assert gateway.started
-    assert not gateway.browser.connected
-    assert "CDP endpoint" in gateway._status_detail
+    assert "BrowserSkill" in gateway._status_detail
+    assert gateway.resolve_path("/host/workspace/a.txt") == "/workspace/a.txt"
 
 
 async def test_status_reuses_a_recent_health_probe() -> None:

@@ -26,7 +26,6 @@ class SandboxConfig(Base):
     media_dir: str = "/workspace/.yoreni/media"
     downloads_dir: str = "/workspace/downloads"
     browser_profile_dir: str = "/workspace/.yoreni/chromium"
-    cdp_guest_port: int = 9223
     display: str = ":1"
     display_width: int = Field(default=1440, ge=640)
     display_height: int = Field(default=900, ge=480)

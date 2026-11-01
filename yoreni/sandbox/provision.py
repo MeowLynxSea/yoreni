@@ -6,7 +6,8 @@ the three pieces Yoreni needs and keeps them inside the VM:
 
 * x11vnc for a raw RFB surface that the gateway can proxy and gate
 * websockify so the WebUI speaks RFB over WebSocket through the gateway
-* Playwright's Chromium build, driven over CDP
+* Playwright's Chromium build with the BrowserSkill extension loaded, driven
+  by the `bsk` CLI and its daemon
 
 Every command runs inside the VM. Nothing here touches the host filesystem.
 """
@@ -19,6 +20,7 @@ import shlex
 from loguru import logger
 
 from yoreni.sandbox.backend import SandboxBackend
+from yoreni.sandbox.browser_assets import BSK_HOME, VM_EXTENSION_DIR
 from yoreni.sandbox.config import SandboxConfig
 from yoreni.sandbox.errors import SandboxUnavailableError
 
@@ -34,7 +36,7 @@ if [ ! -f {marker} ]; then
   export DEBIAN_FRONTEND=noninteractive
   if command -v apt-get >/dev/null 2>&1; then
     apt-get update
-    apt-get install -y --no-install-recommends x11vnc novnc websockify xdotool xclip scrot ripgrep socat python3 python3-pip curl ca-certificates
+    apt-get install -y --no-install-recommends x11vnc novnc websockify xdotool xclip scrot ripgrep python3 python3-pip curl ca-certificates
   fi
   export PLAYWRIGHT_BROWSERS_PATH={browser_path}
   python3 -m pip install --break-system-packages --no-cache-dir playwright >/dev/null 2>&1 || \
@@ -59,23 +61,49 @@ sleep 1
 _START_BROWSER = r"""
 set -eu
 LOGS=/workspace/.yoreni/logs
+# The daemon's own files are private to the user that creates them, so it runs
+# as the desktop user: a terminal there stays usable, and root can still read
+# them. Without this the VM's human and the agent see different daemons.
+mkdir -p {bsk_home}
+BSK_USER=root
+if id abc >/dev/null 2>&1; then BSK_USER=abc; fi
+chown -R "$BSK_USER" {bsk_home}
+chmod 0777 {bsk_home}
+printf 'export BSK_HOME=%s\nexport BSK_AUTO_START=0\n' {bsk_home} \
+  >/etc/profile.d/yoreni-bsk.sh
+as_bsk_user() {{
+  su -s /bin/sh "$BSK_USER" -c "BSK_HOME={bsk_home} BSK_AUTO_START=0 bsk $*"
+}}
+if ! as_bsk_user status --json >/dev/null 2>&1; then
+  # A daemon left by another user holds the port and the lock, so a fresh one
+  # cannot become ready. Stop it, then clear what the graceful stop may have
+  # left behind before starting the replacement.
+  BSK_HOME={bsk_home} BSK_AUTO_START=0 bsk daemon stop >/dev/null 2>&1 || true
+  pkill -x bsk >/dev/null 2>&1 || true
+  sleep 1
+  rm -f {bsk_home}/daemon.json {bsk_home}/run/daemon.sock
+  as_bsk_user daemon start >>"$LOGS/bsk-daemon.log" 2>&1 || true
+fi
 pkill -x chrome 2>/dev/null || true
+pkill -x brave 2>/dev/null || true
 sleep 1
-CHROME=$(ls -d {browser_path}/chromium-*/chrome-linux*/chrome 2>/dev/null | head -n 1)
-if [ -z "$CHROME" ]; then
-  echo "Chromium was not installed" >&2
+# Prefer the release browser; Playwright's Chrome for Testing build is only
+# the fallback when Brave is unavailable for this VM.
+BROWSER=$(command -v brave-browser 2>/dev/null || true)
+if [ -z "$BROWSER" ]; then
+  BROWSER=$(ls -d {browser_path}/chromium-*/chrome-linux*/chrome 2>/dev/null | head -n 1)
+fi
+if [ -z "$BROWSER" ]; then
+  echo "No browser is installed" >&2
   exit 11
 fi
 mkdir -p {profile}
 # A profile left behind by a killed instance keeps a stale singleton lock.
 rm -f {profile}/SingletonLock {profile}/SingletonSocket {profile}/SingletonCookie
-nohup "$CHROME" --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 \
-  --user-data-dir={profile} --no-sandbox --disable-gpu --disable-dev-shm-usage \
-  --no-first-run --no-default-browser-check --start-maximized about:blank \
-  >"$LOGS/chromium.log" 2>&1 &
-pkill -x socat 2>/dev/null || true
-nohup socat TCP-LISTEN:{cdp_port},bind=0.0.0.0,reuseaddr,fork TCP:127.0.0.1:9222 \
-  >"$LOGS/cdp-relay.log" 2>&1 &
+nohup "$BROWSER" --user-data-dir={profile} --no-sandbox --disable-gpu \
+  --disable-dev-shm-usage --no-first-run --no-default-browser-check \
+  --load-extension={extension} --disable-extensions-except={extension} \
+  --start-maximized about:blank >"$LOGS/chromium.log" 2>&1 &
 """
 
 _PORT_OPEN = (
@@ -88,23 +116,35 @@ _DESKTOP_READY = (
     + " && pgrep -f 'websockify .*6080' >/dev/null && "
     + _PORT_OPEN.format(6080)
 )
+# BrowserSkill's extension connects to the daemon on loopback and registers
+# itself as a browser; both pieces must be up before the agent can act.
+_BROWSERS = (
+    "import json, os, subprocess\n"
+    "def browsers():\n"
+    "    env = dict(os.environ, BSK_AUTO_START='0')\n"
+    "    try:\n"
+    "        r = subprocess.run(['bsk', 'status', '--json'], capture_output=True,\n"
+    "                           text=True, timeout=8, env=env)\n"
+    "        return len(json.loads(r.stdout).get('browsers') or [])\n"
+    "    except (OSError, ValueError, AttributeError, subprocess.SubprocessError):\n"
+    "        return 0\n"
+)
 _BROWSER_READY = (
-    "python3 -c \"import urllib.request;"
-    "urllib.request.urlopen('http://127.0.0.1:9222/json/version', timeout=2)\" "
-    ">/dev/null 2>&1 && pgrep -x socat >/dev/null"
+    "(pgrep -x chrome >/dev/null || pgrep -x brave >/dev/null) && "
+    "python3 -c \"" + _BROWSERS + "print(int(browsers() > 0))\" | grep -qx 1"
 )
 # One round trip for both services: spawning a shell per probe dominates the
 # latency the WebUI sees while it polls status.
 _READINESS = (
-    "python3 -c \"import socket, subprocess\n"
+    "python3 -c \"import json, os, socket, subprocess\n"
     "def ok(port):\n"
     "    try:\n"
     "        socket.create_connection(('127.0.0.1', port), 2).close()\n"
     "        return True\n"
     "    except OSError:\n"
     "        return False\n"
-    "relay = subprocess.run(['pgrep', '-x', 'socat'], capture_output=True).returncode == 0\n"
-    "print(int(ok(5900) and ok(6080)), int(ok(9222) and relay))\""
+    + _BROWSERS
+    + "print(int(ok(5900) and ok(6080)), int(ok(52800) and browsers() > 0))\""
 )
 
 
@@ -127,7 +167,7 @@ done
 
 
 class DesktopServices:
-    """Provision and observe the VNC, WebSocket and CDP services."""
+    """Provision and observe the VNC, WebSocket and BrowserSkill services."""
 
     def __init__(self, backend: SandboxBackend, config: SandboxConfig) -> None:
         self._backend = backend
@@ -206,7 +246,8 @@ class DesktopServices:
         script = _START_BROWSER.format(
             browser_path=shlex.quote(_BROWSER_PATH),
             profile=shlex.quote(self._config.browser_profile_dir),
-            cdp_port=self._config.cdp_guest_port,
+            extension=shlex.quote(VM_EXTENSION_DIR),
+            bsk_home=shlex.quote(BSK_HOME),
         )
         # A cold Chromium on a software-rendered VM needs well over half a
         # minute before it serves /json/version.
@@ -226,14 +267,15 @@ class DesktopServices:
         self._browser_ready = await self._wait(_BROWSER_READY, timeout_s=90, user="root")
         if not self._browser_ready:
             raise SandboxUnavailableError(
-                "Chromium did not open its CDP endpoint.\n"
-                + await self._process_snapshot("chromium|chrome|socat")
+                "The VM browser did not connect to BrowserSkill.\n"
+                + await self._process_snapshot("chromium|chrome|brave|bsk")
                 + await self._log_tail("/workspace/.yoreni/logs/chromium.log")
+                + await self._log_tail("/workspace/.yoreni/logs/bsk-daemon.log")
             )
 
     async def _process_snapshot(self, pattern: str) -> str:
         result = await self._backend.exec(
-            "ss -lnt 2>/dev/null | grep -E ':(9222|9223)' || echo 'no CDP listeners'; "
+            "ss -lnt 2>/dev/null | grep -E ':(52800|5900|6080)' || echo 'no service listeners'; "
             f"ps -eo pid,stat,args | grep -E '[{pattern[0]}]{pattern[1:]}' | head -n 5 || true",
             cwd="/",
             timeout_s=10,

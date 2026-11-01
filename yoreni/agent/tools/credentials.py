@@ -24,13 +24,8 @@ from yoreni.agent.tools.schema import (
 from yoreni.credentials.auth import AuthRequestStatus
 from yoreni.credentials.manager import get_credential_manager
 from yoreni.credentials.models import AuthMethod
-from yoreni.credentials.policy import normalize_domain
 
 _MAX_WAIT_SECONDS = 600
-
-# Methods whose value is typed into a page the user is looking at, so the
-# browser is the obvious recipient when the model names no tool.
-_PAGE_METHODS = frozenset({AuthMethod.BASIC, AuthMethod.ONE_TIME_CODE})
 
 _PLACEHOLDER_HINT = (
     "Each placeholder is the credential itself: pass it as the argument value the "
@@ -45,17 +40,6 @@ def _run_id() -> str | None:
     if ctx is None:
         return None
     return ctx.turn_id
-
-
-def _browser_host() -> str | None:
-    """Host of the page the VM browser is showing, when there is one."""
-    try:
-        from yoreni.sandbox.gateway import get_sandbox_gateway
-
-        current = get_sandbox_gateway().browser.current_url
-    except Exception:
-        return None
-    return normalize_domain(current or "") or None
 
 
 @tool_parameters(
@@ -74,17 +58,16 @@ def _browser_host() -> str | None:
         allowed_tools=ArraySchema(
             StringSchema(""),
             description=(
-                "Tools allowed to receive the resulting credential. Name the tool you "
-                "will call, e.g. ['browser'] or an MCP tool name; a sub-action such as "
-                "'browser_type' also works. Defaults to ['browser'] for basic_auth and "
-                "one_time_code when the user is signing in on a page."
+                "Tools allowed to receive the resulting credential. Name the integration "
+                "tool you will call next, normally an MCP tool name. Shell commands and "
+                "browser automation never receive a secret, so this is required."
             ),
         ),
         allowed_domains=ArraySchema(
             StringSchema(""),
             description=(
                 "Sites this credential may be used on, e.g. ['example.com']. A full URL "
-                "is accepted too. Defaults to the host of the page the browser is showing."
+                "is accepted too. Required whenever the request carries a secret."
             ),
         ),
         timeout_seconds=IntegerSchema(
@@ -155,25 +138,21 @@ class RequestAuthenticationTool(Tool):
             )
 
         # A card the user fills must produce an account a tool can actually use,
-        # so resolve the grant here and refuse before opening the card.
+        # so resolve the grant here and refuse before opening the card. Nothing
+        # is inferred from the page: shell commands cannot receive a credential,
+        # so the model must name the integration tool and its site.
         has_secret = bool(connector.fields_for(auth_method))
-        page_host = _browser_host()
         tools = [str(tool).strip() for tool in (allowed_tools or []) if str(tool).strip()]
-        if not tools and has_secret and auth_method in _PAGE_METHODS and page_host:
-            tools = ["browser"]
         if not tools and has_secret:
             return ToolResult.error(
                 "Error: name the tool that will receive this credential in "
-                "allowed_tools, e.g. ['browser'] for a page login or the MCP tool "
-                "name you are about to call."
+                "allowed_tools — the MCP tool name you are about to call."
             )
         domains = [str(domain).strip() for domain in (allowed_domains or []) if str(domain).strip()]
-        if not domains and page_host:
-            domains = [page_host]
         if not domains and has_secret:
             return ToolResult.error(
-                f"Error: name the site in allowed_domains (a bare host works, e.g. "
-                f"['{page_host or 'example.com'}'])."
+                "Error: name the site in allowed_domains (a bare host works, e.g. "
+                "['example.com'])."
             )
 
         try:

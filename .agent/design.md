@@ -4,7 +4,7 @@ Consult this document when changing ownership boundaries, extension points, abst
 
 ## Execution plane ownership
 
-`yoreni/sandbox/` owns Yoreni's persistent computer: the microVM, its desktop services, the browser CDP session and the control state. `SandboxGateway` is the only object that may start a process, read or write project files, or drive the desktop/browser. Agent tools are clients of that gateway; the host filesystem and host process table are control-plane only. Workspace paths are mapped from the instance workspace to `/workspace` at this boundary, so project scope, memory and WebUI metadata keep their existing ownership.
+`yoreni/sandbox/` owns Yoreni's persistent computer: the microVM, its desktop services, the BrowserSkill daemon and browser extension, and the control state. `SandboxGateway` is the only object that may start a process, read or write project files, or drive the desktop. Browser automation itself is the `bsk` CLI run through the shell tool, not a gateway API. Agent tools are clients of that gateway; the host filesystem and host process table are control-plane only. Workspace paths are mapped from the instance workspace to `/workspace` at this boundary, so project scope, memory and WebUI metadata keep their existing ownership.
 
 The WebUI exposes the VM through `/api/sandbox/*` and `/api/sandbox/desktop/ws`. The desktop socket uses a single-use ticket, and the server-side control state machine decides whether input is allowed; frontend view-only state is presentation only.
 

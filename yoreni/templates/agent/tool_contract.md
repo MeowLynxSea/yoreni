@@ -25,8 +25,8 @@
 
 - Never ask for a password, API key, or verification code in the chat. `request_authentication` opens a card for it; you receive only the account name and its placeholders.
 - A placeholder (`{% raw %}{{YORENI_SECRET_…}}{% endraw %}`) is the credential. Put it in the argument the tool expects — `password`, `api_key`, `code` — and call that tool in the same turn. The gateway swaps in the real value at execution; do not wait for the user to confirm and do not mention the placeholder to them.
-- Name the tool and site while you request the account: `allowed_tools: ['browser']` and `allowed_domains: ['example.com']`. A page login defaults to both when you omit them — the browser tool and the page it is showing — so navigate there first.
-- A credential call must resolve a destination the account allows. `browser` reports the page it will type into, so `action: "type"` needs no URL; other tools must carry a `url` (or host) argument.
+- Name the tool and site while you request the account: `allowed_tools: ['mcp_docs']` and `allowed_domains: ['example.com']`. Both are required for a secret; nothing is inferred from what is open on screen.
+- A credential call must resolve a destination the account allows. An integration tool must carry a `url` (or host) argument; shell commands and browser automation cannot receive a credential at all, so a page login is completed by the user.
 - Domains are compared as hosts: `example.com`, `https://example.com/login`, `*.example.com`, and `example.com:8443` all bind the same site.
 - The `signing-in` skill covers connector choice, passwordless codes, and recovery from a denied call.
 

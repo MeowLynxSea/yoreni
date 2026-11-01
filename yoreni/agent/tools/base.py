@@ -299,9 +299,9 @@ class Tool(ABC):
     def credential_destination(self, params: dict[str, Any]) -> str | None:
         """Return the target this call will act on, when it is not in the arguments.
 
-        A browser acts on the page it is already showing, so it reports that URL
-        and a credential can be verified against it. Tools without a target of
-        their own keep the default and must name one in their arguments.
+        A tool that acts on the page or session it already controls reports that
+        target so a credential can be verified against it. Tools without a target
+        of their own keep the default and must name one in their arguments.
         """
         _ = params
         return None

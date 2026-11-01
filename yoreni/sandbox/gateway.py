@@ -8,7 +8,7 @@ import posixpath
 import time
 import uuid
 from collections import deque
-from collections.abc import AsyncGenerator, AsyncIterator, Callable, Mapping, Sequence
+from collections.abc import AsyncGenerator, AsyncIterator, Mapping, Sequence
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field
 from typing import Any, cast
@@ -17,7 +17,6 @@ from loguru import logger
 
 from yoreni.sandbox.backend import ExecutionHandle, SandboxBackend
 from yoreni.sandbox.boxlite_backend import BoxLiteBackend
-from yoreni.sandbox.browser import BrowserService
 from yoreni.sandbox.config import SandboxConfig
 from yoreni.sandbox.control import ControlStateMachine
 from yoreni.sandbox.errors import (
@@ -137,7 +136,6 @@ class SandboxGateway:
         config: SandboxConfig,
         *,
         backend: SandboxBackend | None = None,
-        url_guard: Callable[[str], None] | None = None,
         host_workspace: str | None = None,
         host_media_dir: str | None = None,
     ) -> None:
@@ -151,10 +149,10 @@ class SandboxGateway:
         self._host_workspace = host_workspace.rstrip("/") if host_workspace else None
         self._host_media_dir = host_media_dir.rstrip("/") if host_media_dir else None
         self.desktop = DesktopServices(self.backend, config)
-        self.browser = BrowserService(config, self.control, roots=self.roots, url_guard=url_guard)
         self._start_lock = asyncio.Lock()
         self._started = False
         self._status_detail = ""
+        self._browser_assets_error = ""
         self._service_retry_at = 0.0
         self._service_retry_task: asyncio.Task[None] | None = None
         self._health: SandboxHealth | None = None
@@ -212,6 +210,7 @@ class SandboxGateway:
                     timeout=self.config.start_timeout_s,
                 )
                 await self.desktop.provision()
+                await self._install_browser_assets()
                 await self._install_bundled_skills()
             except asyncio.TimeoutError as exc:
                 self._started = False
@@ -253,22 +252,17 @@ class SandboxGateway:
             await self.desktop.set_view_only(
                 self.control.snapshot().owner is not ControlOwner.USER
             )
-        if self.config.browser_enabled and not self.browser.connected:
+        if self.config.browser_enabled and not browser_ready:
+            if self._browser_assets_error:
+                # A transient download or copy failure recovers on the same
+                # throttled retry that covers a stopped browser service.
+                await self._install_browser_assets()
             try:
-                cdp_port = await self.backend.forwarded_port(self.config.cdp_guest_port)
-                if cdp_port is None:
-                    raise SandboxUnavailableError(
-                        "the VM did not publish a CDP port; recreate the VM so its "
-                        "forwarded ports match the current configuration"
-                    )
-                # Chromium outlives the gateway; restart it only when its CDP
-                # endpoint is really gone, so a slow probe cannot kill the tab.
-                if not browser_ready:
-                    await self.desktop.start_browser()
-                await self.browser.close()
-                await self.browser.connect(f"http://127.0.0.1:{cdp_port}")
+                # Chromium outlives the gateway; restart it only when the
+                # extension is really gone, so a slow probe cannot kill the tab.
+                await self.desktop.start_browser()
             except Exception as exc:
-                problems.append(str(exc))
+                problems.append(" ".join(filter(None, (self._browser_assets_error, str(exc)))))
         self._status_detail = " ".join(problems)
         # Warm the cache while the caller is still in start-up: the first
         # status poll should not pay for a probe the start already ran.
@@ -306,6 +300,23 @@ class SandboxGateway:
 
         self._service_retry_task.add_done_callback(clear)
 
+    async def _install_browser_assets(self) -> None:
+        """Place the BrowserSkill CLI and extension inside the VM.
+
+        Failure here only disables the browser service: files and shell keep
+        working, and the startup probe reports the missing capability.
+        """
+        from yoreni.sandbox import browser_assets
+
+        if not self.config.browser_enabled:
+            return
+        try:
+            await browser_assets.install(self.backend)
+            self._browser_assets_error = ""
+        except Exception as exc:
+            self._browser_assets_error = f"BrowserSkill is not available in the VM: {exc}"
+            logger.warning("Could not install BrowserSkill into the sandbox VM: {}", exc)
+
     async def _install_bundled_skills(self) -> None:
         """Copy read-only skill assets into the VM workspace on first start."""
         from yoreni.agent.skill_metadata import BUILTIN_SKILLS_DIR
@@ -331,7 +342,6 @@ class SandboxGateway:
             self._cancel_service_retry()
             self._health = None
             await self._terminate_all("shutdown")
-            await self.browser.close()
             await self.backend.stop()
             self._started = False
 
@@ -339,7 +349,6 @@ class SandboxGateway:
         async with self._start_lock:
             self._cancel_service_retry()
             await self._terminate_all("shutdown")
-            await self.browser.close()
             await self.backend.restart()
             self._started = False
             self._closing = False
@@ -379,7 +388,6 @@ class SandboxGateway:
         try:
             raw = await self.backend.status()
             desktop_ready, browser_ready = await self.desktop.health()
-            browser_ready = browser_ready and self.browser.connected
             if self._started and not self._status_detail:
                 # A service that died after a clean start is restarted by the
                 # same throttled retry that covers start-up failures.
@@ -421,7 +429,6 @@ class SandboxGateway:
         self._cancel_service_retry()
         self._health = None
         await self._terminate_all("shutdown")
-        await self.browser.close()
         await self.backend.close()
         self._started = False
 
@@ -441,10 +448,8 @@ class SandboxGateway:
 
     def _control_changed(self, snapshot: ControlSnapshot) -> None:
         if snapshot.owner is ControlOwner.AGENT:
-            # Returning control invalidates every element reference: the
-            # agent must observe the desktop and page again before touching
-            # either one.
-            self.browser.invalidate_observation()
+            # Returning control invalidates the desktop: the agent must look
+            # again before the next mouse or keyboard action.
             self._desktop_observed_epoch = -1
 
     async def take_control(self, controller_id: str) -> ControlSnapshot:
@@ -459,9 +464,7 @@ class SandboxGateway:
     async def release_control(self, controller_id: str) -> ControlSnapshot:
         # Close the input path before the agent is told it owns the desktop.
         await self.desktop.set_view_only(True)
-        snapshot = await self.control.release(controller_id, reason="user released control")
-        self.browser.invalidate_observation()
-        return snapshot
+        return await self.control.release(controller_id, reason="user released control")
 
     async def viewer_connected(self, controller_id: str) -> None:
         self._viewers[controller_id] = controller_id

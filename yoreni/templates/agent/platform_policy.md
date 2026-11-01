@@ -1,6 +1,6 @@
 {% if sandbox %}
 - Commands run in a Linux VM. Use standard Linux tools and POSIX paths.
-- The browser tool drives Chromium in the same VM; the computer tool controls the VM desktop.
+- Web pages are automated with the `browser-skill` (`bsk` in the shell) against Chromium in the same VM; the computer tool controls the VM desktop.
 - A file you create is visible to the user in the WebUI only after it exists in the VM workspace.
 {% elif system == 'Windows' %}
 - Do not assume GNU tools like `grep`, `sed`, or `awk` exist.

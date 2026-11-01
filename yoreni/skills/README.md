@@ -12,7 +12,7 @@ When skills reference large local documentation or logs, prefer yoreni's built-i
 
 ## Attribution
 
-These skills are adapted from [OpenClaw](https://github.com/openclaw/openclaw)'s skill system. The skill format and metadata structure follow OpenClaw's conventions to maintain compatibility.
+These skills are adapted from [OpenClaw](https://github.com/openclaw/openclaw)'s skill system. The skill format and metadata structure follow OpenClaw's conventions to maintain compatibility. `browser-skill` is vendored from [Tencent/BrowserSkill](https://github.com/Tencent/BrowserSkill) under the MIT license; `python -m scripts.vendor_browser_skill` refreshes it.
 
 ## Available Skills
 
@@ -27,3 +27,4 @@ These skills are adapted from [OpenClaw](https://github.com/openclaw/openclaw)'s
 | `skill-creator` | Create new skills |
 | `yoreni-design` | Visual and copy conventions for interfaces and widget HTML |
 | `signing-in` | Sign in to a service through an authentication card and use its placeholder |
+| `browser-skill` | Automate the sandbox browser with the BrowserSkill `bsk` CLI |

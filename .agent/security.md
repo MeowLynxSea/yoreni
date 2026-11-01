@@ -32,7 +32,7 @@ Every agent file, shell, browser and desktop action runs inside one persistent L
 
 The control plane keeps memory, credentials, settings, Run state and the SQLite stores on the host. It may import an attachment into the VM or export a preview, but it never exposes an arbitrary host path or command to a tool. A missing VM is a tool error, not a reason to execute locally.
 
-The WebUI reaches the desktop only through an authenticated, short-lived, single-use ticket and the gateway's byte relay. Input authority is enforced in the VM by x11vnc's view-only mode; the browser and desktop tools also check `ControlStateMachine` before each action. A user takeover pauses tool scheduling, and a release invalidates every browser element reference and desktop observation.
+The WebUI reaches the desktop only through an authenticated, short-lived, single-use ticket and the gateway's byte relay. Input authority is enforced in the VM by x11vnc's view-only mode; the desktop tools also check `ControlStateMachine` before each action. A user takeover pauses tool scheduling, and a release invalidates the desktop observation. Browser automation runs as ordinary shell commands in the VM, so it is authorized by the shell policy alone; BrowserSkill's own shared-control model decides when the agent yields to a human inside the page.
 
 **Rule**: New execution capability belongs behind `SandboxGateway`. Do not add `subprocess`, direct host file I/O, or a browser launched on the host to an agent-facing tool.
 

@@ -114,7 +114,16 @@ class BoxLiteBackend:
                 auto_delete=0,
                 auto_remove=False,
                 detach=True,
-                env=[("DISPLAY", self._config.display)],
+                # The webtop image boots a Wayland session by default, which has
+                # no X display for x11vnc to capture; these turn it back into the
+                # X11 session the desktop services are built around, at the
+                # configured resolution instead of the image's 1024x768.
+                env=[
+                    ("DISPLAY", self._config.display),
+                    ("PIXELFLUX_WAYLAND", "false"),
+                    ("SELKIES_MANUAL_WIDTH", str(self._config.display_width)),
+                    ("SELKIES_MANUAL_HEIGHT", str(self._config.display_height)),
+                ],
             )
             box, _created = await runtime.get_or_create(
                 options,

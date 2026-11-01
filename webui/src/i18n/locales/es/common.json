@@ -1948,6 +1948,16 @@
       "failed": "La compresión del contexto falló",
       "succeeded": "Contexto comprimido"
     },
+    "failure": {
+      "server": "El servicio del modelo no está disponible temporalmente. Vuelve a intentarlo en breve.",
+      "rateLimit": "El modelo está recibiendo demasiadas solicitudes. Vuelve a intentarlo en breve.",
+      "timeout": "El modelo tardó demasiado en responder. Vuelve a intentarlo.",
+      "connection": "No se pudo conectar con el servicio del modelo. Revisa la red y vuelve a intentarlo.",
+      "authentication": "Las credenciales del modelo no son válidas. Inicia sesión de nuevo en Ajustes → Modelos.",
+      "billing": "La clave de API se quedó sin cuota. Revisa el saldo de la cuenta y vuelve a intentarlo.",
+      "configuration": "No hay ningún modelo configurado. Elige uno en Ajustes → Modelos.",
+      "unknown": "La solicitud al modelo falló. Vuelve a intentarlo."
+    },
     "loadingConversation": "Cargando conversación…",
     "empty": {
       "greetings": {

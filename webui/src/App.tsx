@@ -505,6 +505,7 @@ function ThreadMessageRow({ messageId, pinned = false, children }: {
 function rendersInTranscript(message: UIMessage): boolean {
   if (message.kind === "trace") return false;
   if (message.kind === "compaction" && message.compaction) return true;
+  if (message.kind === "failure") return true;
   if (message.role !== "assistant") return true;
   return message.content.trim().length > 0
     || message.compactReply !== undefined

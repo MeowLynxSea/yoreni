@@ -1948,6 +1948,16 @@
       "failed": "Falha ao compactar o contexto",
       "succeeded": "Contexto compactado"
     },
+    "failure": {
+      "server": "O serviço do modelo está temporariamente indisponível. Tente novamente em instantes.",
+      "rateLimit": "O modelo está recebendo muitas solicitações. Tente novamente em instantes.",
+      "timeout": "O modelo demorou demais para responder. Tente novamente.",
+      "connection": "Não foi possível alcançar o serviço do modelo. Verifique a rede e tente novamente.",
+      "authentication": "As credenciais do modelo são inválidas. Entre novamente em Configurações → Modelos.",
+      "billing": "A cota da chave de API acabou. Verifique o saldo da conta e tente novamente.",
+      "configuration": "Nenhum modelo está configurado. Escolha um em Configurações → Modelos.",
+      "unknown": "A solicitação ao modelo falhou. Tente novamente."
+    },
     "loadingConversation": "Carregando conversa…",
     "empty": {
       "greetings": {

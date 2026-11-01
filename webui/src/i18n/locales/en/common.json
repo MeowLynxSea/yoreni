@@ -1948,6 +1948,16 @@
       "failed": "Context compaction failed",
       "succeeded": "Context compacted"
     },
+    "failure": {
+      "server": "The model service is temporarily unavailable. Try again shortly.",
+      "rateLimit": "The model is receiving too many requests. Try again shortly.",
+      "timeout": "The model took too long to respond. Try again.",
+      "connection": "Could not reach the model service. Check your network and try again.",
+      "authentication": "The model credentials are invalid. Sign in again in Settings → Models.",
+      "billing": "The API key is out of quota. Check the account balance and try again.",
+      "configuration": "No model is configured. Choose one in Settings → Models.",
+      "unknown": "The model request failed. Try again."
+    },
     "loadingConversation": "Loading conversation…",
     "empty": {
       "greetings": {

@@ -1613,6 +1613,9 @@ class LLMProvider(ABC):
         if cls.is_arrearage_response(response):
             return "billing"
         kind = (response.error_kind or "").strip().lower()
+        if kind == "configuration":
+            # No provider is configured yet; the fix is in Settings, not a retry.
+            return "configuration"
         # A plain 403 can be a policy or permission rejection, not bad credentials.
         if kind in {"authentication", "oauth_auth_required"} or response.error_status_code == 401:
             return "authentication"

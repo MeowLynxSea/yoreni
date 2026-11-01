@@ -42,16 +42,18 @@ function setup() {
 }
 
 function historyWith(entries: AgentHistoryEntry[], overrides: {
-  id?: string; eventId?: string; content?: string; result?: { content: string; stop_reason: string } | null;
+  id?: string; eventId?: string; content?: string; status?: string;
+  result?: { content: string; stop_reason: string; failure_error_kind?: string | null } | null;
 } = {}): PersonalAgentInfo {
   const { id = "run-1", eventId = "event-1", content = "look at the plan", result = null } = overrides;
+  const status = overrides.status ?? (result ? "completed" : "running");
   return {
     id: "agent",
     revision: 1,
     pending_runs: [],
     history: [{
       id,
-      status: result ? "completed" : "running",
+      status,
       error: null,
       event_seq: 1,
       event_id: eventId,
@@ -125,6 +127,31 @@ describe("agent messages", () => {
     await waitFor(() => expect(result.current.historyLoaded).toBe(true));
     expect(result.current.messages.at(-1)?.content).toBe("the plan holds");
     expect(result.current.messages.at(-1)?.delivered).toBeUndefined();
+
+    unmount();
+    client.close();
+  });
+
+  it("replays a failed model turn as a failure notice, not as an answer", async () => {
+    vi.mocked(fetchPersonalAgent).mockResolvedValue(historyWith([], {
+      status: "failed",
+      result: {
+        content: "The model provider is temporarily unavailable. Try again shortly.",
+        stop_reason: "error",
+        failure_error_kind: "server",
+      },
+    }));
+    const { client, wrapper } = setup();
+    const { result, unmount } = renderHook(() => useAgentRun(), { wrapper });
+
+    await waitFor(() => expect(result.current.historyLoaded).toBe(true));
+
+    const answer = result.current.messages.at(-1);
+    expect(answer?.kind).toBe("failure");
+    expect(answer?.failureKind).toBe("server");
+    expect(answer?.content).toBe("");
+    expect(result.current.messages.some((message) => message.content.includes("temporarily unavailable")))
+      .toBe(false);
 
     unmount();
     client.close();

@@ -174,7 +174,7 @@ function projectOrderedTurn(
   };
 
   for (const message of messages) {
-    if (message.kind === "compaction" || message.renderAs === "text") {
+    if (message.kind === "compaction" || message.kind === "failure" || message.renderAs === "text") {
       flushActivity();
       flushAnswers();
       units.push({

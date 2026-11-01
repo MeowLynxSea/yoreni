@@ -5,7 +5,7 @@ type Role = "user" | "assistant" | "tool" | "system";
 
 /** "trace" rows are intermediate agent breadcrumbs (tool-call hints,
  * progress pings) that should not be rendered as conversational replies. */
-type MessageKind = "message" | "trace" | "compaction";
+type MessageKind = "message" | "trace" | "compaction" | "failure";
 
 export interface UIContextCompaction extends ContextCompaction {
   /** Live wire transitions announce; hydrated transcript rows stay silent. */
@@ -126,6 +126,8 @@ export interface UIMessage {
   activityKind?: "model";
   /** Context-compaction lifecycle rendered as a standalone channel notice. */
   compaction?: UIContextCompaction;
+  /** Public failure category of a model call that ended the turn. */
+  failureKind?: string;
   /** Display-only localization marker for fixed /compact command replies. */
   compactReply?: "empty" | "failed";
   /** Attachments the turn carried: optimistic previews while sending, signed

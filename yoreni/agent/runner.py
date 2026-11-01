@@ -78,6 +78,22 @@ _ARREARAGE_ERROR_MESSAGE = (
     "account is in arrears. Please top up / check the billing status of your API key and try again."
 )
 _PERSISTED_MODEL_ERROR_PLACEHOLDER = "[Assistant reply unavailable due to model error.]"
+# Provider error payloads are diagnostics, not replies. Each public failure kind
+# answers with a stable, readable sentence for transports without their own UI.
+_ERROR_KIND_MESSAGES = {
+    "configuration": (
+        "Yoreni needs a model before it can reply. Open Settings → Models, choose a "
+        "provider, then send your message again."
+    ),
+    "authentication": (
+        "The model provider rejected the credentials. Sign in again in Settings → Models."
+    ),
+    "billing": _ARREARAGE_ERROR_MESSAGE,
+    "rate_limit": "The model provider is rate-limiting requests right now. Try again shortly.",
+    "timeout": "The model provider did not respond in time. Try again.",
+    "connection": "Yoreni could not reach the model provider. Check the network and try again.",
+    "server": "The model provider is temporarily unavailable. Try again shortly.",
+}
 _MAX_EMPTY_RETRIES = 2
 _MAX_LENGTH_RECOVERIES = 3
 _MAX_REQUIRED_TOOL_NUDGES = 2
@@ -861,12 +877,15 @@ class AgentRunner:
                 continue
 
             if response.finish_reason == "error":
-                if LLMProvider.is_arrearage_response(response):
-                    final_content = _ARREARAGE_ERROR_MESSAGE
-                else:
-                    final_content = clean or spec.error_message or _DEFAULT_ERROR_MESSAGE
+                error_kind = LLMProvider.public_error_kind(response)
+                final_content = _ERROR_KIND_MESSAGES.get(
+                    error_kind,
+                    spec.error_message or _DEFAULT_ERROR_MESSAGE,
+                )
                 stop_reason = "error"
-                error = final_content
+                # The provider's own text is diagnostic only; it never becomes
+                # a conversation reply.
+                error = clean or final_content
                 self._append_model_error_placeholder(messages)
                 context.final_content = final_content
                 context.error = error
@@ -881,7 +900,7 @@ class AgentRunner:
                     had_injections = True
                     length_recovery_parts.clear()
                     continue
-                failure_error_kind = LLMProvider.public_error_kind(response)
+                failure_error_kind = error_kind
                 break
             if is_blank_text(clean):
                 final_content = EMPTY_FINAL_RESPONSE_MESSAGE

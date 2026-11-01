@@ -1948,6 +1948,16 @@
       "failed": "Nén ngữ cảnh không thành công",
       "succeeded": "Đã nén ngữ cảnh"
     },
+    "failure": {
+      "server": "Dịch vụ mô hình tạm thời không khả dụng. Hãy thử lại sau.",
+      "rateLimit": "Mô hình đang nhận quá nhiều yêu cầu. Hãy thử lại sau.",
+      "timeout": "Mô hình phản hồi quá lâu. Hãy thử lại.",
+      "connection": "Không thể kết nối dịch vụ mô hình. Kiểm tra mạng và thử lại.",
+      "authentication": "Thông tin xác thực của mô hình không hợp lệ. Hãy đăng nhập lại trong Cài đặt → Mô hình.",
+      "billing": "Hạn mức khóa API đã hết. Kiểm tra số dư tài khoản và thử lại.",
+      "configuration": "Chưa cấu hình mô hình. Hãy chọn một mô hình trong Cài đặt → Mô hình.",
+      "unknown": "Yêu cầu tới mô hình thất bại. Hãy thử lại."
+    },
     "loadingConversation": "Đang tải cuộc trò chuyện…",
     "empty": {
       "greetings": {

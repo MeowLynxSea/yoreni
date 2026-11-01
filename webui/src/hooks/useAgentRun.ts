@@ -111,7 +111,20 @@ function historyMessages(runs: AgentHistoryRun[]): UIMessage[] {
     }
     const content = run.result?.content;
     const answered = messages.some((message) => message.delivered);
-    if (!answered && typeof content === "string" && content.length > 0) {
+    if (run.result?.stop_reason === "error") {
+      // A failed model call is a turn outcome, not an answer: the Run's content
+      // is only the readable fallback other transports deliver.
+      messages.push({
+        id: `${run.id}:failure`,
+        turnId: run.id,
+        role: "assistant",
+        kind: "failure",
+        content: "",
+        failureKind: run.result.failure_error_kind ?? undefined,
+        createdAt: admittedAt + messages.length + 1,
+        turnPhase: "complete",
+      });
+    } else if (!answered && typeof content === "string" && content.length > 0) {
       messages.push({
         id: `${run.id}:answer`,
         turnId: run.id,

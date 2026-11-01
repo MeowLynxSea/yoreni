@@ -114,8 +114,10 @@ async def test_tool_execution_propagates_control_flow_exceptions(control_error: 
 @pytest.mark.asyncio
 async def test_llm_error_not_appended_to_session_messages():
     """When LLM returns finish_reason='error', the error content must NOT be
-    appended to the messages list (prevents polluting session history)."""
+    appended to the messages list or become the reply (prevents polluting
+    session history and leaking provider payloads into the conversation)."""
     from yoreni.agent.runner import (
+        _DEFAULT_ERROR_MESSAGE,
         _PERSISTED_MODEL_ERROR_PLACEHOLDER,
         AgentRunner,
     )
@@ -137,11 +139,43 @@ async def test_llm_error_not_appended_to_session_messages():
     ))
 
     assert result.stop_reason == "error"
-    assert result.final_content == "429 rate limit exceeded"
+    assert result.failure_error_kind == "unknown"
+    assert result.final_content == _DEFAULT_ERROR_MESSAGE
+    assert result.error == "429 rate limit exceeded"
     assistant_msgs = [m for m in result.messages if m.get("role") == "assistant"]
     assert all("429" not in (m.get("content") or "") for m in assistant_msgs), \
         "Error content should not appear in session messages"
     assert assistant_msgs[-1]["content"] == _PERSISTED_MODEL_ERROR_PLACEHOLDER
+
+
+@pytest.mark.asyncio
+async def test_llm_server_error_replies_with_public_category_message():
+    """A provider 500 becomes a readable reply, never the raw payload."""
+    from yoreni.agent.runner import _ERROR_KIND_MESSAGES, AgentRunner
+
+    payload = (
+        "{'type': 'internal_error', 'message': 'Internal server error. "
+        "Please retry your request.', 'code': 'internal_error', 'http_code': '500'}"
+    )
+    provider = MagicMock(spec=LLMProvider)
+    provider.chat_stream_with_retry = AsyncMock(return_value=LLMResponse(
+        content=f"Error: {payload}", finish_reason="error", error_status_code=500,
+    ))
+    tools = MagicMock()
+    tools.get_definitions.return_value = []
+
+    result = await AgentRunner().run(make_run_spec(provider,
+        initial_messages=[{"role": "user", "content": "hello"}],
+        tools=tools,
+        model="test-model",
+        max_iterations=5,
+        max_tool_result_chars=_MAX_TOOL_RESULT_CHARS,
+    ))
+
+    assert result.stop_reason == "error"
+    assert result.failure_error_kind == "server"
+    assert result.final_content == _ERROR_KIND_MESSAGES["server"]
+    assert "internal_error" not in result.final_content
 
 
 @pytest.mark.asyncio
@@ -172,16 +206,18 @@ async def test_llm_arrearage_error_surfaces_clear_message():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("finish_reason", "expected_stop_reason"),
+    ("finish_reason", "expected_stop_reason", "expected_content"),
     [
-        ("refusal", "completed"),
-        ("content_filter", "completed"),
-        ("error", "error"),
+        ("refusal", "completed", "Request blocked by provider policy."),
+        ("content_filter", "completed", "Request blocked by provider policy."),
+        # Provider text under a terminal error is a diagnostic, not a reply.
+        ("error", "error", "Sorry, I encountered an error calling the AI model."),
     ],
 )
 async def test_runner_ignores_tool_calls_when_finish_reason_blocks_execution(
     finish_reason: str,
     expected_stop_reason: str,
+    expected_content: str,
 ):
     """Provider/gateway-injected tool calls under terminal block reasons must not run."""
     from yoreni.agent.runner import AgentRunner
@@ -208,7 +244,7 @@ async def test_runner_ignores_tool_calls_when_finish_reason_blocks_execution(
     tools.execute.assert_not_awaited()
     assert result.stop_reason == expected_stop_reason
     assert result.tools_used == []
-    assert result.final_content == "Request blocked by provider policy."
+    assert result.final_content == expected_content
     assert not any(msg.get("role") == "tool" for msg in result.messages)
 
 

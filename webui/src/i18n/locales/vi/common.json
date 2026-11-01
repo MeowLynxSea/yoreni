@@ -168,6 +168,16 @@
         "ready": "Môi trường đã sẵn sàng"
       }
     },
+    "resources": {
+      "eyebrow": "MÁY ẢO",
+      "question": "Dành bao nhiêu cho máy ảo của Yoreni?",
+      "hint": "Trình duyệt, tệp tải về và tài liệu Yoreni xử lý đều nằm trong đó. Càng nhiều thì xử lý càng nhanh và phần còn lại cho máy này càng ít.",
+      "cpusLabel": "Nhân CPU",
+      "memoryLabel": "Bộ nhớ",
+      "cores": "nhân",
+      "limit": "Máy này có thể chia tối đa {{cpus}} nhân và {{memory}} GB.",
+      "note": "Kích thước được cố định sau khi tạo máy ảo."
+    },
     "continue": "Tiếp tục",
     "back": "Quay lại",
     "skip": "Bỏ qua",

@@ -1025,10 +1025,14 @@ def _run_claimed_gateway(
             console.print,
         )
         try:
-            if config.tools.sandbox.enabled:
+            # A finished install keeps the VM warm across restarts. A first run
+            # does not: the VM's CPU count and memory are fixed when it is
+            # created, so the warm-up waits for onboarding to ask the owner and
+            # starts from the WebUI instead.
+            if config.tools.sandbox.enabled and onboarding.is_complete():
                 async def _start_sandbox() -> None:
-                    # One owner for the first start: onboarding polls this same
-                    # sequence, so the WebUI never starts a second one.
+                    # One owner for the first start: the WebUI starts this same
+                    # sequence after sizing the VM, so it never runs twice.
                     from yoreni.sandbox.setup import get_sandbox_setup
 
                     try:

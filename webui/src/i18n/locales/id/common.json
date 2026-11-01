@@ -168,6 +168,16 @@
         "ready": "Sandbox siap"
       }
     },
+    "resources": {
+      "eyebrow": "MESIN VIRTUAL",
+      "question": "Berapa banyak untuk mesin virtual Yoreni?",
+      "hint": "Peramban, unduhan, dan berkas yang Yoreni kerjakan semuanya ada di dalamnya. Semakin besar jatahnya, semakin cepat pekerjaannya dan semakin sedikit sisa untuk komputer ini.",
+      "cpusLabel": "Inti CPU",
+      "memoryLabel": "Memori",
+      "cores": "inti",
+      "limit": "Komputer ini bisa memberi hingga {{cpus}} inti dan {{memory}} GB.",
+      "note": "Ukurannya tetap setelah mesin virtual dibuat."
+    },
     "continue": "Lanjutkan",
     "back": "Kembali",
     "skip": "Lewati",

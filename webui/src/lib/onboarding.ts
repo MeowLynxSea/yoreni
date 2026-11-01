@@ -41,6 +41,7 @@ export const DEFAULT_PROFILE: UserProfile = {
 };
 
 export const ONBOARDING_FLOW: OnboardingStep[] = [
+  "resources",
   "token",
   "language",
   "intro",

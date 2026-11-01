@@ -168,6 +168,16 @@
         "ready": "샌드박스 준비 완료"
       }
     },
+    "resources": {
+      "eyebrow": "가상 머신",
+      "question": "Yoreni의 가상 머신에 얼마나 할당할까요?",
+      "hint": "브라우저, 내려받은 파일, Yoreni가 다루는 자료가 모두 이 안에 있습니다. 많이 할당할수록 작업은 빨라지고 이 컴퓨터에 남는 여유는 줄어듭니다.",
+      "cpusLabel": "CPU 코어",
+      "memoryLabel": "메모리",
+      "cores": "코어",
+      "limit": "이 컴퓨터는 최대 {{cpus}}개 코어와 {{memory}} GB까지 줄 수 있습니다.",
+      "note": "가상 머신을 만들면 이 크기는 고정됩니다."
+    },
     "continue": "계속",
     "back": "뒤로",
     "skip": "건너뛰기",

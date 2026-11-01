@@ -168,6 +168,16 @@
         "ready": "沙箱已就緒"
       }
     },
+    "resources": {
+      "eyebrow": "虛擬機器",
+      "question": "給 Yoreni 的虛擬機器留多少資源？",
+      "hint": "瀏覽器、下載的檔案和你要處理的資料都在裡面。分得越多，Yoreni 處理得越快，留給這台電腦的就越少。",
+      "cpusLabel": "處理器核心",
+      "memoryLabel": "記憶體",
+      "cores": "核",
+      "limit": "這台電腦最多可以提供 {{cpus}} 核和 {{memory}} GB 記憶體。",
+      "note": "虛擬機器建立後，這個大小就固定了。"
+    },
     "continue": "繼續",
     "back": "返回",
     "skip": "暫時跳過",

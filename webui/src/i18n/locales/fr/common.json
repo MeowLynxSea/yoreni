@@ -168,6 +168,16 @@
         "ready": "Environnement prêt"
       }
     },
+    "resources": {
+      "eyebrow": "MACHINE VIRTUELLE",
+      "question": "Quelle part donner à la machine virtuelle de Yoreni ?",
+      "hint": "Le navigateur, vos téléchargements et les fichiers traités par Yoreni y vivent. Plus vous lui donnez, plus le travail est rapide et moins il en reste pour le reste de cet ordinateur.",
+      "cpusLabel": "Cœurs du processeur",
+      "memoryLabel": "Mémoire",
+      "cores": "cœurs",
+      "limit": "Cet ordinateur peut céder jusqu'à {{cpus}} cœurs et {{memory}} Go.",
+      "note": "La taille est figée dès que la machine virtuelle est créée."
+    },
     "continue": "Continuer",
     "back": "Retour",
     "skip": "Passer",

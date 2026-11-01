@@ -168,6 +168,16 @@
         "ready": "沙箱已就绪"
       }
     },
+    "resources": {
+      "eyebrow": "虚拟机",
+      "question": "给 Yoreni 的虚拟机留多少资源？",
+      "hint": "浏览器、下载的文件和你要处理的资料都在里面。分得越多，Yoreni 处理得越快，留给这台电脑的就越少。",
+      "cpusLabel": "处理器核心",
+      "memoryLabel": "内存",
+      "cores": "核",
+      "limit": "这台电脑最多可以提供 {{cpus}} 核和 {{memory}} GB 内存。",
+      "note": "虚拟机创建后，这个大小就固定了。"
+    },
     "continue": "继续",
     "back": "返回",
     "skip": "暂时跳过",

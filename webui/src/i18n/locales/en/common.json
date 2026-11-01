@@ -168,6 +168,16 @@
         "ready": "Sandbox ready"
       }
     },
+    "resources": {
+      "eyebrow": "VIRTUAL MACHINE",
+      "question": "How much should Yoreni's virtual machine get?",
+      "hint": "The browser, your downloads and the files Yoreni works on all live in it. More here means faster work and less left for the rest of this computer.",
+      "cpusLabel": "CPU cores",
+      "memoryLabel": "Memory",
+      "cores": "cores",
+      "limit": "This computer can give up to {{cpus}} cores and {{memory}} GB.",
+      "note": "The size is fixed once the virtual machine is created."
+    },
     "continue": "Continue",
     "back": "Back",
     "skip": "Skip",

@@ -1422,6 +1422,7 @@ export interface UserProfile {
 }
 
 export type OnboardingStep =
+  | "resources"
   | "token"
   | "language"
   | "intro"
@@ -1464,6 +1465,14 @@ export interface SandboxSetupState {
   elapsed_s: number;
 }
 
+/** The VM size the owner chose, beside what this host can offer. */
+export interface SandboxResources {
+  cpus: number;
+  memory_mib: number;
+  cpus_max: number;
+  memory_mib_max: number;
+}
+
 export interface OnboardingSnapshot {
   status: "uninitialized" | "in_progress" | "completed";
   step: OnboardingStep;
@@ -1471,6 +1480,8 @@ export interface OnboardingSnapshot {
   profile: UserProfile;
   completed_at: string | null;
   sandbox: SandboxSetupState;
+  /** Null when this instance has no VM to size. */
+  sandbox_resources: SandboxResources | null;
 }
 
 /** Sign-in state the login screen needs before it holds any token. */

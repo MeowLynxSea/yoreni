@@ -1,5 +1,5 @@
 
-import type { AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemoryBackfillPayload, MemorySettingsUpdate, OnboardingSnapshot, SandboxSetupState, AuthStatus, AuthenticatorSummary, PasskeyAssertionOptions, PasskeyAssertionPayload, PasskeyRegistrationOptions, PasskeyRegistrationPayload, ProfileSecurity, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, PairingPayload, ProjectSummary, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
+import type { AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemoryBackfillPayload, MemorySettingsUpdate, OnboardingSnapshot, SandboxResources, SandboxSetupState, AuthStatus, AuthenticatorSummary, PasskeyAssertionOptions, PasskeyAssertionPayload, PasskeyRegistrationOptions, PasskeyRegistrationPayload, ProfileSecurity, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, PairingPayload, ProjectSummary, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
 
 const API_READ_TIMEOUT_MS = 20_000;
@@ -1217,6 +1217,13 @@ export function completeOnboarding(
   locale: string,
 ): Promise<{ status: string; completed_at: string | null; created_welcome: boolean }> {
   return mutation(transport, "onboarding.complete", { locale });
+}
+
+export function saveSandboxResources(
+  transport: WebUIMutationTransport,
+  resources: { cpus: number; memory_mib: number },
+): Promise<SandboxResources> {
+  return mutation<SandboxResources>(transport, "onboarding.sandbox.resources", resources);
 }
 
 export function startSandboxInstall(

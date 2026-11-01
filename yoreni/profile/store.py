@@ -24,6 +24,7 @@ _PROFILE_VERSION = 1
 _ONBOARDING_VERSION = 1
 
 OnboardingStep = Literal[
+    "resources",
     "token",
     "language",
     "intro",
@@ -37,6 +38,7 @@ OnboardingStep = Literal[
     "done",
 ]
 ONBOARDING_STEPS: tuple[OnboardingStep, ...] = (
+    "resources",
     "token",
     "language",
     "intro",

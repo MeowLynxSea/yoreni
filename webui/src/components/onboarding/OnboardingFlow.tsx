@@ -20,6 +20,7 @@ import {
   saveOnboardingProfile,
   saveOnboardingStep,
   saveOnboardingToken,
+  saveSandboxResources,
   startSandboxInstall,
 } from "@/lib/api";
 import {
@@ -34,6 +35,7 @@ import type { YoreniClient } from "@/lib/yoreni-client";
 import type {
   OnboardingSnapshot,
   OnboardingStep,
+  SandboxResources,
   SandboxSetupState,
   UserProfile,
 } from "@/lib/types";
@@ -83,6 +85,14 @@ export function OnboardingFlow({
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState(client.status === "open");
   const [sandbox, setSandbox] = useState<SandboxSetupState>(initial.sandbox);
+  const [resourceLimits, setResourceLimits] = useState<SandboxResources | null>(
+    initial.sandbox_resources,
+  );
+  // The VM's size is settled when it is created, so the warm-up waits for this
+  // one answer instead of running beside the rest of the setup.
+  const [sizeChosen, setSizeChosen] = useState(initial.step !== "resources");
+  const [cores, setCores] = useState(() => suggestedCores(initial.sandbox_resources));
+  const [memoryGb, setMemoryGb] = useState(() => suggestedMemoryGb(initial.sandbox_resources));
   const [retryingSandbox, setRetryingSandbox] = useState(false);
   const sandboxReady = sandbox.state === "ready" || sandbox.state === "unsupported";
   const [language, setLanguage] = useState<SupportedLocale>(() => currentLocale());
@@ -91,15 +101,16 @@ export function OnboardingFlow({
   const firstDraft = useRef(true);
 
   useEffect(() => client.onStatus((status) => setOnline(status === "open")), [client]);
-  // Preparing the sandbox starts with onboarding and never blocks a request.
+  // Preparing the sandbox runs beside the rest of onboarding and never blocks a
+  // request, but only once the VM has a size to be created with.
   useEffect(() => {
-    if (sandboxReady) return;
+    if (sandboxReady || !sizeChosen) return;
     let live = true;
     void startSandboxInstall(client)
       .then((next) => { if (live) setSandbox(next); })
       .catch(() => {});
     return () => { live = false; };
-  }, [client, sandboxReady]);
+  }, [client, sandboxReady, sizeChosen]);
   // Poll the server-owned progress; the VM keeps preparing if this tab closes.
   useEffect(() => {
     if (sandboxReady) return;
@@ -235,6 +246,35 @@ export function OnboardingFlow({
     }
   };
 
+  const coresValue = Number(cores);
+  const memoryValue = Number(memoryGb);
+  const sizeValid = resourceLimits !== null
+    && Number.isInteger(coresValue)
+    && coresValue >= 1
+    && coresValue <= resourceLimits.cpus_max
+    && Number.isInteger(memoryValue)
+    && memoryValue >= 1
+    && memoryValue * 1024 <= resourceLimits.memory_mib_max;
+
+  const saveSize = async () => {
+    if (busy !== "idle" || !online || !sizeValid) return;
+    setError(null);
+    setBusy("saving");
+    try {
+      const saved = await saveSandboxResources(client, {
+        cpus: coresValue,
+        memory_mib: memoryValue * 1024,
+      });
+      setResourceLimits(saved);
+      await persist("token");
+      setSizeChosen(true);
+    } catch (reason) {
+      failure(reason);
+    } finally {
+      setBusy("idle");
+    }
+  };
+
   const progress = useMemo(() => stepProgress(step), [step]);
   const stepNumber = stepIndex(step) + 1;
 
@@ -313,6 +353,69 @@ export function OnboardingFlow({
           >
             {error}
           </div>
+        ) : null}
+
+        {step === "resources" && resourceLimits ? (
+          <section key="resources" className="onboarding-stage mx-auto w-full max-w-xl">
+            <div className="onboarding-stage-stack">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground/70" style={{ "--onboarding-index": 0 } as CSSProperties}>
+                {t("onboarding.resources.eyebrow")}
+              </p>
+              <h1 className="display-serif mt-4 text-[clamp(2rem,5.6vw,3rem)] leading-[1.1] text-foreground/95" style={{ "--onboarding-index": 1 } as CSSProperties}>
+                {t("onboarding.resources.question")}
+              </h1>
+              <p className="mt-4 max-w-md text-[14px] leading-7 text-muted-foreground" style={{ "--onboarding-index": 2 } as CSSProperties}>
+                {t("onboarding.resources.hint")}
+              </p>
+            </div>
+            <form
+              className="onboarding-stage mt-9"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void saveSize();
+              }}
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <ResourceField
+                  label={t("onboarding.resources.cpusLabel")}
+                  suffix={t("onboarding.resources.cores")}
+                  value={cores}
+                  min={1}
+                  max={resourceLimits.cpus_max}
+                  onChange={setCores}
+                />
+                <ResourceField
+                  label={t("onboarding.resources.memoryLabel")}
+                  suffix="GB"
+                  value={memoryGb}
+                  min={1}
+                  max={resourceLimits.memory_mib_max / 1024}
+                  onChange={setMemoryGb}
+                />
+              </div>
+              <p className="mt-3 text-[12px] leading-5 text-muted-foreground/70">
+                {t("onboarding.resources.limit", {
+                  cpus: resourceLimits.cpus_max,
+                  memory: resourceLimits.memory_mib_max / 1024,
+                })}
+              </p>
+              <div className="mt-8 flex items-center justify-between gap-4">
+                <p className="max-w-[19rem] text-[12px] leading-5 text-muted-foreground/70">
+                  {t("onboarding.resources.note")}
+                </p>
+                <Button
+                  type="submit"
+                  disabled={!canContinue || !sizeValid}
+                  className="h-11 shrink-0 rounded-full px-6"
+                >
+                  {busy === "saving"
+                    ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    : <ArrowRight className="h-4 w-4" aria-hidden />}
+                  <span>{t("onboarding.continue")}</span>
+                </Button>
+              </div>
+            </form>
+          </section>
         ) : null}
 
         {step === "token" ? (
@@ -746,6 +849,51 @@ function TypewriterQuestion({ label, className }: { label: string; className?: s
       <span className="onboarding-typer-caret" aria-hidden />
     </h1>
   );
+}
+
+function ResourceField({
+  label,
+  value,
+  min,
+  max,
+  suffix,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  min: number;
+  max: number;
+  suffix: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="onboarding-choice block rounded-2xl border border-foreground/10 bg-white/45 px-5 py-4 transition-colors focus-within:border-foreground/30 dark:border-white/10 dark:bg-white/[0.05]">
+      <span className="text-[12px] text-muted-foreground">{label}</span>
+      <span className="mt-1.5 flex items-baseline gap-2">
+        <input
+          type="number"
+          inputMode="numeric"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full min-w-0 bg-transparent text-[24px] leading-none tabular-nums text-foreground/90 outline-none"
+        />
+        <span className="shrink-0 text-[12px] text-muted-foreground">{suffix}</span>
+      </span>
+    </label>
+  );
+}
+
+function suggestedCores(resources: SandboxResources | null): string {
+  if (!resources) return "2";
+  // Half the machine, but never below the desktop's floor or above its ceiling.
+  return String(Math.min(Math.max(2, Math.round(resources.cpus_max / 2)), resources.cpus_max));
+}
+
+function suggestedMemoryGb(resources: SandboxResources | null): string {
+  if (!resources) return "2";
+  return String(Math.min(8, resources.memory_mib_max / 1024));
 }
 
 function StageActions({

@@ -38,7 +38,8 @@ def test_onboarding_requires_token_and_model_then_creates_welcome_once(tmp_path:
     service = _service(tmp_path, live)
 
     assert service.snapshot()["status"] == "uninitialized"
-    assert service.snapshot()["step"] == "token"
+    # The VM size is the one answer the first VM cannot wait for.
+    assert service.snapshot()["step"] == "resources"
 
     with pytest.raises(OnboardingError):
         service.set_token("short")
@@ -153,6 +154,30 @@ async def test_setup_http_routes_return_state_and_validation_errors(tmp_path: Pa
     response = await handler._handle_setup(request, "/api/profile")
     assert response.status_code == 200
     assert json.loads(response.body)["profile"]["name"] == ""
+
+
+def test_sandbox_resources_are_capped_by_the_host(tmp_path: Path) -> None:
+    config_path = tmp_path / "config.json"
+    _write_config(config_path)
+    service = _service(tmp_path)
+
+    limits = service.snapshot()["sandbox_resources"]
+    assert limits is not None and limits["cpus_max"] >= 1
+
+    with pytest.raises(OnboardingError, match="CPU cores"):
+        service.set_sandbox_resources(
+            {"cpus": limits["cpus_max"] + 1, "memory_mib": 4096}
+        )
+    with pytest.raises(OnboardingError, match="memory"):
+        service.set_sandbox_resources(
+            {"cpus": 1, "memory_mib": limits["memory_mib_max"] + 1024}
+        )
+
+    saved = service.set_sandbox_resources({"cpus": 1, "memory_mib": 2048})
+    assert saved["cpus"] == 1 and saved["memory_mib"] == 2048
+    stored = load_config(config_path).tools.sandbox
+    assert (stored.cpus, stored.memory_mib) == (1, 2048)
+    assert service.snapshot()["sandbox_resources"]["cpus"] == 1
 
 
 def test_completion_waits_for_the_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -109,6 +109,32 @@ class OnboardingService:
 
         return get_sandbox_setup().snapshot()
 
+    def sandbox_resources(
+        self, config: Any, sandbox: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
+        """Return the VM size and this host's limits, or None without a VM."""
+        from yoreni.sandbox.resources import read_resources
+
+        state = (sandbox or self.sandbox_snapshot()).get("state")
+        if state == "unsupported":
+            return None
+        current = config if config is not None else self._config.load()
+        return read_resources(current.tools.sandbox)
+
+    def set_sandbox_resources(self, payload: Any) -> dict[str, Any]:
+        """Persist the VM size chosen before the first VM is created."""
+        if not isinstance(payload, dict):
+            raise OnboardingError("Sandbox resources must be an object")
+        from yoreni.sandbox.resources import write_resources
+
+        data = cast(dict[str, Any], payload)
+        try:
+            return write_resources(
+                self._config.update, data.get("cpus"), data.get("memory_mib")
+            )
+        except ValueError as exc:
+            raise OnboardingError(str(exc)) from None
+
     async def prepare_sandbox(self, *, retry: bool = False) -> dict[str, Any]:
         """Start (or restart) the sandbox VM that onboarding waits for."""
         from yoreni.sandbox.setup import get_sandbox_setup
@@ -122,10 +148,17 @@ class OnboardingService:
         config = self._config.load()
         profile = self._profile.read()
         token_set = _token_is_set(config)
-        step = record.step if record is not None else (
-            "done" if status == "completed" else "token"
-        )
-        if status != "completed" and not token_set:
+        sandbox = self.sandbox_snapshot()
+        resources = self.sandbox_resources(config, sandbox)
+        if record is not None:
+            step = record.step
+        elif status == "completed":
+            step = "done"
+        else:
+            # The VM's size is fixed when it is created, so it is the one
+            # question that cannot wait for the rest of the setup.
+            step = "resources" if resources is not None else "token"
+        if status != "completed" and not token_set and step not in {"resources", "token"}:
             step = "token"
         return {
             "status": status,
@@ -133,7 +166,8 @@ class OnboardingService:
             "token_set": token_set,
             "profile": profile_payload(profile),
             "completed_at": record.completed_at if record else None,
-            "sandbox": self.sandbox_snapshot(),
+            "sandbox": sandbox,
+            "sandbox_resources": resources,
         }
 
     def read_profile(self) -> dict[str, Any]:

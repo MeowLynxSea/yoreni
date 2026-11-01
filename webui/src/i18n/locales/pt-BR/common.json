@@ -168,6 +168,16 @@
         "ready": "Ambiente pronto"
       }
     },
+    "resources": {
+      "eyebrow": "MÁQUINA VIRTUAL",
+      "question": "Quanto dar à máquina virtual do Yoreni?",
+      "hint": "O navegador, seus downloads e os arquivos com que o Yoreni trabalha ficam lá. Quanto mais você der, mais rápido o trabalho fica e menos sobra para o resto deste computador.",
+      "cpusLabel": "Núcleos de CPU",
+      "memoryLabel": "Memória",
+      "cores": "núcleos",
+      "limit": "Este computador pode ceder até {{cpus}} núcleos e {{memory}} GB.",
+      "note": "O tamanho fica fixo assim que a máquina virtual é criada."
+    },
     "continue": "Continuar",
     "back": "Voltar",
     "skip": "Pular",

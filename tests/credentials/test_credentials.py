@@ -147,6 +147,37 @@ async def test_a_card_opens_with_only_a_connector_and_purpose(manager):
     assert payload["placeholders"]["api_key"] == manager.vault.token_for("card-secret-value")
 
 
+async def test_an_ephemeral_request_is_named_and_never_persisted(manager):
+    from yoreni.agent.tools.credentials import ListConnectionsTool, RequestAuthenticationTool
+
+    manager.set_auth_listener(lambda request: None)
+    task = asyncio.create_task(
+        RequestAuthenticationTool().execute(
+            connector_id="api_key",
+            purpose="Check the status page once",
+            label="Status page",
+            ephemeral=True,
+        )
+    )
+    await asyncio.sleep(0)
+    pending = manager.auth.pending()
+    assert pending[0].label == "Status page"
+    assert pending[0].ephemeral is True
+
+    account = manager.submit_auth_request(pending[0].id, {"api_key": "session-only-key"})
+    payload = json.loads(await asyncio.wait_for(task, 5))
+
+    assert payload["label"] == "Status page"
+    assert payload["ephemeral"] is True
+    assert manager.store.get_account(account.id) is None
+
+    listed = json.loads(await ListConnectionsTool().execute())
+    [reported] = [item for item in listed["accounts"] if item["id"] == account.id]
+    assert reported["label"] == "Status page"
+    assert reported["ephemeral"] is True
+    assert reported["placeholders"]["api_key"] == manager.vault.token_for("session-only-key")
+
+
 def test_store_never_contains_plaintext_and_rewraps(tmp_path):
     store = CredentialStore(tmp_path / "db.sqlite3", box=SecretBox(b"\x03" * 32))
     manager = CredentialManager(store=store, vault=SecretVault(b"\x04" * 32))

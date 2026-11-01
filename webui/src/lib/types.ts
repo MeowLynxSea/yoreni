@@ -1642,6 +1642,8 @@ export interface CredentialAuthRequest {
   method: string;
   fields: string[];
   purpose: string;
+  label?: string;
+  ephemeral?: boolean;
   status: "pending" | "completed" | "cancelled" | "expired" | "failed";
   run_id?: string | null;
   account_id?: string | null;
@@ -1668,6 +1670,7 @@ export interface CredentialAccountSummary {
   auth_method: string;
   status: "connected" | "expired" | "revoked";
   restorable: boolean;
+  ephemeral?: boolean;
 }
 
 export interface CredentialsState {

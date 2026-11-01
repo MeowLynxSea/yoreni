@@ -6,7 +6,7 @@
 
 A **connector** is an authentication definition (`ConnectorSpec`): allowed methods, required fields, scopes, and optional OAuth endpoints. Built-in connectors cover API keys, basic auth, one-time codes, public services, and MCP servers; operators can register more connectors, which are persisted beside accounts.
 
-An **account** is one user's connection through a connector, including whether its secrets may be restored into tool calls. An **authentication request** is the structured card the agent asks for; it carries the connector, method, field names, purpose, and the requesting Run. A **credential** is one field of an account's encrypted payload.
+An **account** is one user's connection through a connector, including whether its secrets may be restored into tool calls and whether it is session-only. An **authentication request** is the structured card the agent asks for; it carries the connector, method, field names, purpose, the requested account label and lifetime, and the requesting Run. A **credential** is one field of an account's encrypted payload.
 
 `CredentialManager` is the single entry point: it owns the encrypted store, the in-memory secret vault, the connector catalog, and pending authentication requests. WebUI routes and agent tools call it; neither touches `credentials.sqlite3` or the key file directly.
 
@@ -15,6 +15,8 @@ An **account** is one user's connection through a connector, including whether i
 Accounts live in `credentials.sqlite3` beside the instance config. Payloads are AES-GCM sealed with associated data equal to the account ID, so ciphertext cannot be moved between accounts. The master key is 32 random bytes in `keys/credentials.key` with owner-only permissions, or supplied by `YORENI_CREDENTIAL_KEY` for managed deployments. Rotation rewraps every payload in one transaction before the new key file replaces the old one.
 
 One-time fields (verification codes) are never written to the database. They stay in memory, expire quickly, and are dropped after the first successful restoration. OAuth access and refresh tokens are stored but are never restorable into a tool call.
+
+A session-only account (the agent asked for `ephemeral`) is held in memory and never written to the database. It stays usable for the life of the process and disappears on restart, so it has no representation in `credentials.sqlite3`. Master-key rotation rebuilds the vault from stored accounts and therefore drops session-only accounts and one-time codes. An OAuth request cannot be session-only, because the tokens exist to be refreshed and reused from storage.
 
 ## Placeholders and redaction
 
@@ -32,11 +34,11 @@ Any tool can receive a credential. `CredentialManager.restore_arguments` checks 
 
 One-time codes stop restoring after their first use, but their mapping stays available for redaction. Revoking or expiring an account removes restoration while keeping redaction.
 
-Agents receive placeholders from `request_authentication` and `list_connections`; these are opaque references, never secrets. Tool output, including errors and exceptions, is redacted before it enters the model context, run record, memory, or WebUI activity detail.
+Agents receive placeholders from `request_authentication` and `list_connections`; these are opaque references, never secrets. `list_connections` is the agent's view of existing accounts: label, connector, method, status, and whether an account is session-only. Tool output, including errors and exceptions, is redacted before it enters the model context, run record, memory, or WebUI activity detail.
 
 ## Authentication cards and OAuth
 
-`request_authentication` creates a persisted auth request and blocks the Run. The card asks only for the connector and its fields; nothing is inferred from the current page. The gateway pushes an `auth_request` frame; the WebUI renders a card and submits values through `/api/webui/credentials/submit`, never through chat or MCP elicitation. Submission seals the payload, marks the account restorable, resolves the waiting future thread-safely, and the Run continues.
+`request_authentication` creates a persisted auth request and blocks the Run. The card asks only for the connector and its fields; nothing is inferred from the current page. The agent supplies the account label and whether it is session-only, and the WebUI may replace the label on submit. The gateway pushes an `auth_request` frame; the WebUI renders a card and submits values through `/api/webui/credentials/submit`, never through chat or MCP elicitation. Submission seals the payload, marks the account restorable, resolves the waiting future thread-safely, and the Run continues.
 
 Settings → Accounts (`webui/src/components/settings/accounts/`) is the operator surface for the same records. It lists only connectors that exist in the runtime — API key and username/password today, plus any connector the operator registered — and groups them by connection kind. It offers connect, manage, and disconnect. MCP authorization, one-time codes, and public endpoints stay in their own surfaces. There are deliberately no vendor presets: a service appears here only after its integration and OAuth client actually exist, so the page never advertises a connection that cannot complete.
 

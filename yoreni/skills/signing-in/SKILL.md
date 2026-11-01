@@ -11,7 +11,7 @@ When a task needs an account — a campus portal, a web app, an API behind a log
 ## The flow
 
 1. `list_connections` to see what already exists. An account that is already connected comes with placeholders, so skip to step 3.
-2. `request_authentication` with a one-sentence `purpose`. There is no tool list or site to declare. The Run pauses while the card is open.
+2. `request_authentication` with a one-sentence `purpose` and a short `label` naming the account in the user's list. There is no tool list or site to declare. The Run pauses while the card is open.
 3. The user submits the card. The tool result is JSON with `placeholders`, one per field — `{{YORENI_SECRET_…}}`.
 4. Call the tool that needs the credential, passing each placeholder as the argument value it belongs to (`password`, `api_key`, `code`, …). At execution the gateway swaps in the real secret. The model, the transcript, and the answer only ever see the placeholder.
 
@@ -21,7 +21,9 @@ The placeholder **is** the usable value. Continue the same turn: call the tool i
 
 ## Choosing the request
 
-- Connectors: `api_key` (a token or bearer key), `basic_auth` (username and password), `one_time_code` (a verification code), `mcp_server` (OAuth for a remote MCP server). `list_connections` returns the exact ids and methods.
+- Connectors: `api_key` (a token or bearer key), `basic_auth` (username and password), `one_time_code` (a verification code), `mcp_server` (OAuth for a remote MCP server). `list_connections` returns the exact ids and methods, plus every account that already exists.
+- Name the account with `label` so the user recognizes it later in Settings, e.g. "Campus portal" rather than "API key service".
+- Set `ephemeral` when the credential is only for this task. The account then lives only for the session and is never saved; leave it off when the user will need the account again.
 - A portal with a password form is `basic_auth`. If the user prefers a passwordless route and can only give a code, ask for the code with `one_time_code` instead of collecting their password.
 - Submitting the card authorizes the account. Any tool can then receive the value, including a shell command that drives `browser-skill`.
 - A one-time code works once. Call the tool immediately after receiving it, and request a new code for each new attempt.

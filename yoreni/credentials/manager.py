@@ -243,8 +243,13 @@ class CredentialManager:
         restorable: bool = True,
         expires_at: float | None = None,
         account_id: str | None = None,
+        persist: bool = True,
     ) -> Account:
-        """Create or update one account from user-supplied values."""
+        """Create or update one account from user-supplied values.
+
+        ``persist=False`` keeps the account in memory only: it is usable for
+        the rest of the process and disappears on restart.
+        """
         self.load()
         spec = self.connector(connector_id)
         if method not in spec.auth_methods:
@@ -261,6 +266,7 @@ class CredentialManager:
             updated_at=now,
             expires_at=expires_at,
             restorable=restorable,
+            ephemeral=not persist,
             secret_fields=tuple(sorted(payload)),
         )
         one_time_fields = {
@@ -269,13 +275,16 @@ class CredentialManager:
         }
         transient = {name: value for name, value in payload.items() if name in one_time_fields}
         persistent = {name: value for name, value in payload.items() if name not in one_time_fields}
-        if persistent:
+        if persist and persistent:
             self.store.save_account(account, persistent)
         with self._lock:
             if transient:
                 account.expires_at = expires_at or now + 300
                 self._one_time[account.id] = transient
-            if not persistent:
+            # Nothing to persist means nothing to restore after a restart; such
+            # accounts are session-only by construction.
+            if not persist or not persistent:
+                account.ephemeral = True
                 self._ephemeral[account.id] = account
             self._register_account(account, payload)
         return account
@@ -337,11 +346,15 @@ class CredentialManager:
         purpose: str,
         run_id: str | None,
         ttl_seconds: float | None = None,
+        label: str = "",
+        ephemeral: bool = False,
     ) -> AuthRequest:
         self.load()
         spec = self.connector(connector_id)
         if method not in spec.auth_methods:
             raise ValueError(f"{connector_id} does not support {method.value} authentication")
+        if ephemeral and method is AuthMethod.OAUTH2:
+            raise ValueError("OAuth accounts are always saved; ephemeral is not supported")
         request = self.auth.create(
             new_auth_request_id(),
             connector_id=connector_id,
@@ -350,6 +363,8 @@ class CredentialManager:
             purpose=purpose,
             run_id=run_id,
             ttl_seconds=ttl_seconds,
+            label=label.strip()[:80],
+            ephemeral=ephemeral,
         )
         self.store.save_auth_request(request.public_dict())
         return request
@@ -375,10 +390,11 @@ class CredentialManager:
             spec = self.connector(request.connector_id)
             account = self.connect(
                 request.connector_id,
-                label=label or spec.name,
+                label=label or request.label or spec.name,
                 method=request.method,
                 values=values,
                 restorable=True,
+                persist=not request.ephemeral,
             )
             self.auth.complete(request_id, account.id)
             self.store.set_auth_request_status(request_id, AuthRequestStatus.COMPLETED.value)
@@ -414,7 +430,7 @@ class CredentialManager:
             account = Account(
                 id=new_account_id(),
                 connector_id=request.connector_id,
-                label=label or spec.name,
+                label=label or request.label or spec.name,
                 auth_method=AuthMethod.OAUTH2,
                 status=AccountStatus.CONNECTED,
                 created_at=now,
@@ -597,6 +613,12 @@ class CredentialManager:
         vault.register_external(new_key.hex())
         reset_vault(vault)
         self.vault = vault
+        # Session-only accounts and one-time codes have no ciphertext to rewrap.
+        # Dropping them keeps the listed accounts consistent with what the new
+        # vault can actually restore.
+        with self._lock:
+            self._ephemeral.clear()
+            self._one_time.clear()
         for stored in self.store.list_accounts():
             self._register_account(stored.account, stored.payload)
         return count

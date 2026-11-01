@@ -16,6 +16,7 @@ from typing import Any
 from yoreni.agent.tools.base import Tool, ToolResult, tool_parameters
 from yoreni.agent.tools.context import ToolContext, current_request_context
 from yoreni.agent.tools.schema import (
+    BooleanSchema,
     IntegerSchema,
     StringSchema,
     tool_parameters_schema,
@@ -54,6 +55,17 @@ def _run_id() -> str | None:
         purpose=StringSchema(
             "One sentence shown to the user explaining which service is being connected and why."
         ),
+        label=StringSchema(
+            "Name for this account in the user's account list, e.g. 'Campus portal' or "
+            "'Work email'. Defaults to the connector's name."
+        ),
+        ephemeral=BooleanSchema(
+            description=(
+                "True when the account is only needed for this task: it stays in memory "
+                "for the session and is never saved. Defaults to false."
+            ),
+            default=False,
+        ),
         timeout_seconds=IntegerSchema(
             description="How long to wait for the user, in seconds (30-600). Defaults to 300.",
             minimum=30,
@@ -81,8 +93,9 @@ class RequestAuthenticationTool(Tool):
             "Ask the user to sign in or enter a credential for an external service. "
             "Use this instead of asking for a password or API key in chat. The user "
             "fills a secure card and you receive the account name plus placeholders. "
-            "A returned placeholder is a ready-to-use credential: pass it as the "
-            "argument value of the tool that needs it, in the same turn."
+            "Give the account a short label and set ephemeral when it is only needed "
+            "for this task. A returned placeholder is a ready-to-use credential: pass "
+            "it as the argument value of the tool that needs it, in the same turn."
         )
 
     async def execute(
@@ -90,6 +103,8 @@ class RequestAuthenticationTool(Tool):
         connector_id: str = "",
         method: str | None = None,
         purpose: str = "",
+        label: str = "",
+        ephemeral: bool = False,
         timeout_seconds: int = 300,
         **kwargs: object,
     ) -> str:
@@ -128,6 +143,8 @@ class RequestAuthenticationTool(Tool):
                 method=auth_method,
                 purpose=purpose.strip()[:400],
                 run_id=_run_id(),
+                label=label,
+                ephemeral=ephemeral,
             )
         except ValueError as exc:
             return ToolResult.error(f"Error: {exc}")
@@ -145,6 +162,7 @@ class RequestAuthenticationTool(Tool):
                 "account_id": completed.account_id,
                 "connector_id": connector.id,
                 "label": account.label if account else connector.name,
+                "ephemeral": account.ephemeral if account else ephemeral,
                 "placeholders": manager.placeholders_for_account(completed.account_id),
                 "next_step": _PLACEHOLDER_HINT,
             }

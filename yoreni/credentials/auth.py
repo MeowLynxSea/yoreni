@@ -35,6 +35,8 @@ class AuthRequest:
     fields: tuple[str, ...]
     purpose: str
     run_id: str | None
+    label: str = ""
+    ephemeral: bool = False
     status: AuthRequestStatus = AuthRequestStatus.PENDING
     account_id: str | None = None
     created_at: float = field(default_factory=time.time)
@@ -53,6 +55,8 @@ class AuthRequest:
             "fields": list(self.fields),
             "purpose": self.purpose,
             "run_id": self.run_id,
+            "label": self.label,
+            "ephemeral": self.ephemeral,
             "status": self.status.value,
             "account_id": self.account_id,
             "created_at": self.created_at,
@@ -88,6 +92,8 @@ class AuthRequestManager:
         purpose: str,
         run_id: str | None,
         ttl_seconds: float | None = None,
+        label: str = "",
+        ephemeral: bool = False,
     ) -> AuthRequest:
         now = time.time()
         request = AuthRequest(
@@ -97,6 +103,8 @@ class AuthRequestManager:
             fields=fields,
             purpose=purpose,
             run_id=run_id,
+            label=label,
+            ephemeral=ephemeral,
             created_at=now,
             expires_at=now + (ttl_seconds if ttl_seconds is not None else self._ttl),
         )

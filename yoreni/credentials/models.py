@@ -140,6 +140,8 @@ class Account:
     updated_at: float = field(default_factory=time.time)
     expires_at: float | None = None
     restorable: bool = False
+    # Session-only accounts are held in memory and never reach the store.
+    ephemeral: bool = False
     secret_fields: tuple[str, ...] = ()
 
     @property
@@ -161,6 +163,7 @@ class Account:
             "updated_at": self.updated_at,
             "expires_at": self.expires_at,
             "restorable": self.restorable,
+            "ephemeral": self.ephemeral,
             "secret_fields": list(self.secret_fields),
         }
 

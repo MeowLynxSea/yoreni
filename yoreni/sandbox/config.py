@@ -37,7 +37,10 @@ class SandboxConfig(Base):
     display_height: int = Field(default=900, ge=480)
     desktop_enabled: bool = True
     browser_enabled: bool = True
-    start_timeout_s: int = Field(default=300, ge=30)
+    # A cold first start rebuilds the VM disk and boots it after the image
+    # transfer; five minutes did not cover that and failed setups that were
+    # about to succeed.
+    start_timeout_s: int = Field(default=900, ge=30)
     provision_timeout_s: int = Field(default=900, ge=60)
     exec_timeout_s: int = Field(default=3600, ge=1)
     exec_max_output_chars: int = Field(default=200_000, ge=1000)

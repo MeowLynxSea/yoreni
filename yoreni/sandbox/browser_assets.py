@@ -1,8 +1,9 @@
 """Host-side preparation of the BrowserSkill CLI and its VM extension.
 
-The VM never downloads anything: the host fetches a pinned ``bsk`` release,
-verifies it against a recorded checksum, and writes the binary into the VM.
-The Chromium extension is shipped with Yoreni as an unpacked build.
+The host fetches the pinned ``bsk`` release and the Brave package, verifies
+both against recorded checksums, and writes them into the VM. The Chromium
+extension ships with Yoreni as an unpacked build. Playwright's Chromium is the
+one thing downloaded inside the VM, and only when Brave could not be installed.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ import asyncio
 import hashlib
 import io
 import os
+import shlex
 import tarfile
 import tempfile
 import urllib.request
@@ -71,6 +73,9 @@ EXTENSION_DIR = ASSETS_DIR / "extension"
 VM_ASSET_ROOT = "/opt/yoreni/browser-skill"
 VM_EXTENSION_DIR = f"{VM_ASSET_ROOT}/extension"
 VM_BRAVE_DEB = f"{VM_ASSET_ROOT}/brave-browser.deb"
+# The desktop image ships no browser of its own, so Playwright's Chromium is the
+# fallback for a VM where Brave is unavailable for this architecture or blocked.
+VM_PLAYWRIGHT_BROWSERS = "/workspace/.yoreni/ms-playwright"
 BSK_HOME = "/var/lib/yoreni/bsk"
 VM_BINARY = "/usr/local/bin/bsk"
 _MAX_ARCHIVE_BYTES = 64 * 1024 * 1024
@@ -230,7 +235,8 @@ async def install(backend: SandboxBackend, *, on_progress: ProgressCallback | No
         await backend.exec("bsk daemon stop", cwd="/", timeout_s=30)
 
     await backend.exec(("mkdir", "-p", VM_ASSET_ROOT), cwd="/", timeout_s=10, user="root")
-    await _install_brave(backend, arch, on_progress)
+    if not await _install_brave(backend, arch, on_progress):
+        await _install_chromium(backend)
 
     marker = f"{VM_ASSET_ROOT}/VERSION"
     installed = await backend.exec(f"cat {marker} 2>/dev/null", cwd="/", timeout_s=10)
@@ -263,7 +269,7 @@ async def _install_brave(
     backend: SandboxBackend,
     arch: str,
     on_progress: ProgressCallback | None = None,
-) -> None:
+) -> bool:
     """Install the presented browser; the bundled Chromium stays as a fallback."""
     installed = await backend.exec(
         ("dpkg-query", "-W", "-f=${Version}", "brave-browser"),
@@ -271,7 +277,7 @@ async def _install_brave(
         timeout_s=20,
     )
     if installed.exit_code == 0 and installed.stdout.strip() == BRAVE_VERSION:
-        return
+        return True
     try:
         package = await asyncio.to_thread(
             lambda: ensure_brave_package(arch, on_progress=on_progress)
@@ -297,8 +303,35 @@ async def _install_brave(
                 (result.stderr or result.stdout).strip()[-400:] or "apt-get failed"
             )
     except Exception as exc:
-        logger.warning(
-            "Brave could not be installed; the VM keeps the bundled Chromium: {}", exc
+        logger.warning("Brave could not be installed, preparing Chromium instead: {}", exc)
+        return False
+    return True
+
+
+_INSTALL_CHROMIUM = r"""set -eu
+export PLAYWRIGHT_BROWSERS_PATH={browsers}
+if ls -d "$PLAYWRIGHT_BROWSERS_PATH"/chromium-*/chrome-linux*/chrome >/dev/null 2>&1; then
+  exit 0
+fi
+python3 -m pip install --break-system-packages --no-cache-dir playwright >/dev/null 2>&1 || \
+  python3 -m pip install --no-cache-dir playwright
+python3 -m playwright install --with-deps chromium
+"""
+
+
+async def _install_chromium(backend: SandboxBackend) -> None:
+    """Install Playwright's Chromium for a VM where Brave is unavailable."""
+    logger.info("Installing the fallback Chromium in the VM")
+    result = await backend.exec(
+        _INSTALL_CHROMIUM.format(browsers=shlex.quote(VM_PLAYWRIGHT_BROWSERS)),
+        cwd="/",
+        timeout_s=900,
+        user="root",
+    )
+    if result.exit_code != 0:
+        raise SandboxUnavailableError(
+            "The fallback browser could not be installed in the VM: "
+            + (result.stderr or result.stdout).strip()[-400:]
         )
 
 

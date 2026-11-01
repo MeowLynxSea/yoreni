@@ -6,8 +6,10 @@ the three pieces Yoreni needs and keeps them inside the VM:
 
 * x11vnc for a raw RFB surface that the gateway can proxy and gate
 * websockify so the WebUI speaks RFB over WebSocket through the gateway
-* Playwright's Chromium build with the BrowserSkill extension loaded, driven
-  by the `bsk` CLI and its daemon
+* the system packages the desktop, the terminal and MCP servers need
+
+The browser itself (a bundled Chromium with the BrowserSkill extension, driven
+by the `bsk` CLI) is installed by `browser_assets`.
 
 Every command runs inside the VM. Nothing here touches the host filesystem.
 """
@@ -21,12 +23,17 @@ from pathlib import Path
 from loguru import logger
 
 from yoreni.sandbox.backend import SandboxBackend
-from yoreni.sandbox.browser_assets import BSK_HOME, VM_EXTENSION_DIR
+from yoreni.sandbox.browser_assets import BSK_HOME, VM_EXTENSION_DIR, VM_PLAYWRIGHT_BROWSERS
 from yoreni.sandbox.config import SandboxConfig
 from yoreni.sandbox.errors import SandboxUnavailableError
 
-PROVISION_MARKER = "/workspace/.yoreni/provisioned-v3"
-_BROWSER_PATH = "/workspace/.yoreni/ms-playwright"
+# Everything the desktop and the agent's tooling need from apt. Adding node here
+# is not incidental: MCP stdio servers run inside the VM and the published ones
+# ship through npx, which the desktop image does not include.
+_DESKTOP_PACKAGES = (
+    "x11vnc novnc websockify xdotool xclip scrot ripgrep python3 python3-pip "
+    "curl ca-certificates nodejs npm"
+)
 # Yoreni's wallpaper lives on the VM root filesystem: the workspace mount would
 # hide a file copied in from the host, and the desktop user needs to read it.
 _WALLPAPER_ASSET = Path(__file__).parent / "assets" / "theme" / "yoreni-wallpaper.jpg"
@@ -38,24 +45,16 @@ set -eu
 mkdir -p /workspace/.yoreni/media /workspace/.yoreni/logs /workspace/downloads
 mkdir -p /workspace/projects
 chmod 0777 /workspace /workspace/.yoreni /workspace/.yoreni/media /workspace/downloads /workspace/projects
-if [ ! -f {marker} ]; then
-  export DEBIAN_FRONTEND=noninteractive
-  if command -v apt-get >/dev/null 2>&1; then
+if command -v apt-get >/dev/null 2>&1; then
+  missing=""
+  for package in {packages}; do
+    dpkg-query -W -f='${{Status}}' "$package" 2>/dev/null | grep -q 'install ok installed' || missing="$missing $package"
+  done
+  if [ -n "$missing" ]; then
+    export DEBIAN_FRONTEND=noninteractive
     apt-get update
-    apt-get install -y --no-install-recommends x11vnc novnc websockify xdotool xclip scrot ripgrep python3 python3-pip curl ca-certificates
+    apt-get install -y --no-install-recommends $missing
   fi
-  export PLAYWRIGHT_BROWSERS_PATH={browser_path}
-  python3 -m pip install --break-system-packages --no-cache-dir playwright >/dev/null 2>&1 || \
-    python3 -m pip install --no-cache-dir playwright
-  python3 -m playwright install --with-deps chromium
-  touch {marker}
-fi
-# MCP stdio servers run inside the VM and the published ones ship through npx,
-# so the runtime needs a Node toolchain the desktop image does not include.
-if ! command -v npx >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
-  export DEBIAN_FRONTEND=noninteractive
-  apt-get update
-  apt-get install -y --no-install-recommends nodejs npm
 fi
 # The session belongs to the image: Yoreni only restyles it. LXQt keeps the
 # theme under the desktop user's home and reapplies the theme's own wallpaper
@@ -237,8 +236,7 @@ class DesktopServices:
     async def provision(self) -> None:
         await self._install_wallpaper()
         script = _PROVISION.format(
-            marker=shlex.quote(PROVISION_MARKER),
-            browser_path=shlex.quote(_BROWSER_PATH),
+            packages=_DESKTOP_PACKAGES,
             wallpaper=shlex.quote(VM_WALLPAPER),
         )
         result = await self._backend.exec(
@@ -304,7 +302,7 @@ class DesktopServices:
 
     async def _start_browser(self) -> None:
         script = _START_BROWSER.format(
-            browser_path=shlex.quote(_BROWSER_PATH),
+            browser_path=shlex.quote(VM_PLAYWRIGHT_BROWSERS),
             profile=shlex.quote(self._config.browser_profile_dir),
             extension=shlex.quote(VM_EXTENSION_DIR),
             bsk_home=shlex.quote(BSK_HOME),

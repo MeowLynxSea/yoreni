@@ -139,7 +139,7 @@ def system_settings_payload(
         "usage": llm_usage_payload(timezone_name=defaults.timezone),
         "advanced": {
             "restrict_to_workspace": config.tools.restrict_to_workspace,
-            "workspace_sandbox": sandbox_status.as_dict(),
+            "workspace_access": sandbox_status.as_dict(),
             **network_safety_payload(config),
             "mcp_server_count": len(config.tools.mcp_servers),
             "exec_enabled": exec_config.enable,

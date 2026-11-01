@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import hashlib
 import posixpath
 import time
 import uuid
@@ -37,6 +38,7 @@ from yoreni.sandbox.models import (
 from yoreni.sandbox.paths import PathRoots, is_within, normalize_vm_path
 from yoreni.sandbox.progress import SandboxProgress
 from yoreni.sandbox.provision import DesktopServices
+from yoreni.utils.helpers import safe_filename
 
 _gateway_instance: "SandboxGateway | None" = None
 # A crashed desktop or browser service is retried in the background; status
@@ -133,6 +135,58 @@ class _Process:
     tasks: list[asyncio.Task[Any]] = field(default_factory=list)
 
 
+class VmProcess:
+    """A VM process whose raw stdio is bridged to the host.
+
+    Unlike a managed :class:`_Process`, nothing is buffered or re-framed:
+    the caller reads the process streams directly, so line-delimited protocols
+    such as MCP survive without truncation or stderr interleaving.
+    """
+
+    def __init__(self, handle: ExecutionHandle, command: str, cwd: str) -> None:
+        self._handle = handle
+        self.command = command
+        self.cwd = cwd
+
+    def stdout(self) -> AsyncIterator[str | bytes] | None:
+        return self._handle.stdout()
+
+    def stderr(self) -> AsyncIterator[str | bytes] | None:
+        return self._handle.stderr()
+
+    async def write(self, text: str) -> None:
+        stdin = self._handle.stdin()
+        if stdin is None:
+            raise SandboxError(f"process {self.command!r} has no stdin")
+        data = text.encode("utf-8")
+        if hasattr(stdin, "send_input"):
+            await cast(Any, stdin).send_input(data)
+            return
+        writer = cast(Any, stdin)
+        writer.write(data)
+        await writer.drain()
+
+    async def close_stdin(self) -> None:
+        stdin = self._handle.stdin()
+        if stdin is None:
+            return
+        with suppress(Exception):
+            if hasattr(stdin, "send_input"):
+                await cast(Any, stdin).close()
+                return
+            writer = cast(Any, stdin)
+            writer.close()
+            await writer.wait_closed()
+
+    async def wait(self) -> int:
+        result = await self._handle.wait()
+        return int(getattr(result, "exit_code", -1))
+
+    async def kill(self) -> None:
+        with suppress(Exception):
+            await self._handle.kill()
+
+
 class SandboxGateway:
     """Own the VM, the workspace policy and the desktop control plane."""
 
@@ -166,6 +220,7 @@ class SandboxGateway:
         self._health_task: asyncio.Task[None] | None = None
         self._closing = False
         self._processes: dict[str, _Process] = {}
+        self._stdio_processes: set["VmProcess"] = set()
         self._viewers: dict[str, str] = {}
         self._desktop_ws_port: int | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
@@ -779,6 +834,34 @@ class SandboxGateway:
         await self.backend.copy_in(host_path, target)
         return target
 
+    async def materialize_media(self, path: str, *, subdir: str = "outbound") -> str | None:
+        """Copy one VM file into the host media directory and return its host path.
+
+        Control-plane features (WebUI delivery, markdown images, reference
+        images) need a host file they can read. Agent-created files only exist
+        in the VM, so this is the one place that pulls them across.
+        """
+        if self._host_media_dir is None:
+            return None
+        try:
+            info = await self.stat(path)
+        except (SandboxError, OSError):
+            return None
+        if info is None or not info.is_file:
+            return None
+        digest = hashlib.sha256(
+            "\0".join((info.path, str(info.size), str(info.mtime_s))).encode("utf-8")
+        ).hexdigest()[:20]
+        name = safe_filename(Path(info.path).name) or "attachment"
+        target = Path(self._host_media_dir) / subdir / f"{digest}-{name}"
+        try:
+            if not target.is_file() or target.stat().st_size != info.size:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                await self.export_file(path, str(target))
+        except (SandboxError, OSError):
+            return None
+        return str(target)
+
     async def export_file(self, vm_path: str, host_path: str) -> None:
         """Export one VM file to a control-plane path (preview/download)."""
         await self.ensure_started()
@@ -899,6 +982,29 @@ class SandboxGateway:
             writer.close()
             await writer.wait_closed()
 
+    async def start_stdio_process(
+        self,
+        command: Sequence[str],
+        *,
+        cwd: str | None = None,
+        env: Mapping[str, str] | None = None,
+    ) -> VmProcess:
+        """Start an argv command in the VM and hand its raw stdio to the caller.
+
+        Connecting is not a tool call, so it does not wait for desktop control:
+        the tool scope around each MCP tool call owns that boundary.
+        """
+        await self.ensure_started()
+        workdir = self.resolve_path(cwd or self.config.workspace)
+        handle = await self.backend.start_exec(command, cwd=workdir, env=env)
+        process = VmProcess(handle, " ".join(map(str, command)), workdir)
+        self._stdio_processes.add(process)
+        return process
+
+    async def close_stdio_process(self, process: VmProcess) -> None:
+        self._stdio_processes.discard(process)
+        await process.kill()
+
     async def kill_process(self, process_id: str, *, reason: str = "cancelled") -> bool:
         proc = self._processes.get(process_id)
         if proc is None:
@@ -936,6 +1042,9 @@ class SandboxGateway:
         for proc in list(self._processes.values()):
             if proc.exit_code is None:
                 await self.kill_process(proc.id, reason=reason)
+        for bridged in list(self._stdio_processes):
+            self._stdio_processes.discard(bridged)
+            await bridged.kill()
 
     def _require_process(self, process_id: str) -> _Process:
         proc = self._processes.get(process_id)

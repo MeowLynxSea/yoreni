@@ -35,7 +35,7 @@ RUNTIME_SNAPSHOT_KEYS = frozenset({
     "max_iterations",
     "context_window_tokens",
     "workspace",
-    "workspace_sandbox",
+    "workspace_access",
     "provider_retry_mode",
     "max_tool_result_chars",
     "tool_names",
@@ -70,7 +70,7 @@ class RuntimeSnapshot:
     web_config: dict[str, object]
     exec_config: dict[str, object]
     scratchpad: dict[str, JsonValue]
-    workspace_sandbox: dict[str, object]
+    workspace_access: dict[str, object]
 
     def as_mapping(self) -> Mapping[str, object]:
         """Return the fixed public names understood by ``MyTool``."""
@@ -81,7 +81,7 @@ class RuntimeSnapshot:
             "max_iterations": self.max_iterations,
             "context_window_tokens": self.context_window_tokens,
             "workspace": self.workspace,
-            "workspace_sandbox": self.workspace_sandbox,
+            "workspace_access": self.workspace_access,
             "provider_retry_mode": self.provider_retry_mode,
             "max_tool_result_chars": self.max_tool_result_chars,
             "tool_names": self.tool_names,
@@ -203,7 +203,7 @@ class AgentRuntimeControl:
         ]
         if self.__target.exec_config.sandbox:
             lines.append(
-                "Shell sandbox configured; extra binds do not grant file-tool access."
+                "Shell runs with extra restrictions; those binds do not grant file-tool access."
             )
         return RuntimeContextBlock(source="workspace_access", content=wrap_runtime_context_lines(lines))
 
@@ -226,7 +226,7 @@ class AgentRuntimeControl:
             web_config=_snapshot_web_config(target.web_config),
             exec_config=_snapshot_exec_config(target.exec_config),
             scratchpad=_snapshot_json_mapping(self.__scratchpad),
-            workspace_sandbox=self._workspace_sandbox().as_dict(),
+            workspace_access=self._workspace_sandbox().as_dict(),
         )
 
     def set_model(self, model: str) -> LLMRuntime:

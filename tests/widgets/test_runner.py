@@ -11,7 +11,7 @@ from yoreni.sandbox.gateway import SandboxGateway, set_sandbox_gateway
 from yoreni.widgets.runner import WidgetRunner
 from yoreni.widgets.types import WidgetDefinition
 
-pytestmark = pytest.mark.usefixtures("widget_vm")
+pytestmark = pytest.mark.usefixtures("vm_workspace")
 
 
 def _definition(

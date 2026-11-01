@@ -1,11 +1,7 @@
 """Registration and exec delegation for ripgrep."""
 
-import asyncio
-import os
 import re
-import shlex
 import shutil
-import sys
 from unittest.mock import AsyncMock
 
 import pytest
@@ -16,26 +12,24 @@ from yoreni.agent.tools.loader import ToolLoader
 from yoreni.agent.tools.registry import ToolRegistry
 from yoreni.agent.tools.rg import RgTool
 from yoreni.agent.tools.search import FindFilesTool, GrepTool
-from yoreni.agent.tools.shell import ExecTool, _PreparedCommand
+from yoreni.agent.tools.shell import ExecTool
 from yoreni.config.schema import ToolsConfig
 
 
-@pytest.mark.parametrize("installed", [True, False])
 @pytest.mark.parametrize("exec_enabled", [True, False])
 @pytest.mark.parametrize("file_enabled", [True, False])
 @pytest.mark.parametrize("scope", ["core", "subagent"])
 @pytest.mark.parametrize("classes", [
     [RgTool, GrepTool, FindFilesTool], [GrepTool, FindFilesTool, RgTool],
 ])
-def test_loader_selects_one_search_backend(tmp_path, monkeypatch, installed, exec_enabled, file_enabled, scope, classes):
-    monkeypatch.setattr("yoreni.agent.tools.rg.shutil.which", lambda *a, **kw: "rg" if installed else None)
+def test_loader_selects_one_search_backend(tmp_path, exec_enabled, file_enabled, scope, classes):
     config = ToolsConfig()
     config.exec.enable = exec_enabled
     config.file.enable = file_enabled
     ctx = ToolContext(config=config, workspace=str(tmp_path))
     registry = ToolRegistry()
     registered = ToolLoader(test_classes=classes).load(ctx, registry, scope=scope)
-    expected = {"rg"} if installed and exec_enabled else {"grep", "find_files"}
+    expected = {"rg"} if exec_enabled else {"grep", "find_files"}
     assert set(registry.tool_names) == (expected if file_enabled else set())
     assert set(registered) == set(registry.tool_names)
 
@@ -73,23 +67,6 @@ def test_loader_preserves_plugin_search_tool(tmp_path, monkeypatch):
     registered = loader.load(ToolContext(config=ToolsConfig(), workspace=str(tmp_path)), registry)
     assert registered == ["rg", "grep"]
     assert set(registry.tool_names) == {"rg", "grep"}
-
-
-def test_detection_uses_exec_path_configuration(tmp_path, monkeypatch):
-    config = ToolsConfig()
-    config.exec.path_prepend = str(tmp_path / "before")
-    config.exec.path_append = str(tmp_path / "after")
-    captured = {}
-
-    def which(command, *, path):
-        captured.update(command=command, path=path)
-        return "rg"
-
-    monkeypatch.setattr("yoreni.agent.tools.rg.shutil.which", which)
-    assert RgTool.enabled(ToolContext(config=config, workspace=str(tmp_path)))
-    assert captured["path"] == os.pathsep.join([
-        config.exec.path_prepend, os.environ.get("PATH", ""), config.exec.path_append,
-    ])
 
 
 async def test_rg_forwards_native_arguments_and_exec_options(monkeypatch):

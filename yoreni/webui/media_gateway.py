@@ -11,6 +11,7 @@ from websockets.http11 import Request as WsRequest
 from websockets.http11 import Response
 
 from yoreni.config.paths import get_media_dir
+from yoreni.sandbox.errors import SandboxUnavailableError
 from yoreni.webui.markdown_media import rewrite_local_markdown_images
 from yoreni.webui.media_api import (
     SignedMediaAttachment,
@@ -63,17 +64,43 @@ class WebUIMediaGateway:
             logger=self.logger,
         )
 
-    def rewrite_local_markdown_images(
+    async def sign_or_stage_any(self, path: Path) -> SignedMediaAttachment | None:
+        """Sign one attachment, exporting it from the agent's machine when needed."""
+        if path.is_file():
+            return self.sign_or_stage_media_path(path)
+        try:
+            from yoreni.sandbox.gateway import get_sandbox_gateway
+
+            gateway = get_sandbox_gateway()
+        except SandboxUnavailableError:
+            return None
+        exported = await gateway.materialize_media(str(path))
+        if exported is None:
+            return None
+        return self.sign_or_stage_media_path(Path(exported))
+
+    async def rewrite_local_markdown_images(
         self,
         text: str,
         *,
         workspace_path: Path | None = None,
     ) -> str:
-        return rewrite_local_markdown_images(
+        return await rewrite_local_markdown_images(
             text,
             workspace_path=workspace_path or self.workspace_path,
-            sign_path=self.sign_or_stage_media_path,
+            sign_path=self.sign_or_stage_any,
+            machine_workspace=self.machine_workspace,
         )
+
+    @property
+    def machine_workspace(self) -> Path | None:
+        """Return the agent machine's workspace root, when one is running."""
+        try:
+            from yoreni.sandbox.gateway import get_sandbox_gateway
+
+            return Path(get_sandbox_gateway().config.workspace)
+        except SandboxUnavailableError:
+            return None
 
     def augment_transcript_media(self, paths: list[str]) -> list[dict[str, Any]]:
         return signed_media_attachments(

@@ -134,12 +134,44 @@ class ImageGenerationTool(Tool):
         }
         return cls(**kwargs)
 
-    def _resolve_reference_image(self, value: str) -> str:
+    async def _resolve_reference_image(self, value: str) -> str:
+        path = await self._reference_source(value)
+        if path is None:
+            raise ImageGenerationError(f"reference image not found: {value}")
+        raw = path.read_bytes()
+        if detect_image_mime(raw) is None:
+            raise ImageGenerationError(f"unsupported reference image: {value}")
+        return str(path)
+
+    async def _reference_source(self, value: str) -> Path | None:
+        """Return a host file holding the reference image."""
+        from yoreni.sandbox.errors import SandboxPathError, SandboxUnavailableError
+        from yoreni.sandbox.gateway import get_sandbox_gateway
+
         access = current_tool_workspace(self.workspace, restrict_to_workspace=True)
         workspace = access.project_path or self.workspace
+        candidate = Path(value).expanduser()
+        if not candidate.is_absolute():
+            candidate = workspace / candidate
+
+        try:
+            gateway = get_sandbox_gateway()
+        except SandboxUnavailableError:
+            gateway = None
+        if gateway is not None:
+            # The reference lives on the agent's machine, not next to the host.
+            try:
+                gateway.resolve_path(str(candidate))
+            except SandboxPathError as exc:
+                raise ImageGenerationError(
+                    "reference_images must be inside the workspace or the media directory"
+                ) from exc
+            exported = await gateway.materialize_media(str(candidate), subdir="reference")
+            return Path(exported) if exported else None
+
         try:
             resolved = resolve_allowed_path(
-                value,
+                str(candidate),
                 workspace=workspace,
                 allowed_root=access.allowed_root,
                 extra_allowed_roots=[get_media_dir()] if access.allowed_root is not None else None,
@@ -149,19 +181,14 @@ class ImageGenerationTool(Tool):
             raise ImageGenerationError(
                 "reference_images must be inside the workspace or yoreni media directory"
             ) from exc
-        except OSError as exc:
-            raise ImageGenerationError(f"reference image not found: {value}") from exc
-        if not resolved.is_file():
-            raise ImageGenerationError(f"reference image is not a file: {value}")
-        raw = resolved.read_bytes()
-        if detect_image_mime(raw) is None:
-            raise ImageGenerationError(f"unsupported reference image: {value}")
-        return str(resolved)
+        except OSError:
+            return None
+        return resolved if resolved.is_file() else None
 
-    def _resolve_reference_images(self, values: list[str] | None) -> list[str]:
+    async def _resolve_reference_images(self, values: list[str] | None) -> list[str]:
         if not values:
             return []
-        return [self._resolve_reference_image(value) for value in values if value]
+        return [await self._resolve_reference_image(value) for value in values if value]
 
     async def execute(  # pyright: ignore[reportIncompatibleMethodOverride]
         self,
@@ -184,7 +211,7 @@ class ImageGenerationTool(Tool):
             )
 
         try:
-            refs = self._resolve_reference_images(reference_images)
+            refs = await self._resolve_reference_images(reference_images)
             artifacts: list[dict[str, Any]] = []
             while len(artifacts) < requested:
                 response = await client.generate(

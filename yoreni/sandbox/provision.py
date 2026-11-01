@@ -50,6 +50,13 @@ if [ ! -f {marker} ]; then
   python3 -m playwright install --with-deps chromium
   touch {marker}
 fi
+# MCP stdio servers run inside the VM and the published ones ship through npx,
+# so the runtime needs a Node toolchain the desktop image does not include.
+if ! command -v npx >/dev/null 2>&1 && command -v apt-get >/dev/null 2>&1; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update
+  apt-get install -y --no-install-recommends nodejs npm
+fi
 # The session belongs to the image: Yoreni only restyles it. LXQt keeps the
 # theme under the desktop user's home and reapplies the theme's own wallpaper
 # file on every session start, so the way to change it is to replace that file

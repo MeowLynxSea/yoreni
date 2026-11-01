@@ -3,6 +3,7 @@ import os
 import pytest
 
 from yoreni.agent.state import AgentInput, AgentStore
+from yoreni.agent.tools import chat_delivery
 from yoreni.agent.tools.chat_delivery import capture_message_deliveries
 from yoreni.agent.tools.context import RequestContext, request_context
 from yoreni.agent.tools.rich_content_message import RichContentMessageTool
@@ -40,6 +41,29 @@ async def test_rich_content_delivers_a_card_event() -> None:
     assert sent[0].event.rich is True
     assert sent[0].content == ""
     assert sent[0].metadata == {"_record_channel_delivery": True}
+
+
+@pytest.mark.asyncio
+async def test_rich_content_exports_vm_files_before_delivery(tmp_path, monkeypatch) -> None:
+    sent, deliver = _collector()
+    tool = RichContentMessageTool(send_callback=deliver)
+    vm_path = "/workspace/screen.png"
+    image = b"png-bytes"
+
+    staged = tmp_path / "screen.png"
+    staged.write_bytes(image)
+
+    class _Gateway:
+        async def materialize_media(self, path: str) -> str:
+            assert path == vm_path
+            return str(staged)
+
+    monkeypatch.setattr(chat_delivery, "_delivery_gateway", lambda: _Gateway())
+
+    result = await tool.execute(media=[vm_path], channel="telegram", chat_id="1")
+
+    assert result.startswith("Sent 1 item(s) to telegram:1")
+    assert sent[0].media == [str(staged)]
 
 
 @pytest.mark.asyncio

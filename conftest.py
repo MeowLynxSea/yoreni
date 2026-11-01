@@ -42,6 +42,7 @@ def _local_gateway(workspace: str, media_dir: str):
             browser_enabled=False,
         ),
         backend=LocalBackend(),
+        host_media_dir=media_dir,
     )
     gateway._started = True
     return gateway
@@ -65,11 +66,11 @@ def _sandbox_test_gateway() -> Iterator[None]:
 
 
 @pytest.fixture
-def widget_vm(tmp_path: Path) -> Iterator[None]:
-    """Give widget commands a writable VM workspace for one test.
+def vm_workspace(tmp_path: Path) -> Iterator[None]:
+    """Bind the execution plane to a VM whose workspace is the test directory.
 
-    Widget scripts run inside the execution workspace, so the default test
-    gateway is replaced by one whose workspace is the test's own directory.
+    The default test gateway covers the whole host; commands and file
+    references that must stay inside one workspace need this narrower one.
     """
     from yoreni.sandbox.gateway import get_sandbox_gateway, set_sandbox_gateway
 

@@ -914,7 +914,7 @@ export interface SettingsPayload {
   };
   advanced: {
     restrict_to_workspace: boolean;
-    workspace_sandbox?: {
+    workspace_access?: {
       restrict_to_workspace: boolean;
       workspace_root: string;
       level: "off" | "application" | "system" | string;

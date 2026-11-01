@@ -54,7 +54,7 @@ class ComputerTool(Tool):
     @property
     def description(self) -> str:
         return (
-            "Control the Yoreni VM desktop directly: screenshot, mouse, keyboard, "
+            "Control this machine's desktop directly: screenshot, mouse, keyboard, "
             "drag, scroll, and clipboard. Use the browser-skill for web pages and "
             "this tool when a GUI application needs real input."
         )
@@ -81,7 +81,7 @@ class ComputerTool(Tool):
             if action == "screenshot":
                 raw = await gateway.desktop_screenshot()
                 return build_image_content_blocks(
-                    raw, "image/png", "desktop://screenshot", "(VM desktop screenshot)",
+                    raw, "image/png", "desktop://screenshot", "(desktop screenshot)",
                 )
             if action in {"move", "click", "drag", "scroll"}:
                 mapped = {
@@ -100,7 +100,7 @@ class ComputerTool(Tool):
                 return f"Desktop {action} completed"
             if action == "type":
                 await gateway.desktop_type(text or "")
-                return f"Typed {len(text or '')} characters on the VM desktop"
+                return f"Typed {len(text or '')} characters on the desktop"
             if action == "key":
                 if not keys:
                     return ToolResult.error("Error: keys is required")

@@ -14,6 +14,7 @@ from yoreni.agent.tools.base import ToolResult, tool_parameters
 from yoreni.agent.tools.chat_delivery import (
     DeliveryTarget,
     OutboundChatTool,
+    localize_media_paths,
     preview_links,
 )
 from yoreni.agent.tools.context import ToolContext
@@ -101,7 +102,7 @@ class RichContentMessageTool(OutboundChatTool):
     def description(self) -> str:
         return (
             "Deliver files or links to the user as one card: images and video show a "
-            "preview, HTML pages open in a sandboxed viewer, links show the page's "
+            "preview, HTML pages open in an isolated viewer, links show the page's "
             "title and description, and anything else becomes a download card. The "
             "card is not a chat bubble, so send the sentence that explains them with "
             "send_message."
@@ -145,6 +146,7 @@ class RichContentMessageTool(OutboundChatTool):
             items = self._resolve_media(items)
         except (OSError, PermissionError, ValueError) as e:
             return ToolResult.error(f"Error: media path is not allowed: {str(e)}")
+        items = await localize_media_paths(items)
 
         resolved = await self._resolve_target(channel, chat_id, message_id)
         if isinstance(resolved, str):

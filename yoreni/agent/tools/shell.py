@@ -327,7 +327,7 @@ class ExecTool(Tool):
                 result += "\nInitial wait ended; session remains active."
             return ToolResult.error(result) if poll.failed else result
         except Exception as exc:
-            return ToolResult.error(f"Error executing command in the sandbox VM: {exc}")
+            return ToolResult.error(f"Error executing command: {exc}")
 
     def _resolve_timeout(self, timeout: object) -> int | None:
         """Resolve a hard budget without changing the caller's requested duration."""

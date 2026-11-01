@@ -74,7 +74,7 @@ class MyTool(Tool):
         "exec_config",  # inspect allowed (e.g. check sandbox), modify blocked
         "web_config",  # inspect allowed (e.g. check enable), modify blocked
         "model_presets",  # config-derived catalog; changes require config reload
-        "workspace_sandbox",  # read-only view of workspace enforcement level
+        "workspace_access",  # read-only view of workspace enforcement level
         "request",  # current message routing metadata
     })
 
@@ -130,8 +130,8 @@ class MyTool(Tool):
             "set changes runtime parameters or stores scratchpad keys across turns, not restarts. "
             "Use model_preset for Agent model selection; direct model and "
             "context_window_tokens writes are disabled during active Runs. "
-            "Read-only access info: workspace_sandbox shows the current project and restriction; "
-            "exec_config shows shell sandbox settings and binds. Shell binds do not grant "
+            "Read-only access info: workspace_access shows the current project and restriction; "
+            "exec_config shows shell restrictions and binds. Shell binds do not grant "
             "file-tool access; OS permissions still apply. workspace is a legacy agent-directory "
             "display, not the current project or an access grant. web_config is also read-only."
         )
@@ -181,7 +181,7 @@ class MyTool(Tool):
         for part in parts:
             if part in self._DENIED_ATTRS or part.startswith("__"):
                 return None, f"'{part}' is not accessible"
-            if part in self.BLOCKED and path != "workspace_sandbox.restrict_to_workspace":
+            if part in self.BLOCKED and path != "workspace_access.restrict_to_workspace":
                 return None, f"'{part}' is not accessible"
             if part.lower() in self._SENSITIVE_NAMES:
                 return None, f"'{part}' is not accessible"
@@ -213,7 +213,7 @@ class MyTool(Tool):
         # Mapping — small: show content; large: show keys for dot-path navigation
         if isinstance(val, Mapping):
             value_mapping = cast(Mapping[object, object], val)
-            if key == "workspace_sandbox":
+            if key == "workspace_access":
                 return f"{key}: {dict(value_mapping)!r}"
             ks = list(value_mapping.keys())
             if not ks:
@@ -321,7 +321,7 @@ class MyTool(Tool):
         ))
         for k in (
             "workspace",
-            "workspace_sandbox",
+            "workspace_access",
             "provider_retry_mode",
             "max_tool_result_chars",
             "web_config",

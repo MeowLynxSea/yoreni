@@ -24,7 +24,7 @@ class _Transport:
 
 
 class _Media:
-    def rewrite_local_markdown_images(self, text: str) -> str:
+    async def rewrite_local_markdown_images(self, text: str) -> str:
         return text
 
     def sign_or_stage_media_path(self, path: Path) -> dict[str, str] | None:

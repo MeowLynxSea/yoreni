@@ -58,7 +58,7 @@ description: Inspect or troubleshoot the agent's runtime state, adjust runtime s
 
 - `model_preset` is saved for the current session; other modifications are in-memory only
 - Scratchpad values survive across turns until the agent runtime restarts and are shared by its sessions; do not treat them as private per-session storage.
-- Use `my(action="check", key="workspace_sandbox")` for the current project and file restriction. `workspace` is only a legacy agent-directory display.
+- Use `my(action="check", key="workspace_access")` for the current project and file restriction. `workspace` is only a legacy agent-directory display.
 - Direct `model` and `context_window_tokens` writes are rejected during active sessions because they would change the shared instance default. Use a configured `model_preset` instead.
 - Protected params have type/range validation: `max_iterations` (1–100), `context_window_tokens` (4096–1M), `model` (non-empty str)
 - If `tools.my.allow_set` is false, check only

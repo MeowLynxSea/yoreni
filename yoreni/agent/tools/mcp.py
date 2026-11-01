@@ -5,9 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import os
 import re
-import shutil
 import traceback
 import urllib.parse
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Mapping
@@ -17,6 +15,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar, cast
 import httpx
 from loguru import logger
 
+from yoreni.agent.tools import mcp_vm_stdio
 from yoreni.agent.tools.base import Tool, ToolResult
 from yoreni.agent.tools.context import tool_log_content_allowed
 from yoreni.agent.tools.registry import ToolRegistry
@@ -37,6 +36,7 @@ if TYPE_CHECKING:
 
     from yoreni.agent.tools.mcp_oauth import MCPOAuthHandlers
     from yoreni.config.schema import Config, MCPServerConfig
+    from yoreni.sandbox.gateway import SandboxGateway
 
 # Transient connection errors that warrant a single retry.
 # These typically happen when an MCP server restarts or a network
@@ -51,8 +51,6 @@ _TRANSIENT_EXC_NAMES: frozenset[str] = frozenset((
     "ConnectionAbortedError",
     "ConnectionError",
 ))
-
-_WINDOWS_SHELL_LAUNCHERS: frozenset[str] = frozenset(("npx", "npm", "pnpm", "yarn", "bunx"))
 
 # Mirror the MCP SDK's httpx defaults (MCP_DEFAULT_TIMEOUT / MCP_DEFAULT_SSE_READ_TIMEOUT).
 _HTTP_TIMEOUT = 30.0
@@ -333,42 +331,6 @@ async def _validate_mcp_request_url(request: httpx.Request) -> None:
             f"Blocked unsafe MCP URL {_redact_url(str(request.url))} ({error})",
             request=request,
         )
-
-
-def _windows_command_basename(command: str) -> str:
-    """Return the lowercase basename for a Windows command or path."""
-    return command.replace("\\", "/").rsplit("/", maxsplit=1)[-1].lower()
-
-
-def _normalize_windows_stdio_command(
-    command: str,
-    args: list[str] | None,
-    env: dict[str, str] | None,
-) -> tuple[str, list[str], dict[str, str] | None]:
-    """Wrap Windows shell launchers so MCP stdio servers start reliably."""
-    normalized_args = list(args or [])
-    if os.name != "nt":
-        return command, normalized_args, env
-
-    basename = _windows_command_basename(command)
-    if basename in {"cmd", "cmd.exe", "powershell", "powershell.exe", "pwsh", "pwsh.exe"}:
-        return command, normalized_args, env
-
-    if basename.endswith((".exe", ".com")):
-        return command, normalized_args, env
-
-    resolved = shutil.which(command, path=(env or {}).get("PATH")) or command
-    resolved_basename = _windows_command_basename(resolved)
-    should_wrap = (
-        basename in _WINDOWS_SHELL_LAUNCHERS
-        or basename.endswith((".cmd", ".bat"))
-        or resolved_basename.endswith((".cmd", ".bat"))
-    )
-    if not should_wrap:
-        return command, normalized_args, env
-
-    comspec = (env or {}).get("COMSPEC") or os.environ.get("COMSPEC") or "cmd.exe"
-    return comspec, ["/d", "/c", command, *normalized_args], env
 
 
 def _extract_nullable_branch(options: Any) -> tuple[dict[str, Any], bool] | None:
@@ -943,13 +905,23 @@ class MCPPromptWrapper(_MCPWrapperBase):
         return "\n".join(parts) or "(no output)"
 
 
+def _stdio_gateway() -> "SandboxGateway | None":
+    """Return the gateway that owns MCP server processes, if the VM is up."""
+    from yoreni.sandbox.errors import SandboxUnavailableError
+    from yoreni.sandbox.gateway import get_sandbox_gateway
+
+    try:
+        return get_sandbox_gateway()
+    except SandboxUnavailableError:
+        return None
+
+
 async def connect_mcp_servers(
     mcp_servers: dict[str, MCPServerConfig],
     registry: ToolRegistry,
     *,
     oauth_handlers: Mapping[str, MCPOAuthHandlers] | None = None,
     network: NetworkConfig | None = None,
-    allow_stdio: bool = True,
 ) -> dict[str, MCPConnection]:
     """Connect to configured MCP servers and register their tools, resources, prompts.
 
@@ -957,9 +929,8 @@ async def connect_mcp_servers(
     entered the MCP SDK contexts alive so reconnect and shutdown can close
     AnyIO cancel scopes from their owning task.
     """
-    from mcp import ClientSession, StdioServerParameters, types
+    from mcp import ClientSession, types
     from mcp.client.sse import sse_client
-    from mcp.client.stdio import stdio_client
     from mcp.client.streamable_http import streamable_http_client
 
     # Stack-exit failures are logged outside open_single_server; retain the exact
@@ -1021,26 +992,23 @@ async def connect_mcp_servers(
                     return False
 
             if transport_type == "stdio":
-                if not allow_stdio:
+                gateway = _stdio_gateway()
+                if gateway is None:
                     logger.warning(
-                        "MCP server '{}': stdio servers run local processes and are "
-                        "disabled while the sandbox VM owns execution. Use an SSE or "
-                        "Streamable HTTP server instead.",
+                        "MCP server '{}': stdio servers run inside the Yoreni VM, "
+                        "which is not available; skipping",
                         name,
                     )
                     return False
-                command, args, env = _normalize_windows_stdio_command(
-                    cfg.command,
-                    cfg.args,
-                    cfg.env or None,
+                read, write = await server_stack.enter_async_context(
+                    mcp_vm_stdio.vm_stdio_client(
+                        gateway,
+                        command=cfg.command,
+                        args=cfg.args,
+                        env=cfg.env or None,
+                        cwd=cfg.cwd or None,
+                    )
                 )
-                params = StdioServerParameters(
-                    command=command,
-                    args=args,
-                    env=env,
-                    cwd=cfg.cwd or None,
-                )
-                read, write = await server_stack.enter_async_context(stdio_client(params))
             elif transport_type == "sse":
                 if not await _probe_http_url(cfg.url, proxy=proxy):
                     logger.warning("MCP server '{}': {} unreachable, skipping", name, _redact_url(cfg.url))
@@ -1355,10 +1323,8 @@ class MCPProvider:
         *,
         server_loader: MCPServerLoader | None = None,
         network: NetworkConfig | None = None,
-        allow_stdio: bool = True,
     ) -> None:
         self._servers = dict(servers)
-        self._allow_stdio = allow_stdio
         self._network = (network or NetworkConfig()).model_copy(deep=True)
         self._registry = registry
         self._server_loader = server_loader or _load_current_servers
@@ -1380,7 +1346,6 @@ class MCPProvider:
             registry,
             server_loader=server_loader,
             network=config.network,
-            allow_stdio=not config.tools.sandbox.enabled,
         )
 
     @property
@@ -1456,11 +1421,6 @@ class MCPProvider:
                     missing_servers,
                     self._registry,
                     network=self._network,
-                ) if self._allow_stdio else await connect_mcp_servers(
-                    missing_servers,
-                    self._registry,
-                    network=self._network,
-                    allow_stdio=False,
                 )
                 if self._closing:
                     await _close_mcp_connections(connected)
@@ -1557,11 +1517,6 @@ class MCPProvider:
                         to_connect,
                         self._registry,
                         network=self._network,
-                    ) if self._allow_stdio else await connect_mcp_servers(
-                        to_connect,
-                        self._registry,
-                        network=self._network,
-                        allow_stdio=False,
                     )
                 except BaseException:
                     self._set_runtime_status(to_connect, "failed")
@@ -1678,11 +1633,6 @@ class MCPProvider:
                 {server_name: cfg},
                 self._registry,
                 network=self._network,
-            ) if self._allow_stdio else await connect_mcp_servers(
-                {server_name: cfg},
-                self._registry,
-                network=self._network,
-                allow_stdio=False,
             )
             if self._closing:
                 await _close_mcp_connections(connected)

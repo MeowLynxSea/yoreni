@@ -87,6 +87,7 @@ class FakeImageClient:
 async def test_generate_image_tool_stores_artifact_and_source_images(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    vm_workspace: None,
 ) -> None:
     set_config_path(tmp_path / "config.json")
     FakeImageClient.instances = []
@@ -114,7 +115,9 @@ async def test_generate_image_tool_stores_artifact_and_source_images(
     artifacts = payload["artifacts"]
     assert len(artifacts) == 2
     assert Path(artifacts[0]["path"]).is_file()
-    assert artifacts[0]["source_images"] == [str(ref.resolve())]
+    (source_image,) = artifacts[0]["source_images"]
+    assert Path(source_image).name.endswith("ref.png")
+    assert Path(source_image).read_bytes() == PNG_BYTES
     assert artifacts[0]["model"] == "openai/gpt-5.4-image-2"
 
     fake = FakeImageClient.instances[0]
@@ -263,7 +266,9 @@ async def test_generate_image_tool_reports_missing_zhipu_key(tmp_path: Path) -> 
 
 
 @pytest.mark.asyncio
-async def test_generate_image_tool_rejects_reference_outside_workspace(tmp_path: Path) -> None:
+async def test_generate_image_tool_rejects_reference_outside_workspace(
+    tmp_path: Path, vm_workspace: None,
+) -> None:
     set_config_path(tmp_path / "config.json")
     outside = tmp_path.parent / "outside.png"
     outside.write_bytes(PNG_BYTES)

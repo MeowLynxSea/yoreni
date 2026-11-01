@@ -16,7 +16,7 @@ from yoreni.widgets.types import (
     WidgetSpec,
 )
 
-pytestmark = pytest.mark.usefixtures("widget_vm")
+pytestmark = pytest.mark.usefixtures("vm_workspace")
 
 _COUNTER = """\
 import json

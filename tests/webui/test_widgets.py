@@ -21,7 +21,7 @@ from yoreni.widgets.service import WidgetService
 from yoreni.widgets.store import WidgetStore
 from yoreni.widgets.types import MAX_WIDGETS, WidgetChange, WidgetSpec
 
-pytestmark = pytest.mark.usefixtures("widget_vm")
+pytestmark = pytest.mark.usefixtures("vm_workspace")
 
 
 def handler_for(service: WidgetService | None = None) -> GatewayHTTPHandler:

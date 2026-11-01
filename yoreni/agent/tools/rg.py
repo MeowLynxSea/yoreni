@@ -4,8 +4,6 @@
 
 from __future__ import annotations
 
-import os
-import shutil
 from typing import Any
 
 from yoreni.agent.tools.base import ToolResult
@@ -16,13 +14,10 @@ from yoreni.agent.tools.shell import ExecTool
 class RgTool(ExecTool):
     @classmethod
     def enabled(cls, ctx: ToolContext) -> bool:
-        if not ctx.config.file.enable or not super().enabled(ctx):
-            return False
-        cfg = ctx.config.exec
-        path = os.pathsep.join(part for part in (
-            cfg.path_prepend, os.environ.get("PATH", ""), cfg.path_append,
-        ) if part)
-        return shutil.which("rg", path=path) is not None
+        # ripgrep is provisioned on the agent's machine, so availability is the
+        # machine's business; probing the host here would answer for the wrong
+        # environment.
+        return ctx.config.file.enable and super().enabled(ctx)
 
     @property
     def name(self) -> str:

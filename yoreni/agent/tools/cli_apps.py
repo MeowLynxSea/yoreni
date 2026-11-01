@@ -153,7 +153,7 @@ class CliAppsTool(Tool):
             )
             if available.exit_code != 0:
                 return ToolResult.error(
-                    f"Error: {entry} is not installed inside the Yoreni VM"
+                    f"Error: {entry} is not installed on this machine"
                 )
             effective_timeout = max(1, min(timeout or self.runtime.run_timeout, 600))
             result = await gateway.exec(

@@ -12,7 +12,7 @@ from yoreni.widgets.service import WidgetService
 from yoreni.widgets.store import WidgetStore
 from yoreni.widgets.types import WidgetNotFoundError
 
-pytestmark = pytest.mark.usefixtures("widget_vm")
+pytestmark = pytest.mark.usefixtures("vm_workspace")
 
 _STAT_COMMAND = [
     sys.executable,

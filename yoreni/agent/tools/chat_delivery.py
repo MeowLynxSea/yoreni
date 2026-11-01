@@ -8,6 +8,7 @@ from collections.abc import Awaitable, Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -19,6 +20,7 @@ from yoreni.agent.tools.context import current_memory_scope, current_request_con
 from yoreni.bus.delivery import DeliveryRequest
 from yoreni.bus.events import OutboundMessage
 from yoreni.bus.outbound_events import AgentMessageEvent
+from yoreni.sandbox.errors import SandboxUnavailableError
 from yoreni.utils.link_preview import LinkPreview, fetch_link_preview, is_http_url
 
 if TYPE_CHECKING:
@@ -51,6 +53,42 @@ def capture_message_deliveries() -> Generator[SentMessages, None, None]:
         yield sends
     finally:
         _CURRENT_MESSAGE_SENDS.reset(token)
+
+
+def _delivery_gateway() -> Any | None:
+    """Return the gateway that owns the VM workspace, if one is running."""
+    from yoreni.sandbox.gateway import get_sandbox_gateway
+
+    try:
+        return get_sandbox_gateway()
+    except SandboxUnavailableError:
+        return None
+
+
+async def _localize_media_path(item: str) -> str:
+    """Return a host-readable path, exporting the file when it lives elsewhere."""
+    if is_http_url(item):
+        return item
+    if Path(item).expanduser().is_file():
+        return item
+    gateway = _delivery_gateway()
+    if gateway is None:
+        return item
+    exported = await gateway.materialize_media(item)
+    if exported is None:
+        logger.debug("Could not export {} for delivery", item)
+        return item
+    return exported
+
+
+async def localize_media_paths(items: list[str]) -> list[str]:
+    """Make every local attachment readable by the host that delivers it.
+
+    Agent-created files live in the VM workspace, which the host cannot open.
+    Delivery stays host-side, so such a file is exported into the media
+    directory first; paths that already resolve on the host pass through.
+    """
+    return [await _localize_media_path(item) for item in items]
 
 
 async def preview_links(items: list[str]) -> tuple[LinkPreview, ...]:

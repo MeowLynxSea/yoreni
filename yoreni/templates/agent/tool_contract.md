@@ -12,7 +12,7 @@
 - `react` puts one emoji on a message. Start every turn that way, then answer. Pass `NONE` when no emoji fits the message.
 - Reply with `reply_to` when you answer a specific message, and add `quote` when only one part of that message matters.
 - `send_message` with nothing but a link delivers a link card: the server reads the page title and description, so the reader gets the page, not a bare URL.
-- `rich_content_message` delivers files or links as one card: images and video preview, HTML opens in a sandboxed viewer, a link shows the page's title and description, anything else becomes a download. The card stands on its own, so say what it is with `send_message`.
+- `rich_content_message` delivers files or links as one card: images and video preview, HTML opens in an isolated viewer, a link shows the page's title and description, anything else becomes a download. The card stands on its own, so say what it is with `send_message`.
 
 ## Scheduling
 

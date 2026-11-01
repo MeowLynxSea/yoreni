@@ -137,7 +137,7 @@ class WebUIOutboundDelivery:
             await self._send(user_payload, msg.metadata)
             return
         if isinstance(event, AgentMessageEvent):
-            await self._send(self._message_payload(event, msg), msg.metadata)
+            await self._send(await self._message_payload(event, msg), msg.metadata)
             return
         if isinstance(event, ReactionEvent):
             await self._send({
@@ -153,7 +153,8 @@ class WebUIOutboundDelivery:
             await self._send(notification.payload, msg.metadata)
             return
         payload: dict[str, Any] = {
-            "event": "message", "text": self._media.rewrite_local_markdown_images(msg.content),
+            "event": "message",
+            "text": await self._media.rewrite_local_markdown_images(msg.content),
             "chat_id": PERSONAL_CHAT_ID,
         }
         if msg.media:
@@ -169,12 +170,14 @@ class WebUIOutboundDelivery:
             payload["agent_ui"] = msg.metadata[OUTBOUND_META_AGENT_UI]
         await self._send(payload, msg.metadata)
 
-    def _message_payload(self, event: AgentMessageEvent, msg: OutboundMessage) -> dict[str, Any]:
+    async def _message_payload(
+        self, event: AgentMessageEvent, msg: OutboundMessage
+    ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "event": "message",
             "chat_id": PERSONAL_CHAT_ID,
             "id": event.message_id,
-            "text": self._media.rewrite_local_markdown_images(
+            "text": await self._media.rewrite_local_markdown_images(
                 message_text(event.content, event.links),
             ),
         }

@@ -48,12 +48,15 @@ chmod 0777 /workspace /workspace/.yoreni /workspace/.yoreni/media /workspace/dow
 if command -v apt-get >/dev/null 2>&1; then
   missing=""
   for package in {packages}; do
-    dpkg-query -W -f='${{Status}}' "$package" 2>/dev/null | grep -q 'install ok installed' || missing="$missing $package"
+    dpkg-query -W -f='${{Status}}' "$package" 2>/dev/null | grep -q 'install ok installed' || missing=1
   done
   if [ -n "$missing" ]; then
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
-    apt-get install -y --no-install-recommends $missing
+    # The whole list, not only the missing packages: asking for npm without
+    # nodejs lets apt resolve a dependency it then refuses to install, and
+    # the transaction dies. apt leaves what is already current alone.
+    apt-get install -y --no-install-recommends {packages}
   fi
 fi
 # The session belongs to the image: Yoreni only restyles it. LXQt keeps the
@@ -253,7 +256,7 @@ class DesktopServices:
         if result.exit_code != 0:
             raise SandboxUnavailableError(
                 "VM provisioning failed. The desktop image needs network access to "
-                f"install x11vnc, noVNC and Chromium: {result.stderr.strip()[-800:]}"
+                f"install its system packages: {result.stderr.strip()[-800:]}"
             )
 
     async def _install_wallpaper(self) -> None:

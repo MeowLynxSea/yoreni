@@ -132,11 +132,10 @@ class CredentialManager:
         store: CredentialStore | None = None,
         vault: SecretVault | None = None,
         notify_auth: Callable[[AuthRequest], None] | None = None,
-        auth_ttl_seconds: float = 600,
     ) -> None:
         self.vault = vault or get_vault()
         self.store = store or CredentialStore()
-        self.auth = AuthRequestManager(ttl_seconds=auth_ttl_seconds, notify=notify_auth)
+        self.auth = AuthRequestManager(notify=notify_auth)
         self._connectors: dict[str, ConnectorSpec] = {
             spec.id: spec for spec in builtin_connectors()
         }
@@ -209,11 +208,17 @@ class CredentialManager:
 
     # -- accounts ---------------------------------------------------------
 
-    def accounts(self) -> list[dict[str, Any]]:
+    def accounts(self, *, include_ephemeral: bool = False) -> list[dict[str, Any]]:
+        """List accounts. Session-only ones are omitted unless asked for.
+
+        The settings surface lists what survives a restart; the agent asks for
+        the full set so it can keep using a credential it obtained this session.
+        """
         self.load()
         self._expire_ephemeral()
         public = [stored.account.to_public_dict() for stored in self.store.list_accounts()]
-        public.extend(account.to_public_dict() for account in self._ephemeral.values())
+        if include_ephemeral:
+            public.extend(account.to_public_dict() for account in self._ephemeral.values())
         return public
 
     def account(self, account_id: str) -> Account | None:
@@ -345,7 +350,6 @@ class CredentialManager:
         method: AuthMethod,
         purpose: str,
         run_id: str | None,
-        ttl_seconds: float | None = None,
         label: str = "",
         ephemeral: bool = False,
     ) -> AuthRequest:
@@ -355,14 +359,20 @@ class CredentialManager:
             raise ValueError(f"{connector_id} does not support {method.value} authentication")
         if ephemeral and method is AuthMethod.OAUTH2:
             raise ValueError("OAuth accounts are always saved; ephemeral is not supported")
+        fields = spec.fields_for(method)
+        # The card states what happens to the values, so it must not depend on
+        # the agent's wording: a connector whose fields are all one-time codes
+        # never reaches the store, whatever the request asked for.
+        ephemeral = ephemeral or (bool(fields) and all(
+            field.kind is CredentialKind.ONE_TIME for field in fields
+        ))
         request = self.auth.create(
             new_auth_request_id(),
             connector_id=connector_id,
             method=method,
-            fields=tuple(field.name for field in spec.fields_for(method)),
+            fields=tuple(field.name for field in fields),
             purpose=purpose,
             run_id=run_id,
-            ttl_seconds=ttl_seconds,
             label=label.strip()[:80],
             ephemeral=ephemeral,
         )
@@ -384,9 +394,6 @@ class CredentialManager:
         with lock:
             if request.status is not AuthRequestStatus.PENDING:
                 raise ValueError("authentication request is no longer pending")
-            if request.expired:
-                self.auth.cancel(request_id)
-                raise ValueError("authentication request expired")
             spec = self.connector(request.connector_id)
             account = self.connect(
                 request.connector_id,

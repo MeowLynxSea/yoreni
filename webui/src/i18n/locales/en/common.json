@@ -159,6 +159,8 @@
       "retry": "Retry",
       "finishBlocked": "The sandbox is still being prepared",
       "stage": {
+        "backup": "Backing up the sandbox files",
+        "restore": "Restoring the sandbox files",
         "starting": "Preparing the sandbox",
         "image": "Downloading the system image",
         "configuring": "Configuring the sandbox",
@@ -1735,6 +1737,18 @@
       "configureProvider": "Configure provider",
       "languageAuto": "Auto"
     },
+    "sandbox": {
+      "title": "Virtual machine",
+      "description": "The browser, downloads and the files Yoreni works on run inside a virtual machine. More cores and memory make it faster and leave less for the rest of this computer.",
+      "cpus": "CPU cores",
+      "memory": "Memory",
+      "limit": "This computer can give up to {{cpus}} cores and {{memory}} GB.",
+      "note": "Saved. Rebuild the virtual machine to apply the new size.",
+      "rebuild": "Rebuild virtual machine",
+      "rebuildTitle": "Rebuild the virtual machine?",
+      "rebuildBody": "A new size only applies to a newly created virtual machine. Rebuilding keeps your files, but reinstalls the system components and you cannot use Yoreni until it finishes.",
+      "rebuildConfirm": "Rebuild"
+    },
     "memory": {
       "customEndpoint": "Custom endpoint",
       "clearKey": "Clear",
@@ -2553,7 +2567,8 @@
     "cancel": "Cancel",
     "connect": "Connect",
     "continueInBrowser": "Continue in browser",
-    "secureNote": "Credentials are sent directly to Yoreni and never appear in chat.",
+    "sessionOnly": "Used for this session only. Not written to disk, and never shown in chat.",
+    "keepStored": "Saved under Settings → Accounts for later, and never shown in chat.",
     "fields": {
       "username": "Username",
       "email": "Email",

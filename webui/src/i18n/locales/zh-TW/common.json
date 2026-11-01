@@ -159,6 +159,8 @@
       "retry": "重試",
       "finishBlocked": "沙箱仍在準備中",
       "stage": {
+        "backup": "備份沙箱檔案",
+        "restore": "還原沙箱檔案",
         "starting": "準備沙箱",
         "image": "下載系統映像",
         "configuring": "正在設定沙盒",
@@ -1735,6 +1737,18 @@
       "configureProvider": "設定供應商",
       "languageAuto": "自動"
     },
+    "sandbox": {
+      "title": "虛擬機器",
+      "description": "瀏覽器、下載的檔案和 Yoreni 要處理的資料都跑在這台虛擬機器裡。分配更多的核心和記憶體，它跑得更快，留給這台電腦的就越少。",
+      "cpus": "處理器核心",
+      "memory": "記憶體",
+      "limit": "這台電腦最多可以提供 {{cpus}} 核和 {{memory}} GB 記憶體。",
+      "note": "已儲存。重建虛擬機器後生效。",
+      "rebuild": "重建虛擬機器",
+      "rebuildTitle": "重建虛擬機器？",
+      "rebuildBody": "新的分配只對新建的虛擬機器生效。重建會保留你的檔案，但需要重新安裝系統元件，完成前無法使用 Yoreni。",
+      "rebuildConfirm": "重建"
+    },
     "memory": {
       "customEndpoint": "自訂介面",
       "clearKey": "清除",
@@ -2553,7 +2567,8 @@
     "cancel": "取消",
     "connect": "連線",
     "continueInBrowser": "在瀏覽器中繼續",
-    "secureNote": "憑證會直接傳送給 Yoreni，不會出現在對話中。",
+    "sessionOnly": "僅在本次工作階段使用，不寫入磁碟，也不會出現在對話中。",
+    "keepStored": "儲存到「設定 → 帳戶」，之後仍可使用，但不會出現在對話中。",
     "fields": {
       "username": "使用者名稱",
       "email": "電子郵件",

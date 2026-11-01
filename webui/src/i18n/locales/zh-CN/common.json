@@ -159,6 +159,8 @@
       "retry": "重试",
       "finishBlocked": "沙箱仍在准备中",
       "stage": {
+        "backup": "备份沙箱文件",
+        "restore": "恢复沙箱文件",
         "starting": "准备沙箱",
         "image": "下载系统镜像",
         "configuring": "正在配置沙盒",
@@ -1735,6 +1737,18 @@
       "configureProvider": "配置提供商",
       "languageAuto": "自动"
     },
+    "sandbox": {
+      "title": "虚拟机",
+      "description": "浏览器、下载的文件和 Yoreni 要处理的资料都跑在这台虚拟机里。分配更多的核心和内存，它跑得更快，留给这台电脑的就更少。",
+      "cpus": "处理器核心",
+      "memory": "内存",
+      "limit": "这台电脑最多可以提供 {{cpus}} 核和 {{memory}} GB 内存。",
+      "note": "已保存。重建虚拟机后生效。",
+      "rebuild": "重建虚拟机",
+      "rebuildTitle": "重建虚拟机？",
+      "rebuildBody": "新的分配只对新建的虚拟机生效。重建会保留你的文件，但需要重新安装系统组件，完成前无法使用 Yoreni。",
+      "rebuildConfirm": "重建"
+    },
     "memory": {
       "customEndpoint": "自定义接口",
       "clearKey": "清除",
@@ -2553,7 +2567,8 @@
     "cancel": "取消",
     "connect": "连接",
     "continueInBrowser": "在浏览器中继续",
-    "secureNote": "凭证直接发送给 Yoreni，不会出现在对话里。",
+    "sessionOnly": "仅本次会话使用，不写入磁盘，也不会出现在对话里。",
+    "keepStored": "保存到「设置 → 账户」，之后仍可使用，但不会出现在对话里。",
     "fields": {
       "username": "用户名",
       "email": "邮箱",

@@ -159,6 +159,8 @@
       "retry": "Coba lagi",
       "finishBlocked": "Sandbox masih disiapkan",
       "stage": {
+        "backup": "Mencadangkan berkas sandbox",
+        "restore": "Memulihkan berkas sandbox",
         "starting": "Menyiapkan sandbox",
         "image": "Mengunduh image sistem",
         "configuring": "Mengonfigurasi sandbox",
@@ -1735,6 +1737,18 @@
       "configureProvider": "Konfigurasi penyedia",
       "languageAuto": "Otomatis"
     },
+    "sandbox": {
+      "title": "Mesin virtual",
+      "description": "Peramban, unduhan, dan berkas yang Yoreni kerjakan berjalan di dalam mesin virtual. Semakin banyak inti dan memori, semakin cepat, dan semakin sedikit sisa untuk komputer ini.",
+      "cpus": "Inti CPU",
+      "memory": "Memori",
+      "limit": "Komputer ini bisa memberi hingga {{cpus}} inti dan {{memory}} GB.",
+      "note": "Tersimpan. Bangun ulang mesin virtual untuk menerapkan ukuran baru.",
+      "rebuild": "Bangun ulang mesin virtual",
+      "rebuildTitle": "Bangun ulang mesin virtual?",
+      "rebuildBody": "Ukuran baru hanya berlaku untuk mesin virtual yang dibuat ulang. Membangun ulang menyimpan berkas Anda, tetapi memasang ulang komponen sistem, dan Yoreni tidak bisa dipakai sampai selesai.",
+      "rebuildConfirm": "Bangun ulang"
+    },
     "memory": {
       "customEndpoint": "Endpoint khusus",
       "clearKey": "Hapus",
@@ -2553,7 +2567,8 @@
     "cancel": "Batal",
     "connect": "Hubungkan",
     "continueInBrowser": "Lanjutkan di browser",
-    "secureNote": "Kredensial dikirim langsung ke Yoreni dan tidak pernah muncul di obrolan.",
+    "sessionOnly": "Hanya untuk sesi ini: tidak ditulis ke disk dan tidak pernah muncul di obrolan.",
+    "keepStored": "Disimpan di Pengaturan → Akun untuk dipakai lagi, dan tidak pernah muncul di obrolan.",
     "fields": {
       "username": "Nama pengguna",
       "email": "Email",

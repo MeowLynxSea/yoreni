@@ -1437,10 +1437,12 @@ export type OnboardingStep =
 
 export type SandboxSetupPhase =
   | "starting"
+  | "backup"
   | "image"
   | "configuring"
   | "packages"
   | "browser"
+  | "restore"
   | "services"
   | "ready";
 
@@ -1654,12 +1656,12 @@ export interface CredentialAuthRequest {
   fields: string[];
   purpose: string;
   label?: string;
+  /** The gateway's decision: this account never reaches the store. */
   ephemeral?: boolean;
   status: "pending" | "completed" | "cancelled" | "expired" | "failed";
   run_id?: string | null;
   account_id?: string | null;
   created_at?: number;
-  expires_at?: number;
   error?: string | null;
 }
 

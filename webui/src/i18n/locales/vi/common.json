@@ -159,6 +159,8 @@
       "retry": "Thử lại",
       "finishBlocked": "Môi trường vẫn đang được chuẩn bị",
       "stage": {
+        "backup": "Đang sao lưu tệp sandbox",
+        "restore": "Đang khôi phục tệp sandbox",
         "starting": "Đang chuẩn bị môi trường",
         "image": "Đang tải ảnh hệ thống",
         "configuring": "Đang cấu hình môi trường",
@@ -1735,6 +1737,18 @@
       "configureProvider": "Cấu hình nhà cung cấp",
       "languageAuto": "Tự động"
     },
+    "sandbox": {
+      "title": "Máy ảo",
+      "description": "Trình duyệt, tệp tải về và tài liệu Yoreni xử lý chạy trong một máy ảo. Nhiều nhân và bộ nhớ hơn giúp nó nhanh hơn và để lại ít hơn cho phần còn lại của máy này.",
+      "cpus": "Nhân CPU",
+      "memory": "Bộ nhớ",
+      "limit": "Máy này có thể chia tối đa {{cpus}} nhân và {{memory}} GB.",
+      "note": "Đã lưu. Tạo lại máy ảo để áp dụng kích thước mới.",
+      "rebuild": "Tạo lại máy ảo",
+      "rebuildTitle": "Tạo lại máy ảo?",
+      "rebuildBody": "Kích thước mới chỉ áp dụng cho máy ảo được tạo lại. Tạo lại giữ nguyên tệp của bạn nhưng cài lại các thành phần hệ thống, và bạn không thể dùng Yoreni cho đến khi xong.",
+      "rebuildConfirm": "Tạo lại"
+    },
     "memory": {
       "customEndpoint": "Endpoint tùy chỉnh",
       "clearKey": "Xóa",
@@ -2553,7 +2567,8 @@
     "cancel": "Hủy",
     "connect": "Kết nối",
     "continueInBrowser": "Tiếp tục trong trình duyệt",
-    "secureNote": "Thông tin đăng nhập được gửi trực tiếp tới Yoreni và không bao giờ xuất hiện trong cuộc trò chuyện.",
+    "sessionOnly": "Chỉ dùng cho phiên này: không ghi xuống đĩa và không bao giờ xuất hiện trong cuộc trò chuyện.",
+    "keepStored": "Được lưu trong Cài đặt → Tài khoản để dùng sau, và không bao giờ xuất hiện trong cuộc trò chuyện.",
     "fields": {
       "username": "Tên đăng nhập",
       "email": "Email",

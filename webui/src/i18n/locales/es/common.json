@@ -159,6 +159,8 @@
       "retry": "Reintentar",
       "finishBlocked": "El entorno todavía se está preparando",
       "stage": {
+        "backup": "Guardando los archivos del entorno",
+        "restore": "Restaurando los archivos del entorno",
         "starting": "Preparando el entorno",
         "image": "Descargando la imagen del sistema",
         "configuring": "Configurando el entorno",
@@ -1735,6 +1737,18 @@
       "configureProvider": "Configurar proveedor",
       "languageAuto": "Automático"
     },
+    "sandbox": {
+      "title": "Máquina virtual",
+      "description": "El navegador, tus descargas y los archivos con los que trabaja Yoreni se ejecutan dentro de una máquina virtual. Con más núcleos y memoria va más rápido y queda menos para el resto del ordenador.",
+      "cpus": "Núcleos de CPU",
+      "memory": "Memoria",
+      "limit": "Este ordenador puede ceder hasta {{cpus}} núcleos y {{memory}} GB.",
+      "note": "Guardado. Reconstruye la máquina virtual para aplicar el nuevo tamaño.",
+      "rebuild": "Reconstruir máquina virtual",
+      "rebuildTitle": "¿Reconstruir la máquina virtual?",
+      "rebuildBody": "El nuevo tamaño solo se aplica a una máquina virtual recién creada. Al reconstruir se conservan tus archivos, pero se reinstalan los componentes del sistema y no podrás usar Yoreni hasta que termine.",
+      "rebuildConfirm": "Reconstruir"
+    },
     "memory": {
       "customEndpoint": "Endpoint personalizado",
       "clearKey": "Borrar",
@@ -2553,7 +2567,8 @@
     "cancel": "Cancelar",
     "connect": "Conectar",
     "continueInBrowser": "Continuar en el navegador",
-    "secureNote": "Las credenciales se envían directamente a Yoreni y nunca aparecen en el chat.",
+    "sessionOnly": "Solo para esta sesión: no se guarda en el disco y nunca aparece en el chat.",
+    "keepStored": "Se guarda en Configuración → Cuentas para usarla más adelante, y nunca aparece en el chat.",
     "fields": {
       "username": "Usuario",
       "email": "Correo electrónico",

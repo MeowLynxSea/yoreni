@@ -159,6 +159,8 @@
       "retry": "다시 시도",
       "finishBlocked": "샌드박스를 준비하고 있어요",
       "stage": {
+        "backup": "샌드박스 파일 백업 중",
+        "restore": "샌드박스 파일 복원 중",
         "starting": "샌드박스 준비 중",
         "image": "시스템 이미지 내려받는 중",
         "configuring": "샌드박스 구성 중",
@@ -1735,6 +1737,18 @@
       "configureProvider": "제공업체 설정",
       "languageAuto": "자동"
     },
+    "sandbox": {
+      "title": "가상 머신",
+      "description": "브라우저, 다운로드, Yoreni가 다루는 자료는 모두 가상 머신 안에서 실행됩니다. 코어와 메모리를 늘릴수록 빨라지고 이 컴퓨터에 남는 여유는 줄어듭니다.",
+      "cpus": "CPU 코어",
+      "memory": "메모리",
+      "limit": "이 컴퓨터는 최대 {{cpus}}개 코어와 {{memory}} GB까지 줄 수 있습니다.",
+      "note": "저장했습니다. 가상 머신을 다시 만들면 적용됩니다.",
+      "rebuild": "가상 머신 다시 만들기",
+      "rebuildTitle": "가상 머신을 다시 만들까요?",
+      "rebuildBody": "새 크기는 새로 만든 가상 머신에만 적용됩니다. 다시 만들면 파일은 유지되지만 시스템 구성 요소를 다시 설치해야 하며, 끝날 때까지 Yoreni를 사용할 수 없습니다.",
+      "rebuildConfirm": "다시 만들기"
+    },
     "memory": {
       "customEndpoint": "사용자 지정 엔드포인트",
       "clearKey": "지우기",
@@ -2553,7 +2567,8 @@
     "cancel": "취소",
     "connect": "연결",
     "continueInBrowser": "브라우저에서 계속",
-    "secureNote": "자격 증명은 Yoreni로 바로 전송되며 대화에 나타나지 않습니다.",
+    "sessionOnly": "이번 세션에서만 사용하며 디스크에 저장되지 않고, 대화에도 표시되지 않습니다.",
+    "keepStored": "「설정 → 계정」에 저장되어 다음에도 쓸 수 있으며, 대화에는 표시되지 않습니다.",
     "fields": {
       "username": "사용자 이름",
       "email": "이메일",

@@ -159,6 +159,8 @@
       "retry": "Tentar de novo",
       "finishBlocked": "O ambiente ainda está sendo preparado",
       "stage": {
+        "backup": "Fazendo backup dos arquivos",
+        "restore": "Restaurando os arquivos",
         "starting": "Preparando o ambiente",
         "image": "Baixando a imagem do sistema",
         "configuring": "Configurando o ambiente",
@@ -1735,6 +1737,18 @@
       "configureProvider": "Configurar provedor",
       "languageAuto": "Automático"
     },
+    "sandbox": {
+      "title": "Máquina virtual",
+      "description": "O navegador, seus downloads e os arquivos com que o Yoreni trabalha rodam dentro de uma máquina virtual. Mais núcleos e memória a deixam mais rápida e deixam menos para o resto deste computador.",
+      "cpus": "Núcleos de CPU",
+      "memory": "Memória",
+      "limit": "Este computador pode ceder até {{cpus}} núcleos e {{memory}} GB.",
+      "note": "Salvo. Reconstrua a máquina virtual para aplicar o novo tamanho.",
+      "rebuild": "Reconstruir máquina virtual",
+      "rebuildTitle": "Reconstruir a máquina virtual?",
+      "rebuildBody": "O novo tamanho só se aplica a uma máquina virtual recriada. Reconstruir mantém seus arquivos, mas reinstala os componentes do sistema, e você não poderá usar o Yoreni até terminar.",
+      "rebuildConfirm": "Reconstruir"
+    },
     "memory": {
       "customEndpoint": "Endpoint personalizado",
       "clearKey": "Limpar",
@@ -2553,7 +2567,8 @@
     "cancel": "Cancelar",
     "connect": "Conectar",
     "continueInBrowser": "Continuar no navegador",
-    "secureNote": "As credenciais são enviadas diretamente ao Yoreni e nunca aparecem no chat.",
+    "sessionOnly": "Usada apenas nesta sessão: não é gravada no disco e nunca aparece no chat.",
+    "keepStored": "Salva em Configurações → Contas para depois, e nunca aparece no chat.",
     "fields": {
       "username": "Usuário",
       "email": "E-mail",

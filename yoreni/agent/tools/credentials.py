@@ -17,15 +17,12 @@ from yoreni.agent.tools.base import Tool, ToolResult, tool_parameters
 from yoreni.agent.tools.context import ToolContext, current_request_context
 from yoreni.agent.tools.schema import (
     BooleanSchema,
-    IntegerSchema,
     StringSchema,
     tool_parameters_schema,
 )
 from yoreni.credentials.auth import AuthRequestStatus
 from yoreni.credentials.manager import get_credential_manager
 from yoreni.credentials.models import AuthMethod
-
-_MAX_WAIT_SECONDS = 600
 
 _PLACEHOLDER_HINT = (
     "Each placeholder is the credential itself: pass it as the argument value the "
@@ -53,7 +50,8 @@ def _run_id() -> str | None:
             "Defaults to the connector's first method."
         ),
         purpose=StringSchema(
-            "One sentence shown to the user explaining which service is being connected and why."
+            "One sentence shown to the user explaining which service is being connected "
+            "and why. Never promise how the values are kept: the card states that."
         ),
         label=StringSchema(
             "Name for this account in the user's account list, e.g. 'Campus portal' or "
@@ -65,11 +63,6 @@ def _run_id() -> str | None:
                 "for the session and is never saved. Defaults to false."
             ),
             default=False,
-        ),
-        timeout_seconds=IntegerSchema(
-            description="How long to wait for the user, in seconds (30-600). Defaults to 300.",
-            minimum=30,
-            maximum=600,
         ),
         required=["connector_id", "purpose"],
     )
@@ -105,7 +98,6 @@ class RequestAuthenticationTool(Tool):
         purpose: str = "",
         label: str = "",
         ephemeral: bool = False,
-        timeout_seconds: int = 300,
         **kwargs: object,
     ) -> str:
         _ = kwargs
@@ -149,9 +141,11 @@ class RequestAuthenticationTool(Tool):
         except ValueError as exc:
             return ToolResult.error(f"Error: {exc}")
 
-        wait_seconds = max(30, min(_MAX_WAIT_SECONDS, int(timeout_seconds or 300)))
+        # Wait for as long as the Run lives. The user may need to open a browser,
+        # sign in, and approve a second factor; stopping the card mid-way would
+        # throw away that work.
         try:
-            completed = await manager.auth.wait(request.id, timeout=wait_seconds)
+            completed = await manager.auth.wait(request.id)
         except asyncio.CancelledError:
             manager.cancel_auth_request(request.id)
             raise
@@ -169,8 +163,6 @@ class RequestAuthenticationTool(Tool):
             return json.dumps(payload, ensure_ascii=False)
         if completed.status is AuthRequestStatus.CANCELLED:
             return ToolResult.error("Error: the user cancelled the authentication request")
-        if completed.status is AuthRequestStatus.EXPIRED:
-            return ToolResult.error("Error: the authentication request expired")
         return ToolResult.error(
             f"Error: authentication did not complete: {completed.status.value}"
         )
@@ -204,7 +196,7 @@ class ListConnectionsTool(Tool):
         _ = kwargs
         manager = get_credential_manager()
         accounts: list[dict[str, Any]] = []
-        for account in manager.accounts():
+        for account in manager.accounts(include_ephemeral=True):
             accounts.append({
                 **account,
                 "placeholders": manager.placeholders_for_account(account["id"]),

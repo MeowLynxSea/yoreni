@@ -159,6 +159,8 @@
       "retry": "Réessayer",
       "finishBlocked": "L'environnement est encore en préparation",
       "stage": {
+        "backup": "Sauvegarde des fichiers du bac à sable",
+        "restore": "Restauration des fichiers du bac à sable",
         "starting": "Préparation de l'environnement",
         "image": "Téléchargement de l'image système",
         "configuring": "Configuration de l'environnement",
@@ -1735,6 +1737,18 @@
       "configureProvider": "Configurer le fournisseur",
       "languageAuto": "Automatique"
     },
+    "sandbox": {
+      "title": "Machine virtuelle",
+      "description": "Le navigateur, vos téléchargements et les fichiers traités par Yoreni s'exécutent dans une machine virtuelle. Plus de cœurs et de mémoire la rendent plus rapide et laissent moins au reste de cet ordinateur.",
+      "cpus": "Cœurs du processeur",
+      "memory": "Mémoire",
+      "limit": "Cet ordinateur peut céder jusqu'à {{cpus}} cœurs et {{memory}} Go.",
+      "note": "Enregistré. Reconstruisez la machine virtuelle pour appliquer la nouvelle taille.",
+      "rebuild": "Reconstruire la machine virtuelle",
+      "rebuildTitle": "Reconstruire la machine virtuelle ?",
+      "rebuildBody": "La nouvelle taille ne s'applique qu'à une machine virtuelle recréée. La reconstruction conserve vos fichiers, mais réinstalle les composants système et Yoreni reste indisponible jusqu'à la fin.",
+      "rebuildConfirm": "Reconstruire"
+    },
     "memory": {
       "customEndpoint": "Point de terminaison personnalisé",
       "clearKey": "Effacer",
@@ -2553,7 +2567,8 @@
     "cancel": "Annuler",
     "connect": "Se connecter",
     "continueInBrowser": "Continuer dans le navigateur",
-    "secureNote": "Les identifiants sont envoyés directement à Yoreni et n'apparaissent jamais dans la conversation.",
+    "sessionOnly": "Utilisé uniquement pour cette session : rien n'est écrit sur le disque et rien n'apparaît dans la conversation.",
+    "keepStored": "Enregistré dans Paramètres → Comptes pour plus tard, et jamais affiché dans la conversation.",
     "fields": {
       "username": "Nom d’utilisateur",
       "email": "E-mail",

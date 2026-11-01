@@ -1,7 +1,8 @@
-import { ArrowLeft, House, Monitor, Search } from "lucide-react";
+import { ArrowLeft, FolderKanban, House, Monitor, Search } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
+import { ConversationIcon } from "@/components/icons/product-icons";
 import { ThemeToggleIcon } from "@/components/icons/ThemeToggleIcon";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { readLastProjectsPath, type HomeView } from "@/lib/local-ui-state";
@@ -66,6 +67,14 @@ export function AppHeader({
     }
     navigate(readLastProjectsPath() ?? "/projects", { viewTransition: true });
   };
+  // Mobile shows these three destinations as icons so the pill and the right-hand
+  // controls fit on one row; wide layouts keep the words.
+  const tabClass = (selected: boolean) => cn(
+    "grid h-10 w-10 place-items-center rounded-full text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 md:w-auto md:px-4 md:text-[14px]",
+    selected
+      ? "bg-white text-foreground shadow-sm dark:bg-white/[0.14]"
+      : "text-muted-foreground",
+  );
 
   return (
     <header className="pointer-events-none absolute inset-x-0 top-0 z-40 flex h-16 items-center gap-2 px-4 sm:px-6">
@@ -100,41 +109,34 @@ export function AppHeader({
           type="button"
           onClick={() => openHomeView("home")}
           aria-pressed={onRoute && homeView === "home"}
-          className={cn(
-            "h-10 rounded-full px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 sm:px-4 sm:text-[14px] md:hidden",
-            onRoute && homeView === "home"
-              ? "bg-white text-foreground shadow-sm dark:bg-white/[0.14]"
-              : "text-muted-foreground",
-          )}
+          aria-label={t("home.title")}
+          title={t("home.title")}
+          className={cn(tabClass(onRoute && homeView === "home"), "md:hidden")}
         >
-          {t("home.title")}
+          <House className="h-[18px] w-[18px]" strokeWidth={1.8} aria-hidden />
         </button>
         <button
           type="button"
           onClick={() => openHomeView("chat")}
           aria-pressed={chatSelected}
-          className={cn(
-            "h-10 rounded-full px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 sm:px-4 sm:text-[14px]",
-            chatSelected
-              ? "bg-white text-foreground shadow-sm dark:bg-white/[0.14]"
-              : "text-muted-foreground",
-          )}
+          aria-label={t("home.tabs.chat")}
+          title={t("home.tabs.chat")}
+          className={tabClass(chatSelected)}
         >
-          {t("home.tabs.chat")}
+          <ConversationIcon className="h-[18px] w-[18px] md:hidden" />
+          <span className="max-md:hidden">{t("home.tabs.chat")}</span>
         </button>
         {projectsAvailable ? (
           <button
             type="button"
             onClick={openProjects}
             aria-pressed={onProjects}
-            className={cn(
-              "h-10 rounded-full px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 sm:px-4 sm:text-[14px]",
-              onProjects
-                ? "bg-white text-foreground shadow-sm dark:bg-white/[0.14]"
-                : "text-muted-foreground",
-            )}
+            aria-label={t("projects.title")}
+            title={t("projects.title")}
+            className={tabClass(onProjects)}
           >
-            {t("projects.title")}
+            <FolderKanban className="h-[18px] w-[18px] md:hidden" strokeWidth={1.7} aria-hidden />
+            <span className="max-md:hidden">{t("projects.title")}</span>
           </button>
         ) : null}
       </div>
@@ -172,7 +174,7 @@ export function AppHeader({
           onClick={onToggleTheme}
           aria-label={t("settings.nav.appearance")}
           title={t("settings.nav.appearance")}
-          className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 dark:hover:bg-white/[0.06]"
+          className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 max-md:hidden dark:hover:bg-white/[0.06]"
         >
           <ThemeToggleIcon theme={theme} className="h-5 w-5" />
         </button>

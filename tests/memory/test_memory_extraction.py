@@ -30,7 +30,7 @@ async def test_extraction_commits_a_cited_candidate(harness):
         "text": "The user prefers Chinese.",
         "kind": "user_preference",
         "scope": "global",
-        "sources": [evidence_id],
+        "sources": ["e1"],
         "confidence": 0.8,
     })))
 
@@ -47,7 +47,9 @@ async def test_extraction_commits_a_cited_candidate(harness):
     assert fact.source_type is SourceType.USER_STATEMENT
     assert fact.observed_at is not None
     assert harness.service.store.sources_for([fact_id])[fact_id][0].evidence_id == evidence_id
-    assert evidence_id in provider.calls[0][0]["content"]
+    # The prompt labels evidence by position so the model never has to copy a
+    # long opaque id; the label still resolves to the stored row.
+    assert "[e1] (" in provider.calls[0][0]["content"]
 
 
 def test_a_rejected_candidate_does_not_discard_the_supported_one(harness):

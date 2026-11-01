@@ -149,6 +149,25 @@
     }
   },
   "onboarding": {
+    "sandbox": {
+      "preparing": "샌드박스 준비 중",
+      "eta": "약 {{time}} 남음",
+      "elapsed": "{{time}} 경과",
+      "ready": "준비 완료, 계속할 수 있어요",
+      "failed": "샌드박스를 준비하지 못했습니다",
+      "failedTitle": "준비 실패",
+      "retry": "다시 시도",
+      "finishBlocked": "샌드박스를 준비하고 있어요",
+      "stage": {
+        "starting": "샌드박스 준비 중",
+        "image": "시스템 이미지 내려받는 중",
+        "configuring": "샌드박스 구성 중",
+        "packages": "시스템 패키지 설치 중",
+        "browser": "브라우저 준비 중",
+        "services": "데스크톱 시작 중",
+        "ready": "샌드박스 준비 완료"
+      }
+    },
     "continue": "계속",
     "back": "뒤로",
     "skip": "건너뛰기",

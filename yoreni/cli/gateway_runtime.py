@@ -1027,8 +1027,12 @@ def _run_claimed_gateway(
         try:
             if config.tools.sandbox.enabled:
                 async def _start_sandbox() -> None:
+                    # One owner for the first start: onboarding polls this same
+                    # sequence, so the WebUI never starts a second one.
+                    from yoreni.sandbox.setup import get_sandbox_setup
+
                     try:
-                        await sandbox_gateway.start()
+                        await get_sandbox_setup().ensure_started()
                     except Exception as exc:  # noqa: BLE001 - control plane stays up
                         logger.error(
                             "The Yoreni sandbox VM is unavailable; execution tools "

@@ -11,6 +11,7 @@ from collections import deque
 from collections.abc import AsyncGenerator, AsyncIterator, Mapping, Sequence
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, cast
 
 from loguru import logger
@@ -34,6 +35,7 @@ from yoreni.sandbox.models import (
     SandboxStatus,
 )
 from yoreni.sandbox.paths import PathRoots, is_within, normalize_vm_path
+from yoreni.sandbox.progress import SandboxProgress
 from yoreni.sandbox.provision import DesktopServices
 
 _gateway_instance: "SandboxGateway | None" = None
@@ -149,6 +151,7 @@ class SandboxGateway:
         self._host_workspace = host_workspace.rstrip("/") if host_workspace else None
         self._host_media_dir = host_media_dir.rstrip("/") if host_media_dir else None
         self.desktop = DesktopServices(self.backend, config)
+        self.progress = SandboxProgress()
         self._start_lock = asyncio.Lock()
         self._started = False
         self._status_detail = ""
@@ -205,10 +208,18 @@ class SandboxGateway:
             if self._started:
                 return
             try:
-                await asyncio.wait_for(
-                    self.backend.start(),
-                    timeout=self.config.start_timeout_s,
-                )
+                self.progress.set_stage("image")
+                monitor = asyncio.create_task(self._monitor_image_pull())
+                try:
+                    await asyncio.wait_for(
+                        self.backend.start(),
+                        timeout=self.config.start_timeout_s,
+                    )
+                finally:
+                    monitor.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await monitor
+                self.progress.set_stage("packages")
                 await self.desktop.provision()
                 await self._install_browser_assets()
                 await self._install_bundled_skills()
@@ -238,6 +249,7 @@ class SandboxGateway:
             desktop_ready, browser_ready = await self.desktop.health()
         except Exception:
             desktop_ready = browser_ready = False
+        self.progress.set_stage("services")
         if self.config.desktop_enabled and not desktop_ready:
             try:
                 await self.desktop.start()
@@ -300,6 +312,40 @@ class SandboxGateway:
 
         self._service_retry_task.add_done_callback(clear)
 
+    async def _monitor_image_pull(self) -> None:
+        """Report image download bytes while the VM runtime prepares itself."""
+        from yoreni.sandbox import image_manifest
+
+        backend = self.backend
+        data_dir = getattr(backend, "data_dir", None)
+        candidate = data_dir() if callable(data_dir) else None
+        directory = candidate if isinstance(candidate, Path) else None
+        if directory is None:
+            return
+        # Resolving the image size talks to the registry; keep it off the loop
+        # and report bytes while it is still in flight.
+        total_task = asyncio.create_task(
+            asyncio.to_thread(image_manifest.image_pull_bytes, self.config.image)
+        )
+        total: int | None = None
+        try:
+            while True:
+                if total is None and total_task.done() and not total_task.cancelled():
+                    total = total_task.result()
+                try:
+                    downloaded = await asyncio.to_thread(
+                        _directory_bytes, directory / "images" / "layers"
+                    )
+                except OSError:
+                    downloaded = 0
+                self.progress.set_bytes(downloaded, total)
+                if total and downloaded >= total:
+                    # The transfer is done; boxlite now expands the layers.
+                    self.progress.set_stage("configuring")
+                await asyncio.sleep(0.5)
+        finally:
+            total_task.cancel()
+
     async def _install_browser_assets(self) -> None:
         """Place the BrowserSkill CLI and extension inside the VM.
 
@@ -311,7 +357,8 @@ class SandboxGateway:
         if not self.config.browser_enabled:
             return
         try:
-            await browser_assets.install(self.backend)
+            self.progress.set_stage("browser")
+            await browser_assets.install(self.backend, on_progress=self.progress.set_bytes)
             self._browser_assets_error = ""
         except Exception as exc:
             self._browser_assets_error = f"BrowserSkill is not available in the VM: {exc}"
@@ -995,3 +1042,14 @@ class SandboxGateway:
                 f"desktop input failed: {(result.stderr or result.stdout).strip()[:300]}"
             )
 
+
+def _directory_bytes(root: Path) -> int:
+    """Sum the size of every regular file under ``root``."""
+    total = 0
+    for path in root.rglob("*"):
+        try:
+            if path.is_file():
+                total += path.stat().st_size
+        except OSError:
+            continue
+    return total

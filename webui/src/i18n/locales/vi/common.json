@@ -149,6 +149,25 @@
     }
   },
   "onboarding": {
+    "sandbox": {
+      "preparing": "Đang chuẩn bị môi trường",
+      "eta": "còn khoảng {{time}}",
+      "elapsed": "đã qua {{time}}",
+      "ready": "Sẵn sàng, bạn có thể tiếp tục",
+      "failed": "Không thể chuẩn bị môi trường",
+      "failedTitle": "Chuẩn bị thất bại",
+      "retry": "Thử lại",
+      "finishBlocked": "Môi trường vẫn đang được chuẩn bị",
+      "stage": {
+        "starting": "Đang chuẩn bị môi trường",
+        "image": "Đang tải ảnh hệ thống",
+        "configuring": "Đang cấu hình môi trường",
+        "packages": "Đang cài gói hệ thống",
+        "browser": "Đang chuẩn bị trình duyệt",
+        "services": "Đang khởi động màn hình",
+        "ready": "Môi trường đã sẵn sàng"
+      }
+    },
     "continue": "Tiếp tục",
     "back": "Quay lại",
     "skip": "Bỏ qua",

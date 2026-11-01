@@ -149,6 +149,25 @@
     }
   },
   "onboarding": {
+    "sandbox": {
+      "preparing": "Preparando o ambiente",
+      "eta": "faltam cerca de {{time}}",
+      "elapsed": "{{time}} decorridos",
+      "ready": "Pronto, você pode continuar",
+      "failed": "Não foi possível preparar o ambiente",
+      "failedTitle": "Falha na preparação",
+      "retry": "Tentar de novo",
+      "finishBlocked": "O ambiente ainda está sendo preparado",
+      "stage": {
+        "starting": "Preparando o ambiente",
+        "image": "Baixando a imagem do sistema",
+        "configuring": "Configurando o ambiente",
+        "packages": "Instalando pacotes do sistema",
+        "browser": "Preparando o navegador",
+        "services": "Iniciando a área de trabalho",
+        "ready": "Ambiente pronto"
+      }
+    },
     "continue": "Continuar",
     "back": "Voltar",
     "skip": "Pular",

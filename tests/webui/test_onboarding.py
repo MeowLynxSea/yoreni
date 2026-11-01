@@ -153,3 +153,32 @@ async def test_setup_http_routes_return_state_and_validation_errors(tmp_path: Pa
     response = await handler._handle_setup(request, "/api/profile")
     assert response.status_code == 200
     assert json.loads(response.body)["profile"]["name"] == ""
+
+
+def test_completion_waits_for_the_sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from yoreni.sandbox import setup as setup_module
+
+    class _Setup:
+        ready = False
+
+        def is_ready(self) -> bool:
+            return self.ready
+
+        def snapshot(self) -> dict[str, object]:
+            return {"state": "ready" if self.ready else "running", "percent": 42.0}
+
+    fake = _Setup()
+    monkeypatch.setattr(setup_module, "get_sandbox_setup", lambda: fake)
+
+    _write_config(tmp_path / "config.json", with_model=True)
+    service = _service(tmp_path)
+    service.set_token("correct horse battery")
+    service.save_profile({"name": "Ada", "style": {"base": "friendly"}})
+
+    with pytest.raises(OnboardingError) as pending:
+        service.complete("en")
+    assert pending.value.status == 409
+    assert service.is_complete() is False
+
+    fake.ready = True
+    assert service.complete("en")["status"] == "completed"

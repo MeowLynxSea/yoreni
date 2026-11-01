@@ -149,6 +149,8 @@ _WEBUI_MUTATION_PATHS = {
     "onboarding.step": "/api/onboarding/step",
     "onboarding.complete": "/api/onboarding/complete",
     "onboarding.embedding_test": "/api/onboarding/embedding-test",
+    "onboarding.sandbox.install": "/api/onboarding/sandbox/install",
+    "onboarding.sandbox.retry": "/api/onboarding/sandbox/retry",
     "profile.update": "/api/profile/update",
     "profile.password": "/api/profile/password",
     "profile.passkey.options": "/api/profile/passkeys/options",
@@ -542,6 +544,7 @@ class GatewayHTTPHandler:
             "/api/onboarding/token", "/api/onboarding/profile",
             "/api/onboarding/step", "/api/onboarding/complete",
             "/api/onboarding/embedding-test",
+            "/api/onboarding/sandbox/install", "/api/onboarding/sandbox/retry",
             "/api/profile/update",
             "/api/profile/password",
             "/api/profile/passkeys/options",
@@ -927,6 +930,12 @@ class GatewayHTTPHandler:
                 return _http_json_response(self.onboarding.save_step(payload.get("step")))
             if path == "/api/onboarding/complete":
                 return _http_json_response(self.onboarding.complete(payload.get("locale")))
+            if path == "/api/onboarding/sandbox/install":
+                return _http_json_response(await self.onboarding.prepare_sandbox())
+            if path == "/api/onboarding/sandbox/retry":
+                return _http_json_response(
+                    await self.onboarding.prepare_sandbox(retry=True)
+                )
             if path == "/api/onboarding/embedding-test":
                 return _http_json_response(await self.onboarding.test_embedding(payload))
             if path == "/api/profile/update":

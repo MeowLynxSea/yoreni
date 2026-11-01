@@ -149,6 +149,25 @@
     }
   },
   "onboarding": {
+    "sandbox": {
+      "preparing": "Preparando el entorno",
+      "eta": "quedan unos {{time}}",
+      "elapsed": "{{time}} transcurridos",
+      "ready": "Listo, ya puedes continuar",
+      "failed": "No se pudo preparar el entorno",
+      "failedTitle": "Error al preparar",
+      "retry": "Reintentar",
+      "finishBlocked": "El entorno todavía se está preparando",
+      "stage": {
+        "starting": "Preparando el entorno",
+        "image": "Descargando la imagen del sistema",
+        "configuring": "Configurando el entorno",
+        "packages": "Instalando paquetes del sistema",
+        "browser": "Preparando el navegador",
+        "services": "Iniciando el escritorio",
+        "ready": "Entorno listo"
+      }
+    },
     "continue": "Continuar",
     "back": "Atrás",
     "skip": "Omitir",

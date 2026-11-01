@@ -15,9 +15,12 @@ import { currentLocale, setAppLanguage } from "@/i18n";
 import { supportedLocales, type SupportedLocale } from "@/i18n/config";
 import {
   completeOnboarding,
+  fetchOnboarding,
+  retrySandboxInstall,
   saveOnboardingProfile,
   saveOnboardingStep,
   saveOnboardingToken,
+  startSandboxInstall,
 } from "@/lib/api";
 import {
   ONBOARDING_FLOW,
@@ -28,7 +31,13 @@ import {
   stepProgress,
 } from "@/lib/onboarding";
 import type { YoreniClient } from "@/lib/yoreni-client";
-import type { OnboardingSnapshot, OnboardingStep, UserProfile } from "@/lib/types";
+import type {
+  OnboardingSnapshot,
+  OnboardingStep,
+  SandboxSetupState,
+  UserProfile,
+} from "@/lib/types";
+import { SandboxSetupNotice } from "@/components/onboarding/SandboxSetupNotice";
 import { cn } from "@/lib/utils";
 
 import "./onboarding.css";
@@ -73,12 +82,34 @@ export function OnboardingFlow({
   const [busy, setBusy] = useState<Busy>("idle");
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState(client.status === "open");
+  const [sandbox, setSandbox] = useState<SandboxSetupState>(initial.sandbox);
+  const [retryingSandbox, setRetryingSandbox] = useState(false);
+  const sandboxReady = sandbox.state === "ready" || sandbox.state === "unsupported";
   const [language, setLanguage] = useState<SupportedLocale>(() => currentLocale());
   const completeTimer = useRef<number | null>(null);
   const advanceTimer = useRef<number | null>(null);
   const firstDraft = useRef(true);
 
   useEffect(() => client.onStatus((status) => setOnline(status === "open")), [client]);
+  // Preparing the sandbox starts with onboarding and never blocks a request.
+  useEffect(() => {
+    if (sandboxReady) return;
+    let live = true;
+    void startSandboxInstall(client)
+      .then((next) => { if (live) setSandbox(next); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [client, sandboxReady]);
+  // Poll the server-owned progress; the VM keeps preparing if this tab closes.
+  useEffect(() => {
+    if (sandboxReady) return;
+    const timer = window.setInterval(() => {
+      void fetchOnboarding(apiToken)
+        .then((snapshot) => setSandbox(snapshot.sandbox))
+        .catch(() => {});
+    }, 1200);
+    return () => window.clearInterval(timer);
+  }, [apiToken, sandboxReady]);
   useEffect(() => () => {
     if (completeTimer.current !== null) window.clearTimeout(completeTimer.current);
     if (advanceTimer.current !== null) window.clearTimeout(advanceTimer.current);
@@ -186,6 +217,10 @@ export function OnboardingFlow({
       setStep("name");
       return;
     }
+    if (!sandboxReady) {
+      setError(t("onboarding.sandbox.finishBlocked"));
+      return;
+    }
     setError(null);
     setBusy("finishing");
     try {
@@ -229,7 +264,14 @@ export function OnboardingFlow({
   const canContinue = online && busy === "idle";
 
   return (
-    <main className="onboarding-shell flex h-full flex-col overflow-y-auto overscroll-contain px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-8">
+    <main
+      className={cn(
+        "onboarding-shell flex h-full flex-col overflow-y-auto overscroll-contain px-5 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-8",
+        sandboxReady
+          ? "pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+          : "pb-[max(7rem,env(safe-area-inset-bottom))]",
+      )}
+    >
       <AmbientBackground />
       <div className="onboarding-orb onboarding-orb--one" aria-hidden />
       <div className="onboarding-orb onboarding-orb--two" aria-hidden />
@@ -592,6 +634,7 @@ export function OnboardingFlow({
               online={online}
               finishLabel={t("onboarding.embedding.finish")}
               busy={busy === "finishing"}
+              blocked={!sandboxReady}
               onBack={() => void back()}
               onDone={() => void finish()}
             />
@@ -599,6 +642,17 @@ export function OnboardingFlow({
         ) : null}
         </div>
       </div>
+      <SandboxSetupNotice
+        state={sandbox}
+        retrying={retryingSandbox}
+        onRetry={() => {
+          setRetryingSandbox(true);
+          void retrySandboxInstall(client)
+            .then(setSandbox)
+            .catch(failure)
+            .finally(() => setRetryingSandbox(false));
+        }}
+      />
     </main>
   );
 }

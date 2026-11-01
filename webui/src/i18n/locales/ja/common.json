@@ -149,6 +149,25 @@
     }
   },
   "onboarding": {
+    "sandbox": {
+      "preparing": "サンドボックスを準備中",
+      "eta": "残り約 {{time}}",
+      "elapsed": "経過 {{time}}",
+      "ready": "準備完了。続行できます",
+      "failed": "サンドボックスを準備できませんでした",
+      "failedTitle": "準備に失敗しました",
+      "retry": "再試行",
+      "finishBlocked": "サンドボックスを準備しています",
+      "stage": {
+        "starting": "サンドボックスを準備中",
+        "image": "システムイメージを取得中",
+        "configuring": "サンドボックスを設定中",
+        "packages": "システムパッケージを導入中",
+        "browser": "ブラウザを準備中",
+        "services": "デスクトップを起動中",
+        "ready": "サンドボックスの準備完了"
+      }
+    },
     "continue": "続ける",
     "back": "戻る",
     "skip": "スキップ",

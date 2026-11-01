@@ -28,6 +28,7 @@ export function OnboardingEmbeddingStep({
   online,
   finishLabel,
   busy,
+  blocked = false,
   onBack,
   onDone,
 }: {
@@ -36,6 +37,7 @@ export function OnboardingEmbeddingStep({
   online: boolean;
   finishLabel: string;
   busy: boolean;
+  blocked?: boolean;
   onBack: () => void;
   onDone: () => void;
 }) {
@@ -337,14 +339,14 @@ export function OnboardingEmbeddingStep({
           <button
             type="button"
             onClick={onDone}
-            disabled={busy || saving || !online}
+            disabled={busy || saving || !online || blocked}
             className="text-[13px] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
           >
             {t("onboarding.embedding.skip")}
           </button>
           <Button
             onClick={() => void save()}
-            disabled={!online || saving || busy || !model.trim()}
+            disabled={!online || saving || busy || blocked || !model.trim()}
             className="h-11 rounded-full px-6"
           >
             {saving || busy

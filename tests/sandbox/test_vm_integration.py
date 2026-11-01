@@ -25,7 +25,7 @@ def _config(name: str) -> SandboxConfig:
         enabled=True,
         backend="boxlite",
         box_name=os.environ.get("YORENI_SANDBOX_BOX", name),
-        image="lscr.io/linuxserver/webtop:ubuntu-xfce",
+        image="lscr.io/linuxserver/webtop:ubuntu-openbox",
         workspace="/workspace",
         media_dir="/workspace/.yoreni/media",
         desktop_enabled=True,

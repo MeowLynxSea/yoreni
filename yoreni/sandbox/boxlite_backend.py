@@ -85,6 +85,15 @@ class BoxLiteBackend:
 
     # -- lifecycle -----------------------------------------------------------
 
+    def data_dir(self) -> Path:
+        """Return the runtime home that holds images, boxes and the database."""
+        configured = self._config.home_dir.strip()
+        if configured:
+            return Path(configured).expanduser()
+        from yoreni.config.paths import get_data_dir
+
+        return get_data_dir() / "sandbox"
+
     async def _ensure_box(self) -> Any:
         if self._box is not None:
             return self._box
@@ -96,7 +105,7 @@ class BoxLiteBackend:
                 "hardware virtualization (KVM on Linux, Apple Silicon on macOS)."
             ) from exc
         try:
-            runtime = boxlite.Boxlite.default()
+            runtime = boxlite.Boxlite(boxlite.Options(home_dir=str(self.data_dir())))
             options = boxlite.BoxOptions(
                 image=self._config.image,
                 cpus=self._config.cpus,
@@ -358,6 +367,11 @@ class BoxLiteBackend:
         return str(self._staging)
 
     async def copy_in(self, host_path: str, vm_path: str) -> None:
+        # The runtime stages a tar under its own home; a home recreated after a
+        # delete can be missing it, which fails the copy with ENOENT.
+        staging = self.data_dir() / "tmp"
+        if not staging.is_dir():
+            staging.mkdir(parents=True, exist_ok=True)
         box = await self._ensure_box()
         try:
             await box.copy_in(host_path, vm_path)

@@ -149,6 +149,25 @@
     }
   },
   "onboarding": {
+    "sandbox": {
+      "preparing": "Menyiapkan sandbox",
+      "eta": "sekitar {{time}} lagi",
+      "elapsed": "{{time}} berlalu",
+      "ready": "Siap, Anda bisa melanjutkan",
+      "failed": "Sandbox gagal disiapkan",
+      "failedTitle": "Penyiapan gagal",
+      "retry": "Coba lagi",
+      "finishBlocked": "Sandbox masih disiapkan",
+      "stage": {
+        "starting": "Menyiapkan sandbox",
+        "image": "Mengunduh image sistem",
+        "configuring": "Mengonfigurasi sandbox",
+        "packages": "Memasang paket sistem",
+        "browser": "Menyiapkan peramban",
+        "services": "Menjalankan desktop",
+        "ready": "Sandbox siap"
+      }
+    },
     "continue": "Lanjutkan",
     "back": "Kembali",
     "skip": "Lewati",

@@ -254,3 +254,117 @@
     transition: none;
   }
 }
+
+/* First-run sandbox preparation: one quiet capsule that stays for every step. */
+.sandbox-setup {
+  animation: sandbox-setup-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: border-color 240ms ease, opacity 240ms ease;
+}
+
+.sandbox-setup--failed {
+  border-color: color-mix(in oklab, var(--destructive) 45%, transparent);
+}
+
+.sandbox-setup--ready {
+  border-color: color-mix(in oklab, var(--foreground) 22%, transparent);
+}
+
+.sandbox-setup__dot {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  color: var(--background);
+  background: color-mix(in oklab, var(--foreground) 75%, transparent);
+  animation: sandbox-dot-breathe 2.4s ease-in-out infinite;
+}
+
+.sandbox-setup--ready .sandbox-setup__dot {
+  background: color-mix(in oklab, var(--foreground) 85%, transparent);
+  animation: none;
+}
+
+.sandbox-setup--failed .sandbox-setup__dot {
+  background: color-mix(in oklab, var(--destructive) 80%, transparent);
+  animation: none;
+}
+
+.sandbox-setup__track {
+  position: relative;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--foreground) 9%, transparent);
+}
+
+.sandbox-setup__fill {
+  position: relative;
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--foreground) 62%, transparent),
+    color-mix(in oklab, var(--foreground) 88%, transparent)
+  );
+  transition: width 380ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sandbox-setup__fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--background) 70%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: sandbox-sheen 2.6s ease-in-out infinite;
+}
+
+.sandbox-setup__track--indeterminate .sandbox-setup__fill {
+  width: 34%;
+  animation: sandbox-indeterminate 1.9s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  transition: none;
+}
+
+.sandbox-setup--ready .sandbox-setup__fill::after {
+  animation: none;
+}
+
+@keyframes sandbox-setup-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes sandbox-dot-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.75; }
+  50% { transform: scale(1.28); opacity: 1; }
+}
+
+@keyframes sandbox-sheen {
+  0% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(320%); }
+}
+
+@keyframes sandbox-indeterminate {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(320%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sandbox-setup { animation: none; }
+  .sandbox-setup__dot,
+  .sandbox-setup__fill::after,
+  .sandbox-setup__track--indeterminate .sandbox-setup__fill {
+    animation: none;
+  }
+  .sandbox-setup__track--indeterminate .sandbox-setup__fill {
+    width: 100%;
+    opacity: 0.45;
+  }
+}

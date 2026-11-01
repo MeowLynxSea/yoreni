@@ -14,6 +14,7 @@ import os
 import tarfile
 import tempfile
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
 
 from filelock import FileLock
@@ -21,6 +22,9 @@ from loguru import logger
 
 from yoreni.sandbox.backend import SandboxBackend
 from yoreni.sandbox.errors import SandboxUnavailableError
+
+# (downloaded bytes, total bytes when the server reports it)
+ProgressCallback = Callable[[int, int | None], None]
 
 BSK_VERSION = "0.4.0"
 _RELEASE_BASE = (
@@ -148,7 +152,12 @@ def ensure_bsk_binary(arch: str, *, cache_dir: Path | None = None) -> Path:
     return executable
 
 
-def ensure_brave_package(arch: str, *, cache_dir: Path | None = None) -> Path:
+def ensure_brave_package(
+    arch: str,
+    *,
+    cache_dir: Path | None = None,
+    on_progress: ProgressCallback | None = None,
+) -> Path:
     """Return the pinned Brave package for ``arch``, downloading it once."""
     try:
         deb_arch, checksum = _BRAVE[arch]
@@ -167,7 +176,18 @@ def ensure_brave_package(arch: str, *, cache_dir: Path | None = None) -> Path:
         url = _BRAVE_URL.format(version=BRAVE_VERSION, arch=deb_arch)
         try:
             with urllib.request.urlopen(url, timeout=300) as response:
-                raw = response.read(512 * 1024 * 1024 + 1)
+                length = response.headers.get("Content-Length")
+                expected = int(length) if length and length.isdigit() else None
+                chunks: list[bytes] = []
+                received = 0
+                while chunk := response.read(256 * 1024):
+                    chunks.append(chunk)
+                    received += len(chunk)
+                    if on_progress is not None:
+                        on_progress(received, expected)
+                    if received > 512 * 1024 * 1024:
+                        break
+                raw = b"".join(chunks)
             if len(raw) > 512 * 1024 * 1024:
                 raise SandboxUnavailableError("The Brave package is unexpectedly large")
             if hashlib.sha256(raw).hexdigest() != checksum:
@@ -185,7 +205,7 @@ def ensure_brave_package(arch: str, *, cache_dir: Path | None = None) -> Path:
     return package
 
 
-async def install(backend: SandboxBackend) -> None:
+async def install(backend: SandboxBackend, *, on_progress: ProgressCallback | None = None) -> None:
     """Place the CLI and the extension inside the VM."""
     machine = await backend.exec("uname -m", cwd="/", timeout_s=10)
     if machine.exit_code != 0:
@@ -210,7 +230,7 @@ async def install(backend: SandboxBackend) -> None:
         await backend.exec("bsk daemon stop", cwd="/", timeout_s=30)
 
     await backend.exec(("mkdir", "-p", VM_ASSET_ROOT), cwd="/", timeout_s=10, user="root")
-    await _install_brave(backend, arch)
+    await _install_brave(backend, arch, on_progress)
 
     marker = f"{VM_ASSET_ROOT}/VERSION"
     installed = await backend.exec(f"cat {marker} 2>/dev/null", cwd="/", timeout_s=10)
@@ -239,7 +259,11 @@ _BRAVE_KEYRING_STUB = (
 )
 
 
-async def _install_brave(backend: SandboxBackend, arch: str) -> None:
+async def _install_brave(
+    backend: SandboxBackend,
+    arch: str,
+    on_progress: ProgressCallback | None = None,
+) -> None:
     """Install the presented browser; the bundled Chromium stays as a fallback."""
     installed = await backend.exec(
         ("dpkg-query", "-W", "-f=${Version}", "brave-browser"),
@@ -249,7 +273,9 @@ async def _install_brave(backend: SandboxBackend, arch: str) -> None:
     if installed.exit_code == 0 and installed.stdout.strip() == BRAVE_VERSION:
         return
     try:
-        package = await asyncio.to_thread(ensure_brave_package, arch)
+        package = await asyncio.to_thread(
+            lambda: ensure_brave_package(arch, on_progress=on_progress)
+        )
         await backend.copy_in(str(package), VM_BRAVE_DEB)
         keyring = await backend.exec(
             ("sh", "-c", _BRAVE_KEYRING_STUB), cwd="/", timeout_s=120, user="root"

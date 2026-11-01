@@ -149,6 +149,25 @@
     }
   },
   "onboarding": {
+    "sandbox": {
+      "preparing": "正在准备沙箱",
+      "eta": "约剩 {{time}}",
+      "elapsed": "已用 {{time}}",
+      "ready": "就绪，可以继续",
+      "failed": "沙箱准备失败，请重试",
+      "failedTitle": "准备失败",
+      "retry": "重试",
+      "finishBlocked": "沙箱仍在准备中",
+      "stage": {
+        "starting": "准备沙箱",
+        "image": "下载系统镜像",
+        "configuring": "正在配置沙盒",
+        "packages": "安装系统组件",
+        "browser": "准备浏览器",
+        "services": "启动桌面",
+        "ready": "沙箱已就绪"
+      }
+    },
     "continue": "继续",
     "back": "返回",
     "skip": "暂时跳过",

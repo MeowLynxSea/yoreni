@@ -18,7 +18,13 @@ class SandboxConfig(Base):
     enabled: bool = True
     backend: str = "boxlite"
     box_name: str = "yoreni"
-    image: str = "lscr.io/linuxserver/webtop:ubuntu-xfce"
+    # Openbox keeps the webtop desktop working while downloading 400 MB less
+    # than the XFCE tag.
+    image: str = "lscr.io/linuxserver/webtop:ubuntu-openbox"
+    # Runtime home for images, box disks and the runtime database. Empty means
+    # `<instance data dir>/sandbox`, so one backup or deletion covers all
+    # Yoreni state.
+    home_dir: str = ""
     cpus: int = Field(default=2, ge=1, le=32)
     memory_mib: int = Field(default=4096, ge=512)
     disk_size_gb: int = Field(default=20, ge=2)

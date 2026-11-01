@@ -112,7 +112,7 @@ async def test_install_stages_the_extension_and_records_its_version(tmp_path, mo
     binary = tmp_path / "bsk"
     binary.write_bytes(b"binary")
     monkeypatch.setattr(browser_assets, "ensure_bsk_binary", lambda arch: binary)
-    monkeypatch.setattr(browser_assets, "ensure_brave_package", lambda arch: binary)
+    monkeypatch.setattr(browser_assets, "ensure_brave_package", lambda arch, **kwargs: binary)
     backend = _InstallBackend(manifest_present=True)
 
     await browser_assets.install(backend)
@@ -132,7 +132,7 @@ async def test_install_refuses_an_extension_without_a_manifest(tmp_path, monkeyp
     binary = tmp_path / "bsk"
     binary.write_bytes(b"binary")
     monkeypatch.setattr(browser_assets, "ensure_bsk_binary", lambda arch: binary)
-    monkeypatch.setattr(browser_assets, "ensure_brave_package", lambda arch: binary)
+    monkeypatch.setattr(browser_assets, "ensure_brave_package", lambda arch, **kwargs: binary)
     backend = _InstallBackend(manifest_present=False)
 
     with pytest.raises(Exception, match="manifest.json is missing"):

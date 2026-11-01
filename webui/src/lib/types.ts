@@ -1434,12 +1434,43 @@ export type OnboardingStep =
   | "embedding"
   | "done";
 
+export type SandboxSetupPhase =
+  | "starting"
+  | "image"
+  | "configuring"
+  | "packages"
+  | "browser"
+  | "services"
+  | "ready";
+
+export type SandboxSetupStage =
+  | "idle"
+  | "running"
+  | "ready"
+  | "failed"
+  | "unsupported";
+
+/** First-start preparation of the sandbox VM, streamed into onboarding. */
+export interface SandboxSetupState {
+  state: SandboxSetupStage;
+  stage: SandboxSetupPhase;
+  percent: number | null;
+  detail: string;
+  error: string;
+  downloaded_bytes: number | null;
+  total_bytes: number | null;
+  rate_bytes_per_s: number | null;
+  eta_seconds: number | null;
+  elapsed_s: number;
+}
+
 export interface OnboardingSnapshot {
   status: "uninitialized" | "in_progress" | "completed";
   step: OnboardingStep;
   token_set: boolean;
   profile: UserProfile;
   completed_at: string | null;
+  sandbox: SandboxSetupState;
 }
 
 /** Sign-in state the login screen needs before it holds any token. */

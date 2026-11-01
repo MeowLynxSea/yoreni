@@ -104,6 +104,18 @@ class OnboardingService:
             return False
         return True
 
+    def sandbox_snapshot(self) -> dict[str, Any]:
+        from yoreni.sandbox.setup import get_sandbox_setup
+
+        return get_sandbox_setup().snapshot()
+
+    async def prepare_sandbox(self, *, retry: bool = False) -> dict[str, Any]:
+        """Start (or restart) the sandbox VM that onboarding waits for."""
+        from yoreni.sandbox.setup import get_sandbox_setup
+
+        setup = get_sandbox_setup()
+        return await (setup.retry() if retry else setup.ensure_started())
+
     def snapshot(self) -> dict[str, Any]:
         status = self._status()
         record = self._state.read()
@@ -121,6 +133,7 @@ class OnboardingService:
             "token_set": token_set,
             "profile": profile_payload(profile),
             "completed_at": record.completed_at if record else None,
+            "sandbox": self.sandbox_snapshot(),
         }
 
     def read_profile(self) -> dict[str, Any]:
@@ -278,6 +291,10 @@ class OnboardingService:
                 validate_provider_setup(resolve_config_env_vars(config))
             except (ValueError, ConfigLoadError) as exc:
                 raise OnboardingError(f"Model setup is incomplete: {exc}") from None
+            if not self.sandbox_ready():
+                raise OnboardingError(
+                    "The sandbox is still being prepared", status=409
+                )
             created = self._ensure_welcome(profile, locale if isinstance(locale, str) else None)
             record = self._state.mark_completed()
             return {
@@ -285,6 +302,11 @@ class OnboardingService:
                 "completed_at": record.completed_at,
                 "created_welcome": created,
             }
+
+    def sandbox_ready(self) -> bool:
+        from yoreni.sandbox.setup import get_sandbox_setup
+
+        return get_sandbox_setup().is_ready()
 
     def _ensure_welcome(self, profile: UserProfile, locale: str | None) -> bool:
         """Create the opening messages exactly once, resuming a partial write."""

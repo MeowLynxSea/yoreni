@@ -149,6 +149,25 @@
     }
   },
   "onboarding": {
+    "sandbox": {
+      "preparing": "Preparing the sandbox",
+      "eta": "about {{time}} left",
+      "elapsed": "{{time}} elapsed",
+      "ready": "Ready — you can continue",
+      "failed": "The sandbox could not be prepared",
+      "failedTitle": "Sandbox setup failed",
+      "retry": "Retry",
+      "finishBlocked": "The sandbox is still being prepared",
+      "stage": {
+        "starting": "Preparing the sandbox",
+        "image": "Downloading the system image",
+        "configuring": "Configuring the sandbox",
+        "packages": "Installing system packages",
+        "browser": "Preparing the browser",
+        "services": "Starting the desktop",
+        "ready": "Sandbox ready"
+      }
+    },
     "continue": "Continue",
     "back": "Back",
     "skip": "Skip",

@@ -63,6 +63,9 @@ dependencies = [
     "python-docx>=1.1.0,<2.0.0",
     "openpyxl>=3.1.0,<4.0.0",
     "python-pptx>=1.0.0,<2.0.0",
+    # The sandbox is a required part of the agent runtime; boxlite has no
+    # Windows build yet, where the sandbox reports itself unsupported.
+    "boxlite>=0.11.0,<1.0.0; sys_platform != 'win32'",
 ]
 
 [project.optional-dependencies]
@@ -80,12 +83,15 @@ documents = [
     "python-docx>=1.1.0,<2.0.0",
     "openpyxl>=3.1.0,<4.0.0",
     "python-pptx>=1.0.0,<2.0.0",
+    # The sandbox is a required part of the agent runtime; boxlite has no
+    # Windows build yet, where the sandbox reports itself unsupported.
+    "boxlite>=0.11.0,<1.0.0; sys_platform != 'win32'",
 ]
 langfuse = [
     "langfuse>=4.7.0,<5.0.0",
 ]
 sandbox = [
-    "boxlite>=0.11.0,<1.0.0",
+    # Compatibility extra: boxlite is a required dependency now.
 ]
 pdf = [
     # Compatibility extra: PDF reading is bundled since v0.2.3.

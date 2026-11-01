@@ -150,6 +150,9 @@ _READINESS = (
 
 _STYLE_DESKTOP = r"""
 export DISPLAY={display}
+# XFCE panels repaint the root window; a solid root also keeps the surface flat
+# on window managers without a desktop component (for example Openbox).
+xsetroot -solid '#0b0d10' >/dev/null 2>&1 || true
 # The stock wallpaper is a photo of someone else's desktop. A flat Yoreni
 # surface reads as one continuous app instead of a remote computer.
 for prop in $(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep '/last-image$'); do

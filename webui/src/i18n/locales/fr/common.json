@@ -149,6 +149,25 @@
     }
   },
   "onboarding": {
+    "sandbox": {
+      "preparing": "Préparation de l'environnement",
+      "eta": "environ {{time}} restantes",
+      "elapsed": "{{time}} écoulées",
+      "ready": "Prêt, vous pouvez continuer",
+      "failed": "Impossible de préparer l'environnement",
+      "failedTitle": "Échec de la préparation",
+      "retry": "Réessayer",
+      "finishBlocked": "L'environnement est encore en préparation",
+      "stage": {
+        "starting": "Préparation de l'environnement",
+        "image": "Téléchargement de l'image système",
+        "configuring": "Configuration de l'environnement",
+        "packages": "Installation des paquets système",
+        "browser": "Préparation du navigateur",
+        "services": "Démarrage du bureau",
+        "ready": "Environnement prêt"
+      }
+    },
     "continue": "Continuer",
     "back": "Retour",
     "skip": "Passer",

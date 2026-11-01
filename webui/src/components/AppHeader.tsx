@@ -13,6 +13,7 @@ type AppHeaderProps = {
   onToggleTheme: () => void;
   onOpenSearch: () => void;
   onOpenComputer?: () => void;
+  computerOpen?: boolean;
   onComputerButtonRef?: React.RefObject<HTMLButtonElement>;
   homeView?: HomeView;
   onHomeViewChange?: (view: HomeView) => void;
@@ -23,6 +24,7 @@ export function AppHeader({
   onToggleTheme,
   onOpenSearch,
   onOpenComputer,
+  computerOpen,
   onComputerButtonRef,
   homeView,
   onHomeViewChange,
@@ -143,9 +145,15 @@ export function AppHeader({
             ref={onComputerButtonRef}
             type="button"
             onClick={onOpenComputer}
+            aria-pressed={computerOpen ?? false}
             aria-label={t("computer.title")}
             title={t("computer.title")}
-            className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 dark:hover:bg-white/[0.06]"
+            className={cn(
+              "pointer-events-auto grid h-11 w-11 place-items-center rounded-full transition-[background-color,color] hover:bg-foreground/[0.05] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 dark:hover:bg-white/[0.06] dark:hover:text-foreground",
+              computerOpen
+                ? "bg-foreground/[0.07] text-foreground dark:bg-white/[0.12]"
+                : "text-muted-foreground",
+            )}
           >
             <Monitor className="h-5 w-5" strokeWidth={1.7} aria-hidden />
           </button>

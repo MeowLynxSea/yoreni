@@ -2597,7 +2597,6 @@
     "fullscreen": "전체 화면",
     "paste": "클립보드 붙여넣기",
     "clipboardDenied": "클립보드 접근이 거부되었습니다.",
-    "close": "닫기",
     "loading": "컴퓨터를 확인하는 중…"
   }
 }

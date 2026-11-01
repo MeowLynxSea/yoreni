@@ -9,7 +9,7 @@ import { AmbientBackground } from "@/components/AmbientBackground";
 import { AgentRunIndicator } from "@/components/AgentRunIndicator";
 import { AppHeader } from "@/components/AppHeader";
 import { ChatSearch, type ChatSearchProps } from "@/components/ChatSearch";
-import { ComputerPanel } from "@/components/ComputerPanel";
+import { ComputerPanel, type ComputerPanelHandle } from "@/components/ComputerPanel";
 import { HomePanel } from "@/components/home/HomePanel";
 import { ProjectsPage } from "@/components/projects/ProjectsPage";
 import { StartupShell } from "@/components/StartupShell";
@@ -764,6 +764,7 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [computerOpen, setComputerOpen] = useState(false);
   const computerButtonRef = useRef<HTMLButtonElement>(null);
+  const computerRef = useRef<ComputerPanelHandle>(null);
   const [focusMessageId, setFocusMessageId] = useState<string | null>(null);
   const changeHomeView = useCallback((view: HomeView) => {
     setHomeView(view);
@@ -860,12 +861,17 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
         theme={theme}
         onToggleTheme={toggle}
         onOpenSearch={() => setSearchOpen(true)}
-        onOpenComputer={webuiCapabilities.includes("webui.sandbox.desktop.v1") ? () => setComputerOpen(true) : undefined}
+        onOpenComputer={webuiCapabilities.includes("webui.sandbox.desktop.v1") ? () => {
+          if (computerOpen) computerRef.current?.close();
+          else setComputerOpen(true);
+        } : undefined}
+        computerOpen={computerOpen}
         onComputerButtonRef={computerButtonRef}
         homeView={homeView}
         onHomeViewChange={changeHomeView}
       />
       <ComputerPanel
+        ref={computerRef}
         open={computerOpen}
         anchorRef={computerButtonRef}
         onClose={() => setComputerOpen(false)}

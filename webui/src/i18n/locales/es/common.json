@@ -2597,7 +2597,6 @@
     "fullscreen": "Pantalla completa",
     "paste": "Pegar portapapeles",
     "clipboardDenied": "Se ha denegado el acceso al portapapeles.",
-    "close": "Cerrar",
     "loading": "Comprobando el ordenador…"
   }
 }

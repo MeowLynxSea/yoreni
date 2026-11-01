@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
-import { ClipboardPaste, Expand, Hand, Loader2, Minimize2, Monitor, RotateCw, X } from "lucide-react";
+import { ClipboardPaste, Expand, Hand, Loader2, Minimize2, Monitor, RotateCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { createDesktopSession, fetchSandboxStatus, setDesktopControl, type SandboxControlSnapshot, type SandboxStatusPayload } from "@/lib/api";
@@ -27,6 +27,9 @@ type Props = {
   /** Header button the small panel grows out of and collapses back into. */
   anchorRef?: RefObject<HTMLButtonElement | null>;
 };
+
+/** The header button closes the panel through the same path as Escape. */
+export type ComputerPanelHandle = { close: () => void };
 
 const STATUS_POLL_MS = 2_500;
 
@@ -64,7 +67,10 @@ function animateAnchor(
   );
 }
 
-export function ComputerPanel({ open, onClose, anchorRef }: Props) {
+export const ComputerPanel = forwardRef<ComputerPanelHandle, Props>(function ComputerPanel(
+  { open, onClose, anchorRef },
+  ref,
+) {
   const { t } = useTranslation();
   const { client, getToken } = useClient();
   const token = getToken();
@@ -84,6 +90,7 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const morphFrom = useRef<DOMRect | null>(null);
   const grewFromAnchor = useRef(false);
+  const [arrowX, setArrowX] = useState<number | null>(null);
 
   // Grow and shrink the desktop from its small preview rect instead of sliding
   // a differently shaped panel in from the edge.
@@ -136,6 +143,26 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
     if (grewFromAnchor.current) return;
     grewFromAnchor.current = true;
     animateAnchor(shellRef.current, anchorRef?.current ?? null, "in");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, view]);
+
+  // The bubble points back at the header button that opened it, so its tip has
+  // to follow the button when the window or the header layout changes.
+  useLayoutEffect(() => {
+    if (!open || view !== "peek") return;
+    const measure = () => {
+      const shell = shellRef.current;
+      const anchor = anchorRef?.current;
+      if (!shell || !anchor) return;
+      const shellRect = shell.getBoundingClientRect();
+      const anchorRect = anchor.getBoundingClientRect();
+      if (!shellRect.width || !anchorRect.width) return;
+      const center = anchorRect.left + anchorRect.width / 2 - shellRect.left;
+      setArrowX(Math.min(Math.max(center, 18), shellRect.width - 18));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, view]);
 
@@ -320,6 +347,8 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
     onClose();
   };
 
+  useImperativeHandle(ref, () => ({ close: () => { void close(); } }));
+
   const takeControl = async () => {
     const controller = controllerRef.current;
     if (!controller || !token || busy) return;
@@ -407,6 +436,14 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
         )}
       />
 
+      {!full && arrowX !== null ? (
+        <span
+          aria-hidden
+          style={{ left: arrowX - 7 }}
+          className="pointer-events-none absolute -top-[4px] h-3.5 w-3.5 rotate-45 rounded-[3px] border-l border-t border-[color:var(--app-glass-border)] bg-[var(--app-glass)] backdrop-blur-xl animate-in fade-in-0 duration-200 motion-reduce:animate-none"
+        />
+      ) : null}
+
       <div
         ref={shellRef}
         className={cn(
@@ -457,11 +494,6 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
                 aria-label={t("computer.reconnect")} title={t("computer.reconnect")}
                 onClick={() => { void connect(); }}>
                 <RotateCw className="h-4 w-4" />
-              </Button>
-              <Button type="button" variant="icon" size="icon" className="h-7 w-7"
-                aria-label={t("computer.close")} title={t("computer.close")}
-                onClick={() => { void close(); }}>
-                <X className="h-4 w-4" />
               </Button>
             </div>
           </header>
@@ -520,4 +552,4 @@ export function ComputerPanel({ open, onClose, anchorRef }: Props) {
       </div>
     </div>
   );
-}
+});

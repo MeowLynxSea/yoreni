@@ -4,10 +4,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useAgentRun } from "@/hooks/useAgentRun";
 import { fetchPersonalAgent, type PersonalAgentInfo } from "@/lib/api";
+import { showBrowserNotification } from "@/lib/browser-notifications";
 import { YoreniClient } from "@/lib/yoreni-client";
 import { ClientProvider } from "@/providers/ClientProvider";
 
 vi.mock("@/lib/api", () => ({ fetchPersonalAgent: vi.fn() }));
+vi.mock("@/lib/browser-notifications", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/browser-notifications")>()),
+  showBrowserNotification: vi.fn(),
+}));
 
 class TestSocket {
   readyState = 0;
@@ -62,6 +67,7 @@ function answerHistory(content: string): PersonalAgentInfo {
 describe("project transcripts", () => {
   afterEach(() => {
     vi.mocked(fetchPersonalAgent).mockReset();
+    vi.mocked(showBrowserNotification).mockReset();
   });
 
   it("reads and writes the transcript of the active project", async () => {
@@ -113,6 +119,31 @@ describe("project transcripts", () => {
 
     act(() => socket.receive({ event: "message", id: "m-2", text: "main chat" }));
     expect(result.current.messages.map((message) => message.content)).toEqual(["main chat"]);
+
+    unmount();
+    client.close();
+  });
+
+  it("alerts once when the agent asks for credentials", async () => {
+    vi.mocked(fetchPersonalAgent).mockResolvedValue(emptyHistory());
+    const { client, socket, wrapper } = setup();
+    const { result, unmount } = renderHook(() => useAgentRun("p-1"), { wrapper });
+    await waitFor(() => expect(result.current.historyLoaded).toBe(true));
+
+    const authRequest = {
+      id: "auth_1", connector_id: "portal", method: "api_key", fields: ["api_key"],
+      purpose: "Connect the campus portal to check grades.", status: "pending",
+    };
+    // Cards are not addressed to a project, so a project transcript must still
+    // route the alert to the conversation that renders them.
+    act(() => socket.receive({ event: "auth_request", auth_request: authRequest }));
+    expect(showBrowserNotification).toHaveBeenCalledWith(
+      "Connect the campus portal to check grades.",
+      { key: "auth_1", url: expect.stringMatching(/#\/projects\/p-1$/) },
+    );
+
+    act(() => socket.receive({ event: "auth_request", auth_request: authRequest }));
+    expect(showBrowserNotification).toHaveBeenCalledOnce();
 
     unmount();
     client.close();

@@ -25,7 +25,7 @@ function notificationTarget(value) {
   try {
     const url = new URL(value);
     if (url.origin !== self.location.origin || url.username || url.password || url.search || url.pathname !== "/") return null;
-    return /^#\/(?:chat|temporary)\/[^?]+$/.test(url.hash)
+    return /^#\/(?:projects|chat|temporary)\/[^?]+$/.test(url.hash)
       || url.hash === ""
       || url.hash === "#/"
       || url.hash === "#/settings?section=appearance"

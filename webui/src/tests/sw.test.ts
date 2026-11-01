@@ -144,7 +144,7 @@ function loadSw(noticeStore = new FakeCacheStore()): LoadedSw {
 
 describe("browser notification worker", () => {
   const source = { id: "tab-1", url: `${ORIGIN}/?token=private` };
-  const url = `${ORIGIN}/#/chat/websocket%3Aone`;
+  const url = `${ORIGIN}/#/projects/p-1`;
   const data = { type: "yoreni:notify", key: "turn-1", body: "Task completed", url };
   async function send(sw: LoadedSw, overrides = {}) {
     const reply = vi.fn();

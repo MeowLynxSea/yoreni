@@ -339,16 +339,23 @@ export function useAgentRun(projectId: string | null = null) {
       const body = (request.purpose ?? "").trim().slice(0, 300) || t("auth.title");
       void showBrowserNotification(body, { key: request.id, url: notificationAppUrl(projectId) });
     }
+    // Alerts are not transcript rows: a reply in another conversation still
+    // concerns the user, and the alert opens that conversation.
+    if (frame.event === "message" && frame.kind === undefined) {
+      // A Run whose agent sent nothing still delivers its own text, and that
+      // frame has no row ID; key it by the same transcript node it projects to.
+      const key = frame.id ?? `${runKey(frame)}:answer`;
+      const visible = Boolean(frame.text?.trim() || frame.media_urls?.length);
+      if (visible && !notifiedMessageIds.current.has(key)) {
+        notifiedMessageIds.current.add(key);
+        playMessageSound();
+        const body = (frame.text ?? "").trim().slice(0, 300) || t("settings.notifications.newMessage");
+        void showBrowserNotification(body, { key, url: notificationAppUrl(frame.project_id) });
+      }
+    }
     // Every project Run stamps its frames; the main chat leaves the field out.
     if ((frame.project_id ?? null) !== scope.current) return;
     setMessages((current) => projectAgentFrame(current, frame));
-    if (frame.event === "message" && frame.id && frame.kind === undefined
-      && !notifiedMessageIds.current.has(frame.id)) {
-      notifiedMessageIds.current.add(frame.id);
-      playMessageSound();
-      const body = (frame.text ?? "").trim().slice(0, 300) || t("settings.notifications.newMessage");
-      void showBrowserNotification(body, { key: frame.id, url: notificationAppUrl(frame.project_id) });
-    }
     const run = runKey(frame);
     if (frame.event === "message") {
       const reason = latestToolReason(frame.tool_events);

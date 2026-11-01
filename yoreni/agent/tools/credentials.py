@@ -16,7 +16,6 @@ from typing import Any
 from yoreni.agent.tools.base import Tool, ToolResult, tool_parameters
 from yoreni.agent.tools.context import ToolContext, current_request_context
 from yoreni.agent.tools.schema import (
-    ArraySchema,
     IntegerSchema,
     StringSchema,
     tool_parameters_schema,
@@ -24,6 +23,7 @@ from yoreni.agent.tools.schema import (
 from yoreni.credentials.auth import AuthRequestStatus
 from yoreni.credentials.manager import get_credential_manager
 from yoreni.credentials.models import AuthMethod
+
 _MAX_WAIT_SECONDS = 600
 
 _PLACEHOLDER_HINT = (
@@ -53,21 +53,6 @@ def _run_id() -> str | None:
         ),
         purpose=StringSchema(
             "One sentence shown to the user explaining which service is being connected and why."
-        ),
-        allowed_tools=ArraySchema(
-            StringSchema(""),
-            description=(
-                "Tools allowed to receive the resulting credential. Name the tool you "
-                "will call, e.g. an MCP tool name; a sub-action of a grouped tool also "
-                "works."
-            ),
-        ),
-        allowed_domains=ArraySchema(
-            StringSchema(""),
-            description=(
-                "Sites this credential may be used on, e.g. ['example.com']. A full URL "
-                "is accepted too."
-            ),
         ),
         timeout_seconds=IntegerSchema(
             description="How long to wait for the user, in seconds (30-600). Defaults to 300.",
@@ -105,8 +90,6 @@ class RequestAuthenticationTool(Tool):
         connector_id: str = "",
         method: str | None = None,
         purpose: str = "",
-        allowed_tools: list[str] | None = None,
-        allowed_domains: list[str] | None = None,
         timeout_seconds: int = 300,
         **kwargs: object,
     ) -> str:
@@ -136,30 +119,15 @@ class RequestAuthenticationTool(Tool):
                 f"Error: {connector.id} does not support {auth_method.value}"
             )
 
-        # A card the user fills must produce an account a tool can actually use,
-        # so resolve the grant here and refuse before opening the card.
-        has_secret = bool(connector.fields_for(auth_method))
-        tools = [str(tool).strip() for tool in (allowed_tools or []) if str(tool).strip()]
-        if not tools and has_secret:
-            return ToolResult.error(
-                "Error: name the tool that will receive this credential in "
-                "allowed_tools, e.g. the MCP tool name you are about to call."
-            )
-        domains = [str(domain).strip() for domain in (allowed_domains or []) if str(domain).strip()]
-        if not domains and has_secret:
-            return ToolResult.error(
-                "Error: name the site in allowed_domains (a bare host works, e.g. "
-                "['example.com'])."
-            )
-
+        # The card is the user's authorization: once they fill it, the account is
+        # usable by whatever tool the model calls next. Nothing is inferred from
+        # the current page, and no tool name has to be guessed up front.
         try:
             request = manager.request_auth(
                 connector_id=connector.id,
                 method=auth_method,
                 purpose=purpose.strip()[:400],
                 run_id=_run_id(),
-                allowed_tools=tools,
-                allowed_domains=domains,
             )
         except ValueError as exc:
             return ToolResult.error(f"Error: {exc}")
@@ -177,8 +145,6 @@ class RequestAuthenticationTool(Tool):
                 "account_id": completed.account_id,
                 "connector_id": connector.id,
                 "label": account.label if account else connector.name,
-                "allowed_tools": list(account.allowed_tools) if account else tools,
-                "allowed_domains": list(account.allowed_domains) if account else domains,
                 "placeholders": manager.placeholders_for_account(completed.account_id),
                 "next_step": _PLACEHOLDER_HINT,
             }

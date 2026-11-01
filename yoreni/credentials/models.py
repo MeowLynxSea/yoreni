@@ -44,6 +44,10 @@ class AccountStatus(str, Enum):
     REVOKED = "revoked"
 
 
+class CredentialUseDeniedError(RuntimeError):
+    """Raised when a placeholder cannot be turned into a secret."""
+
+
 @dataclass(frozen=True)
 class ConnectorField:
     """One authentication input a connector requires."""
@@ -73,9 +77,6 @@ class ConnectorSpec:
     auth_methods: tuple[AuthMethod, ...] = (AuthMethod.API_KEY,)
     fields: tuple[ConnectorField, ...] = ()
     scopes: tuple[str, ...] = ()
-    allowed_domains: tuple[str, ...] = ()
-    # Tools this connector's accounts may restore credentials into by default.
-    tool_patterns: tuple[str, ...] = ()
     oauth_authorization_url: str = ""
     oauth_token_url: str = ""
     oauth_client_id: str = ""
@@ -118,8 +119,6 @@ class ConnectorSpec:
                 for field in self.fields
             ],
             "scopes": list(self.scopes),
-            "allowed_domains": list(self.allowed_domains),
-            "tool_patterns": list(self.tool_patterns),
         }
 
 
@@ -129,7 +128,7 @@ class Account:
 
     ``secret_fields`` holds field names only. Values are readable exclusively
     through :meth:`yoreni.credentials.manager.CredentialManager.reveal`, which is
-    restricted to the tool-restoration boundary.
+    trusted internal code.
     """
 
     id: str
@@ -140,8 +139,6 @@ class Account:
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
     expires_at: float | None = None
-    allowed_tools: tuple[str, ...] = ()
-    allowed_domains: tuple[str, ...] = ()
     restorable: bool = False
     secret_fields: tuple[str, ...] = ()
 
@@ -163,8 +160,6 @@ class Account:
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "expires_at": self.expires_at,
-            "allowed_tools": list(self.allowed_tools),
-            "allowed_domains": list(self.allowed_domains),
             "restorable": self.restorable,
             "secret_fields": list(self.secret_fields),
         }

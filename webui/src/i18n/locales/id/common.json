@@ -643,7 +643,8 @@
       "mcp": "MCP",
       "apps": "Aplikasi",
       "automations": "Otomasi",
-      "skills": "Keterampilan"
+      "skills": "Keterampilan",
+      "accounts": "Akun"
     },
     "sections": {
       "interface": "Antarmuka",
@@ -2517,5 +2518,67 @@
       "cancel": "Batal",
       "switchDirectory": "Ganti direktori"
     }
+  },
+  "auth": {
+    "title": "Perlu autentikasi",
+    "cancel": "Batal",
+    "connect": "Hubungkan",
+    "continueInBrowser": "Lanjutkan di browser",
+    "secureNote": "Kredensial dikirim langsung ke Yoreni dan tidak pernah muncul di obrolan.",
+    "fields": {
+      "username": "Nama pengguna",
+      "email": "Email",
+      "password": "Kata sandi",
+      "apiKey": "Kunci API",
+      "code": "Kode verifikasi"
+    }
+  },
+  "accounts": {
+    "title": "Akun",
+    "description": "Akun muncul di sini saat agen meminta Anda masuk. Kredensial tetap di mesin ini dan tidak pernah masuk ke prompt model.",
+    "loading": "Memuat akun…",
+    "disconnect": "Putuskan",
+    "tabs": {
+      "all": "Semua",
+      "connected": "Terhubung",
+      "login": "Login",
+      "api_key": "Kunci API"
+    },
+    "status": {
+      "connected": "Terhubung",
+      "expired": "Kedaluwarsa",
+      "revoked": "Dicabut"
+    },
+    "services": {
+      "api_key": {
+        "name": "Kunci API",
+        "description": "Layanan yang diautentikasi dengan satu token"
+      },
+      "basic_auth": {
+        "name": "Nama pengguna dan kata sandi",
+        "description": "Situs yang masuk dengan akun"
+      }
+    },
+    "empty": {
+      "title": "Belum ada akun",
+      "description": "Saat agen membutuhkan layanan, ia akan meminta izin di percakapan. Akun yang terhubung muncul di sini."
+    }
+  },
+  "computer": {
+    "title": "Komputer Yoreni",
+    "take": "Ambil kendali",
+    "release": "Kembalikan kendali",
+    "youControl": "Anda yang mengendalikan",
+    "agentControls": "Yoreni sedang memakai komputer",
+    "connecting": "Menghubungkan ke desktop…",
+    "disconnected": "Sambungan desktop terputus.",
+    "offline": "Komputer Yoreni tidak berjalan.",
+    "authFailed": "Sambungan desktop ditolak.",
+    "reconnect": "Hubungkan ulang",
+    "fullscreen": "Layar penuh",
+    "paste": "Tempel papan klip",
+    "clipboardDenied": "Akses papan klip ditolak.",
+    "close": "Tutup",
+    "loading": "Memeriksa komputer…"
   }
 }

@@ -643,7 +643,8 @@
       "mcp": "MCP",
       "apps": "アプリ",
       "automations": "自動タスク",
-      "skills": "スキル"
+      "skills": "スキル",
+      "accounts": "アカウント"
     },
     "sections": {
       "interface": "インターフェース",
@@ -2517,5 +2518,67 @@
       "cancel": "キャンセル",
       "switchDirectory": "ディレクトリ切り替え"
     }
+  },
+  "auth": {
+    "title": "認証が必要です",
+    "cancel": "キャンセル",
+    "connect": "接続",
+    "continueInBrowser": "ブラウザーで続行",
+    "secureNote": "認証情報は Yoreni に直接送信され、チャットには表示されません。",
+    "fields": {
+      "username": "ユーザー名",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "apiKey": "API キー",
+      "code": "確認コード"
+    }
+  },
+  "accounts": {
+    "title": "アカウント",
+    "description": "Agent がサインインを求めたときに、ここにアカウントが表示されます。認証情報はこのコンピューター上にのみ保存され、モデルのプロンプトには入りません。",
+    "loading": "アカウントを読み込み中…",
+    "disconnect": "切断",
+    "tabs": {
+      "all": "すべて",
+      "connected": "接続済み",
+      "login": "ログイン",
+      "api_key": "API キー"
+    },
+    "status": {
+      "connected": "接続済み",
+      "expired": "期限切れ",
+      "revoked": "失効"
+    },
+    "services": {
+      "api_key": {
+        "name": "API キー",
+        "description": "単一のトークンで認証するサービス"
+      },
+      "basic_auth": {
+        "name": "ユーザー名とパスワード",
+        "description": "アカウントでサインインするサイト"
+      }
+    },
+    "empty": {
+      "title": "アカウントはまだありません",
+      "description": "Agent がサービスを必要とすると、会話の中で認証を求めます。接続したアカウントはここに表示されます。"
+    }
+  },
+  "computer": {
+    "title": "Yoreni のコンピューター",
+    "take": "操作を引き継ぐ",
+    "release": "操作を返す",
+    "youControl": "操作権はあなたにあります",
+    "agentControls": "Yoreni がコンピューターを使用中です",
+    "connecting": "デスクトップに接続しています…",
+    "disconnected": "デスクトップの接続が切れました。",
+    "offline": "Yoreni のコンピューターは起動していません。",
+    "authFailed": "デスクトップ接続が拒否されました。",
+    "reconnect": "再接続",
+    "fullscreen": "全画面",
+    "paste": "クリップボードを貼り付け",
+    "clipboardDenied": "クリップボードへのアクセスが拒否されました。",
+    "close": "閉じる",
+    "loading": "コンピューターを確認しています…"
   }
 }

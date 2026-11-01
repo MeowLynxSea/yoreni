@@ -643,7 +643,8 @@
       "memory": "Memória",
       "apps": "Aplicativos",
       "automations": "Automações",
-      "skills": "Habilidades"
+      "skills": "Habilidades",
+      "accounts": "Contas"
     },
     "sections": {
       "interface": "Interface do usuário",
@@ -2517,5 +2518,67 @@
       "cancel": "Cancelar",
       "switchDirectory": "Trocar diretório"
     }
+  },
+  "auth": {
+    "title": "Autenticação necessária",
+    "cancel": "Cancelar",
+    "connect": "Conectar",
+    "continueInBrowser": "Continuar no navegador",
+    "secureNote": "As credenciais são enviadas diretamente ao Yoreni e nunca aparecem no chat.",
+    "fields": {
+      "username": "Usuário",
+      "email": "E-mail",
+      "password": "Senha",
+      "apiKey": "Chave de API",
+      "code": "Código de verificação"
+    }
+  },
+  "accounts": {
+    "title": "Contas",
+    "description": "As contas aparecem aqui quando o agente pede para você entrar. As credenciais ficam nesta máquina e nunca entram no prompt do modelo.",
+    "loading": "Carregando contas…",
+    "disconnect": "Desconectar",
+    "tabs": {
+      "all": "Todas",
+      "connected": "Conectadas",
+      "login": "Logins",
+      "api_key": "Chaves de API"
+    },
+    "status": {
+      "connected": "Conectada",
+      "expired": "Expirada",
+      "revoked": "Revogada"
+    },
+    "services": {
+      "api_key": {
+        "name": "Chave de API",
+        "description": "Serviço autenticado com um único token"
+      },
+      "basic_auth": {
+        "name": "Usuário e senha",
+        "description": "Site que entra com uma conta"
+      }
+    },
+    "empty": {
+      "title": "Nenhuma conta ainda",
+      "description": "Quando o agente precisar de um serviço, ele pedirá autorização na conversa. As contas conectadas aparecem aqui."
+    }
+  },
+  "computer": {
+    "title": "O computador do Yoreni",
+    "take": "Assumir o controle",
+    "release": "Devolver o controle",
+    "youControl": "Você está no controle",
+    "agentControls": "O Yoreni está usando o computador",
+    "connecting": "Conectando à área de trabalho…",
+    "disconnected": "A conexão com a área de trabalho caiu.",
+    "offline": "O computador do Yoreni não está em execução.",
+    "authFailed": "A conexão com a área de trabalho foi recusada.",
+    "reconnect": "Reconectar",
+    "fullscreen": "Tela cheia",
+    "paste": "Colar área de transferência",
+    "clipboardDenied": "O acesso à área de transferência foi negado.",
+    "close": "Fechar",
+    "loading": "Verificando o computador…"
   }
 }

@@ -1,9 +1,9 @@
 """Structured authentication requests and the run-resumption handshake.
 
 A request records *what* the agent needs (connector, method, fields, purpose)
-and who asked for it (run, allowed tools, allowed domains). The submitted
-values travel only through :meth:`CredentialManager.submit_auth_request`; they
-are never part of an agent message, a tool result, or an elicitation response.
+and who asked for it (the Run). The submitted values travel only through
+:meth:`CredentialManager.submit_auth_request`; they are never part of an agent
+message, a tool result, or an elicitation response.
 """
 
 from __future__ import annotations
@@ -39,8 +39,6 @@ class AuthRequest:
     account_id: str | None = None
     created_at: float = field(default_factory=time.time)
     expires_at: float = 0.0
-    allowed_tools: tuple[str, ...] = ()
-    allowed_domains: tuple[str, ...] = ()
     error: str | None = None
 
     @property
@@ -59,8 +57,6 @@ class AuthRequest:
             "account_id": self.account_id,
             "created_at": self.created_at,
             "expires_at": self.expires_at,
-            "allowed_tools": list(self.allowed_tools),
-            "allowed_domains": list(self.allowed_domains),
             "error": self.error,
         }
 
@@ -91,8 +87,6 @@ class AuthRequestManager:
         fields: tuple[str, ...],
         purpose: str,
         run_id: str | None,
-        allowed_tools: tuple[str, ...],
-        allowed_domains: tuple[str, ...],
         ttl_seconds: float | None = None,
     ) -> AuthRequest:
         now = time.time()
@@ -105,8 +99,6 @@ class AuthRequestManager:
             run_id=run_id,
             created_at=now,
             expires_at=now + (ttl_seconds if ttl_seconds is not None else self._ttl),
-            allowed_tools=allowed_tools,
-            allowed_domains=allowed_domains,
         )
         loop = asyncio.get_running_loop()
         with self._guard:

@@ -643,7 +643,8 @@
       "mcp": "MCP",
       "apps": "Ứng dụng",
       "automations": "Tự động hóa",
-      "skills": "Kỹ năng"
+      "skills": "Kỹ năng",
+      "accounts": "Tài khoản"
     },
     "sections": {
       "interface": "Giao diện",
@@ -2517,5 +2518,67 @@
       "cancel": "Hủy",
       "switchDirectory": "Đổi thư mục"
     }
+  },
+  "auth": {
+    "title": "Cần xác thực",
+    "cancel": "Hủy",
+    "connect": "Kết nối",
+    "continueInBrowser": "Tiếp tục trong trình duyệt",
+    "secureNote": "Thông tin đăng nhập được gửi trực tiếp tới Yoreni và không bao giờ xuất hiện trong cuộc trò chuyện.",
+    "fields": {
+      "username": "Tên đăng nhập",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "apiKey": "Khóa API",
+      "code": "Mã xác minh"
+    }
+  },
+  "accounts": {
+    "title": "Tài khoản",
+    "description": "Tài khoản xuất hiện ở đây khi agent yêu cầu bạn đăng nhập. Thông tin đăng nhập chỉ nằm trên máy này và không bao giờ vào prompt của mô hình.",
+    "loading": "Đang tải tài khoản…",
+    "disconnect": "Ngắt kết nối",
+    "tabs": {
+      "all": "Tất cả",
+      "connected": "Đã kết nối",
+      "login": "Đăng nhập",
+      "api_key": "Khóa API"
+    },
+    "status": {
+      "connected": "Đã kết nối",
+      "expired": "Hết hạn",
+      "revoked": "Đã thu hồi"
+    },
+    "services": {
+      "api_key": {
+        "name": "Khóa API",
+        "description": "Dịch vụ xác thực bằng một token"
+      },
+      "basic_auth": {
+        "name": "Tên đăng nhập và mật khẩu",
+        "description": "Trang đăng nhập bằng tài khoản"
+      }
+    },
+    "empty": {
+      "title": "Chưa có tài khoản",
+      "description": "Khi agent cần một dịch vụ, nó sẽ xin phép trong cuộc trò chuyện. Tài khoản đã kết nối hiện ở đây."
+    }
+  },
+  "computer": {
+    "title": "Máy tính của Yoreni",
+    "take": "Nhận quyền điều khiển",
+    "release": "Trả lại quyền điều khiển",
+    "youControl": "Bạn đang điều khiển",
+    "agentControls": "Yoreni đang dùng máy tính",
+    "connecting": "Đang kết nối tới màn hình…",
+    "disconnected": "Kết nối màn hình đã bị ngắt.",
+    "offline": "Máy tính của Yoreni chưa chạy.",
+    "authFailed": "Kết nối màn hình bị từ chối.",
+    "reconnect": "Kết nối lại",
+    "fullscreen": "Toàn màn hình",
+    "paste": "Dán bộ nhớ tạm",
+    "clipboardDenied": "Quyền truy cập bộ nhớ tạm bị từ chối.",
+    "close": "Đóng",
+    "loading": "Đang kiểm tra máy tính…"
   }
 }

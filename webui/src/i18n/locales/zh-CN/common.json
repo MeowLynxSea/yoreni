@@ -2519,6 +2519,20 @@
       "switchDirectory": "切换目录"
     }
   },
+  "auth": {
+    "title": "需要登录",
+    "cancel": "取消",
+    "connect": "连接",
+    "continueInBrowser": "在浏览器中继续",
+    "secureNote": "凭证直接发送给 Yoreni，不会出现在对话里。",
+    "fields": {
+      "username": "用户名",
+      "email": "邮箱",
+      "password": "密码",
+      "apiKey": "API 密钥",
+      "code": "验证码"
+    }
+  },
   "accounts": {
     "title": "账户",
     "description": "账户会在 Agent 请求你登录后出现在这里。凭证只保存在本机，不会进入模型请求。",
@@ -2549,5 +2563,22 @@
       "title": "还没有账户",
       "description": "当 Agent 需要使用某个服务时，会在对话中发起授权请求。连接后的账户会显示在这里。"
     }
+  },
+  "computer": {
+    "title": "Yoreni 的电脑",
+    "take": "接管",
+    "release": "交还控制权",
+    "youControl": "你正在控制",
+    "agentControls": "Yoreni 正在使用电脑",
+    "connecting": "正在连接桌面...",
+    "disconnected": "桌面画面已断开。",
+    "offline": "Yoreni 的电脑未运行。",
+    "authFailed": "桌面连接被拒绝。",
+    "reconnect": "重新连接",
+    "fullscreen": "全屏",
+    "paste": "粘贴剪贴板",
+    "clipboardDenied": "剪贴板访问被拒绝。",
+    "close": "关闭",
+    "loading": "正在检查电脑..."
   }
 }

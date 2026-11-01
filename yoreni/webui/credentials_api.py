@@ -61,8 +61,6 @@ def connect_account(payload: Mapping[str, object]) -> dict[str, Any]:
         label=_optional_str(payload, "label") or "",
         method=method,
         values=_values(payload),
-        allowed_tools=_str_list(payload.get("allowed_tools")),
-        allowed_domains=_str_list(payload.get("allowed_domains")),
         restorable=bool(payload.get("restorable", True)),
     )
     return {"account": account.to_public_dict()}
@@ -74,8 +72,6 @@ def update_account(payload: Mapping[str, object]) -> dict[str, Any]:
     account = get_credential_manager().update_account(
         account_id,
         label=_optional_str(payload, "label"),
-        allowed_tools=_str_list(payload["allowed_tools"]) if "allowed_tools" in payload else None,
-        allowed_domains=_str_list(payload["allowed_domains"]) if "allowed_domains" in payload else None,
         restorable=raw_restorable if isinstance(raw_restorable, bool) else None,
     )
     return {"account": account.to_public_dict()}
@@ -157,8 +153,6 @@ def register_connector(payload: Mapping[str, object]) -> dict[str, Any]:
         auth_methods=tuple(AuthMethod(str(method)) for method in cast(list[object], raw_methods)),
         fields=tuple(fields),
         scopes=tuple(_str_list(payload.get("scopes"))),
-        allowed_domains=tuple(_str_list(payload.get("allowed_domains"))),
-        tool_patterns=tuple(_str_list(payload.get("tool_patterns"))),
         oauth_authorization_url=str(payload.get("oauth_authorization_url") or ""),
         oauth_token_url=str(payload.get("oauth_token_url") or ""),
         oauth_client_id=str(payload.get("oauth_client_id") or ""),

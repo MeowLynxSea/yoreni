@@ -643,7 +643,8 @@
       "mcp": "MCP",
       "apps": "Applications",
       "automations": "Automatisations",
-      "skills": "Compétences"
+      "skills": "Compétences",
+      "accounts": "Comptes"
     },
     "sections": {
       "interface": "Interface utilisateur",
@@ -2517,5 +2518,67 @@
       "cancel": "Annuler",
       "switchDirectory": "Changer de dossier"
     }
+  },
+  "auth": {
+    "title": "Authentification requise",
+    "cancel": "Annuler",
+    "connect": "Se connecter",
+    "continueInBrowser": "Continuer dans le navigateur",
+    "secureNote": "Les identifiants sont envoyés directement à Yoreni et n'apparaissent jamais dans la conversation.",
+    "fields": {
+      "username": "Nom d’utilisateur",
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "apiKey": "Clé d’API",
+      "code": "Code de vérification"
+    }
+  },
+  "accounts": {
+    "title": "Comptes",
+    "description": "Les comptes apparaissent ici lorsque l'agent vous demande de vous connecter. Les identifiants restent sur cette machine et n'entrent jamais dans le prompt du modèle.",
+    "loading": "Chargement des comptes…",
+    "disconnect": "Déconnecter",
+    "tabs": {
+      "all": "Tous",
+      "connected": "Connectés",
+      "login": "Connexions",
+      "api_key": "Clés d'API"
+    },
+    "status": {
+      "connected": "Connecté",
+      "expired": "Expiré",
+      "revoked": "Révoqué"
+    },
+    "services": {
+      "api_key": {
+        "name": "Clé d'API",
+        "description": "Service authentifié par un jeton unique"
+      },
+      "basic_auth": {
+        "name": "Nom d'utilisateur et mot de passe",
+        "description": "Site qui se connecte avec un compte"
+      }
+    },
+    "empty": {
+      "title": "Aucun compte pour l'instant",
+      "description": "Lorsque l'agent a besoin d'un service, il demande une autorisation dans la conversation. Les comptes connectés apparaissent ici."
+    }
+  },
+  "computer": {
+    "title": "L'ordinateur de Yoreni",
+    "take": "Prendre le contrôle",
+    "release": "Rendre le contrôle",
+    "youControl": "Vous avez le contrôle",
+    "agentControls": "Yoreni utilise l'ordinateur",
+    "connecting": "Connexion au bureau…",
+    "disconnected": "La connexion au bureau a été interrompue.",
+    "offline": "L'ordinateur de Yoreni n'est pas démarré.",
+    "authFailed": "La connexion au bureau a été refusée.",
+    "reconnect": "Se reconnecter",
+    "fullscreen": "Plein écran",
+    "paste": "Coller le presse-papiers",
+    "clipboardDenied": "L'accès au presse-papiers a été refusé.",
+    "close": "Fermer",
+    "loading": "Vérification de l'ordinateur…"
   }
 }

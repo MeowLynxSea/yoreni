@@ -11,7 +11,7 @@ When a task needs an account — a campus portal, a web app, an API behind a log
 ## The flow
 
 1. `list_connections` to see what already exists. An account that is already connected comes with placeholders, so skip to step 3.
-2. `request_authentication` with a one-sentence `purpose`, plus `allowed_tools` naming the integration tool that will receive the secret and `allowed_domains` naming its site. Nothing is inferred for you. The Run pauses while the card is open.
+2. `request_authentication` with a one-sentence `purpose`. There is no tool list or site to declare. The Run pauses while the card is open.
 3. The user submits the card. The tool result is JSON with `placeholders`, one per field — `{{YORENI_SECRET_…}}`.
 4. Call the tool that needs the credential, passing each placeholder as the argument value it belongs to (`password`, `api_key`, `code`, …). At execution the gateway swaps in the real secret. The model, the transcript, and the answer only ever see the placeholder.
 
@@ -23,17 +23,16 @@ The placeholder **is** the usable value. Continue the same turn: call the tool i
 
 - Connectors: `api_key` (a token or bearer key), `basic_auth` (username and password), `one_time_code` (a verification code), `mcp_server` (OAuth for a remote MCP server). `list_connections` returns the exact ids and methods.
 - A portal with a password form is `basic_auth`. If the user prefers a passwordless route and can only give a code, ask for the code with `one_time_code` instead of collecting their password.
-- `allowed_tools` names the tool that will use the credential. Name the integration tool from your tool list, normally an `mcp_…` tool. It is required for any request that carries a secret.
-- `allowed_domains` names the site. Write a bare host such as `id.example.edu.cn`; a full URL, a port, or `*.example.edu.cn` is normalized for you. It is required for any request that carries a secret. List extra hosts when the login bounces between subdomains.
+- Submitting the card authorizes the account. Any tool can then receive the value, including a shell command that drives `browser-skill`.
 - A one-time code works once. Call the tool immediately after receiving it, and request a new code for each new attempt.
 
-## A login performed in the browser
+## Signing in to a page
 
-A credential card never types into a web page: shell commands and browser automation cannot receive a secret. When the task needs the user signed in to a site, drive the browser with `browser-skill` up to the sign-in form and ask the user to complete it in the desktop view. Never ask for the password in chat, and never paste a placeholder into a page.
+The card gives you a value, not a page action, so sign-ins happen in two ways: paste the placeholder into a tool that fills the form, or drive the page with `browser-skill` and let the tool type the value for you. Never ask for the password in chat.
 
 ## When it does not work
 
-- Denied use: the error names the reason — a tool or domain outside the grant, a page the account is not allowed on, a disconnected account, or an argument that is not credential-shaped. Fix that and retry, or request a new card with wider grants. Never ask the user for the secret instead.
+- Denied use: the error names the reason — the account was disconnected or revoked, its value was already used once, or the tool call carried no placeholder to restore. Fix that and retry. Never ask the user for the secret instead.
 - Expired or cancelled: say so in one sentence and offer to open a new card.
 - The user wants to revoke access: send them to Settings → Accounts; you cannot delete an account yourself.
 

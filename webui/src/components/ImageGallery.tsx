@@ -3,7 +3,9 @@ import { ImageIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { ImageLightbox } from "@/components/ImageLightbox";
-import { IMAGE_GAP, imageFrameRatio, layoutImageRows, type ImageDimensions } from "@/lib/image-gallery-layout";
+import {
+  IMAGE_GAP, MAX_IMAGE_RATIO, MIN_IMAGE_RATIO, imageFrameRatio, layoutImageRows, type ImageDimensions,
+} from "@/lib/image-gallery-layout";
 import type { UIImage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +29,12 @@ export function ImageGallery({ images, align = "left", size = "large", fill = fa
   const maxWidth = size === "large" ? 448 : 360;
   const maxHeight = visible.length === 1 ? (size === "large" ? 352 : 320) : (size === "large" ? 256 : 224);
   const single = visible.length === 1 ? measured[0] : null;
-  const preferredWidth = single ? Math.min(maxWidth, single.width, maxHeight * imageFrameRatio(single)) : maxWidth;
+  // A lone picture is its own frame, bounded to 1:3–3:1; beyond that the frame
+  // clamps and the picture is cropped, so no invisible letterbox hides the corners.
+  const singleFrameRatio = single && single.width > 0 && single.height > 0 ? imageFrameRatio(single) : null;
+  const preferredWidth = single && singleFrameRatio
+    ? Math.min(maxWidth, single.width, maxHeight * singleFrameRatio)
+    : maxWidth;
 
   useLayoutEffect(() => {
     const element = container.current;
@@ -40,10 +47,12 @@ export function ImageGallery({ images, align = "left", size = "large", fill = fa
   }, [preferredWidth]);
 
   const layoutWidth = Math.min(width || preferredWidth, preferredWidth);
-  const rows = layoutImageRows(
-    ready ? measured : visible.map(() => null), layoutWidth,
-    size === "large" ? 176 : 144, maxHeight,
-  );
+  const rows = ready && singleFrameRatio
+    ? [{ start: 0, widths: [layoutWidth], height: layoutWidth / singleFrameRatio }]
+    : layoutImageRows(
+      ready ? measured : visible.map(() => null), layoutWidth,
+      size === "large" ? 176 : 144, maxHeight,
+    );
   let top = 0;
   const tiles = rows.flatMap((row) => {
     const rowWidth = row.widths.reduce((sum, item) => sum + item, IMAGE_GAP * (row.widths.length - 1));
@@ -69,10 +78,14 @@ export function ImageGallery({ images, align = "left", size = "large", fill = fa
     )} style={{ width: preferredWidth, height: Math.max(0, top - IMAGE_GAP) }}>
       {tiles.map(({ position, frame }) => {
         const image = visible[position];
+        // Tiles clamp extreme proportions too, so the picture fills its frame
+        // instead of leaving the corners to a bar the page color swallows.
+        const ratio = measured[position];
+        const cover = !!ratio && (ratio.width / ratio.height < MIN_IMAGE_RATIO || ratio.width / ratio.height > MAX_IMAGE_RATIO);
         const remaining = images.length - visible.length;
         const overflow = position === visible.length - 1 && remaining > 0;
         return <ImageThumbnail key={`${image.url ?? image.name}-${position}`}
-          image={image} size={size} frame={frame} fill={fill}
+          image={image} size={size} frame={frame} fill={fill} cover={cover}
           onLoad={(value) => { if (image.url) remember(image.url, value); }}
           onError={() => { if (image.url) remember(image.url, null); }}
           label={overflow ? t("lightbox.viewAll", { count: images.length }) : undefined}
@@ -85,11 +98,13 @@ export function ImageGallery({ images, align = "left", size = "large", fill = fa
   </>;
 }
 
-export function ImageThumbnail({ image, size = "large", frame, fill = false, onOpen, label, overlay, onLoad, onError }: {
+export function ImageThumbnail({ image, size = "large", frame, fill = false, cover = false, onOpen, label, overlay, onLoad, onError }: {
   image: UIImage;
   size?: "compact" | "large";
   frame?: ImageDimensions & { left: number; top: number };
   fill?: boolean;
+  /** Crop the picture to a frame that does not share its proportions. */
+  cover?: boolean;
   onOpen?: () => void;
   label?: string;
   overlay?: string;
@@ -114,7 +129,7 @@ export function ImageThumbnail({ image, size = "large", frame, fill = false, onO
     onError={() => { setFailed(true); onError?.(); }}
     className={cn(
       "block w-full text-transparent",
-      fill ? "object-cover" : "object-contain",
+      fill || cover ? "object-cover" : "object-contain",
       frame ? "h-full" : "h-auto max-h-[22rem]",
     )} />
     : <span className={cn("flex items-center justify-center gap-2 px-3 text-xs text-muted-foreground", frame ? "h-full" : "min-h-24 py-5")}

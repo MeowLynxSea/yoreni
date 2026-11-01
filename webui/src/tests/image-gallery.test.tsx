@@ -94,6 +94,21 @@ describe("image presentation", () => {
     expect(within(screen.getByRole("dialog")).getByRole("img", { name: "portrait.png" })).toBeVisible();
   });
 
+  it.each([
+    { name: "wide", natural: { width: 1440, height: 368 }, width: 360, height: "120px" },
+    { name: "narrow", natural: { width: 368, height: 1440 }, width: 320 / 3, height: "320px" },
+  ])("clamps a $name screenshot to a 1:3–3:1 frame and crops the overflow", ({ name, natural, width, height }) => {
+    render(<MessageBubble message={{ id: name, role: "user", content: "", createdAt: 1,
+      media: [{ kind: "image", url: `/${name}.png`, name: `${name}.png` }] }} />);
+    const image = screen.getByRole("img", { name: `${name}.png` });
+    Object.defineProperties(image, { naturalWidth: { value: natural.width }, naturalHeight: { value: natural.height } });
+    fireEvent.load(image);
+    const open = screen.getByRole("button", { name: `View image: ${name}.png` });
+    expect(Number.parseFloat(open.style.width)).toBeCloseTo(width);
+    expect(open.style.height).toBe(height);
+    expect(screen.getByRole("img")).toHaveClass("object-cover");
+  });
+
   it("settles a mixed gallery together after loading and preserves click order through regrouping", async () => {
     const user = userEvent.setup();
     const { container } = render(<ImageGallery images={images.slice(0, 4)} size="compact" />);

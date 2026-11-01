@@ -48,10 +48,8 @@ describe("ordered image layout", () => {
     expect(row).toEqual({ start: 0, widths: [48], height: 32 });
   });
 
-  it("gives extreme screenshots a bounded frame instead of a nearly invisible sliver", () => {
-    const [long] = layoutImageRows([{ width: 600, height: 4800 }], 360, 144, 320);
-    const [wide] = layoutImageRows([{ width: 4800, height: 600 }], 360, 144, 320);
-    expect(long).toEqual({ start: 0, widths: [160], height: 320 });
-    expect(wide).toEqual({ start: 0, widths: [360], height: 120 });
+  it("bounds a row holding an extreme ratio instead of collapsing it into a sliver", () => {
+    const rows = layoutImageRows([{ width: 4800, height: 600 }, square], 360, 144, 224);
+    expect(rows).toEqual([{ start: 0, widths: [264, 88], height: 88 }]);
   });
 });

@@ -266,6 +266,7 @@ export function useAgentRun(projectId: string | null = null) {
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [projectMissing, setProjectMissing] = useState(false);
   const notifiedMessageIds = useRef(new Set<string>());
+  const notifiedAuthRequestIds = useRef(new Set<string>());
   // The oldest event sequence the client holds; older pages load from here.
   const oldestSeq = useRef<number | null>(null);
   const olderExhausted = useRef(false);
@@ -330,6 +331,14 @@ export function useAgentRun(projectId: string | null = null) {
     }
   }, [getToken, projectId]);
   useEffect(() => client.onEvent((frame) => {
+    // An authentication card is global, like the credentials it collects:
+    // whichever conversation is open shows it, so it alerts from the same place.
+    const request = frame.event === "auth_request" ? frame.auth_request : undefined;
+    if (request && request.status === "pending" && !notifiedAuthRequestIds.current.has(request.id)) {
+      notifiedAuthRequestIds.current.add(request.id);
+      const body = (request.purpose ?? "").trim().slice(0, 300) || t("auth.title");
+      void showBrowserNotification(body, { key: request.id, url: notificationAppUrl(projectId) });
+    }
     // Every project Run stamps its frames; the main chat leaves the field out.
     if ((frame.project_id ?? null) !== scope.current) return;
     setMessages((current) => projectAgentFrame(current, frame));

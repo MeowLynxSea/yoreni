@@ -47,7 +47,7 @@ _EXTRACTION_PROMPT = """You extract durable facts for a personal agent's long-te
 Return JSON only, shaped like:
 {{"facts": [
   {{"subject": "user", "predicate": "preferred_language", "text": "The user prefers Chinese.",
-    "kind": "user_preference", "scope": "global", "sources": ["ev_id"], "confidence": 0.9,
+    "kind": "user_preference", "scope": "global", "sources": ["e1"], "confidence": 0.9,
     "supersedes": null}}
 ]}}
 
@@ -57,7 +57,8 @@ Rules:
 - Skip small talk, transient state, restatements of the current task, and generic world knowledge.
 - The assistant's own words never prove that an external action happened. Only cite a tool result
   for facts about executed effects.
-- Every fact must cite one or more evidence IDs from the input. Never invent an ID.
+- Every fact must cite one or more evidence labels from the input, copied exactly as they appear
+  in the brackets. Never invent a label.
 - When the new evidence clearly corrects an existing fact, set "supersedes" to that fact's id.
   Otherwise use null and let the store reconcile it.
 - subject: a stable lowercase identifier ("user", "project:yoreni", a tool or system name).
@@ -176,7 +177,7 @@ def parse_candidates(
     """
     payload = parse_json_object(raw)
     items = require_list(payload.get("facts", []), field_name="facts")
-    by_id = {item.id: item for item in evidence}
+    by_id = evidence_labels(evidence)
     drafts: list[FactDraft] = []
     rejected: list[str] = []
     for item in items:
@@ -187,6 +188,21 @@ def parse_candidates(
         except MemorySchemaError as exc:
             rejected.append(str(exc))
     return CandidateSet(tuple(drafts), tuple(rejected))
+
+
+def evidence_labels(evidence: list[Evidence]) -> dict[str, Evidence]:
+    """Map the short labels shown in the prompt back to their evidence.
+
+    Models transpose long opaque ids when they copy them, so the prompt labels
+    each item with a position ("e1", "e2") and the label, not the row id, is
+    what a candidate has to cite. Real ids stay accepted for callers that
+    already hold one.
+    """
+    labels: dict[str, Evidence] = {}
+    for index, item in enumerate(evidence, start=1):
+        labels[f"e{index}"] = item
+        labels[item.id] = item
+    return labels
 
 
 def _parse_candidate(
@@ -262,12 +278,12 @@ def derive_source_type(cited: list[Evidence]) -> SourceType:
 
 def _render_evidence(evidence: list[Evidence]) -> str:
     lines: list[str] = []
-    for item in evidence:
+    for index, item in enumerate(evidence, start=1):
         content = item.content.strip()
         if len(content) > MAX_EVIDENCE_CHARS:
             content = f"{content[:MAX_EVIDENCE_CHARS]}…[truncated]"
         lines.append(
-            f"[{item.id}] ({item.role}/{item.kind.value}/{item.tool_name or '-'}"
+            f"[e{index}] ({item.role}/{item.kind.value}/{item.tool_name or '-'}"
             f"/{item.observed_at or 'unknown-time'}) {content}"
         )
     return "\n".join(lines)

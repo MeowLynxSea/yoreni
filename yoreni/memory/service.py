@@ -261,9 +261,15 @@ class MemoryService:
                 await self.embed_facts(result.fact_ids)
                 self.store.complete_job(job["id"])
                 completed += 1
+            except MemoryError as exc:
+                # Expected failure: the evidence and job remain durable and the
+                # next cycle retries from the same input. A traceback here would
+                # only report the caller's own exception handling.
+                logger.warning(
+                    "memory extraction failed for run {}: {}", run_id, exc,
+                )
+                self.store.fail_job(job["id"], f"{type(exc).__name__}: {exc}")
             except Exception as exc:
-                # Explicit failure: the evidence and job remain durable and the
-                # next cycle retries from the same input.
                 logger.opt(exception=exc).warning(
                     "memory extraction failed for run {}: {}", run_id, exc,
                 )

@@ -47,6 +47,7 @@ import { ChannelsSettings } from "@/components/settings/system/ChannelsSettings"
 import { RUNTIME_CONFIG_FIELDS, type RuntimeConfigPage } from "@/components/settings/system/runtime-config-fields";
 import { RuntimeConfigSettings } from "@/components/settings/system/RuntimeConfigSettings";
 import { RuntimeSettings } from "@/components/settings/system/RuntimeSettings";
+import { SandboxResourcesSection } from "@/components/settings/system/SandboxResourcesSection";
 import type { SettingsController } from "@/components/settings/useSettingsController";
 import type { SendAttachment, SendOptions } from "@/lib/agent-input";
 import type { ThemePreference } from "@/hooks/useTheme";
@@ -249,6 +250,7 @@ export function SettingsPage({
         capabilityError={systemState.yoreniFeaturesError}
         onInstallCapability={(name) => void systemActions.installCapabilities([name])}
       />
+      <SandboxResourcesSection />
     </div>
   );
 

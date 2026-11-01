@@ -30,6 +30,7 @@ import { useAppViewport } from "@/hooks/useAppViewport";
 import { useReadingTypography } from "@/hooks/useReadingTypography";
 import { BootstrapAuthRequiredError, clearSavedSecret, consumeUrlBootstrapSecret, deriveWsUrl, fetchBootstrap, loadSavedSecret, saveSecret } from "@/lib/bootstrap";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
+import { SandboxRebuildOverlay } from "@/components/sandbox/SandboxRebuildOverlay";
 import type { SendAttachment } from "@/lib/agent-input";
 import { authenticateWithPasskey, fetchAuthStatus, fetchChatSearch, fetchChatSearchSemantic, fetchOnboarding, requestPasskeyAssertion } from "@/lib/api";
 import { assertPasskey, passkeysNeedSecureContext, passkeysSupported } from "@/lib/webauthn";
@@ -875,6 +876,9 @@ function AgentShell({ onLogout }: { onLogout: () => void }) {
         open={computerOpen}
         anchorRef={computerButtonRef}
         onClose={() => setComputerOpen(false)}
+      />
+      <SandboxRebuildOverlay
+        enabled={webuiCapabilities.includes("webui.sandbox.desktop.v1")}
       />
       <ChatSearch
         open={searchOpen}

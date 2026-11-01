@@ -186,6 +186,8 @@ _WEBUI_MUTATION_PATHS = {
     "webui.widgets.delete": "/api/webui/widgets/delete",
     "webui.widgets.refresh": "/api/webui/widgets/refresh",
     "memory.backfill.state": "/api/webui/memory-backfill/state",
+    "sandbox.resources": "/api/sandbox/resources",
+    "sandbox.rebuild": "/api/sandbox/rebuild",
     "settings.agent.update": "/api/settings/update",
     "settings.model_configuration.create": "/api/settings/model-configurations/create",
     "settings.model_configuration.update": "/api/settings/model-configurations/update",
@@ -540,6 +542,8 @@ class GatewayHTTPHandler:
             return True
         if re.match(r"^/api/sandbox/control/(take|release)$", path):
             return True
+        if path in {"/api/sandbox/resources", "/api/sandbox/rebuild"}:
+            return True
         return path in {
             "/api/agent/resume", "/api/agent/cancel", "/api/agent/dismiss",
             "/api/onboarding/token", "/api/onboarding/profile",
@@ -758,6 +762,7 @@ class GatewayHTTPHandler:
         from yoreni.sandbox.desktop_proxy import get_desktop_proxy
         from yoreni.sandbox.errors import SandboxControlError, SandboxError
         from yoreni.sandbox.gateway import get_sandbox_gateway
+        from yoreni.sandbox.resources import read_resources, write_resources
 
         try:
             gateway = get_sandbox_gateway()
@@ -769,6 +774,10 @@ class GatewayHTTPHandler:
             return _http_json_response(
                 {
                     "sandbox": status.as_dict(),
+                    # The setup sequence covers a rebuild as well as a first
+                    # start, so the WebUI can mask itself while the VM returns.
+                    "setup": gateway.progress.snapshot(),
+                    "resources": read_resources(gateway.config),
                     "control": gateway.control_snapshot().as_dict(),
                     "desktop": {
                         "enabled": gateway.config.desktop_enabled,
@@ -781,6 +790,28 @@ class GatewayHTTPHandler:
                 },
                 extra_headers=_NO_STORE_HEADERS,
             )
+
+        if path == "/api/sandbox/resources":
+            payload = _mutation_payload(request) or {}
+            try:
+                # Persisting takes the config file lock, so it leaves the loop.
+                saved = await asyncio.to_thread(
+                    write_resources,
+                    self.settings.config.update,
+                    payload.get("cpus"),
+                    payload.get("memory_mib"),
+                )
+            except ValueError as exc:
+                return _http_error(400, str(exc))
+            return _http_json_response(saved)
+
+        if path == "/api/sandbox/rebuild":
+            from yoreni.sandbox.setup import get_sandbox_setup
+
+            try:
+                return _http_json_response(await get_sandbox_setup().rebuild())
+            except SandboxError as exc:
+                return _http_error(409, str(exc))
 
         if path == "/api/sandbox/desktop/session":
             proxy = get_desktop_proxy()

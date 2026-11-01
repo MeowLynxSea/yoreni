@@ -76,6 +76,9 @@ class LocalBackend:
     async def restart(self) -> None:
         self._running = True
 
+    async def destroy(self) -> None:
+        self._running = False
+
     async def status(self) -> SandboxStatus:
         return SandboxStatus(
             backend=self.name,

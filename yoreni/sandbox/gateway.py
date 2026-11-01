@@ -6,6 +6,8 @@ import asyncio
 import base64
 import hashlib
 import posixpath
+import shlex
+import shutil
 import time
 import uuid
 from collections import deque
@@ -265,39 +267,43 @@ class SandboxGateway:
         async with self._start_lock:
             if self._started:
                 return
-            try:
-                self.progress.set_stage("image")
-                monitor = asyncio.create_task(self._monitor_image_pull())
-                try:
-                    # The image transfer is network-bound and can outlast any
-                    # boot budget; only the boot itself is bounded.
-                    await self.backend.prepare()
-                    await asyncio.wait_for(
-                        self.backend.start(),
-                        timeout=self.config.start_timeout_s,
-                    )
-                finally:
-                    monitor.cancel()
-                    with suppress(asyncio.CancelledError):
-                        await monitor
-                self.progress.set_stage("packages")
-                await self.desktop.provision()
-                await self._install_browser_assets()
-                await self._install_bundled_skills()
-            except asyncio.TimeoutError as exc:
-                self._started = False
-                raise SandboxUnavailableError(
-                    "the Yoreni VM did not become ready before the configured timeout"
-                ) from exc
-            except Exception:
-                self._started = False
-                raise
+            await self._bring_up()
             # The VM itself is the execution plane. The desktop and browser are
             # services inside it: their failure keeps files and shell usable and
             # is reported per capability instead of taking the whole VM down.
             self._started = True
             self._health = None
         await self.start_services()
+
+    async def _bring_up(self) -> None:
+        """Create and provision the VM. The caller holds the start lock."""
+        try:
+            self.progress.set_stage("image")
+            monitor = asyncio.create_task(self._monitor_image_pull())
+            try:
+                # The image transfer is network-bound and can outlast any boot
+                # budget; only the boot itself is bounded.
+                await self.backend.prepare()
+                await asyncio.wait_for(
+                    self.backend.start(),
+                    timeout=self.config.start_timeout_s,
+                )
+            finally:
+                monitor.cancel()
+                with suppress(asyncio.CancelledError):
+                    await monitor
+            self.progress.set_stage("packages")
+            await self.desktop.provision()
+            await self._install_browser_assets()
+            await self._install_bundled_skills()
+        except asyncio.TimeoutError as exc:
+            self._started = False
+            raise SandboxUnavailableError(
+                "the Yoreni VM did not become ready before the configured timeout"
+            ) from exc
+        except Exception:
+            self._started = False
+            raise
 
     async def start_services(self, *, announce: bool = True) -> None:
         """Start whichever VM services are not running.
@@ -478,6 +484,52 @@ class SandboxGateway:
             self._closing = False
         await self.control.force_agent(reason="VM restarted")
         await self.start()
+
+    async def rebuild(self) -> None:
+        """Replace the VM so a changed CPU count or memory takes effect.
+
+        BoxLite reads those options only when it creates a box and offers no
+        resize, so the only way to apply a new size is a new box — which starts
+        with a fresh disk. The workspace is carried across the rebuild.
+        """
+        async with self._start_lock:
+            self._cancel_service_retry()
+            self._started = False
+            self._health = None
+            self._status_detail = ""
+            await self._terminate_all("shutdown")
+            self.progress.set_stage("backup")
+            staging = Path(self.backend.host_staging_dir()) / "workspace"
+            # A retried rebuild must not merge leftovers into the next backup.
+            shutil.rmtree(staging, ignore_errors=True)
+            staging.mkdir(parents=True, exist_ok=True)
+            await self.backend.copy_out(f"{self.config.workspace}/.", str(staging))
+            await self.backend.destroy()
+            self.desktop.reset()
+            self._desktop_ws_port = None
+            await self._bring_up()
+            self.progress.set_stage("restore")
+            await self.backend.copy_in(f"{staging}/.", self.config.workspace)
+            await self._restore_workspace_permissions()
+            self._started = True
+            self._health = None
+        await self.start_services()
+
+    async def _restore_workspace_permissions(self) -> None:
+        """Give a restored workspace the access provisioning grants it."""
+        paths = [
+            self.config.workspace,
+            posixpath.join(self.config.workspace, ".yoreni"),
+            self.config.media_dir,
+            self.config.downloads_dir,
+            posixpath.join(self.config.workspace, "projects"),
+        ]
+        await self.backend.exec(
+            "chmod 0777 " + " ".join(shlex.quote(path) for path in paths),
+            cwd="/",
+            timeout_s=30,
+            user="root",
+        )
 
     async def health(self) -> SandboxHealth:
         if not self._started:

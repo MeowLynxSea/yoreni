@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from loguru import logger
@@ -44,7 +45,8 @@ class SandboxSetup:
         if reason is not None:
             return self._unsupported(reason)
         state = gateway.progress.snapshot()
-        if gateway.started and state["state"] in {"idle", "running"}:
+        settled = self._task is None or self._task.done()
+        if settled and gateway.started and state["state"] in {"idle", "running"}:
             # A previous run (or a restart) already prepared this VM.
             gateway.progress.finish()
             return gateway.progress.snapshot()
@@ -79,9 +81,27 @@ class SandboxSetup:
             self._task = asyncio.create_task(self._run(gateway))
         return self.snapshot()
 
-    async def _run(self, gateway: SandboxGateway) -> None:
+    async def rebuild(self) -> dict[str, Any]:
+        """Recreate the VM with the configured size, keeping its workspace."""
+        gateway = self._gateway()
+        if gateway is None or self._unsupported_reason(gateway) is not None:
+            return self.snapshot()
+        if not gateway.started:
+            raise SandboxUnavailableError("The virtual machine is not running")
+        async with self._lock:
+            if self._task is not None and not self._task.done():
+                return self.snapshot()
+            gateway.progress.start()
+            self._task = asyncio.create_task(self._run(gateway, gateway.rebuild))
+        return self.snapshot()
+
+    async def _run(
+        self,
+        gateway: SandboxGateway,
+        operation: Callable[[], Awaitable[None]] | None = None,
+    ) -> None:
         try:
-            await gateway.start()
+            await (operation or gateway.start)()
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # pragma: no cover - exercised through failure states

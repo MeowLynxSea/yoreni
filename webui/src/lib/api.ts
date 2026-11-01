@@ -1364,6 +1364,9 @@ export interface SandboxControlSnapshot {
 }
 
 export interface SandboxStatusPayload {
+  /** The setup sequence, including a rebuild that recreates the VM. */
+  setup: SandboxSetupState;
+  resources: SandboxResources;
   sandbox: {
     backend: string;
     box_id: string | null;
@@ -1394,6 +1397,19 @@ export interface DesktopSessionPayload {
 
 export async function fetchSandboxStatus(token: string): Promise<SandboxStatusPayload> {
   return request<SandboxStatusPayload>("/api/sandbox/status", token, undefined, API_READ_TIMEOUT_MS);
+}
+
+export async function updateSandboxResources(
+  transport: WebUIMutationTransport,
+  resources: { cpus: number; memory_mib: number },
+): Promise<SandboxResources> {
+  return mutation<SandboxResources>(transport, "sandbox.resources", resources);
+}
+
+export async function rebuildSandbox(
+  transport: WebUIMutationTransport,
+): Promise<SandboxSetupState> {
+  return mutation<SandboxSetupState>(transport, "sandbox.rebuild");
 }
 
 export async function createDesktopSession(token: string): Promise<DesktopSessionPayload> {

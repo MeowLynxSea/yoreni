@@ -233,6 +233,11 @@ class DesktopServices:
     def browser_ready(self) -> bool:
         return self._browser_ready
 
+    def reset(self) -> None:
+        """Forget readiness observed for a VM that no longer exists."""
+        self._desktop_ready = False
+        self._browser_ready = False
+
     async def provision(self) -> None:
         await self._install_wallpaper()
         script = _PROVISION.format(

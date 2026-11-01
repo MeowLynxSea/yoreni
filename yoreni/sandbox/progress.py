@@ -14,27 +14,33 @@ from typing import Any, Literal
 
 SetupState = Literal["idle", "running", "ready", "failed", "unsupported"]
 SetupStage = Literal[
-    "starting", "image", "configuring", "packages", "browser", "services", "ready"
+    "starting", "backup", "image", "configuring", "packages", "browser", "restore",
+    "services", "ready",
 ]
 
 # Percent range each stage occupies. `ready` closes the bar.
 _STAGE_SPAN: dict[SetupStage, tuple[float, float]] = {
     "starting": (0.0, 3.0),
+    # Only a rebuild backs the workspace up first; a first start skips ahead.
+    "backup": (0.0, 3.0),
     "image": (3.0, 58.0),
     # Extraction has no byte signal and must not move the bar.
     "configuring": (58.0, 58.0),
     "packages": (58.0, 74.0),
     "browser": (74.0, 90.0),
-    "services": (90.0, 100.0),
+    "restore": (90.0, 96.0),
+    "services": (96.0, 100.0),
     "ready": (100.0, 100.0),
 }
 
 _STAGE_LABEL: dict[SetupStage, str] = {
     "starting": "Preparing the sandbox",
+    "backup": "Backing up the sandbox files",
     "image": "Downloading the system image",
     "configuring": "Configuring the sandbox",
     "packages": "Installing system packages",
     "browser": "Preparing the browser",
+    "restore": "Restoring the sandbox files",
     "services": "Starting the desktop",
     "ready": "Sandbox is ready",
 }

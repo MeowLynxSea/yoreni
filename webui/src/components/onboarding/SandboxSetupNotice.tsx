@@ -5,12 +5,14 @@ import { Check, RefreshCw } from "lucide-react";
 import type { SandboxSetupState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const STAGE_KEYS: Record<SandboxSetupState["stage"], string> = {
+export const SANDBOX_STAGE_KEYS: Record<SandboxSetupState["stage"], string> = {
   starting: "onboarding.sandbox.stage.starting",
+  backup: "onboarding.sandbox.stage.backup",
   image: "onboarding.sandbox.stage.image",
   configuring: "onboarding.sandbox.stage.configuring",
   packages: "onboarding.sandbox.stage.packages",
   browser: "onboarding.sandbox.stage.browser",
+  restore: "onboarding.sandbox.stage.restore",
   services: "onboarding.sandbox.stage.services",
   ready: "onboarding.sandbox.stage.ready",
 };
@@ -104,7 +106,7 @@ export function SandboxSetupNotice({
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-3">
             <p className="truncate text-[13px] font-medium tracking-[-0.01em] text-foreground/90">
-              {failed ? t("onboarding.sandbox.failedTitle") : t(STAGE_KEYS[state.stage])}
+              {failed ? t("onboarding.sandbox.failedTitle") : t(SANDBOX_STAGE_KEYS[state.stage])}
             </p>
             {percent !== null && !failed ? (
               <span className="shrink-0 tabular-nums text-[12px] text-muted-foreground">

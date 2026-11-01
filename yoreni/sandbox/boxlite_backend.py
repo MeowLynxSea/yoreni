@@ -166,6 +166,24 @@ class BoxLiteBackend:
         await self.stop()
         await self.start()
 
+    async def destroy(self) -> None:
+        """Delete the VM and its disk so the next start applies new options."""
+        async with self._lock:
+            await self._close_tunnels()
+            box, runtime = self._box, self._runtime
+            if box is None or runtime is None:
+                return
+            self._box = None
+            self._started_at_ms = None
+            try:
+                with suppress(Exception):
+                    await box.stop()
+                await runtime.remove(self._config.box_name)
+            except Exception as exc:
+                raise SandboxUnavailableError(
+                    f"could not delete the Yoreni VM: {exc}"
+                ) from exc
+
     async def status(self) -> SandboxStatus:
         if self._box is None:
             state = "created"

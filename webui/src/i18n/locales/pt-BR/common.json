@@ -170,6 +170,25 @@
         "ready": "Ambiente pronto"
       }
     },
+    "host": {
+      "eyebrow": "AMBIENTE LINUX",
+      "question": "Prepare o ambiente em que o Yoreni trabalha",
+      "hint": "O Yoreni executa comandos e o navegador dentro de uma pequena máquina virtual Linux neste celular. O Podroid é o app que a executa.",
+      "checking": "Procurando o Podroid…",
+      "checkingBody": "Leva só um instante.",
+      "missingTitle": "O Podroid não está instalado",
+      "missingBody": "O Podroid é um app gratuito que executa a máquina virtual Linux. Instale e volte a esta tela.",
+      "install": "Obter o Podroid",
+      "checkAgain": "Verificar de novo",
+      "stoppedTitle": "O Podroid está pronto",
+      "stoppedBody": "Inicie a máquina virtual para o Yoreni ter onde trabalhar.",
+      "start": "Iniciar a máquina virtual",
+      "starting": "Iniciando a máquina virtual…",
+      "startingBody": "A primeira inicialização demora um pouco mais. O Yoreni continua sozinho quando ela responder.",
+      "readyTitle": "A máquina virtual está rodando",
+      "readyBody": "O Yoreni vai terminar de prepará-la em segundo plano enquanto seguimos.",
+      "footnote": "O Podroid continua sendo um app separado: o Yoreni só pede para iniciar e parar a máquina virtual."
+    },
     "resources": {
       "eyebrow": "MÁQUINA VIRTUAL",
       "question": "Quanto dar à máquina virtual do Yoreni?",

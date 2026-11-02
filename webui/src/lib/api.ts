@@ -1,5 +1,5 @@
 
-import type { AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemoryBackfillPayload, MemorySettingsUpdate, OnboardingSnapshot, SandboxResources, SandboxSetupState, AuthStatus, AuthenticatorSummary, PasskeyAssertionOptions, PasskeyAssertionPayload, PasskeyRegistrationOptions, PasskeyRegistrationPayload, ProfileSecurity, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, PairingPayload, ProjectSummary, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
+import type { AutomationsPayload, AutomaticModelAPIPayload, AutomationUpdatePayload, ChannelConfigurePayload, ChannelConnectPayload, ChannelValidationPayload, CliAppsPayload, DynamicWidgetSnapshot, DynamicWidgetSummary, FilePreviewPayload, FileReferenceMetadata, GoalStateWsPayload, HomeWidgetsPayload, ImageGenerationSettingsUpdate, McpPresetsPayload, McpOAuthFlowPayload, MarketplaceProvider, MemoryBackfillPayload, MemorySettingsUpdate, OnboardingSnapshot, SandboxHost, SandboxResources, SandboxSetupState, AuthStatus, AuthenticatorSummary, PasskeyAssertionOptions, PasskeyAssertionPayload, PasskeyRegistrationOptions, PasskeyRegistrationPayload, ProfileSecurity, UserProfile, YoreniFeaturesPayload, ModelConfigurationCreate, ModelConfigurationUpdate, PairingPayload, ProjectSummary, ProviderCreationUpdate, ProviderModelsPayload, ProviderOAuthCompletionResult, ProviderOAuthLoginResult, ProviderSettingsUpdate, SettingsPayload, SkillDetail, SkillActionPayload, SkillInstallPayload, SkillsPayload, SkillsSearchPayload, SkillsTrendsPayload, SkillsTrendingPayload, TranscriptionSettingsUpdate, UIMediaWireAttachment, WebSearchSettingsUpdate, WorkspacesPayload, WorkspaceDirectoriesPayload } from "./types";
 import { fetchWithTimeout } from "./http";
 
 const API_READ_TIMEOUT_MS = 20_000;
@@ -1230,6 +1230,25 @@ export function startSandboxInstall(
   transport: WebUIMutationTransport,
 ): Promise<SandboxSetupState> {
   return mutation<SandboxSetupState>(transport, "onboarding.sandbox.install");
+}
+
+/** What the host app knows about Podroid; `desktop` elsewhere. */
+export function fetchSandboxHost(token: string): Promise<SandboxHost> {
+  return request<SandboxHost>("/api/onboarding/host", token, undefined, API_READ_TIMEOUT_MS);
+}
+
+/** Open the Podroid download on the phone. */
+export function openPodroidInstall(
+  transport: WebUIMutationTransport,
+): Promise<SandboxHost> {
+  return mutation<SandboxHost>(transport, "onboarding.host.install");
+}
+
+/** Ask the host app to boot the VM that Podroid owns. */
+export function startPodroidHost(
+  transport: WebUIMutationTransport,
+): Promise<SandboxHost> {
+  return mutation<SandboxHost>(transport, "onboarding.host.start");
 }
 
 export function retrySandboxInstall(

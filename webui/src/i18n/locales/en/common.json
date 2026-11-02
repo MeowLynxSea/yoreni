@@ -170,6 +170,25 @@
         "ready": "Sandbox ready"
       }
     },
+    "host": {
+      "eyebrow": "LINUX ENVIRONMENT",
+      "question": "Prepare the app Yoreni works in",
+      "hint": "Yoreni runs commands and the browser inside a small Linux virtual machine on this phone. Podroid is the app that runs it.",
+      "checking": "Looking for Podroid…",
+      "checkingBody": "This only takes a moment.",
+      "missingTitle": "Podroid isn't installed",
+      "missingBody": "Podroid is a free app that runs the Linux virtual machine. Install it, then come back to this screen.",
+      "install": "Get Podroid",
+      "checkAgain": "Check again",
+      "stoppedTitle": "Podroid is ready",
+      "stoppedBody": "Start the virtual machine so Yoreni has somewhere to work.",
+      "start": "Start the virtual machine",
+      "starting": "Starting the virtual machine…",
+      "startingBody": "The first start takes a little longer. Yoreni continues on its own once it answers.",
+      "readyTitle": "The virtual machine is running",
+      "readyBody": "Yoreni will finish setting it up in the background while we continue.",
+      "footnote": "Podroid stays a separate app: Yoreni only asks it to start and stop the virtual machine."
+    },
     "resources": {
       "eyebrow": "VIRTUAL MACHINE",
       "question": "How much should Yoreni's virtual machine get?",

@@ -170,6 +170,25 @@
         "ready": "サンドボックスの準備完了"
       }
     },
+    "host": {
+      "eyebrow": "LINUX 環境",
+      "question": "Yoreni の作業環境を用意しましょう",
+      "hint": "Yoreni はこのスマートフォン上の小さな Linux 仮想マシンでコマンドやブラウザを動かします。その仮想マシンを起動するアプリが Podroid です。",
+      "checking": "Podroid を探しています…",
+      "checkingBody": "少しだけお待ちください。",
+      "missingTitle": "Podroid がインストールされていません",
+      "missingBody": "Podroid は Linux 仮想マシンを動かす無料アプリです。インストールしてから、この画面に戻ってください。",
+      "install": "Podroid を入手",
+      "checkAgain": "再確認",
+      "stoppedTitle": "Podroid の準備ができました",
+      "stoppedBody": "仮想マシンを起動すると、Yoreni が作業できるようになります。",
+      "start": "仮想マシンを起動",
+      "starting": "仮想マシンを起動しています…",
+      "startingBody": "初回の起動には少し時間がかかります。応答すると Yoreni は自動で続行します。",
+      "readyTitle": "仮想マシンが起動しています",
+      "readyBody": "残りの準備はバックグラウンドで進みます。このまま続けられます。",
+      "footnote": "Podroid は独立したアプリのままです。Yoreni は起動と停止を依頼するだけです。"
+    },
     "resources": {
       "eyebrow": "仮想マシン",
       "question": "Yoreni の仮想マシンにどれだけ割り当てますか？",

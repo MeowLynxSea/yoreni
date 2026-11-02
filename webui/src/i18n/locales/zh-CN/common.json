@@ -170,6 +170,25 @@
         "ready": "沙箱已就绪"
       }
     },
+    "host": {
+      "eyebrow": "LINUX 环境",
+      "question": "先安装 Yoreni 的工作环境",
+      "hint": "Yoreni 在手机上的 Linux 虚拟机里执行命令、打开浏览器。Podroid 就是运行这台虚拟机的应用。",
+      "checking": "正在查找 Podroid…",
+      "checkingBody": "只需稍等片刻。",
+      "missingTitle": "还没有安装 Podroid",
+      "missingBody": "Podroid 是运行 Linux 虚拟机的免费应用。安装后回到这个页面即可。",
+      "install": "获取 Podroid",
+      "checkAgain": "重新检查",
+      "stoppedTitle": "Podroid 已就绪",
+      "stoppedBody": "启动虚拟机，Yoreni 才有地方干活。",
+      "start": "启动虚拟机",
+      "starting": "正在启动虚拟机…",
+      "startingBody": "首次启动会久一点。就绪后 Yoreni 会自动继续。",
+      "readyTitle": "虚拟机已运行",
+      "readyBody": "Yoreni 会在后台完成剩下的准备，我们可以先继续。",
+      "footnote": "Podroid 始终是独立应用，Yoreni 只会请它启动和停止虚拟机。"
+    },
     "resources": {
       "eyebrow": "虚拟机",
       "question": "给 Yoreni 的虚拟机留多少资源？",

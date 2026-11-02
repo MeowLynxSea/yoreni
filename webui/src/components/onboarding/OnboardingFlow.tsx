@@ -6,6 +6,7 @@ import { AmbientBackground } from "@/components/AmbientBackground";
 import { BirthdayField } from "@/components/profile/BirthdayField";
 import { ChatStyleEditor } from "@/components/profile/ChatStyleEditor";
 import { OnboardingEmbeddingStep } from "@/components/onboarding/OnboardingEmbeddingStep";
+import { SandboxEnvironmentStep } from "@/components/onboarding/SandboxEnvironmentStep";
 import { OnboardingModelStep } from "@/components/onboarding/OnboardingModelStep";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,6 +86,9 @@ export function OnboardingFlow({
   const [error, setError] = useState<string | null>(null);
   const [online, setOnline] = useState(client.status === "open");
   const [sandbox, setSandbox] = useState<SandboxSetupState>(initial.sandbox);
+  // On a phone the VM belongs to another app, so the first step is its setup,
+  // not the size of a VM Yoreni would create itself.
+  const hostMode = initial.sandbox_host;
   const [resourceLimits, setResourceLimits] = useState<SandboxResources | null>(
     initial.sandbox_resources,
   );
@@ -355,7 +359,19 @@ export function OnboardingFlow({
           </div>
         ) : null}
 
-        {step === "resources" && resourceLimits ? (
+        {step === "resources" && hostMode === "podroid" ? (
+          <SandboxEnvironmentStep
+            client={client}
+            apiToken={apiToken}
+            online={online}
+            onReady={() => {
+              setSizeChosen(true);
+              void persist("token").catch(failure);
+            }}
+          />
+        ) : null}
+
+        {step === "resources" && hostMode === "desktop" && resourceLimits ? (
           <section key="resources" className="onboarding-stage mx-auto w-full max-w-xl">
             <div className="onboarding-stage-stack">
               <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground/70" style={{ "--onboarding-index": 0 } as CSSProperties}>

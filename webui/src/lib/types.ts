@@ -1469,6 +1469,19 @@ export interface SandboxSetupState {
   elapsed_s: number;
 }
 
+/** Where the agent's Linux environment comes from on this host. */
+export type SandboxHostMode = "desktop" | "podroid";
+
+/** A phone whose separate Podroid app owns the VM. */
+export interface PodroidHost {
+  mode: "podroid";
+  installed: boolean;
+  vm_running: boolean;
+  version: string | null;
+}
+
+export type SandboxHost = { mode: "desktop" } | PodroidHost;
+
 /** The VM size the owner chose, beside what this host can offer. */
 export interface SandboxResources {
   cpus: number;
@@ -1486,6 +1499,8 @@ export interface OnboardingSnapshot {
   sandbox: SandboxSetupState;
   /** Null when this instance has no VM to size. */
   sandbox_resources: SandboxResources | null;
+  /** `podroid` when first-run has to hand the owner a separate app first. */
+  sandbox_host: SandboxHostMode;
 }
 
 /** Sign-in state the login screen needs before it holds any token. */

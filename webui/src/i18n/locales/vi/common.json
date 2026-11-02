@@ -170,6 +170,25 @@
         "ready": "Môi trường đã sẵn sàng"
       }
     },
+    "host": {
+      "eyebrow": "MÔI TRƯỜNG LINUX",
+      "question": "Chuẩn bị môi trường làm việc cho Yoreni",
+      "hint": "Yoreni chạy lệnh và trình duyệt trong một máy ảo Linux nhỏ trên điện thoại này. Podroid là ứng dụng chạy máy ảo đó.",
+      "checking": "Đang tìm Podroid…",
+      "checkingBody": "Chỉ mất một lát.",
+      "missingTitle": "Chưa cài Podroid",
+      "missingBody": "Podroid là ứng dụng miễn phí chạy máy ảo Linux. Hãy cài đặt rồi quay lại màn hình này.",
+      "install": "Tải Podroid",
+      "checkAgain": "Kiểm tra lại",
+      "stoppedTitle": "Podroid đã sẵn sàng",
+      "stoppedBody": "Khởi động máy ảo để Yoreni có nơi làm việc.",
+      "start": "Khởi động máy ảo",
+      "starting": "Đang khởi động máy ảo…",
+      "startingBody": "Lần đầu sẽ lâu hơn một chút. Yoreni sẽ tự tiếp tục khi máy ảo phản hồi.",
+      "readyTitle": "Máy ảo đang chạy",
+      "readyBody": "Yoreni sẽ hoàn tất phần chuẩn bị còn lại ở chế độ nền trong lúc chúng ta tiếp tục.",
+      "footnote": "Podroid vẫn là ứng dụng riêng: Yoreni chỉ nhờ nó khởi động và dừng máy ảo."
+    },
     "resources": {
       "eyebrow": "MÁY ẢO",
       "question": "Dành bao nhiêu cho máy ảo của Yoreni?",

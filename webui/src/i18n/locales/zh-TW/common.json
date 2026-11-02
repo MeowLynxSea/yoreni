@@ -170,6 +170,25 @@
         "ready": "沙箱已就緒"
       }
     },
+    "host": {
+      "eyebrow": "LINUX 環境",
+      "question": "先安裝 Yoreni 的工作環境",
+      "hint": "Yoreni 在手機上的 Linux 虛擬機器裡執行指令、開啟瀏覽器。Podroid 就是執行這台虛擬機器的應用程式。",
+      "checking": "正在尋找 Podroid…",
+      "checkingBody": "只需稍等一下。",
+      "missingTitle": "尚未安裝 Podroid",
+      "missingBody": "Podroid 是執行 Linux 虛擬機器的免費應用程式。安裝後回到這個頁面即可。",
+      "install": "取得 Podroid",
+      "checkAgain": "重新檢查",
+      "stoppedTitle": "Podroid 已就緒",
+      "stoppedBody": "啟動虛擬機器，Yoreni 才有地方工作。",
+      "start": "啟動虛擬機器",
+      "starting": "正在啟動虛擬機器…",
+      "startingBody": "第一次啟動會久一點。就緒後 Yoreni 會自動繼續。",
+      "readyTitle": "虛擬機器已執行",
+      "readyBody": "Yoreni 會在背景完成剩下的準備，我們可以先繼續。",
+      "footnote": "Podroid 始終是獨立應用程式，Yoreni 只會請它啟動和停止虛擬機器。"
+    },
     "resources": {
       "eyebrow": "虛擬機器",
       "question": "給 Yoreni 的虛擬機器留多少資源？",

@@ -170,6 +170,25 @@
         "ready": "Sandbox siap"
       }
     },
+    "host": {
+      "eyebrow": "LINGKUNGAN LINUX",
+      "question": "Siapkan lingkungan kerja Yoreni",
+      "hint": "Yoreni menjalankan perintah dan browser di dalam mesin virtual Linux kecil di ponsel ini. Podroid adalah aplikasi yang menjalankannya.",
+      "checking": "Mencari Podroid…",
+      "checkingBody": "Hanya butuh sebentar.",
+      "missingTitle": "Podroid belum terpasang",
+      "missingBody": "Podroid adalah aplikasi gratis yang menjalankan mesin virtual Linux. Pasang dulu, lalu kembali ke layar ini.",
+      "install": "Dapatkan Podroid",
+      "checkAgain": "Periksa lagi",
+      "stoppedTitle": "Podroid sudah siap",
+      "stoppedBody": "Jalankan mesin virtual agar Yoreni punya tempat bekerja.",
+      "start": "Jalankan mesin virtual",
+      "starting": "Menjalankan mesin virtual…",
+      "startingBody": "Percobaan pertama butuh waktu lebih lama. Yoreni lanjut sendiri begitu mesin menjawab.",
+      "readyTitle": "Mesin virtual sudah berjalan",
+      "readyBody": "Yoreni akan menyelesaikan persiapannya di latar belakang sementara kita lanjut.",
+      "footnote": "Podroid tetap aplikasi terpisah: Yoreni hanya memintanya menjalankan dan menghentikan mesin virtual."
+    },
     "resources": {
       "eyebrow": "MESIN VIRTUAL",
       "question": "Berapa banyak untuk mesin virtual Yoreni?",

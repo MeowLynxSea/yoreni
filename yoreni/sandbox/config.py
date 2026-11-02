@@ -16,6 +16,8 @@ class SandboxConfig(Base):
     """
 
     enabled: bool = True
+    # `boxlite` runs the VM on the host; `podroid` drives an Alpine VM that a
+    # separate Android app owns.
     backend: str = "boxlite"
     box_name: str = "yoreni"
     # Alpine + XFCE is the same guest the Android backend runs, so one
@@ -47,3 +49,20 @@ class SandboxConfig(Base):
     exec_max_output_chars: int = Field(default=200_000, ge=1000)
     takeover_grace_s: float = Field(default=10.0, ge=0.0)
     desktop_token_ttl_s: int = Field(default=60, ge=5, le=300)
+    # -- Podroid backend -----------------------------------------------------
+    # Podroid exposes its VM over SSH on loopback, so the gateway never needs a
+    # published port. The defaults match the app's own SSH settings; change the
+    # password to a key before relying on it.
+    podroid_host: str = "127.0.0.1"
+    podroid_port: int = Field(default=9922, ge=1, le=65535)
+    podroid_user: str = "root"
+    podroid_password: str = "podroid"
+    podroid_key_path: str = ""
+    # Podroid's X server is :0; the webtop images put it on :1.
+    podroid_display: str = ":0"
+    # The app's own adb path; the Android host injects a controller instead.
+    podroid_adb: str = "adb"
+    # A loopback endpoint the host serves (start/stop). Takes precedence over
+    # adb, which an Android app cannot use.
+    podroid_control_url: str = ""
+    podroid_start_timeout_s: int = Field(default=180, ge=30)

@@ -233,6 +233,19 @@ class SandboxGateway:
     def _make_backend(config: SandboxConfig) -> SandboxBackend:
         if config.backend == "boxlite":
             return BoxLiteBackend(config)
+        if config.backend == "podroid":
+            from yoreni.sandbox.podroid_backend import (
+                AdbVmControl,
+                HttpVmControl,
+                PodroidBackend,
+            )
+
+            control = None
+            if config.podroid_control_url:
+                control = HttpVmControl(config.podroid_control_url)
+            elif config.podroid_adb:
+                control = AdbVmControl(config.podroid_adb)
+            return PodroidBackend(config, control=control)
         raise SandboxUnavailableError(f"unknown sandbox backend {config.backend!r}")
 
     # -- lifecycle -----------------------------------------------------------

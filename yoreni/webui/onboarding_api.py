@@ -109,6 +109,38 @@ class OnboardingService:
 
         return get_sandbox_setup().snapshot()
 
+    def sandbox_host_mode(self) -> str:
+        from yoreni.sandbox.setup import get_sandbox_setup
+
+        return get_sandbox_setup().host_mode()
+
+    async def sandbox_host(self) -> dict[str, Any]:
+        """The environment the agent runs in, for the first-run screen."""
+        return await self._host_request()
+
+    async def install_sandbox_host(self) -> dict[str, Any]:
+        """Open the Podroid download; Android asks the owner to confirm it."""
+        return await self._host_request("install")
+
+    async def start_sandbox_host(self) -> dict[str, Any]:
+        """Ask the host app to boot the VM that Podroid owns."""
+        return await self._host_request("start")
+
+    async def _host_request(self, action: str | None = None) -> dict[str, Any]:
+        from yoreni.sandbox.errors import SandboxUnavailableError
+        from yoreni.sandbox.setup import get_sandbox_setup
+
+        setup = get_sandbox_setup()
+        try:
+            if action == "install":
+                await setup.install_host()
+            elif action == "start":
+                await setup.start_host()
+            host = await setup.host_status()
+        except SandboxUnavailableError as exc:
+            raise OnboardingError(str(exc), status=503) from None
+        return host or {"mode": setup.host_mode()}
+
     def sandbox_resources(
         self, config: Any, sandbox: dict[str, Any] | None = None
     ) -> dict[str, Any] | None:
@@ -168,6 +200,7 @@ class OnboardingService:
             "completed_at": record.completed_at if record else None,
             "sandbox": sandbox,
             "sandbox_resources": resources,
+            "sandbox_host": self.sandbox_host_mode(),
         }
 
     def read_profile(self) -> dict[str, Any]:

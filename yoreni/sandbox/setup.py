@@ -16,6 +16,7 @@ from loguru import logger
 
 from yoreni.sandbox.errors import SandboxUnavailableError
 from yoreni.sandbox.gateway import SandboxGateway, get_sandbox_gateway
+from yoreni.sandbox.podroid_backend import HttpVmControl, host_control
 
 _setup: "SandboxSetup | None" = None
 
@@ -54,6 +55,34 @@ class SandboxSetup:
 
     def is_ready(self) -> bool:
         return self.snapshot()["state"] in {"ready", "unsupported"}
+
+    def host_mode(self) -> str:
+        """`podroid` when a separate Android app owns the VM, else `desktop`."""
+        gateway = self._gateway()
+        if gateway is not None and host_control(gateway.config) is not None:
+            return "podroid"
+        return "desktop"
+
+    async def host_status(self) -> dict[str, Any] | None:
+        """What the host app knows: Podroid installed, VM answering.
+
+        None when this instance has no host app to ask, which is every desktop.
+        """
+        gateway = self._gateway()
+        control = None if gateway is None else host_control(gateway.config)
+        if control is None:
+            return None
+        return {"mode": "podroid", **await control.status()}
+
+    async def start_host(self) -> None:
+        """Ask the host app to boot the VM, without waiting for it."""
+        control = self._host_control()
+        await control("start")
+
+    async def install_host(self) -> None:
+        """Send the owner to the Podroid download their phone can install."""
+        control = self._host_control()
+        await control.install()
 
     # -- writes --------------------------------------------------------------
 
@@ -121,6 +150,15 @@ class SandboxSetup:
             return get_sandbox_gateway()
         except SandboxUnavailableError:
             return None
+
+    def _host_control(self) -> HttpVmControl:
+        gateway = self._gateway()
+        control = None if gateway is None else host_control(gateway.config)
+        if control is None:
+            raise SandboxUnavailableError(
+                "This instance has no host app to start the VM"
+            )
+        return control
 
     def _unsupported_reason(self, gateway: SandboxGateway) -> str | None:
         if not gateway.config.enabled:

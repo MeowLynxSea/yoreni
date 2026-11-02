@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import errno
+import json
 import posixpath
 import shlex
 import stat
@@ -40,6 +41,8 @@ from yoreni.sandbox.models import ExecResult, FileInfo, SandboxHealth, SandboxSt
 START_ACTION = "com.excp.podroid.action.START_VM"
 STOP_ACTION = "com.excp.podroid.action.STOP_VM"
 RECEIVER = "com.excp.podroid/.service.VmControlReceiver"
+# Podroid is installed separately from Yoreni; the host opens this page.
+PODROID_RELEASES_URL = "https://github.com/ExTV/Podroid/releases/latest"
 
 VmControl = Callable[[str], Awaitable[None]]
 
@@ -84,11 +87,36 @@ class HttpVmControl:
         self._url = url.rstrip("/")
 
     async def __call__(self, action: str) -> None:
-        await asyncio.to_thread(self._send, action)
+        await asyncio.to_thread(self._request, action)
 
-    def _send(self, action: str) -> None:
+    async def status(self) -> dict[str, Any]:
+        """Whether Podroid is installed here and whether its VM answers."""
+        reply = await asyncio.to_thread(self._request, "status", method="GET")
+        try:
+            payload = json.loads(reply)
+        except ValueError as exc:
+            raise SandboxUnavailableError(
+                f"The Android host sent a status Yoreni could not read: {reply[:200]}"
+            ) from exc
+        if not isinstance(payload, dict):
+            raise SandboxUnavailableError(
+                f"The Android host sent a status Yoreni could not read: {reply[:200]}"
+            )
+        return {
+            "installed": bool(payload.get("installed")),
+            "vm_running": bool(payload.get("vm_running")),
+            "version": payload.get("version") or None,
+        }
+
+    async def install(self) -> None:
+        """Open the Podroid download on the phone; Android confirms the install."""
+        await asyncio.to_thread(self._request, "install")
+
+    def _request(self, action: str, *, method: str = "POST") -> str:
         request = urllib.request.Request(
-            f"{self._url}/{action}", method="POST", data=b""
+            f"{self._url}/{action}",
+            method=method,
+            data=None if method == "GET" else b"",
         )
         try:
             with urllib.request.urlopen(request, timeout=15) as response:
@@ -102,10 +130,20 @@ class HttpVmControl:
             raise SandboxUnavailableError(
                 f"The Android host did not answer the {action} request: {exc}"
             ) from exc
+        if method == "GET" and reply.startswith("{"):
+            return reply
         if not reply.startswith("ok"):
             raise SandboxUnavailableError(
                 reply or f"The Android host refused to {action} the VM"
             )
+        return reply
+
+
+def host_control(config: SandboxConfig) -> HttpVmControl | None:
+    """The loopback control endpoint this host offers, if it offers one."""
+    if config.backend != "podroid" or not config.podroid_control_url.strip():
+        return None
+    return HttpVmControl(config.podroid_control_url)
 
 
 def _shell(

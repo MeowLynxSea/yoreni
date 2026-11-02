@@ -152,6 +152,8 @@ _WEBUI_MUTATION_PATHS = {
     "onboarding.sandbox.resources": "/api/onboarding/sandbox/resources",
     "onboarding.sandbox.install": "/api/onboarding/sandbox/install",
     "onboarding.sandbox.retry": "/api/onboarding/sandbox/retry",
+    "onboarding.host.start": "/api/onboarding/host/start",
+    "onboarding.host.install": "/api/onboarding/host/install",
     "profile.update": "/api/profile/update",
     "profile.password": "/api/profile/password",
     "profile.passkey.options": "/api/profile/passkeys/options",
@@ -551,6 +553,7 @@ class GatewayHTTPHandler:
             "/api/onboarding/embedding-test",
             "/api/onboarding/sandbox/install", "/api/onboarding/sandbox/retry",
             "/api/onboarding/sandbox/resources",
+            "/api/onboarding/host/start", "/api/onboarding/host/install",
             "/api/profile/update",
             "/api/profile/password",
             "/api/profile/passkeys/options",
@@ -963,6 +966,19 @@ class GatewayHTTPHandler:
                 return _http_json_response(self.onboarding.save_step(payload.get("step")))
             if path == "/api/onboarding/complete":
                 return _http_json_response(self.onboarding.complete(payload.get("locale")))
+            if path == "/api/onboarding/host":
+                return _http_json_response(
+                    await self.onboarding.sandbox_host(),
+                    extra_headers=_NO_STORE_HEADERS,
+                )
+            if path == "/api/onboarding/host/install":
+                return _http_json_response(
+                    await self.onboarding.install_sandbox_host()
+                )
+            if path == "/api/onboarding/host/start":
+                return _http_json_response(
+                    await self.onboarding.start_sandbox_host()
+                )
             if path == "/api/onboarding/sandbox/resources":
                 return _http_json_response(
                     self.onboarding.set_sandbox_resources(payload)

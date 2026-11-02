@@ -265,9 +265,11 @@ class PodroidBackend:
             "hostname": self._config.podroid_host,
             "port": self._config.podroid_port,
             "username": self._config.podroid_user,
-            "timeout": 10,
-            "banner_timeout": 20,
-            "auth_timeout": 20,
+            # A VM that just booted answers slowly: its sshd and the guest's
+            # own services compete for the CPU Podroid just handed it.
+            "timeout": 30,
+            "banner_timeout": 60,
+            "auth_timeout": 60,
             "allow_agent": False,
             "look_for_keys": False,
         }
@@ -340,11 +342,31 @@ class PodroidBackend:
         await self._control(action)
 
     async def prepare(self) -> None:
-        await self._ensure_client()
+        """Wait for the VM's SSH, asking the host to boot it if it is off.
+
+        On the phone the app wakes long before the VM finishes booting, and
+        Podroid shows nothing while it does, so giving up on the first socket is
+        what makes a normal start look broken. A host that refuses outright —
+        Podroid is not installed — still fails immediately, because waiting
+        would only delay the answer.
+        """
+        if self._control is not None and not await self._reachable():
+            await self._control_vm("start")
+        deadline = time.monotonic() + self._config.podroid_start_timeout_s
+        while True:
+            try:
+                await self._ensure_client()
+                return
+            except SandboxUnavailableError:
+                if time.monotonic() >= deadline:
+                    raise
+                await asyncio.sleep(2)
 
     async def start(self) -> None:
         if await self._reachable():
             return
+        # A cold VM can take minutes: the kernel, the guest's services and sshd
+        # all have to come up before anything answers on the SSH port.
         # Android freezes an idle background app, and the first broadcast can be
         # dropped before the receiver's process is resumed; one repeat is what
         # makes a cold start reliable without hammering the VM.

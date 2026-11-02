@@ -60,6 +60,7 @@ def test_the_bundled_extension_matches_the_recorded_version() -> None:
 
 def test_the_browser_service_starts_the_daemon_with_the_extension() -> None:
     script = provision._START_BROWSER.format(
+        display=":1",
         profile="/workspace/.yoreni/chromium",
         extension=browser_assets.VM_EXTENSION_DIR,
         bsk_home=browser_assets.BSK_HOME,
@@ -97,7 +98,9 @@ def test_the_desktop_packages_are_the_alpine_set() -> None:
 def test_process_probes_cannot_match_their_own_shell() -> None:
     """The scripts run as one sh -c string, so a bare pattern matches itself."""
 
-    desktop = provision._START_DESKTOP.format(display=":1")
+    desktop = provision._START_DESKTOP.format(
+        display=":1", vnc_port=provision.VNC_PORT, ws_port=provision.WS_PORT
+    )
 
     assert "pkill -f" not in desktop
     assert "pid" in desktop
@@ -106,11 +109,28 @@ def test_process_probes_cannot_match_their_own_shell() -> None:
 
 
 def test_the_desktop_serves_rfb_through_websockify() -> None:
-    script = provision._START_DESKTOP.format(display=":1")
+    script = provision._START_DESKTOP.format(
+        display=":1", vnc_port=provision.VNC_PORT, ws_port=provision.WS_PORT
+    )
 
     assert "/usr/share/novnc" in script
     assert "-viewonly" in script
     assert "-localhost" in script
+    assert "6080 127.0.0.1:5900" in script
+
+
+def test_the_desktop_relays_a_vnc_server_the_guest_owns() -> None:
+    """Podroid serves VNC on 5900 itself; replacing it would end the desktop."""
+
+    class _Backend:
+        name = "podroid"
+
+    desktop = provision.DesktopServices(_Backend(), provision.SandboxConfig())  # type: ignore[arg-type]
+    script = provision._START_DESKTOP_PODROID.format(**desktop._ports)
+
+    assert desktop._relays_guest_vnc is True
+    assert "x11vnc" not in script
+    assert "for port in 5900" not in script
     assert "6080 127.0.0.1:5900" in script
 
 

@@ -65,4 +65,6 @@ class SandboxConfig(Base):
     # A loopback endpoint the host serves (start/stop). Takes precedence over
     # adb, which an Android app cannot use.
     podroid_control_url: str = ""
-    podroid_start_timeout_s: int = Field(default=180, ge=30)
+    # A cold VM boots the kernel, the guest services and sshd before it answers;
+    # two minutes was not enough on a phone that was busy installing Podroid.
+    podroid_start_timeout_s: int = Field(default=300, ge=30)

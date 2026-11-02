@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import shlex
+from collections.abc import Mapping
 
 from loguru import logger
 
@@ -71,10 +72,11 @@ _START_DESKTOP = r"""
 set -eu
 LOGS=/workspace/.yoreni/logs
 NOVNC=/usr/share/novnc
-# Stop whatever holds the two ports, then the process groups this script
+# Stop whatever holds our two ports, then the process groups this script
 # recorded. A command-line match is not usable here: this script runs as one
-# shell string, so its own text would match.
-for port in 5900 6080; do
+# shell string, so its own text would match. Neither port may be one the guest
+# already serves — on Podroid that is its own VNC server.
+for port in {vnc_port} {ws_port}; do
   pid=$(ss -lntp 2>/dev/null | sed -n "s/.*:$port .*pid=\([0-9]*\).*/\1/p" | head -n 1)
   if [ -n "$pid" ]; then kill "$pid" 2>/dev/null || true; fi
 done
@@ -85,10 +87,30 @@ for name in x11vnc websockify; do
   rm -f "$pidfile"
 done
 sleep 1
-setsid x11vnc -display {display} -rfbport 5900 -forever -shared -viewonly \
+setsid x11vnc -display {display} -rfbport {vnc_port} -forever -shared -viewonly \
   -nopw -localhost -quiet -noxdamage -noshm >"$LOGS/x11vnc.log" 2>&1 </dev/null &
 echo $! >"$LOGS/x11vnc.pid"
-setsid websockify --web="$NOVNC" 6080 127.0.0.1:5900 \
+setsid websockify --web="$NOVNC" {ws_port} 127.0.0.1:{vnc_port} \
+  >"$LOGS/websockify.log" 2>&1 </dev/null &
+echo $! >"$LOGS/websockify.pid"
+sleep 1
+"""
+
+# Podroid already runs the guest's X server and a VNC server for it, and it
+# holds the credentials for that X display. Yoreni therefore relays that server
+# instead of mirroring it, which would need an auth cookie it cannot read.
+_START_DESKTOP_PODROID = r"""
+set -eu
+LOGS=/workspace/.yoreni/logs
+NOVNC=/usr/share/novnc
+pid=$(ss -lntp 2>/dev/null | sed -n "s/.*:{ws_port} .*pid=\([0-9]*\).*/\1/p" | head -n 1)
+if [ -n "$pid" ]; then kill "$pid" 2>/dev/null || true; fi
+if [ -f "$LOGS/websockify.pid" ]; then
+  kill -- "-$(cat "$LOGS/websockify.pid")" 2>/dev/null || true
+  rm -f "$LOGS/websockify.pid"
+fi
+sleep 1
+setsid websockify --web="$NOVNC" {ws_port} 127.0.0.1:{vnc_port} \
   >"$LOGS/websockify.log" 2>&1 </dev/null &
 echo $! >"$LOGS/websockify.pid"
 sleep 1
@@ -96,6 +118,7 @@ sleep 1
 
 _START_BROWSER = r"""
 set -eu
+export DISPLAY={display}
 LOGS=/workspace/.yoreni/logs
 # The daemon's own files are private to the user that creates them, so it runs
 # as the desktop user: a terminal there stays usable, and root can still read
@@ -140,12 +163,14 @@ nohup "$BROWSER" --user-data-dir={profile} --no-sandbox --disable-gpu \
 _PORT_OPEN = (
     'python3 -c "import socket,sys;socket.create_connection((\'127.0.0.1\',{}),2).close()"'
 )
+VNC_PORT = 5900
+WS_PORT = 6080
 _DESKTOP_READY = (
     "xdotool getdisplaygeometry >/dev/null 2>&1 && "
-    "pgrep -f '[x]11vnc .*-rfbport 5900' >/dev/null && "
-    + _PORT_OPEN.format(5900)
-    + " && pgrep -f '[w]ebsockify .*6080' >/dev/null && "
-    + _PORT_OPEN.format(6080)
+    "pgrep -f '[x]11vnc .*-rfbport {vnc_port}' >/dev/null && "
+    + _PORT_OPEN.format("{vnc_port}")
+    + " && pgrep -f '[w]ebsockify .*{ws_port}' >/dev/null && "
+    + _PORT_OPEN.format("{ws_port}")
 )
 # BrowserSkill's extension connects to the daemon on loopback and registers
 # itself as a browser; both pieces must be up before the agent can act.
@@ -166,6 +191,13 @@ _BROWSER_READY = (
 )
 # One round trip for both services: spawning a shell per probe dominates the
 # latency the WebUI sees while it polls status.
+# A guest that owns the VNC server is ready when that server and the WebSocket
+# relay both answer; there is no mirror to ask about.
+_DESKTOP_RELAY_READY = (
+    _PORT_OPEN.format("{vnc_port}")
+    + " && pgrep -f '[w]ebsockify .*{ws_port}' >/dev/null && "
+    + _PORT_OPEN.format("{ws_port}")
+)
 _READINESS = (
     'python3 -c "import json, os, socket, subprocess\n'
     "def ok(port):\n"
@@ -175,7 +207,8 @@ _READINESS = (
     "    except OSError:\n"
     "        return False\n"
     + _BROWSERS
-    + 'print(int(ok(5900) and ok(6080)), int(ok(52800) and browsers() > 0))"'
+    + 'print(int(ok({vnc_port}) and ok({ws_port})), '
+    'int(ok(52800) and browsers() > 0))"'
 )
 
 
@@ -188,6 +221,25 @@ class DesktopServices:
         self._config = config
         self._desktop_ready = False
         self._browser_ready = False
+
+    @property
+    def _relays_guest_vnc(self) -> bool:
+        """True when the guest already serves VNC for the desktop it owns.
+
+        Podroid runs both the X server and a VNC server for it and keeps that
+        display's credentials to itself, so Yoreni relays it rather than
+        mirroring it. Replacing it would take the desktop down with it.
+        """
+        return self._backend.name == "podroid"
+
+    @property
+    def _vnc_port(self) -> int:
+        """The VNC port websockify forwards: ours, or the guest's own."""
+        return VNC_PORT
+
+    @property
+    def _ports(self) -> dict[str, int]:
+        return {"vnc_port": self._vnc_port, "ws_port": WS_PORT, "display": shlex.quote(self._config.display)}
 
     @property
     def desktop_ready(self) -> bool:
@@ -236,7 +288,8 @@ class DesktopServices:
         await self._start_browser()
 
     async def _start_desktop(self) -> None:
-        script = _START_DESKTOP.format(display=shlex.quote(self._config.display))
+        template = _START_DESKTOP_PODROID if self._relays_guest_vnc else _START_DESKTOP
+        script = template.format(**self._ports)
         result = await self._backend.exec(script, cwd="/", timeout_s=60, user="root")
         if result.exit_code != 0:
             raise SandboxUnavailableError(
@@ -244,7 +297,18 @@ class DesktopServices:
                 + (result.stderr.strip() or result.stdout.strip())[-800:]
                 + await self._log_tail("/workspace/.yoreni/logs/x11vnc.log")
             )
-        self._desktop_ready = await self._wait(_DESKTOP_READY, timeout_s=30, user="root")
+        # xdotool asks the X server for the screen size, so the probe needs the
+        # same display x11vnc mirrors; without it every start reports a desktop
+        # that is running as not ready.
+        readiness = (
+            _DESKTOP_RELAY_READY if self._relays_guest_vnc else _DESKTOP_READY
+        )
+        self._desktop_ready = await self._wait(
+            readiness.format(**self._ports),
+            timeout_s=30,
+            user="root",
+            env={"DISPLAY": self._config.display},
+        )
         if not self._desktop_ready:
             raise SandboxUnavailableError(
                 "The VM desktop did not become ready. "
@@ -254,6 +318,7 @@ class DesktopServices:
 
     async def _start_browser(self) -> None:
         script = _START_BROWSER.format(
+            display=shlex.quote(self._config.display),
             profile=shlex.quote(self._config.browser_profile_dir),
             extension=shlex.quote(VM_EXTENSION_DIR),
             bsk_home=shlex.quote(BSK_HOME),
@@ -284,7 +349,8 @@ class DesktopServices:
 
     async def _process_snapshot(self, pattern: str) -> str:
         result = await self._backend.exec(
-            "ss -lnt 2>/dev/null | grep -E ':(52800|5900|6080)' || echo 'no service listeners'; "
+            f"ss -lnt 2>/dev/null | grep -E ':(52800|{self._vnc_port}|{WS_PORT})' "
+            "|| echo 'no service listeners'; "
             f"ps -eo pid,stat,args | grep -E '[{pattern[0]}]{pattern[1:]}' | head -n 5 || true",
             cwd="/",
             timeout_s=10,
@@ -319,10 +385,19 @@ class DesktopServices:
         result = await self._backend.exec(script, cwd="/", timeout_s=10, user="root")
         return (result.stdout or result.stderr).strip()[-1500:]
 
-    async def _wait(self, command: str, *, timeout_s: float, user: str | None) -> bool:
+    async def _wait(
+        self,
+        command: str,
+        *,
+        timeout_s: float,
+        user: str | None,
+        env: Mapping[str, str] | None = None,
+    ) -> bool:
         deadline = asyncio.get_running_loop().time() + timeout_s
         while asyncio.get_running_loop().time() < deadline:
-            result = await self._backend.exec(command, cwd="/", timeout_s=10, user=user)
+            result = await self._backend.exec(
+                command, cwd="/", timeout_s=10, user=user, env=env,
+            )
             if result.exit_code == 0:
                 return True
             await asyncio.sleep(1)
@@ -330,6 +405,11 @@ class DesktopServices:
 
     async def set_view_only(self, view_only: bool) -> None:
         if not self._config.desktop_enabled:
+            return
+        if self._relays_guest_vnc:
+            # Podroid's own VNC server has no view-only switch; input authority
+            # stays with the UI and the control state machine.
+            logger.debug("Skipping x11vnc {viewonly} on the guest's VNC server")
             return
         remote = "viewonly" if view_only else "noviewonly"
         try:
@@ -358,7 +438,7 @@ class DesktopServices:
         if not (self._config.desktop_enabled or self._config.browser_enabled):
             return False, False
         result = await self._backend.exec(
-            _READINESS,
+            _READINESS.format(**self._ports),
             cwd="/",
             timeout_s=10,
             user="root",

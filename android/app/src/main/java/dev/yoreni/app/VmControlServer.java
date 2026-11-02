@@ -1,18 +1,22 @@
 package dev.yoreni.app;
 
+import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.nio.charset.StandardCharsets;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Loopback control channel for the VM that Podroid owns.
@@ -28,6 +32,10 @@ public final class VmControlServer {
     private static final String RECEIVER = "com.excp.podroid.service.VmControlReceiver";
     private static final String START = "com.excp.podroid.action.START_VM";
     private static final String STOP = "com.excp.podroid.action.STOP_VM";
+    /** Podroid serves its VM over SSH on this loopback port. */
+    private static final int SSH_PORT = 9922;
+    /** Podroid is installed outside Yoreni, so the owner fetches it themselves. */
+    private static final String RELEASES = "https://github.com/ExTV/Podroid/releases/latest";
 
     private final Context context;
 
@@ -65,9 +73,11 @@ public final class VmControlServer {
     /** Answer as HTTP: the caller is urllib, which rejects a bare line. */
     private static void respond(Socket client, String reply) throws IOException {
         byte[] body = (reply + "\n").getBytes(StandardCharsets.UTF_8);
-        boolean ok = reply.startsWith("ok");
+        boolean json = reply.startsWith("{");
+        boolean ok = json || reply.startsWith("ok");
         String head = "HTTP/1.1 " + (ok ? "200 OK" : "500 Internal Server Error") + "\r\n"
-                + "Content-Type: text/plain; charset=utf-8\r\n"
+                + "Content-Type: " + (json ? "application/json" : "text/plain")
+                + "; charset=utf-8\r\n"
                 + "Content-Length: " + body.length + "\r\n"
                 + "Connection: close\r\n\r\n";
         OutputStream out = client.getOutputStream();
@@ -87,21 +97,47 @@ public final class VmControlServer {
     }
 
     private String handle(String request) {
-        String action = actionOf(request);
-        switch (action) {
+        switch (actionOf(request)) {
             case "start":
                 return send(START, "started");
             case "stop":
                 return send(STOP, "stopped");
             case "status":
-                return installed() ? "ok running" : "error: Podroid is not installed";
+                return status();
+            case "install":
+                return install();
             default:
-                return "error: unknown action " + action;
+                return "error: unknown action " + actionOf(request);
         }
     }
 
+    /**
+     * What the gateway needs before it can prepare the sandbox: whether Podroid
+     * is installed here, and whether its VM already answers. JSON, so the
+     * WebUI can tell "missing" apart from "stopped" without parsing prose.
+     */
+    private String status() {
+        PackageInfo info = packageInfo();
+        boolean running = info != null && sshOpen();
+        return "{\"installed\":" + (info != null)
+                + ",\"vm_running\":" + running
+                + ",\"version\":" + quote(info == null ? null : info.versionName) + "}";
+    }
+
+    /** Hand the owner to the Podroid download; Android asks them to confirm. */
+    private String install() {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(RELEASES));
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            context.startActivity(intent);
+        } catch (ActivityNotFoundException exc) {
+            return "error: this device has no browser to open " + RELEASES;
+        }
+        return "ok opened";
+    }
+
     private String send(String broadcast, String success) {
-        if (!installed()) {
+        if (packageInfo() == null) {
             return "error: Podroid is not installed";
         }
         Intent intent = new Intent(broadcast);
@@ -110,12 +146,28 @@ public final class VmControlServer {
         return "ok " + success;
     }
 
-    private boolean installed() {
+    private PackageInfo packageInfo() {
         try {
-            context.getPackageManager().getPackageInfo(PACKAGE, 0);
-            return true;
+            return context.getPackageManager().getPackageInfo(PACKAGE, 0);
         } catch (PackageManager.NameNotFoundException exc) {
+            return null;
+        }
+    }
+
+    /** The VM is up when its sshd accepts a connection. */
+    private boolean sshOpen() {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress("127.0.0.1", SSH_PORT), 400);
+            return true;
+        } catch (Exception exc) {
             return false;
         }
+    }
+
+    private static String quote(String value) {
+        if (value == null) {
+            return "null";
+        }
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 }

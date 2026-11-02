@@ -8,10 +8,11 @@ import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 /**
- * Shows the WebUI once the gateway answers, and the bootstrap log until then.
+ * Opens the WebUI once the gateway answers, and holds the splash until then.
  *
  * Everything heavy lives in YoreniService: this activity can be destroyed and
  * recreated without restarting the gateway.
@@ -19,17 +20,32 @@ import android.widget.TextView;
 public class MainActivity extends Activity {
 
     private static final String WEBUI_URL = "http://127.0.0.1:" + YoreniRuntime.WEBUI_PORT + "/";
+    /** Long enough for a cold first start, which unpacks the rootfs and pip. */
+    private static final int WAIT_ATTEMPTS = 2400;
 
+    private View splash;
+    private TextView status;
+    private TextView details;
     private TextView output;
+    private View progress;
+    private ScrollView logPanel;
     private WebView webview;
     private volatile boolean loaded;
+    private boolean showingLog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        splash = findViewById(R.id.splash);
+        status = findViewById(R.id.status);
+        details = findViewById(R.id.details);
         output = findViewById(R.id.output);
+        progress = findViewById(R.id.progress);
+        logPanel = findViewById(R.id.log_panel);
         webview = findViewById(R.id.webview);
+
+        details.setOnClickListener((view) -> setLogVisible(!showingLog));
 
         WebSettings settings = webview.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -59,28 +75,61 @@ public class MainActivity extends Activity {
 
     /** Load the WebUI as soon as the port answers, then stop polling. */
     private void awaitGateway() {
-        for (int attempt = 0; attempt < 1800; attempt++) {
+        for (int attempt = 0; attempt < WAIT_ATTEMPTS; attempt++) {
             if (portOpen(YoreniRuntime.WEBUI_PORT)) {
                 runOnUiThread(() -> {
                     loaded = true;
-                    output.setVisibility(View.GONE);
+                    splash.setVisibility(View.GONE);
                     webview.setVisibility(View.VISIBLE);
                     webview.loadUrl(WEBUI_URL);
                 });
                 return;
             }
-            runOnUiThread(() -> {
-                if (!loaded) {
-                    output.setText(YoreniRuntime.log());
-                }
-            });
+            render(YoreniRuntime.stage(), YoreniRuntime.failed());
             try {
-                Thread.sleep(1000);
+                Thread.sleep(500);
             } catch (InterruptedException interrupted) {
                 return;
             }
         }
-        runOnUiThread(() -> output.setText(YoreniRuntime.log() + "\nthe gateway did not start"));
+        render(YoreniRuntime.stage(), true);
+    }
+
+    /** The waiting screen says what is happening, not what the process printed. */
+    private void render(YoreniRuntime.Stage stage, boolean failed) {
+        runOnUiThread(() -> {
+            if (loaded) {
+                return;
+            }
+            status.setText(failed ? R.string.splash_failed : label(stage));
+            progress.setVisibility(failed ? View.INVISIBLE : View.VISIBLE);
+            if (failed && !showingLog) {
+                setLogVisible(true);
+            }
+        });
+    }
+
+    private static int label(YoreniRuntime.Stage stage) {
+        switch (stage) {
+            case RUNTIME:
+                return R.string.splash_runtime;
+            case ENVIRONMENT:
+                return R.string.splash_environment;
+            case GATEWAY:
+                return R.string.splash_gateway;
+            default:
+                return R.string.splash_preparing;
+        }
+    }
+
+    private void setLogVisible(boolean visible) {
+        showingLog = visible;
+        logPanel.setVisibility(visible ? View.VISIBLE : View.GONE);
+        details.setText(visible ? R.string.splash_details_hide : R.string.splash_details);
+        if (visible) {
+            output.setText(YoreniRuntime.log());
+            logPanel.post(() -> logPanel.fullScroll(View.FOCUS_DOWN));
+        }
     }
 
     private boolean portOpen(int port) {

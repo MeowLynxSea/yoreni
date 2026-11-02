@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#101215">
+    android:background="@drawable/splash_background">
 
     <WebView
         android:id="@+id/webview"
@@ -10,13 +10,104 @@
         android:layout_height="match_parent"
         android:visibility="gone" />
 
-    <TextView
-        android:id="@+id/output"
+    <!-- Shown until the gateway answers: the same night palette, mark and
+         wordmark the WebUI opens with, instead of a scrolling console. -->
+    <LinearLayout
+        android:id="@+id/splash"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="16dp"
-        android:fontFamily="monospace"
-        android:textColor="#d8dee9"
-        android:textSize="11sp"
-        android:textIsSelectable="true" />
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingLeft="32dp"
+        android:paddingRight="32dp"
+        android:paddingTop="24dp"
+        android:paddingBottom="20dp">
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <FrameLayout
+            android:layout_width="132dp"
+            android:layout_height="132dp">
+
+            <View
+                android:layout_width="132dp"
+                android:layout_height="132dp"
+                android:background="@drawable/splash_halo" />
+
+            <ImageView
+                android:id="@+id/mark"
+                android:layout_width="84dp"
+                android:layout_height="84dp"
+                android:layout_gravity="center"
+                android:contentDescription="@null"
+                android:src="@mipmap/ic_launcher" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/wordmark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:fontFamily="serif"
+            android:letterSpacing="0.04"
+            android:text="@string/app_name"
+            android:textColor="@color/splash_text"
+            android:textSize="28sp" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:text="@string/splash_preparing"
+            android:textColor="@color/splash_muted"
+            android:textSize="13sp" />
+
+        <ProgressBar
+            android:id="@+id/progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="168dp"
+            android:layout_height="2dp"
+            android:layout_marginTop="22dp"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/splash_accent" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/details"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingLeft="12dp"
+            android:paddingRight="12dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:text="@string/splash_details"
+            android:textColor="@color/splash_faint"
+            android:textSize="11sp" />
+
+        <ScrollView
+            android:id="@+id/log_panel"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/output"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:padding="10dp"
+                android:textColor="#c8d4e0"
+                android:textIsSelectable="true"
+                android:textSize="10sp" />
+        </ScrollView>
+    </LinearLayout>
 </FrameLayout>

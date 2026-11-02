@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Night-to-navy, the palette of the Yoreni dark theme and its mark. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#0b1220"
+        android:centerColor="#0f1a2e"
+        android:endColor="#10284a"
+        android:type="linear" />
+</shape>

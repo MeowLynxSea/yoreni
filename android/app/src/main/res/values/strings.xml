@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Yoreni</string>
+    <string name="splash_preparing">Getting Yoreni ready</string>
+    <string name="splash_runtime">Installing the runtime</string>
+    <string name="splash_environment">Connecting the Linux environment</string>
+    <string name="splash_gateway">Starting the gateway</string>
+    <string name="splash_failed">Yoreni could not start</string>
+    <string name="splash_details">Details</string>
+    <string name="splash_details_hide">Hide details</string>
+</resources>

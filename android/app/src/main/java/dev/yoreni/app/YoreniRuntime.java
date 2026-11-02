@@ -31,7 +31,17 @@ public final class YoreniRuntime {
     /** Port the Android host exposes for VM control from inside the rootfs. */
     public static final int CONTROL_PORT = 8766;
 
+    /** What the bootstrap is doing, for the screen that waits on it. */
+    public enum Stage {
+        PREPARING,
+        RUNTIME,
+        ENVIRONMENT,
+        GATEWAY,
+    }
+
     private static final StringBuilder LOG = new StringBuilder();
+    private static volatile Stage stage = Stage.PREPARING;
+    private static volatile boolean failed;
 
     private YoreniRuntime() {
     }
@@ -40,19 +50,51 @@ public final class YoreniRuntime {
         return LOG.toString();
     }
 
+    public static Stage stage() {
+        return stage;
+    }
+
+    public static boolean failed() {
+        return failed;
+    }
+
     public static synchronized void append(String line) {
         Log.i("yoreni", line);
+        // run.sh marks each phase on its own line; the marker is protocol, not
+        // something the owner should read.
+        if (note(line)) {
+            return;
+        }
         LOG.append(line).append('\n');
         if (LOG.length() > 20000) {
             LOG.delete(0, LOG.length() - 20000);
         }
     }
 
+    /** Advance the reported stage from one of run.sh's markers. */
+    private static boolean note(String line) {
+        String marker = line.trim();
+        if (!marker.startsWith("STEP-")) {
+            return false;
+        }
+        if (marker.equals("STEP-DEPS")) {
+            stage = Stage.RUNTIME;
+        } else if (marker.equals("STEP-CONFIG") || marker.equals("STEP-SANDBOX")) {
+            stage = Stage.ENVIRONMENT;
+        } else if (marker.equals("STEP-SERVE")) {
+            stage = Stage.GATEWAY;
+        }
+        return true;
+    }
+
     /** Blocking entry point; returns only when the gateway exits. */
     public static void run(Context context) {
+        failed = false;
+        stage = Stage.PREPARING;
         try {
             bootstrap(context);
         } catch (Exception exc) {
+            failed = true;
             append("FAILED: " + exc);
         }
     }
@@ -136,6 +178,7 @@ public final class YoreniRuntime {
 
         append("$ proot -0 -r ubuntu sh /opt/run.sh");
         int code = exec(0, env, cmd.toArray(new String[0]));
+        failed = true;
         append("[gateway exited " + code + "]");
     }
 

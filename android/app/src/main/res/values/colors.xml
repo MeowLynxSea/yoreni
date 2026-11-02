@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The navy of the Yoreni mark; the adaptive icon pads the art with it. -->
+    <color name="ic_launcher_background">#0f274c</color>
+    <!-- The sea-glass accent the WebUI uses for progress. -->
+    <color name="splash_accent">#6fc3c8</color>
+    <color name="splash_text">#f2f5f8</color>
+    <color name="splash_muted">#9db2c6</color>
+    <color name="splash_faint">#6d8298</color>
+</resources>

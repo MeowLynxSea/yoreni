@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A quiet glow behind the mark, the way the WebUI floats its own light. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <gradient
+        android:type="radial"
+        android:centerX="0.5"
+        android:centerY="0.5"
+        android:gradientRadius="66dp"
+        android:startColor="#3d6fc3c8"
+        android:endColor="#006fc3c8" />
+</shape>

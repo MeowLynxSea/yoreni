@@ -36,24 +36,16 @@ print("sandbox backend:", sandbox["backend"])
 PY
 
 echo STEP-SANDBOX
-python3 - <<'PY'
+# Podroid may still be missing or its VM still off: the WebUI walks the owner
+# through both, so a sandbox that is not up yet must never stop the gateway
+# from serving and reporting why.
+python3 - <<'PY' || true
 import asyncio
 import time
 
 from yoreni.config.loader import load_config
-from yoreni.sandbox.podroid_backend import PodroidBackend
 from yoreni.sandbox.errors import SandboxUnavailableError
-
-
-async def connect(backend: PodroidBackend) -> None:
-    for attempt in range(6):
-        try:
-            await backend.prepare()
-            return
-        except SandboxUnavailableError:
-            if attempt == 5:
-                raise
-            await asyncio.sleep(5)
+from yoreni.sandbox.podroid_backend import PodroidBackend
 
 
 async def main() -> None:
@@ -61,12 +53,14 @@ async def main() -> None:
     backend = PodroidBackend(config)
     started = time.time()
     try:
-        await connect(backend)
+        await backend.prepare()
         result = await backend.exec("uname -m; . /etc/os-release && echo $PRETTY_NAME", cwd="/")
         print("sandbox exec (%0.1fs):" % (time.time() - started),
               result.stdout.strip().replace("\n", " | "))
         info = await backend.stat("/workspace")
         print("sandbox stat /workspace:", None if info is None else info.is_dir)
+    except SandboxUnavailableError as exc:
+        print("sandbox not ready yet:", exc)
     finally:
         await backend.close()
 

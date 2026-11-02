@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
     private ScrollView logPanel;
     private WebView webview;
     private volatile boolean loaded;
-    private boolean showingLog;
+    private volatile boolean showingLog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,6 +86,7 @@ public class MainActivity extends Activity {
                 return;
             }
             render(YoreniRuntime.stage(), YoreniRuntime.failed());
+            refreshLog();
             try {
                 Thread.sleep(500);
             } catch (InterruptedException interrupted) {
@@ -107,6 +108,34 @@ public class MainActivity extends Activity {
                 setLogVisible(true);
             }
         });
+    }
+
+    /** Keep an open detail panel live: the bootstrap keeps writing while it waits. */
+    private void refreshLog() {
+        if (!showingLog) {
+            return;
+        }
+        String text = YoreniRuntime.log();
+        runOnUiThread(() -> {
+            if (!showingLog || text.equals(output.getText().toString())) {
+                return;
+            }
+            boolean follow = atLogBottom();
+            output.setText(text);
+            if (follow) {
+                logPanel.post(() -> logPanel.fullScroll(View.FOCUS_DOWN));
+            }
+        });
+    }
+
+    /** Only follow new lines when the reader has not scrolled back. */
+    private boolean atLogBottom() {
+        View child = logPanel.getChildAt(0);
+        if (child == null) {
+            return true;
+        }
+        int slack = Math.round(24 * getResources().getDisplayMetrics().density);
+        return child.getBottom() - logPanel.getHeight() - logPanel.getScrollY() <= slack;
     }
 
     private static int label(YoreniRuntime.Stage stage) {

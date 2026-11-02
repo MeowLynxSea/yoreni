@@ -79,7 +79,7 @@ public final class YoreniRuntime {
         }
         if (marker.equals("STEP-DEPS")) {
             stage = Stage.RUNTIME;
-        } else if (marker.equals("STEP-CONFIG") || marker.equals("STEP-SANDBOX")) {
+        } else if (marker.equals("STEP-CONFIG")) {
             stage = Stage.ENVIRONMENT;
         } else if (marker.equals("STEP-SERVE")) {
             stage = Stage.GATEWAY;

@@ -25,8 +25,8 @@ import {
   startSandboxInstall,
 } from "@/lib/api";
 import {
-  ONBOARDING_FLOW,
   isProfileComplete,
+  onboardingFlow,
   previousStep,
   profileFromWire,
   stepIndex,
@@ -76,7 +76,13 @@ export function OnboardingFlow({
   onComplete: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const [step, setStep] = useState<OnboardingStep>(initial.step === "done" ? "embedding" : initial.step);
+  const passwordRequired = initial.password_required;
+  const flow = useMemo(() => onboardingFlow(passwordRequired), [passwordRequired]);
+  const [step, setStep] = useState<OnboardingStep>(() => {
+    const stored = initial.step === "done" ? "embedding" : initial.step;
+    // A stored password step on a phone resumes at the question after it.
+    return !passwordRequired && stored === "token" ? "language" : stored;
+  });
   const [profile, setProfile] = useState<UserProfile>(() => profileFromWire(initial.profile));
   const [tokenSet, setTokenSet] = useState(initial.token_set);
   const [password, setPassword] = useState("");
@@ -167,7 +173,7 @@ export function OnboardingFlow({
   const back = async () => {
     if (busy !== "idle") return;
     if (advanceTimer.current !== null) window.clearTimeout(advanceTimer.current);
-    const target = previousStep(step);
+    const target = previousStep(step, flow);
     setError(null);
     setStep(target);
     try {
@@ -279,8 +285,8 @@ export function OnboardingFlow({
     }
   };
 
-  const progress = useMemo(() => stepProgress(step), [step]);
-  const stepNumber = stepIndex(step) + 1;
+  const progress = useMemo(() => stepProgress(step, flow), [step, flow]);
+  const stepNumber = stepIndex(step, flow) + 1;
 
   if (step === "done") {
     return (
@@ -337,7 +343,7 @@ export function OnboardingFlow({
             <span style={{ width: `${Math.max(progress * 100, 4)}%` }} />
           </div>
           <span className="w-10 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground/70">
-            {stepNumber}/{ONBOARDING_FLOW.length}
+            {stepNumber}/{flow.length}
           </span>
         </div>
       </header>

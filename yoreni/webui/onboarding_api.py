@@ -109,6 +109,10 @@ class OnboardingService:
 
         return get_sandbox_setup().snapshot()
 
+    def password_required(self) -> bool:
+        """A phone app has no remote client to keep out; a desktop does."""
+        return self.sandbox_host_mode() != "podroid"
+
     def sandbox_host_mode(self) -> str:
         from yoreni.sandbox.setup import get_sandbox_setup
 
@@ -182,6 +186,7 @@ class OnboardingService:
         token_set = _token_is_set(config)
         sandbox = self.sandbox_snapshot()
         resources = self.sandbox_resources(config, sandbox)
+        password_required = self.password_required()
         if record is not None:
             step = record.step
         elif status == "completed":
@@ -191,11 +196,14 @@ class OnboardingService:
             # question that cannot wait for the rest of the setup.
             step = "resources" if resources is not None else "token"
         if status != "completed" and not token_set and step not in {"resources", "token"}:
-            step = "token"
+            step = "token" if password_required else "language"
+        if not password_required and step == "token":
+            step = "language"
         return {
             "status": status,
             "step": step,
             "token_set": token_set,
+            "password_required": password_required,
             "profile": profile_payload(profile),
             "completed_at": record.completed_at if record else None,
             "sandbox": sandbox,
@@ -347,7 +355,7 @@ class OnboardingService:
         """Validate required setup, persist completion, and create the welcome run once."""
         with self._lock:
             config = self._config.load()
-            if not _token_is_set(config):
+            if self.password_required() and not _token_is_set(config):
                 raise OnboardingError("Set a WebUI password first")
             profile = self._profile.read()
             try:

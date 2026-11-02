@@ -1494,6 +1494,8 @@ export interface OnboardingSnapshot {
   status: "uninitialized" | "in_progress" | "completed";
   step: OnboardingStep;
   token_set: boolean;
+  /** False on the phone app, which has no remote client to keep out. */
+  password_required: boolean;
   profile: UserProfile;
   completed_at: string | null;
   sandbox: SandboxSetupState;

@@ -189,6 +189,9 @@ def test_completion_waits_for_the_sandbox(tmp_path: Path, monkeypatch: pytest.Mo
         def is_ready(self) -> bool:
             return self.ready
 
+        def host_mode(self) -> str:
+            return "desktop"
+
         def snapshot(self) -> dict[str, object]:
             return {"state": "ready" if self.ready else "running", "percent": 42.0}
 
@@ -206,4 +209,35 @@ def test_completion_waits_for_the_sandbox(tmp_path: Path, monkeypatch: pytest.Mo
     assert service.is_complete() is False
 
     fake.ready = True
+    assert service.complete("en")["status"] == "completed"
+
+
+def test_a_phone_instance_skips_the_password_step(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The app is the only client, so first run must not ask for a password."""
+    from yoreni.sandbox import setup as setup_module
+
+    class _Setup:
+        def host_mode(self) -> str:
+            return "podroid"
+
+        def is_ready(self) -> bool:
+            return True
+
+        def snapshot(self) -> dict[str, object]:
+            return {"state": "ready", "percent": 100.0}
+
+    monkeypatch.setattr(setup_module, "get_sandbox_setup", lambda: _Setup())
+    _write_config(tmp_path / "config.json", with_model=True)
+    service = _service(tmp_path)
+
+    snapshot = service.snapshot()
+    assert snapshot["password_required"] is False
+    assert snapshot["token_set"] is False
+    # The VM's setup comes first; the password question is gone entirely.
+    assert snapshot["step"] == "resources"
+    assert service.save_step("language")["step"] == "language"
+
+    service.save_profile({"name": "Ada", "style": {"base": "friendly"}})
     assert service.complete("en")["status"] == "completed"

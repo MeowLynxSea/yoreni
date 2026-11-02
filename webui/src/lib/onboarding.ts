@@ -72,21 +72,40 @@ export function profileFromWire(value: Partial<UserProfile> | null | undefined):
   };
 }
 
-export function stepIndex(step: OnboardingStep): number {
-  const index = ONBOARDING_FLOW.indexOf(step);
+/** The phone app has no remote client, so it never asks for a password. */
+export function onboardingFlow(passwordRequired: boolean): OnboardingStep[] {
+  return passwordRequired
+    ? ONBOARDING_FLOW
+    : ONBOARDING_FLOW.filter((step) => step !== "token");
+}
+
+export function stepIndex(
+  step: OnboardingStep,
+  flow: OnboardingStep[] = ONBOARDING_FLOW,
+): number {
+  const index = flow.indexOf(step);
   return index < 0 ? 0 : index;
 }
 
-export function stepProgress(step: OnboardingStep): number {
-  return (stepIndex(step) + 1) / ONBOARDING_FLOW.length;
+export function stepProgress(
+  step: OnboardingStep,
+  flow: OnboardingStep[] = ONBOARDING_FLOW,
+): number {
+  return (stepIndex(step, flow) + 1) / flow.length;
 }
 
-export function nextStep(step: OnboardingStep): OnboardingStep {
-  return ONBOARDING_FLOW[Math.min(stepIndex(step) + 1, ONBOARDING_FLOW.length - 1)];
+export function nextStep(
+  step: OnboardingStep,
+  flow: OnboardingStep[] = ONBOARDING_FLOW,
+): OnboardingStep {
+  return flow[Math.min(stepIndex(step, flow) + 1, flow.length - 1)];
 }
 
-export function previousStep(step: OnboardingStep): OnboardingStep {
-  return ONBOARDING_FLOW[Math.max(stepIndex(step) - 1, 0)];
+export function previousStep(
+  step: OnboardingStep,
+  flow: OnboardingStep[] = ONBOARDING_FLOW,
+): OnboardingStep {
+  return flow[Math.max(stepIndex(step, flow) - 1, 0)];
 }
 
 export function isProfileComplete(profile: UserProfile): boolean {

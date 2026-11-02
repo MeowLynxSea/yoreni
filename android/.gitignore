@@ -1,0 +1,10 @@
+# Build output
+build/
+.gradle/
+local.properties
+.cache/
+
+# Binaries, fetched by tools/fetch-assets.sh. They are too large for git and
+# are rebuilt from public sources by that script.
+app/src/main/assets/*.bin
+app/src/main/jniLibs/

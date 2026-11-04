@@ -51,7 +51,14 @@ path.write_text(json.dumps(config, indent=2) + "\n")
 print("sandbox backend:", sandbox["backend"])
 PY
 
+# The app owns this container: every launch starts a new proot tree, so a run
+# state left behind by the previous one describes a process that is gone. The
+# state file compares PIDs, and Android has long since handed that number to
+# some other app, whose process the rootfs cannot inspect; the gateway then
+# reads the record as "already running" and refuses to start. Nothing inside
+# the rootfs outlives the app, so the record is dropped before it can block.
 echo STEP-SERVE
+rm -f /root/.yoreni/run/gateway.json
 cd /opt
 cat > /opt/serve.py <<'PY'
 import sys
